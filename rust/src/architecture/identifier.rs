@@ -4,7 +4,6 @@ use core::fmt::{Debug, Display};
 use core::hash::Hash;
 use core::marker::PhantomData;
 
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// A typed identity value.
@@ -71,7 +70,7 @@ pub trait Identifier: Copy + Eq + Hash + Debug {
 /// let back: AccountId = serde_json::from_str("42").unwrap();
 /// assert_eq!(back, AccountId::from_raw(42));
 /// ```
-#[derive(Serialize, Deserialize)]
+#[derive(serde::Deserialize, serde::Serialize)]
 #[serde(transparent)]
 pub struct Id<Tag, U = Uuid> {
 	value: U,

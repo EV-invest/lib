@@ -103,7 +103,7 @@ pub trait EmitsEvents: super::entity::AggregateRoot {
 ///
 /// The explicit serde bound resolves the ambiguity between the derive's default
 /// `E: Deserialize<'de>` bound and `DomainEvent`'s `DeserializeOwned` supertrait.
-#[derive(Clone, Debug, Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(bound = "E: DomainEvent")]
 pub struct EventEnvelope<E: DomainEvent> {
 	pub id: uuid::Uuid,
@@ -114,9 +114,8 @@ pub struct EventEnvelope<E: DomainEvent> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use serde::Deserialize;
 
-	#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+	#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 	struct Published {
 		slug: String,
 	}
