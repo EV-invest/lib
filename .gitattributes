@@ -1,35 +1,38 @@
 # Audio formats
-*.mp3 binary -filter
-*.flac binary -filter
-*.wav binary -filter
-*.ogg binary -filter
-*.m4a binary -filter
-*.aac binary -filter
-*.opus binary -filter
-*.wma binary -filter
+*.mp3 -filter
+*.flac -filter
+*.wav -filter
+*.ogg -filter
+*.m4a -filter
+*.aac -filter
+*.opus -filter
+*.wma -filter
 
 # Image formats
-*.jpg binary -filter
-*.jpeg binary -filter
-*.png binary -filter
-*.gif binary -filter
-*.bmp binary -filter
-*.tiff binary -filter
-*.webp binary -filter
-*.svg binary -filter
+*.jpg -filter
+*.jpeg -filter
+*.png -filter
+*.gif -filter
+*.bmp -filter
+*.tiff -filter
+*.webp -filter
 
 # Documents
-*.pdf binary -filter
-*.excalidraw binary -filter
+*.pdf filter=lfs diff=lfs merge=ours -text
+*.excalidraw filter=lfs diff=lfs merge=ours -text
 
 # Data
-*.json binary -filter
-*.csv binary -filter
-*.parquet binary -filter
-*.pkl binary -filter
-*.npy binary -filter
-*.npz binary -filter
-*.db binary -filter
-*.sqlite binary -filter
-*.sqlite3 binary -filter
-*.onnx binary -filter
+*.csv -filter
+*.parquet -filter
+*.pkl -filter
+*.npy -filter
+*.npz -filter
+*.db -filter
+*.sqlite -filter
+*.sqlite3 -filter
+*.onnx -filter
+
+# Generated/locked files (keep current branch's version on conflict)
+Cargo.lock -filter merge=ours
+flake.lock -filter merge=ours
+.pre-commit-config.yaml -filter merge=ours

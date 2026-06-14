@@ -1,33 +1,102 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/da5ad661ba4e5ef59ba743f0d112cbc30e474f32";
-    flake-utils.url = "github:numtide/flake-utils/11707dc2f618dd54ca8739b309ec4fc024de578b";
-    v_flakes.url = "github:valeratrades/v_flakes/6062f652effc94be053865d58ff03c697c31ecb6";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    flake-utils.url = "github:numtide/flake-utils";
+    pre-commit-hooks.url = "github:cachix/git-hooks.nix";
+    v_flakes.url = "github:valeratrades/v_flakes?ref=v1.6";
   };
 
-  outputs = { self, nixpkgs, flake-utils, v_flakes }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs = { self, nixpkgs, rust-overlay, flake-utils, pre-commit-hooks, v_flakes }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        overlays = [ (import rust-overlay) ];
+        pkgs = import nixpkgs { inherit system overlays; };
+
+        # Nightly toolchain: the org `rustfmt.toml` uses unstable features and the
+        # generated cargo config enables the cranelift backend — both nightly-only.
+        # `wasm32` is included because the `architecture` crate is I/O-free and
+        # wasm-safe (`cargo check --target wasm32-unknown-unknown`).
+        rust = pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default.override {
+          extensions = [ "rust-src" "rust-analyzer" "rust-docs" "rustc-codegen-cranelift-preview" ];
+          targets = [ "wasm32-unknown-unknown" ];
+        });
+
+        pname = "ev";
+
+        # Local git hooks (treefmt etc.) — installed into .git/hooks at shell entry.
+        pre-commit-check = pre-commit-hooks.lib.${system}.run (v_flakes.files.preCommit { inherit pkgs; });
+
+        # The crate's sources live in `rust/`, but the org tooling drives cargo
+        # from the repo root (anchored by the thin workspace in ./Cargo.toml), so
+        # the root-relative file management here lands correctly. build.rs
+        # generation is off — `ev` is a pure library with no build script.
+        rs = v_flakes.rs {
+          inherit pkgs rust;
+          build.enable = false;
+        };
+
+        github = v_flakes.github {
+          inherit pkgs pname rs;
+          enable = true;
+          # CI workflows intentionally left off for now (no `jobs.default`), so
+          # nothing is generated under .github/workflows. The rest of the github
+          # module (gitignore/gitattributes, pre-commit hook) still applies.
+          lastSupportedVersion = "nightly-2026-05-12";
+          gitignore.extra = ''
+            ## Node / TypeScript
+            **/node_modules/
+            **/dist/
+            **/*.tsbuildinfo
+            ## LLMs
+            AGENTS.md
+            CLAUDE.md
+            .claude/
+            .pre-commit-config.yaml
+          '';
+          lfs = false;
+        };
+
+        readme = v_flakes.readme-fw {
+          inherit pkgs pname;
+          defaults = true;
+          lastSupportedVersion = "nightly-1.92";
+          rootDir = ./.;
+          # No `ci` badge (CI off) and no `loc` badge (its gist isn't created
+          # without CI, so the endpoint 404s as "custom badge / resource not found").
+          badges = [ "msrv" "crates_io" "docs_rs" ];
+        };
+
+        combined = v_flakes.utils.combine { inherit rust; modules = [ rs github readme ]; };
       in
       {
-        devShells.default = pkgs.mkShell {
-          packages = with pkgs; [
-            cargo
-            rustc
-            clippy
-            rustfmt
-            nodejs_22
-          ];
-          shellHook = ''
-            cp -f ${(v_flakes.files.gitattributes { inherit pkgs; lfs = false; })} ./.gitattributes
-            cp -f ${(v_flakes.files.gitignore {
-              inherit pkgs;
-              langs = [ "rs" ];
-              # No JS/TS fragment ships with v_flakes; append node artifacts here.
-              extra = "## Node / TypeScript\n**/node_modules/\n**/dist/\n**/*.tsbuildinfo";
-            })} ./.gitignore
-          '';
-        };
-      });
+        devShells.default =
+          with pkgs;
+          mkShell {
+            shellHook =
+              pre-commit-check.shellHook
+              + combined.shellHook
+              + ''
+                cp -f ${(v_flakes.files.treefmt) { inherit pkgs; }} ./.treefmt.toml
+
+                # macOS: the nightly toolchain resolves libLLVM via a fallback path
+                # when linking host proc-macros (serde/uuid derives) and rust-lld
+                # (wasm32); without this they abort on missing LLVM symbols. The
+                # var is macOS-only, so this is a no-op on Linux.
+                export DYLD_FALLBACK_LIBRARY_PATH="${rust}/lib''${DYLD_FALLBACK_LIBRARY_PATH:+:$DYLD_FALLBACK_LIBRARY_PATH}"
+              '';
+
+            packages = [
+              nodejs
+              rust
+            ]
+            ++ lib.optionals stdenv.isLinux [ mold ]
+            ++ pre-commit-check.enabledPackages
+            ++ combined.enabledPackages;
+
+            env.RUST_BACKTRACE = 1;
+          };
+      }
+    );
 }
