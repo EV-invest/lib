@@ -1,17 +1,13 @@
 # ts
 
-TypeScript libraries. One directory per package, each self-contained with its own
-`package.json`:
+TypeScript libraries — one directory per package, each self-contained with its
+own `package.json`, built ESM-only with `tsup` and tested with `vitest`.
 
 ```
 ts/
-├── <library-a>/
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── src/
-└── <library-b>/
-    └── …
+└── architecture/   port of the `architecture` Cargo feature (DDD kernel)
 ```
 
-`node_modules/`, `dist/`, and `*.tsbuildinfo` are git-ignored (appended to the
-root `.gitignore` by the flake; see [`../README.md`](../README.md)).
+Each package mirrors the _semantics_ of its Rust counterpart in
+[`../rust`](../rust); see the package's own README for the Rust↔TS mapping.
+`node_modules/`, `dist/`, and `*.tsbuildinfo` are git-ignored.

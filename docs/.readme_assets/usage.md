@@ -1,19 +1,4 @@
-# ev
-![Minimum Supported Rust Version](https://img.shields.io/badge/nightly-1.92+-ab6000.svg)
-[<img alt="crates.io" src="https://img.shields.io/crates/v/ev.svg?color=fc8d62&logo=rust" height="20" style=flat-square>](https://crates.io/crates/ev)
-[<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs&style=flat-square" height="20">](https://docs.rs/ev)
-
-[<img alt="TypeScript: strict" src="https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white&style=flat-square" height="20">](ts/architecture)
-<img alt="module: ESM only" src="https://img.shields.io/badge/module-ESM_only-f7df1e?logo=javascript&logoColor=black&style=flat-square" height="20">
-<img alt="Node >=20" src="https://img.shields.io/badge/node-%E2%89%A520-339933?logo=nodedotjs&logoColor=white&style=flat-square" height="20">
-<img alt="runtime deps: 0" src="https://img.shields.io/badge/runtime_deps-0-44cc11?style=flat-square" height="20">
-
-EV-invest's shared libraries — a polyglot monorepo. Each library is opt-in, so a
-consumer pulls in only what it asks for: a Cargo feature on the Rust side, a
-package under `ts/` on the TypeScript side.
-
-## Usage
-### Layout
+## Layout
 
 | Path | What | Stack |
 | ---- | ---- | ----- |
@@ -26,7 +11,7 @@ sources live in `rust/`) at the repo root, where the shared CI and tooling run; 
 consumer's git dependency still resolves the `ev` package by name. See
 [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-### Rust: one crate, a feature per library
+## Rust: one crate, a feature per library
 
 Each library is a module behind a Cargo feature, so a consumer compiles only what
 it enables.
@@ -36,7 +21,7 @@ it enables.
 | `architecture` | I/O-free, `wasm32`-safe DDD tactical kernel: typed ids, entities, aggregate roots, repositories, gateways, the unit of work, domain events, specifications |
 | `wasm` | opt-in switch layering browser/js backends onto whatever features are enabled |
 
-#### Consume it
+### Consume it
 
 ```toml
 ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["architecture"] }
@@ -50,7 +35,7 @@ builds never link browser backends:
 ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["architecture", "wasm"] }
 ```
 
-#### Develop & test
+### Develop & test
 
 cargo runs from the repo root (the workspace anchors the crate in `rust/`); pass
 `-p ev` because feature flags aren't allowed at a virtual-workspace root:
@@ -61,25 +46,15 @@ cargo clippy -p ev --features architecture --all-targets -- -D warnings
 cargo check -p ev --features "architecture wasm" --target wasm32-unknown-unknown
 ```
 
-### TypeScript
+## TypeScript
 
 TS packages live under [`ts/`](ts/), one directory per library, each with its own
 `package.json`. See [`ts/architecture/`](ts/architecture/) — the port of the
 `architecture` kernel.
 
-<!-- Per-library details live in each package's own README (Rust feature docs; ts/<pkg>/README.md). -->
+## Dev shell
 
-#### License
-
-<sup>
-	Licensed under <a href="LICENSE">Blue Oak 1.0.0</a>
-</sup>
-
-<br>
-
-<sub>
-	Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
-be licensed as above, without any additional terms or conditions.
-</sub>
-
+`direnv allow` (or `nix develop`) drops you into the flake shell: the Rust
+(nightly) + Node toolchains, formatters, and pre-commit hooks. The `.gitignore`,
+`rustfmt.toml`, CI workflows, and this README are generated on entry — don't
+hand-edit generated files.
