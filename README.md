@@ -5,7 +5,7 @@
 
 [<img alt="TypeScript: strict" src="https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white&style=flat-square" height="20">](ts/architecture)
 <img alt="module: ESM only" src="https://img.shields.io/badge/module-ESM_only-f7df1e?logo=javascript&logoColor=black&style=flat-square" height="20">
-<img alt="Node >=20" src="https://img.shields.io/badge/node-%E2%89%A520-339933?logo=nodedotjs&logoColor=white&style=flat-square" height="20">
+<img alt="Node 20+" src="https://img.shields.io/badge/node-%E2%89%A520-339933?logo=nodedotjs&logoColor=white&style=flat-square" height="20">
 <img alt="runtime deps: 0" src="https://img.shields.io/badge/runtime_deps-0-44cc11?style=flat-square" height="20">
 
 EV-invest's shared libraries — a polyglot monorepo. Each library is opt-in, so a
@@ -67,7 +67,21 @@ TS packages live under [`ts/`](ts/), one directory per library, each with its ow
 `package.json`. See [`ts/architecture/`](ts/architecture/) — the port of the
 `architecture` kernel.
 
+### Dev shell
+
+`direnv allow` (or `nix develop`) drops you into the flake shell: the Rust
+(nightly) + Node toolchains, formatters, and pre-commit hooks. The `.gitignore`,
+`rustfmt.toml`, CI workflows, and this README are generated on entry — don't
+hand-edit generated files.
+
 <!-- Per-library details live in each package's own README (Rust feature docs; ts/<pkg>/README.md). -->
+
+
+<br>
+
+<sup>
+	This repository follows <a href="https://github.com/valeratrades/.github/tree/master/best_practices">my best practices</a> and <a href="https://github.com/tigerbeetle/tigerbeetle/blob/main/docs/TIGER_STYLE.md">Tiger Style</a> (except "proper capitalization for acronyms": (VsrState, not VSRState) and formatting). For project's architecture, see <a href="./docs/ARCHITECTURE.md">ARCHITECTURE.md</a>.
+</sup>
 
 #### License
 
