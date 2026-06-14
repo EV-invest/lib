@@ -1,0 +1,39 @@
+{
+  "name": "@ev/architecture",
+  "version": "0.1.0",
+  "description": "Generic, I/O-free DDD tactical kernel: typed ids, entities, aggregate roots, domain events, repositories, gateways, the unit of work, and specifications.",
+  "license": "BlueOak-1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EV-invest/lib.git",
+    "directory": "ts/architecture"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "prepare": "tsup"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
