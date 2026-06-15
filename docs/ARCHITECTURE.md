@@ -12,10 +12,11 @@ lib/                 (repo: EV-invest/lib)
 ├── Cargo.toml       thin virtual workspace — anchors the crate at the repo root
 ├── rust/            the `ev` crate (sources); one library per Cargo feature
 │   ├── Cargo.toml
-│   ├── src/{lib.rs, architecture/}
+│   ├── src/{lib.rs, architecture/, uikit/}
 │   └── tests/
 ├── ts/              TypeScript packages, one directory per library
-│   └── architecture/
+│   ├── architecture/
+│   └── uikit/
 ├── docs/
 │   ├── ARCHITECTURE.md          (this file)
 │   └── .readme_assets/          README fragments (README.md is generated)
@@ -65,6 +66,33 @@ Any operation spanning both is an explicit application-layer saga, not an atomic
 transaction. The intended future mechanism is a `DomainEvent` written to an
 outbox **inside the same `UnitOfWork`** as the state change — which is why
 `DomainEvent` exists but is unwired today.
+
+## The `uikit` library
+
+A **dep-light** UI kit — 63 shadcn-semantics components — shipped as the Rust
+feature `uikit` (`ev::uikit`, Dioxus) and the TS package `@ev/uikit` (React). It
+is the kit consolidated out of the EV-invest apps (`cabinet`'s Dioxus components
+and `landing`'s React bricks), so both apps depend on one versioned source.
+
+Unlike the kernel, `uikit` is **not** zero-dep and **not** I/O-free — a UI kit
+inherently carries a renderer (`dioxus` / `react`) and styling helpers. What it
+keeps from the repo's discipline:
+
+- **Dep-light:** no `@radix-ui`, no `class-variance-authority`, no icon/charting/
+  date/toast libraries. Variants are `enum`+`match` (Rust) / `as const` maps (TS)
+  fused by the `cn!`/`cn` helper; overlay behaviour is hand-rolled in
+  `primitives/`; icons are inline SVG.
+- **One canon, two ports:** the Rust feature is the source of truth; canonical
+  Tailwind class strings are identical per element across Rust and TS. Variants
+  are the **superset** of the two original sources.
+- **`tokens.css` is the contract:** the design tokens (CSS custom properties +
+  Tailwind `@theme inline`) ship from both packages in byte parity. Every
+  component class references a token; a consumer must `@import` `tokens.css`.
+
+Because Dioxus has no renderer-agnostic portal and layout measuring is host-only,
+the Rust overlays/engines carry documented fidelity gaps (inline positioning
+instead of portals, keyboard instead of pointer-drag, no recharts/embla/vaul) —
+the full list is in [`ts/uikit/README.md`](../ts/uikit/README.md#limitations).
 
 ## Cross-language parity
 
