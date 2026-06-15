@@ -79,6 +79,27 @@ pub struct Id<Tag, U = Uuid> {
 	#[serde(skip)]
 	_tag: PhantomData<fn() -> Tag>,
 }
+impl<Tag, U: Copy> Id<Tag, U> {
+	pub const fn from_raw(value: U) -> Self {
+		Self { value, _tag: PhantomData }
+	}
+
+	pub const fn raw(self) -> U {
+		self.value
+	}
+}
+impl<Tag> Id<Tag, Uuid> {
+	/// Mint a fresh `Uuid`-backed id. Host-only: wasm consumers never mint ids,
+	/// only deserialize them, so gating out the v4 call keeps the wasm build lean.
+	///
+	/// No `Default` impl: defaulting an identity to a random value is misleading
+	/// — callers should reach for `new()` explicitly.
+	#[cfg(not(target_arch = "wasm32"))]
+	#[allow(clippy::new_without_default)]
+	pub fn new() -> Self {
+		Self::from_raw(Uuid::new_v4())
+	}
+}
 
 // Manual trait impls so `Tag` is never constrained (derives would over-constrain
 // it by requiring `Tag: Clone`/`Eq`/… which `Tag` is only ever a marker for).
@@ -113,29 +134,6 @@ impl<Tag, U: Debug> Debug for Id<Tag, U> {
 impl<Tag, U: Display> Display for Id<Tag, U> {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		Display::fmt(&self.value, f)
-	}
-}
-
-impl<Tag, U: Copy> Id<Tag, U> {
-	pub const fn from_raw(value: U) -> Self {
-		Self { value, _tag: PhantomData }
-	}
-
-	pub const fn raw(self) -> U {
-		self.value
-	}
-}
-
-impl<Tag> Id<Tag, Uuid> {
-	/// Mint a fresh `Uuid`-backed id. Host-only: wasm consumers never mint ids,
-	/// only deserialize them, so gating out the v4 call keeps the wasm build lean.
-	///
-	/// No `Default` impl: defaulting an identity to a random value is misleading
-	/// — callers should reach for `new()` explicitly.
-	#[cfg(not(target_arch = "wasm32"))]
-	#[allow(clippy::new_without_default)]
-	pub fn new() -> Self {
-		Self::from_raw(Uuid::new_v4())
 	}
 }
 
