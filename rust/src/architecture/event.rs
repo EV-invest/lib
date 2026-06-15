@@ -7,8 +7,7 @@
 //! [`super::unit_of_work::UnitOfWork`] as the state change, then dispatched
 //! asynchronously.
 
-use serde::Serialize;
-use serde::de::DeserializeOwned;
+use serde::{Serialize, de::DeserializeOwned};
 
 /// A fact that happened in the domain, named in the past tense.
 ///

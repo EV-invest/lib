@@ -1,8 +1,10 @@
 //! Typed identities.
 
-use core::fmt::{Debug, Display};
-use core::hash::Hash;
-use core::marker::PhantomData;
+use core::{
+	fmt::{Debug, Display},
+	hash::Hash,
+	marker::PhantomData,
+};
 
 use uuid::Uuid;
 
