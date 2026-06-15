@@ -35,6 +35,7 @@ it enables.
 | Feature | What it is |
 | --- | --- |
 | `architecture` | I/O-free, `wasm32`-safe DDD tactical kernel: typed ids, entities, aggregate roots, repositories, gateways, the unit of work, domain events, specifications |
+| `uikit` | dep-light Dioxus UI kit (mirrors `@ev/uikit`): 63 shadcn-semantics components on `dioxus` + `tailwind_fuse`, no `@radix-ui`/`cva`. Ships the shared design tokens (`tokens.css`) |
 | `wasm` | opt-in switch layering browser/js backends onto whatever features are enabled |
 
 #### Consume it
@@ -65,8 +66,8 @@ cargo check -p ev --features "architecture wasm" --target wasm32-unknown-unknown
 ### TypeScript
 
 TS packages live under [`ts/`](ts/), one directory per library, each with its own
-`package.json`. See [`ts/architecture/`](ts/architecture/) — the port of the
-`architecture` kernel.
+`package.json`: [`ts/architecture/`](ts/architecture/) (the DDD kernel) and
+[`ts/uikit/`](ts/uikit/) (the dep-light React UI kit mirroring `ev::uikit`).
 
 ### Dev shell
 
