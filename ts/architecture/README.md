@@ -10,26 +10,19 @@ Zero runtime dependencies. ESM-only. Strict types.
 
 ## Install
 
-This package lives in a subdirectory of a polyglot monorepo. npm has no native
-support for installing a git **subdirectory**, so the plain `github:` shorthand
-won't resolve it on its own. Two working options:
+Published to the public npm registry:
 
 ```sh
-# 1. Pin the subdirectory via gitpkg (resolves ts/architecture and runs its build):
-npm i 'https://gitpkg.vercel.app/EV-invest/lib/ts/architecture?<tag-or-sha>'
-
-# 2. If this package is later split into its own repo, the canonical form applies:
-npm i 'github:EV-invest/architecture#<tag>'
+npm i @ev/architecture
 ```
 
-`dist/` is **not** committed; the package's `prepare` script builds it (via tsup)
-when it is installed from git. Requires Node ≥ 20.
+`dist/` is built on publish, not committed. Requires Node ≥ 20.
 
 ## Usage
 
 ```ts
 import { Id, spec, assertNever } from "@ev/architecture";
-import type { AggregateRoot, Repository, Reader, UnitOfWork, DomainEvent } from "@evt/architecture";
+import type { AggregateRoot, Repository, Reader, UnitOfWork, DomainEvent } from "@ev/architecture";
 
 // --- Typed ids: distinct tags are incompatible at compile time ---------------
 type OrderId = Id<"order", bigint>; // numeric id → bigint, never number
