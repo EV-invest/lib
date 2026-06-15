@@ -11,8 +11,18 @@
  */
 
 export { cn } from "./lib/cn";
+
 export { Slot } from "./primitives/slot";
 export type { SlotProps } from "./primitives/slot";
+export { useControllableState } from "./primitives/use-controllable-state";
+export { Portal } from "./primitives/portal";
+export type { PortalProps } from "./primitives/portal";
+export { useDismissableLayer } from "./primitives/dismissable-layer";
+export { useFloating } from "./primitives/use-floating";
+export type { Side, Align, FloatingResult } from "./primitives/use-floating";
+export { useFocusScope } from "./primitives/focus-scope";
+export { usePresence } from "./primitives/presence";
+export { useRovingFocus } from "./primitives/use-roving-focus";
 
 export { Alert, AlertTitle, AlertDescription } from "./components/alert";
 export type { AlertProps, AlertVariant } from "./components/alert";

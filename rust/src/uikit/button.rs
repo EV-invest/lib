@@ -2,6 +2,11 @@ use dioxus::prelude::*;
 
 use crate::cn;
 
+const BUTTON_BASE: &str = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm \
+                           font-medium transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-50 \
+                           [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 \
+                           outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] \
+                           aria-invalid:ring-destructive/20 aria-invalid:border-destructive";
 /// Canonical superset of the cabinet and landing variants.
 #[derive(Clone, Default, PartialEq)]
 pub enum ButtonVariant {
@@ -51,12 +56,6 @@ impl ButtonSize {
 		}
 	}
 }
-
-const BUTTON_BASE: &str = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm \
-                           font-medium transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-50 \
-                           [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 \
-                           outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] \
-                           aria-invalid:ring-destructive/20 aria-invalid:border-destructive";
 
 /// Fuses the base, variant and size classes with a caller override, last wins.
 /// Mirrors the TS `buttonVariants` helper so consumers (e.g. pagination) can

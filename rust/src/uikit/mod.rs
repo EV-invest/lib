@@ -13,6 +13,7 @@
 //! ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["uikit", "wasm"] }
 //! ```
 
+pub mod primitives;
 pub mod utils;
 
 #[cfg(test)]

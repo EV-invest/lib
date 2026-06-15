@@ -2,6 +2,13 @@ use dioxus::prelude::*;
 
 use crate::cn;
 
+const BUTTON_GROUP_BASE: &str = "flex w-fit items-stretch [&>*]:focus-visible:z-10 [&>*]:focus-visible:relative \
+                                 [&>[data-slot=select-trigger]:not([class*='w-'])]:w-fit [&>input]:flex-1 \
+                                 has-[select[aria-hidden=true]:last-child]:[&>[data-slot=select-trigger]:last-of-type]:rounded-r-md \
+                                 has-[>[data-slot=button-group]]:gap-2";
+const BUTTON_GROUP_TEXT_BASE: &str = "bg-muted flex items-center gap-2 rounded-md border px-4 text-sm font-medium \
+                                      shadow-xs [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4";
+const BUTTON_GROUP_SEPARATOR_BASE: &str = "bg-input relative !m-0 self-stretch shrink-0 data-[orientation=vertical]:h-auto";
 #[derive(Clone, Default, PartialEq)]
 pub enum ButtonGroupOrientation {
 	#[default]
@@ -25,11 +32,6 @@ impl ButtonGroupOrientation {
 	}
 }
 
-const BUTTON_GROUP_BASE: &str = "flex w-fit items-stretch [&>*]:focus-visible:z-10 [&>*]:focus-visible:relative \
-                                 [&>[data-slot=select-trigger]:not([class*='w-'])]:w-fit [&>input]:flex-1 \
-                                 has-[select[aria-hidden=true]:last-child]:[&>[data-slot=select-trigger]:last-of-type]:rounded-r-md \
-                                 has-[>[data-slot=button-group]]:gap-2";
-
 #[component]
 pub fn ButtonGroup(#[props(default)] orientation: ButtonGroupOrientation, #[props(default)] class: String, children: Element) -> Element {
 	let cls = cn!(BUTTON_GROUP_BASE, orientation.class(), class);
@@ -44,9 +46,6 @@ pub fn ButtonGroup(#[props(default)] orientation: ButtonGroupOrientation, #[prop
 	}
 }
 
-const BUTTON_GROUP_TEXT_BASE: &str = "bg-muted flex items-center gap-2 rounded-md border px-4 text-sm font-medium \
-                                      shadow-xs [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4";
-
 #[component]
 pub fn ButtonGroupText(#[props(default)] class: String, children: Element) -> Element {
 	let cls = cn!(BUTTON_GROUP_TEXT_BASE, class);
@@ -54,8 +53,6 @@ pub fn ButtonGroupText(#[props(default)] class: String, children: Element) -> El
 		div { class: cls, {children} }
 	}
 }
-
-const BUTTON_GROUP_SEPARATOR_BASE: &str = "bg-input relative !m-0 self-stretch shrink-0 data-[orientation=vertical]:h-auto";
 
 #[component]
 pub fn ButtonGroupSeparator(#[props(default)] class: String) -> Element {

@@ -2,6 +2,7 @@ use dioxus::prelude::*;
 
 use crate::cn;
 
+const SEPARATOR_BASE: &str = "bg-border shrink-0";
 #[derive(Clone, Default, PartialEq)]
 pub enum Orientation {
 	#[default]
@@ -24,8 +25,6 @@ impl Orientation {
 		}
 	}
 }
-
-const SEPARATOR_BASE: &str = "bg-border shrink-0";
 
 #[component]
 pub fn Separator(#[props(default)] orientation: Orientation, #[props(default)] class: String) -> Element {

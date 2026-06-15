@@ -2,6 +2,7 @@ use dioxus::prelude::*;
 
 use crate::{cn, uikit::label::Label};
 
+const FIELD_BASE: &str = "group/field flex w-full gap-3 data-[invalid=true]:text-destructive";
 #[derive(Clone, Default, PartialEq)]
 pub enum FieldOrientation {
 	#[default]
@@ -9,9 +10,6 @@ pub enum FieldOrientation {
 	Horizontal,
 	Responsive,
 }
-
-const FIELD_BASE: &str = "group/field flex w-full gap-3 data-[invalid=true]:text-destructive";
-
 impl FieldOrientation {
 	fn class(&self) -> &'static str {
 		match self {

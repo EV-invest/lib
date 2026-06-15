@@ -5,6 +5,12 @@ use crate::{
 	uikit::separator::{Orientation, Separator},
 };
 
+const ITEM_BASE: &str = "group/item flex items-center border border-transparent text-sm rounded-md transition-colors \
+                         [a]:hover:bg-accent/50 [a]:transition-colors duration-100 flex-wrap outline-none \
+                         focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]";
+const ITEM_MEDIA_BASE: &str = "flex shrink-0 items-center justify-center gap-2 \
+                               group-has-[[data-slot=item-description]]/item:self-start [&_svg]:pointer-events-none \
+                               group-has-[[data-slot=item-description]]/item:translate-y-0.5";
 #[component]
 pub fn ItemGroup(#[props(default)] class: String, children: Element) -> Element {
 	let cls = cn!("group/item-group flex flex-col", class);
@@ -70,10 +76,6 @@ impl ItemSize {
 	}
 }
 
-const ITEM_BASE: &str = "group/item flex items-center border border-transparent text-sm rounded-md transition-colors \
-                         [a]:hover:bg-accent/50 [a]:transition-colors duration-100 flex-wrap outline-none \
-                         focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]";
-
 #[component]
 pub fn Item(#[props(default)] variant: ItemVariant, #[props(default)] size: ItemSize, #[props(default)] class: String, children: Element) -> Element {
 	let cls = cn!(ITEM_BASE, variant.class(), size.class(), class);
@@ -113,10 +115,6 @@ impl ItemMediaVariant {
 		}
 	}
 }
-
-const ITEM_MEDIA_BASE: &str = "flex shrink-0 items-center justify-center gap-2 \
-                               group-has-[[data-slot=item-description]]/item:self-start [&_svg]:pointer-events-none \
-                               group-has-[[data-slot=item-description]]/item:translate-y-0.5";
 
 #[component]
 pub fn ItemMedia(#[props(default)] variant: ItemMediaVariant, #[props(default)] class: String, children: Element) -> Element {

@@ -2,6 +2,7 @@ use dioxus::prelude::*;
 
 use crate::cn;
 
+const EMPTY_MEDIA_BASE: &str = "flex shrink-0 items-center justify-center mb-2 [&_svg]:pointer-events-none [&_svg]:shrink-0";
 #[component]
 pub fn Empty(#[props(default)] class: String, children: Element) -> Element {
 	let cls = cn!(
@@ -43,8 +44,6 @@ impl EmptyMediaVariant {
 		}
 	}
 }
-
-const EMPTY_MEDIA_BASE: &str = "flex shrink-0 items-center justify-center mb-2 [&_svg]:pointer-events-none [&_svg]:shrink-0";
 
 #[component]
 pub fn EmptyMedia(#[props(default)] variant: EmptyMediaVariant, #[props(default)] class: String, children: Element) -> Element {

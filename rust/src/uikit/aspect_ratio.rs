@@ -2,10 +2,6 @@ use dioxus::prelude::*;
 
 use crate::cn;
 
-fn default_ratio() -> f64 {
-	1.0
-}
-
 #[component]
 pub fn AspectRatio(#[props(default = default_ratio())] ratio: f64, #[props(default)] class: String, children: Element) -> Element {
 	let cls = cn!(class);
@@ -13,6 +9,9 @@ pub fn AspectRatio(#[props(default = default_ratio())] ratio: f64, #[props(defau
 	rsx! {
 		div { class: cls, style, "data-slot": "aspect-ratio", {children} }
 	}
+}
+fn default_ratio() -> f64 {
+	1.0
 }
 
 #[cfg(test)]
