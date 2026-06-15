@@ -23,6 +23,7 @@ export type { Side, Align, FloatingResult } from "./primitives/use-floating";
 export { useFocusScope } from "./primitives/focus-scope";
 export { usePresence } from "./primitives/presence";
 export { useRovingFocus } from "./primitives/use-roving-focus";
+export { mergeRefs } from "./primitives/merge-refs";
 
 export { Alert, AlertTitle, AlertDescription } from "./components/alert";
 export type { AlertProps, AlertVariant } from "./components/alert";
@@ -170,3 +171,40 @@ export {
   TableCell,
   TableCaption,
 } from "./components/table";
+
+// Tier B — self-contained interactive components.
+export * from "./components/accordion";
+export * from "./components/collapsible";
+export * from "./components/tabs";
+export * from "./components/toggle";
+export * from "./components/toggle-group";
+export * from "./components/switch";
+export * from "./components/checkbox";
+export * from "./components/radio-group";
+export * from "./components/slider";
+export * from "./components/scroll-area";
+export * from "./components/sidebar";
+export * from "./components/carousel";
+export * from "./components/input-otp";
+
+// Tier C — overlay/portal components.
+export * from "./components/tooltip";
+export * from "./components/popover";
+export * from "./components/hover-card";
+export * from "./components/dropdown-menu";
+export * from "./components/context-menu";
+export * from "./components/menubar";
+export * from "./components/navigation-menu";
+export * from "./components/dialog";
+export * from "./components/alert-dialog";
+export * from "./components/sheet";
+export * from "./components/drawer";
+export * from "./components/select";
+export * from "./components/command";
+
+// Tier D — heavy engines (dep-light: see README Limitations).
+export * from "./components/chart";
+export * from "./components/calendar";
+export * from "./components/sonner";
+export * from "./components/form";
+export * from "./components/resizable";
