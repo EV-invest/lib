@@ -19,21 +19,15 @@ const TOOLTIP_BASE: &str = "border-border/50 bg-background grid min-w-[8rem] ite
                             border px-2.5 py-1.5 text-xs shadow-xl";
 const LEGEND_BASE: &str = "flex items-center justify-center gap-4";
 
+/// Maps a series key to its presentation. The Rust mirror of the TS
+/// `ChartConfig`; provided via context so tooltip/legend can read labels.
+pub type ChartConfig = Vec<(String, ChartSeries)>;
 /// One chart series' presentation: an optional human `label` and an optional
 /// `color` (any CSS color) exposed as `--color-<key>` under `[data-chart=id]`.
 #[derive(Clone, Default, PartialEq)]
 pub struct ChartSeries {
 	pub label: Option<String>,
 	pub color: Option<String>,
-}
-
-/// Maps a series key to its presentation. The Rust mirror of the TS
-/// `ChartConfig`; provided via context so tooltip/legend can read labels.
-pub type ChartConfig = Vec<(String, ChartSeries)>;
-
-#[derive(Clone, PartialEq)]
-struct ChartCtx {
-	config: ChartConfig,
 }
 
 /// A single rendered tooltip/legend row.
@@ -45,7 +39,6 @@ pub struct ChartItem {
 	pub value: String,
 	pub color: Option<String>,
 }
-
 /// Themed SVG host. Emits `--color-<key>` custom properties scoped to
 /// `[data-chart=id]` from `config`, provides `config` via context, and lets
 /// consumers render their own `<svg>`/series as `children`.
@@ -61,7 +54,6 @@ pub fn ChartContainer(id: String, #[props(default)] class: String, config: Chart
 		}
 	}
 }
-
 /// Emits a `<style>` defining `--color-<key>` for every series with a `color`,
 /// scoped to `[data-chart=id]`.
 #[component]
@@ -79,7 +71,6 @@ pub fn ChartStyle(id: String, config: ChartConfig) -> Element {
 		style { dangerous_inner_html: css }
 	}
 }
-
 /// Presentational tooltip box. `label` heads the box; `items` are the rows,
 /// each with a `--color-*` swatch. Replaces the recharts payload path.
 #[component]
@@ -121,7 +112,6 @@ pub fn ChartTooltipContent(
 		}
 	}
 }
-
 /// Presentational legend. Uses `items` when given, else derives one row per
 /// `config` series (label falling back to the key).
 #[component]
@@ -156,6 +146,10 @@ pub fn ChartLegendContent(#[props(default)] class: String, #[props(default)] ite
 			}
 		}
 	}
+}
+#[derive(Clone, PartialEq)]
+struct ChartCtx {
+	config: ChartConfig,
 }
 
 #[cfg(test)]

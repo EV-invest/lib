@@ -30,36 +30,6 @@ impl ResizableDirection {
 	}
 }
 
-/// Shared group state: the per-panel sizes (in %) and the layout direction. The
-/// sizes [`Signal`] is mutated by panels on registration and by handles on
-/// keyboard resize. `Copy`, so the whole context is `Copy`.
-#[derive(Clone, Copy)]
-struct ResizableCtx {
-	sizes: Signal<Vec<f64>>,
-	direction: ResizableDirection,
-	step: f64,
-}
-
-impl ResizableCtx {
-	fn size_at(&self, index: usize) -> f64 {
-		self.sizes.peek().get(index).copied().unwrap_or(0.0)
-	}
-
-	/// Grows the panel before the handle by `delta` %, shrinking the one after it
-	/// (negative `delta` reverses), clamped so neither drops below 0.
-	fn resize(&self, index: usize, delta: f64) {
-		let mut sizes = self.sizes;
-		let mut next = sizes.peek().clone();
-		if index + 1 >= next.len() {
-			return;
-		}
-		let moved = delta.clamp(-next[index], next[index + 1]);
-		next[index] += moved;
-		next[index + 1] -= moved;
-		sizes.set(next);
-	}
-}
-
 #[component]
 pub fn ResizablePanelGroup(#[props(default)] direction: ResizableDirection, #[props(default = 10.0)] keyboard_step: f64, #[props(default)] class: String, children: Element) -> Element {
 	use_context_provider(|| ResizableCtx {
@@ -77,7 +47,6 @@ pub fn ResizablePanelGroup(#[props(default)] direction: ResizableDirection, #[pr
 		}
 	}
 }
-
 #[component]
 pub fn ResizablePanel(index: usize, #[props(default = 50.0)] default_size: f64, #[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<ResizableCtx>();
@@ -101,7 +70,6 @@ pub fn ResizablePanel(index: usize, #[props(default = 50.0)] default_size: f64, 
 		}
 	}
 }
-
 #[component]
 pub fn ResizableHandle(index: usize, #[props(default)] with_handle: bool, #[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<ResizableCtx>();
@@ -152,6 +120,35 @@ pub fn ResizableHandle(index: usize, #[props(default)] with_handle: bool, #[prop
 			}
 			{children}
 		}
+	}
+}
+/// Shared group state: the per-panel sizes (in %) and the layout direction. The
+/// sizes [`Signal`] is mutated by panels on registration and by handles on
+/// keyboard resize. `Copy`, so the whole context is `Copy`.
+#[derive(Clone, Copy)]
+struct ResizableCtx {
+	sizes: Signal<Vec<f64>>,
+	direction: ResizableDirection,
+	step: f64,
+}
+
+impl ResizableCtx {
+	fn size_at(&self, index: usize) -> f64 {
+		self.sizes.peek().get(index).copied().unwrap_or(0.0)
+	}
+
+	/// Grows the panel before the handle by `delta` %, shrinking the one after it
+	/// (negative `delta` reverses), clamped so neither drops below 0.
+	fn resize(&self, index: usize, delta: f64) {
+		let mut sizes = self.sizes;
+		let mut next = sizes.peek().clone();
+		if index + 1 >= next.len() {
+			return;
+		}
+		let moved = delta.clamp(-next[index], next[index + 1]);
+		next[index] += moved;
+		next[index + 1] -= moved;
+		sizes.set(next);
 	}
 }
 

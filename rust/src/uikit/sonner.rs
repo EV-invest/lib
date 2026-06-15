@@ -12,6 +12,7 @@ use dioxus::prelude::*;
 
 use crate::cn;
 
+const TOAST_CLOSE: &str = "text-foreground/50 hover:text-foreground shrink-0 transition-colors";
 #[derive(Clone, Copy, Default, PartialEq)]
 pub enum ToastVariant {
 	#[default]
@@ -161,8 +162,6 @@ pub fn ToasterProvider(children: Element) -> Element {
 pub fn use_toaster() -> ToasterHandle {
 	ToasterHandle { toasts: use_context::<Toasts>() }
 }
-
-const TOAST_CLOSE: &str = "text-foreground/50 hover:text-foreground shrink-0 transition-colors";
 
 /// Renders the toast stack from context. Fixed-positioned per `position`
 /// (default bottom-right). Unlike the TS mirror there is no `setTimeout`
