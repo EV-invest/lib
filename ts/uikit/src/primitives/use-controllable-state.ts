@@ -9,9 +9,9 @@ import * as React from "react";
  * The Rust mirror is `use_controllable_signal` in `ev::uikit`.
  */
 export function useControllableState<T>(opts: {
-  value?: T;
+  value?: T | undefined;
   defaultValue: T;
-  onChange?: (value: T) => void;
+  onChange?: ((value: T) => void) | undefined;
 }): [T, (next: T) => void] {
   const { value, defaultValue, onChange } = opts;
   const isControlled = value !== undefined;

@@ -42,14 +42,6 @@ pub struct Controllable<T: Clone + PartialEq + 'static> {
 	controlled: bool,
 	on_change: Option<EventHandler<T>>,
 }
-
-impl<T: Clone + PartialEq + 'static> Clone for Controllable<T> {
-	fn clone(&self) -> Self {
-		*self
-	}
-}
-impl<T: Clone + PartialEq + 'static> Copy for Controllable<T> {}
-
 impl<T: Clone + PartialEq + 'static> Controllable<T> {
 	pub fn get(&self) -> T {
 		self.signal.read().clone()
@@ -65,6 +57,13 @@ impl<T: Clone + PartialEq + 'static> Controllable<T> {
 		}
 	}
 }
+
+impl<T: Clone + PartialEq + 'static> Clone for Controllable<T> {
+	fn clone(&self) -> Self {
+		*self
+	}
+}
+impl<T: Clone + PartialEq + 'static> Copy for Controllable<T> {}
 
 /// Seeds a [`Controllable`] state. Keeps the internal signal in sync with the
 /// controlled value across re-renders.
