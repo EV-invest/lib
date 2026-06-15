@@ -16,6 +16,12 @@ is hand-rolled in [`./primitives`](src/primitives). Runtime dependencies are jus
 > This is the first library in the monorepo that ships runtime deps — a UI kit
 > can't be zero-dep like the `architecture` kernel. See the repo `AGENTS.md`.
 
+The bundle is a **`"use client"`** module (it's interactive — hooks, context,
+the DOM), so it can be imported from React Server Components / the Next.js App
+Router directly. One consequence: `cn` re-exported here is therefore client-only;
+if you need class merging in a **server** component, keep a local `cn`
+(`clsx` + `tailwind-merge`) rather than importing it from the kit.
+
 ## Install
 
 This package lives in a subdirectory of a polyglot monorepo:
