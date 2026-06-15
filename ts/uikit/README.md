@@ -24,14 +24,13 @@ if you need class merging in a **server** component, keep a local `cn`
 
 ## Install
 
-This package lives in a subdirectory of a polyglot monorepo:
+Published to the public npm registry:
 
 ```sh
-npm i 'https://gitpkg.vercel.app/EV-invest/lib/ts/uikit?<tag-or-sha>'
+npm i @ev/uikit
 ```
 
-`dist/` is not committed; the `prepare` script builds it (tsup) on install.
-Requires Node ≥ 20 and React 18 or 19.
+Requires Node ≥ 20 and React 18 or 19. `dist/` is built on publish, not committed.
 
 ## Design tokens — the theme contract
 
