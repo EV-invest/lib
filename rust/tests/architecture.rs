@@ -2,11 +2,16 @@
 //! modelling a tiny bounded context the way `domain`/`backend` do.
 #![cfg(feature = "architecture")]
 
-use ev::architecture::{AggregateRoot, Entity, Gateway, Id, Reader, Repository, Specification, UnitOfWork};
 use std::sync::Mutex;
 
-struct BlogTag;
+use ev::architecture::{AggregateRoot, Entity, Gateway, Id, Reader, Repository, Specification, UnitOfWork};
+
 type BlogId = Id<BlogTag>;
+trait BlogRepository: Repository<Aggregate = Blog> + Reader<Aggregate = Blog> {
+	fn create(&self, blog: Blog);
+	fn find(&self, id: BlogId) -> Option<Blog>;
+}
+struct BlogTag;
 
 #[derive(Clone)]
 struct Blog {
@@ -17,6 +22,7 @@ struct Blog {
 
 impl Entity for Blog {
 	type Id = BlogId;
+
 	fn id(&self) -> BlogId {
 		self.id
 	}
@@ -40,9 +46,21 @@ fn specifications_compose() {
 	let long = |b: &Blog| b.words >= 1_000;
 	let featured = Published.and(long);
 
-	let a = Blog { id: BlogId::new(), published: true, words: 2_000 };
-	let b = Blog { id: BlogId::new(), published: false, words: 2_000 };
-	let c = Blog { id: BlogId::new(), published: true, words: 10 };
+	let a = Blog {
+		id: BlogId::new(),
+		published: true,
+		words: 2_000,
+	};
+	let b = Blog {
+		id: BlogId::new(),
+		published: false,
+		words: 2_000,
+	};
+	let c = Blog {
+		id: BlogId::new(),
+		published: true,
+		words: 10,
+	};
 
 	assert!(featured.holds(&a));
 	assert!(!featured.holds(&b));
@@ -64,15 +82,11 @@ impl Reader for InMemoryBlogs {
 	type Aggregate = Blog;
 }
 
-trait BlogRepository: Repository<Aggregate = Blog> + Reader<Aggregate = Blog> {
-	fn create(&self, blog: Blog);
-	fn find(&self, id: BlogId) -> Option<Blog>;
-}
-
 impl BlogRepository for InMemoryBlogs {
 	fn create(&self, blog: Blog) {
 		self.rows.lock().unwrap().push(blog);
 	}
+
 	fn find(&self, id: BlogId) -> Option<Blog> {
 		self.rows.lock().unwrap().iter().find(|b| b.id() == id).cloned()
 	}
@@ -107,9 +121,11 @@ struct Tx;
 #[async_trait::async_trait]
 impl UnitOfWork for Tx {
 	type Error = std::convert::Infallible;
+
 	async fn commit(self: Box<Self>) -> Result<(), Self::Error> {
 		Ok(())
 	}
+
 	async fn rollback(self: Box<Self>) -> Result<(), Self::Error> {
 		Ok(())
 	}

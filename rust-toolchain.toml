@@ -1,0 +1,13 @@
+# Pin the nightly channel for rustup-based tooling (editor, rust-analyzer, and
+# any CI that doesn't go through the nix dev-shell). The org `rustfmt.toml` and
+# the `codestyle` pre-commit hook emit unstable features (e.g. the crate-level
+# `#![feature(default_field_values)]`), so a stable rustc rejects the crate.
+#
+# The flake pins the *same* channel via oxalica's `selectLatestNightlyWith`; the
+# nix dev-shell provides its own nightly on PATH and ignores this file, so the
+# two stay in step without conflicting.
+[toolchain]
+channel = "nightly"
+profile = "default"
+components = ["rust-src", "rust-analyzer"]
+targets = ["wasm32-unknown-unknown"]
