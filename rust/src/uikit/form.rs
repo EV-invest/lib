@@ -15,15 +15,12 @@ use dioxus::prelude::*;
 
 use crate::{cn, uikit::label::Label};
 
-static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
-
 /// The shared id minted by [`FormItem`], plus the derived ids the control,
 /// description and message hang off of so `aria-describedby`/`id` align.
 #[derive(Clone, PartialEq)]
 pub struct FormItemContext {
 	pub id: String,
 }
-
 impl FormItemContext {
 	pub fn form_item_id(&self) -> String {
 		format!("{}-form-item", self.id)
@@ -46,7 +43,6 @@ pub fn Form(#[props(default)] class: String, children: Element) -> Element {
 		form { class, "data-slot": "form", {children} }
 	}
 }
-
 /// Provides a generated id via context so the label/control/description/message
 /// underneath share `aria-describedby`/`id`.
 #[component]
@@ -58,7 +54,6 @@ pub fn FormItem(#[props(default)] class: String, children: Element) -> Element {
 		div { class: cls, "data-slot": "form-item", {children} }
 	}
 }
-
 /// Wraps [`Label`], pointing `for` at the control id. Unlike the TS port — where
 /// `data-error` rides on the element and `data-[error=true]:text-destructive`
 /// reacts to it — the `Label` component forwards no arbitrary attributes, so
@@ -71,7 +66,6 @@ pub fn FormLabel(#[props(default)] error: bool, #[props(default)] class: String,
 		Label { class: cls, r#for: ctx.form_item_id(), {children} }
 	}
 }
-
 /// Exposes the control id and `aria-*` ids through context for the consumer to
 /// place onto their input. Rust has no `Slot`, so — unlike the TS `FormControl`
 /// — it cannot inject these onto an arbitrary child; it only wraps the child in
@@ -94,7 +88,6 @@ pub fn FormControl(#[props(default)] error: bool, children: Element) -> Element 
 		}
 	}
 }
-
 /// Muted helper copy, carrying the description id the control points at.
 #[component]
 pub fn FormDescription(#[props(default)] class: String, children: Element) -> Element {
@@ -104,7 +97,6 @@ pub fn FormDescription(#[props(default)] class: String, children: Element) -> El
 		p { class: cls, "data-slot": "form-description", id: ctx.form_description_id(), {children} }
 	}
 }
-
 /// Error/validation text. Renders only when it has children.
 #[component]
 pub fn FormMessage(#[props(default)] class: String, children: Element) -> Element {
@@ -114,6 +106,7 @@ pub fn FormMessage(#[props(default)] class: String, children: Element) -> Elemen
 		p { class: cls, "data-slot": "form-message", id: ctx.form_message_id(), {children} }
 	}
 }
+static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
 
 #[cfg(test)]
 mod tests {

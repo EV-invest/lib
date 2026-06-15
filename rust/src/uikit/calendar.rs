@@ -8,6 +8,12 @@ use crate::{
 	},
 };
 
+const MONTHS: [&str; 12] = [
+	"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December",
+];
+const WEEKDAYS: [&str; 7] = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+const CHEVRON_LEFT: &str = "m15 18-6-6 6-6";
+const CHEVRON_RIGHT: &str = "m9 18 6-6-6-6";
 /// A calendar date as plain `(year, month 1-12, day 1-31)`. The kernel does its
 /// own date math (no `chrono`/`jiff`): `wasm32`-safe and dependency-free.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -62,14 +68,7 @@ impl CalendarDate {
 	}
 }
 
-const MONTHS: [&str; 12] = [
-	"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December",
-];
 // Week starts Monday.
-const WEEKDAYS: [&str; 7] = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
-
-const CHEVRON_LEFT: &str = "m15 18-6-6 6-6";
-const CHEVRON_RIGHT: &str = "m9 18 6-6-6-6";
 
 /// A dep-light single-month, single-date picker. Mirrors the landing
 /// `Calendar`'s class names while replacing `react-day-picker` with hand-rolled
