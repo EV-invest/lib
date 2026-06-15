@@ -69,22 +69,19 @@ pub trait Specification<T: ?Sized> {
 
 	fn and<S: Specification<T>>(self, other: S) -> And<Self, S>
 	where
-		Self: Sized,
-	{
+		Self: Sized, {
 		And(self, other)
 	}
 
 	fn or<S: Specification<T>>(self, other: S) -> Or<Self, S>
 	where
-		Self: Sized,
-	{
+		Self: Sized, {
 		Or(self, other)
 	}
 
 	fn not(self) -> Not<Self>
 	where
-		Self: Sized,
-	{
+		Self: Sized, {
 		Not(self)
 	}
 }

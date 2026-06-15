@@ -12,8 +12,12 @@
 //! - **`architecture`** — generic, I/O-free, `wasm32`-safe DDD tactical kernel
 //!   (typed ids, entities, aggregate roots, repositories, gateways, the unit of
 //!   work, domain events, specifications). See [`architecture`].
+//! - **`uikit`** — dep-light Dioxus UI kit (mirrors `@ev/uikit`). See [`uikit`].
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 #[cfg(feature = "architecture")]
 pub mod architecture;
+
+#[cfg(feature = "uikit")]
+pub mod uikit;

@@ -51,9 +51,12 @@ pub trait UnitOfWork: Send {
 
 #[cfg(test)]
 mod tests {
+	use std::sync::{
+		Arc,
+		atomic::{AtomicU8, Ordering},
+	};
+
 	use super::*;
-	use std::sync::Arc;
-	use std::sync::atomic::{AtomicU8, Ordering};
 
 	// 0 = untouched, 1 = committed, 2 = rolled back.
 	struct SpyTx(Arc<AtomicU8>);
