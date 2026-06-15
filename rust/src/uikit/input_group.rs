@@ -30,6 +30,10 @@ const INPUT_GROUP_BASE: &str = "group/input-group border-input relative flex w-f
                                 has-[[data-slot=input-group-control]:focus-visible]:border-ring has-[[data-slot=input-group-control]:focus-visible]:ring-ring/50 has-[[data-slot=input-group-control]:focus-visible]:ring-[3px] \
                                 has-[[data-slot][aria-invalid=true]]:ring-destructive/20 has-[[data-slot][aria-invalid=true]]:border-destructive";
 
+const INPUT_GROUP_ADDON_BASE: &str = "text-muted-foreground flex h-auto cursor-text items-center justify-center gap-2 \
+                                      py-1.5 text-sm font-medium select-none [&>svg:not([class*='size-'])]:size-4 \
+                                      [&>kbd]:rounded-[calc(var(--radius)-5px)] group-data-[disabled=true]/input-group:opacity-50";
+const INPUT_GROUP_BUTTON_BASE: &str = "text-sm shadow-none flex gap-2 items-center";
 #[component]
 pub fn InputGroup(#[props(default)] class: String, children: Element) -> Element {
 	let cls = cn!(INPUT_GROUP_BASE, class);
@@ -67,10 +71,6 @@ impl InputGroupAddonAlign {
 	}
 }
 
-const INPUT_GROUP_ADDON_BASE: &str = "text-muted-foreground flex h-auto cursor-text items-center justify-center gap-2 \
-                                      py-1.5 text-sm font-medium select-none [&>svg:not([class*='size-'])]:size-4 \
-                                      [&>kbd]:rounded-[calc(var(--radius)-5px)] group-data-[disabled=true]/input-group:opacity-50";
-
 #[component]
 pub fn InputGroupAddon(#[props(default)] align: InputGroupAddonAlign, #[props(default)] class: String, children: Element) -> Element {
 	let cls = cn!(INPUT_GROUP_ADDON_BASE, align.class(), class);
@@ -104,8 +104,6 @@ impl InputGroupButtonSize {
 		}
 	}
 }
-
-const INPUT_GROUP_BUTTON_BASE: &str = "text-sm shadow-none flex gap-2 items-center";
 
 #[component]
 pub fn InputGroupButton(#[props(default)] size: InputGroupButtonSize, #[props(default)] class: String, children: Element) -> Element {
