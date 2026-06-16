@@ -134,15 +134,17 @@ export function Slider({
       data-disabled={disabled || undefined}
       className={cn(ROOT_BASE, className)}
       {...props}
+      // Pointer handling lives on the root, not the track: the thumb sits above
+      // the track (absolute), so grabbing it must still start a drag.
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
     >
       <span
         ref={trackRef}
         data-slot="slider-track"
         data-orientation={orientation}
         className={TRACK_BASE}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
       >
         <span
           data-slot="slider-range"
