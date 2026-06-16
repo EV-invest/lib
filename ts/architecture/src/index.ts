@@ -1,5 +1,5 @@
 /**
- * `@ev/architecture` — a generic, I/O-free DDD tactical kernel: typed ids,
+ * `@evinvest/architecture` — a generic, I/O-free DDD tactical kernel: typed ids,
  * entities, aggregate roots, domain events, repositories, gateways, the unit of
  * work, and specifications.
  *

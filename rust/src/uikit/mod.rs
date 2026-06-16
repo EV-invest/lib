@@ -1,6 +1,6 @@
 //! `uikit` — EV-invest's dep-light Dioxus UI kit.
 //!
-//! Renderer-agnostic RSX components, mirrored semantically by the `@ev/uikit`
+//! Renderer-agnostic RSX components, mirrored semantically by the `@evinvest/uikit`
 //! TypeScript package. Styling is Tailwind-utility based; every class references
 //! a design token from [`tokens.css`](./tokens.css), the theme contract a
 //! consumer must `@import` into its Tailwind v4 entrypoint.

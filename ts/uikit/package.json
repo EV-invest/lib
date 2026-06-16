@@ -1,5 +1,5 @@
 {
-  "name": "@ev/uikit",
+  "name": "@evinvest/uikit",
   "version": "0.1.0",
   "description": "Dep-light React UI kit: shadcn-semantics components with zero @radix-ui / cva, mirroring the ev::uikit Rust feature. Ships the shared design tokens.",
   "license": "BlueOak-1.0.0",

@@ -15,7 +15,7 @@ rust/
 ```
 
 Unlike `architecture`, the `uikit` feature carries runtime deps (`dioxus`,
-`tailwind_fuse`) — a UI kit can't be zero-dep. It mirrors the `@ev/uikit`
+`tailwind_fuse`) — a UI kit can't be zero-dep. It mirrors the `@evinvest/uikit`
 TypeScript package and ships the shared design tokens; see its rustdoc and
 [`../ts/uikit/README.md`](../ts/uikit/README.md).
 

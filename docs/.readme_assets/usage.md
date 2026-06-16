@@ -19,7 +19,7 @@ it enables.
 | Feature | What it is |
 | --- | --- |
 | `architecture` | I/O-free, `wasm32`-safe DDD tactical kernel: typed ids, entities, aggregate roots, repositories, gateways, the unit of work, domain events, specifications |
-| `uikit` | dep-light Dioxus UI kit (mirrors `@ev/uikit`): 63 shadcn-semantics components on `dioxus` + `tailwind_fuse`, no `@radix-ui`/`cva`. Ships the shared design tokens (`tokens.css`) |
+| `uikit` | dep-light Dioxus UI kit (mirrors `@evinvest/uikit`): 63 shadcn-semantics components on `dioxus` + `tailwind_fuse`, no `@radix-ui`/`cva`. Ships the shared design tokens (`tokens.css`) |
 | `wasm` | opt-in switch layering browser/js backends onto whatever features are enabled |
 
 ### Consume it

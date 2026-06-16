@@ -11,7 +11,7 @@ publish = false
 # Each library is opt-in. No default features: a consumer enables only what it uses.
 architecture = ["dep:async-trait", "dep:serde", "dep:uuid", "dep:jiff"]
 
-# Dep-light Dioxus UI kit (mirrors `@ev/uikit`). Renderer-agnostic RSX components;
+# Dep-light Dioxus UI kit (mirrors `@evinvest/uikit`). Renderer-agnostic RSX components;
 # pulls only Dioxus + tailwind_fuse (the `cn!` engine). Unlike the kernel this
 # library carries runtime deps — a UI kit can't be zero-dep; see AGENTS.md.
 uikit = ["dep:dioxus", "dep:tailwind_fuse"]

@@ -1,4 +1,4 @@
-# @ev/uikit
+# @evinvest/uikit
 
 A **dep-light** React UI kit with shadcn-style semantics — the TypeScript mirror
 of the `uikit` feature of the [`ev`](https://github.com/EV-invest/lib) Rust crate
@@ -27,7 +27,7 @@ if you need class merging in a **server** component, keep a local `cn`
 Published to the public npm registry:
 
 ```sh
-npm i @ev/uikit
+npm i @evinvest/uikit
 ```
 
 Requires Node ≥ 20 and React 18 or 19. `dist/` is built on publish, not committed.
@@ -42,7 +42,7 @@ Tailwind v4 entrypoint — this is the load-bearing part of the kit:
 ```css
 /* app.css — your Tailwind v4 entrypoint */
 @import "tailwindcss";
-@import "@ev/uikit/styles/tokens.css";
+@import "@evinvest/uikit/styles/tokens.css";
 ```
 
 `styles/tokens.css` is kept byte-for-byte in parity with the Rust feature's
@@ -53,7 +53,7 @@ because the palette is dark by default — see [Limitations](#limitations).)
 ## Usage
 
 ```tsx
-import { Button, Card, CardHeader, CardTitle, CardContent, Badge } from "@ev/uikit";
+import { Button, Card, CardHeader, CardTitle, CardContent, Badge } from "@evinvest/uikit";
 
 export function Example() {
   return (
@@ -73,7 +73,7 @@ export function Example() {
 ### `cn`
 
 ```ts
-import { cn } from "@ev/uikit";
+import { cn } from "@evinvest/uikit";
 cn("p-4", "p-2"); // "p-2" — tailwind-merge resolves the conflict, rightmost wins
 ```
 
@@ -86,7 +86,7 @@ The Rust crate is the source of truth; this package preserves its _semantics_
 while reading like idiomatic React. Canonical class strings are identical per
 element across the two ports.
 
-| Concept | Rust (`ev::uikit`) | TS (`@ev/uikit`) |
+| Concept | Rust (`ev::uikit`) | TS (`@evinvest/uikit`) |
 | --- | --- | --- |
 | class fusion | `cn!` macro (`tailwind_fuse`) | `cn` (`clsx` + `tailwind-merge`) |
 | variants | `enum` + `fn class()` match | `as const` map keyed by variant |
