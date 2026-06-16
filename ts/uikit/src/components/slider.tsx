@@ -119,8 +119,13 @@ export function Slider({
 
   const rangeStyle: React.CSSProperties =
     orientation === "vertical" ? { height: `${percent}%` } : { width: `${percent}%` };
+  // The thumb is absolutely positioned within the (relative) root and centered
+  // on the value point; without `position:absolute` the `%` offset is ignored and
+  // flow layout parks it at the end of the row.
   const thumbStyle: React.CSSProperties =
-    orientation === "vertical" ? { bottom: `${percent}%` } : { left: `${percent}%` };
+    orientation === "vertical"
+      ? { position: "absolute", bottom: `${percent}%`, left: "50%", transform: "translate(-50%, 50%)" }
+      : { position: "absolute", left: `${percent}%`, top: "50%", transform: "translate(-50%, -50%)" };
 
   return (
     <span
