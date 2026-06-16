@@ -7,7 +7,7 @@
 ///
 /// Each fragment may be a `&str`, `String`, or `Option<_>` thereof — anything
 /// `tailwind_fuse::tw_merge!` accepts. The TypeScript mirror is `cn` in
-/// `@ev/uikit` (`clsx` + `tailwind-merge`).
+/// `@evinvest/uikit` (`clsx` + `tailwind-merge`).
 #[macro_export]
 macro_rules! cn {
 	($($frag:expr),* $(,)?) => {

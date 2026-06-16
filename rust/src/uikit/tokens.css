@@ -1,7 +1,7 @@
 /*
  * Shared design tokens — the theme contract for the `ev::uikit` (Rust) and
- * `@ev/uikit` (TypeScript) components. Import this file from any Tailwind v4
- * entrypoint. Kept byte-for-byte in parity with `@ev/uikit`'s
+ * `@evinvest/uikit` (TypeScript) components. Import this file from any Tailwind v4
+ * entrypoint. Kept byte-for-byte in parity with `@evinvest/uikit`'s
  * `styles/tokens.css`; change one, change the other.
  *
  * Structure:

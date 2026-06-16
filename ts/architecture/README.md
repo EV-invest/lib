@@ -1,4 +1,4 @@
-# @ev/architecture
+# @evinvest/architecture
 
 A generic, I/O-free **DDD tactical kernel** for TypeScript: typed ids, entities,
 aggregate roots, domain events, repositories, gateways, the unit of work, and
@@ -13,7 +13,7 @@ Zero runtime dependencies. ESM-only. Strict types.
 Published to the public npm registry:
 
 ```sh
-npm i @ev/architecture
+npm i @evinvest/architecture
 ```
 
 `dist/` is built on publish, not committed. Requires Node ≥ 20.
@@ -21,8 +21,8 @@ npm i @ev/architecture
 ## Usage
 
 ```ts
-import { Id, spec, assertNever } from "@ev/architecture";
-import type { AggregateRoot, Repository, Reader, UnitOfWork, DomainEvent } from "@ev/architecture";
+import { Id, spec, assertNever } from "@evinvest/architecture";
+import type { AggregateRoot, Repository, Reader, UnitOfWork, DomainEvent } from "@evinvest/architecture";
 
 // --- Typed ids: distinct tags are incompatible at compile time ---------------
 type OrderId = Id<"order", bigint>; // numeric id → bigint, never number
