@@ -1,50 +1,16 @@
 import * as React from "react";
 
 /**
- * Keeps a node mounted through its exit animation — the dep-light core of
- * `@radix-ui/react-presence`. While `present` is true the node is mounted with
- * `data-state="open"`; when `present` flips to false the hook switches it to
- * `data-state="closed"` and unmounts only after the node's CSS
- * animation/transition ends (or immediately if there is none).
- *
- * Usage: spread `{ ref, ...(isPresent ? {} : {}) }` and render only while
- * `isPresent`. The Rust mirror toggles `data-state` without deferring unmount.
+ * Tracks whether an overlay should be mounted. Mount/unmount steps in lockstep
+ * with `present`: enter animations (`data-[state=open]:animate-in`) still play
+ * on mount, but the kit intentionally does **not** defer unmount for an exit
+ * animation — deferring made portaled overlays flicker on close. Pass `ref`
+ * through to the animated node (kept for API stability / future use).
  */
 export function usePresence(present: boolean): {
   isPresent: boolean;
   ref: React.RefObject<HTMLElement | null>;
 } {
   const ref = React.useRef<HTMLElement | null>(null);
-  const [isPresent, setIsPresent] = React.useState(present);
-
-  React.useEffect(() => {
-    const node = ref.current;
-    if (present) {
-      setIsPresent(true);
-      return;
-    }
-    if (!node) {
-      setIsPresent(false);
-      return;
-    }
-    const styles = getComputedStyle(node);
-    const hasAnim =
-      (styles.animationName && styles.animationName !== "none") ||
-      parseFloat(styles.transitionDuration) > 0;
-    if (!hasAnim) {
-      setIsPresent(false);
-      return;
-    }
-    function done() {
-      setIsPresent(false);
-    }
-    node.addEventListener("animationend", done);
-    node.addEventListener("transitionend", done);
-    return () => {
-      node.removeEventListener("animationend", done);
-      node.removeEventListener("transitionend", done);
-    };
-  }, [present]);
-
-  return { isPresent: present || isPresent, ref };
+  return { isPresent: present, ref };
 }
