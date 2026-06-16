@@ -15,9 +15,11 @@ export interface PortalProps {
 }
 
 export function Portal({ children, container }: PortalProps) {
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
+  // Render the portal synchronously on the client so a consumer's ref (e.g. a
+  // floating element measured in `useLayoutEffect`) is attached in the same
+  // commit. Overlays only render this when open — i.e. after a client event —
+  // so there is no server render to mismatch.
+  if (typeof document === "undefined") return null;
   const target = container ?? document.body;
   return createPortal(children, target);
 }

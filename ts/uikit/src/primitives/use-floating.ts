@@ -88,12 +88,24 @@ export function useFloating(opts: {
       setResolved({ side: placed, align });
     }
 
+    // Throttle scroll/resize repositioning to one update per frame so the
+    // overlay tracks its anchor smoothly instead of thrashing.
+    let frame = 0;
+    function schedule() {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        update();
+      });
+    }
+
     update();
-    window.addEventListener("scroll", update, true);
-    window.addEventListener("resize", update);
+    window.addEventListener("scroll", schedule, true);
+    window.addEventListener("resize", schedule);
     return () => {
-      window.removeEventListener("scroll", update, true);
-      window.removeEventListener("resize", update);
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule, true);
+      window.removeEventListener("resize", schedule);
     };
   }, [open, side, align, offset, anchorRef]);
 
