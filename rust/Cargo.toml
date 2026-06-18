@@ -16,6 +16,22 @@ architecture = ["dep:async-trait", "dep:serde", "dep:uuid", "dep:jiff"]
 # library carries runtime deps — a UI kit can't be zero-dep; see AGENTS.md.
 uikit = ["dep:dioxus", "dep:tailwind_fuse"]
 
+# PostHog product analytics (mirrors `@evinvest/analytics`). A small typed event
+# API: native (Axum) async capture over `reqwest`; the Dioxus/wasm frontend POSTs
+# the same payload via reqwest's fetch backend (no PostHog JS SDK). Carries runtime
+# deps — opt-in, never in the kernel; see AGENTS.md.
+analytics = ["dep:serde", "dep:serde_json", "dep:reqwest", "dep:dioxus", "dep:js-sys", "dep:web-sys", "dep:wasm-bindgen", "dep:wasm-bindgen-futures"]
+
+# Error monitoring / Sentry (mirrors `@evinvest/error-monitoring`). Native (Axum)
+# on the `sentry` crate (+ its tower/tracing integrations); the Dioxus/wasm frontend
+# builds a Sentry envelope in pure Rust and POSTs it via fetch, plus a panic hook.
+error_monitoring = ["dep:serde", "dep:serde_json", "dep:sentry", "dep:reqwest", "dep:js-sys", "dep:web-sys", "dep:wasm-bindgen", "dep:wasm-bindgen-futures"]
+
+# Frontend-only A/B testing (mirrors `@evinvest/experiments`). Cookie-bucketed
+# weighted variant assignment for Dioxus; exposure is reported through an injected
+# sink, so it never imports `analytics` (no cross-library coupling).
+experiments = ["dep:dioxus", "dep:js-sys", "dep:web-sys", "dep:wasm-bindgen"]
+
 # One opt-in switch that layers wasm/browser backends onto whatever other
 # features are enabled — each feature contributes its own wasm needs here with
 # the `pkg?/feature` syntax (no-op when that feature is off). Enable it
@@ -28,8 +44,24 @@ async-trait = { version = "0.1.89", optional = true }
 dioxus = { version = "0.7", optional = true, default-features = false, features = ["macro", "html", "signals", "hooks"] }
 jiff = { version = "0.2", features = ["serde"], optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
 tailwind_fuse = { version = "0.3", optional = true }
 uuid = { version = "1", features = ["serde", "v4"], optional = true }
+
+# Native (non-wasm) backends for the I/O libraries. Kept out of wasm builds so the
+# browser target never links a native TLS stack or the `sentry` crate.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+reqwest = { version = "0.12", optional = true, default-features = false, features = ["rustls-tls", "json"] }
+sentry = { version = "0.48.2", optional = true, features = ["tower-axum-matched-path", "tracing"] }
+
+# Browser backends for the I/O libraries. Enabled per-target on the consumer side
+# (see the `wasm` feature); never linked into native builds.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+reqwest = { version = "0.12", optional = true, default-features = false, features = ["json"] }
+js-sys = { version = "0.3", optional = true }
+wasm-bindgen = { version = "0.2", optional = true }
+wasm-bindgen-futures = { version = "0.4", optional = true }
+web-sys = { version = "0.3", optional = true, features = ["Document", "Window", "HtmlDocument", "Storage", "Navigator"] }
 
 [dev-dependencies]
 async-trait = "0.1.89"
