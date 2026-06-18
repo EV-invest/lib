@@ -9,8 +9,11 @@ rust/
 ├── Cargo.toml          the `ev` package
 ├── src/
 │   ├── lib.rs
-│   ├── architecture/   the `architecture` feature (DDD tactical kernel)
-│   └── uikit/          the `uikit` feature (dep-light Dioxus UI kit + tokens.css)
+│   ├── architecture/      the `architecture` feature (DDD tactical kernel)
+│   ├── uikit/             the `uikit` feature (dep-light Dioxus UI kit + tokens.css)
+│   ├── analytics/         the `analytics` feature (PostHog product analytics)
+│   ├── error_monitoring/  the `error_monitoring` feature (Sentry error monitoring)
+│   └── experiments/       the `experiments` feature (frontend-only A/B testing)
 └── tests/              integration tests
 ```
 
@@ -18,6 +21,13 @@ Unlike `architecture`, the `uikit` feature carries runtime deps (`dioxus`,
 `tailwind_fuse`) — a UI kit can't be zero-dep. It mirrors the `@evinvest/uikit`
 TypeScript package and ships the shared design tokens; see its rustdoc and
 [`../ts/uikit/README.md`](../ts/uikit/README.md).
+
+`analytics`, `error_monitoring`, and `experiments` likewise carry runtime deps
+and **do network I/O** (PostHog / Sentry), gated per-target so native and browser
+backends stay separate — native uses `reqwest`(rustls)/`sentry`, wasm uses
+pure-Rust HTTP behind the `wasm` feature. Each mirrors its TS package
+(`@evinvest/analytics`, `@evinvest/error-monitoring`, `@evinvest/experiments`);
+see their rustdoc and READMEs.
 
 Each feature mirrors a TypeScript package in [`../ts`](../ts). cargo runs from the
 repo root — pass `-p ev` for feature flags. See
