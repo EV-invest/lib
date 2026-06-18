@@ -36,6 +36,10 @@ describe('noopErrorSink', () => {
   it('does nothing', () => {
     expect(() => noopErrorSink().reportError(new Error('x'), { a: 1 })).not.toThrow();
   });
+
+  it('does nothing when called with no context', () => {
+    expect(() => noopErrorSink().reportError(new Error('x'))).not.toThrow();
+  });
 });
 
 describe('defaultTracesSampleRate', () => {
