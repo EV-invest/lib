@@ -15,8 +15,8 @@ import {
   type AnalyticsSink,
   type CaptureFn,
 } from "../index";
-
-const AnalyticsContext = React.createContext<AnalyticsSink | null>(null);
+// Shared with `./next/client`'s PostHogPageView so both read the same context.
+import { AnalyticsContext } from "./context";
 
 /**
  * Props for {@link PostHogProvider}.
@@ -95,6 +95,16 @@ export function PostHogProvider({
   const resolvedHost = host ?? readEnv("NEXT_PUBLIC_POSTHOG_HOST");
 
   const sinkRef = React.useRef<AnalyticsSink>(noopSink());
+  // `posthog-js` loads asynchronously (dynamic import below), but consumers can
+  // `capture` on first paint — e.g. an experiment firing `${key}_exposed` from a
+  // mount effect, which runs before this provider's effect resolves the import.
+  // Such captures are buffered until the SDK is ready, then flushed in order, so
+  // first-load events are never silently dropped.
+  const readyRef = React.useRef(false);
+  const bufferRef = React.useRef<
+    Array<{ event: string; props?: Record<string, unknown> }>
+  >([]);
+  const enabled = Boolean(key);
 
   React.useEffect(() => {
     if (!key) return;
@@ -105,10 +115,20 @@ export function PostHogProvider({
       const sink = createPostHogSink(posthog, {
         key,
         ...(resolvedHost !== undefined ? { host: resolvedHost } : {}),
-        ...(capturePageview !== undefined ? { capturePageview } : {}),
+        // The provider fires the single initial $pageview itself (below), so
+        // posthog's own initial-pageview autocapture is disabled to avoid
+        // double-counting it.
+        capturePageview: false,
       });
       sinkRef.current = sink;
-      sink.capture("$pageview");
+      readyRef.current = true;
+      // Fire exactly one initial pageview unless the caller opted out. This is
+      // also what lazily inits posthog, so a pageview is guaranteed on mount.
+      if (capturePageview !== false) sink.capture("$pageview");
+      // Flush captures that arrived while posthog-js was still loading.
+      const queued = bufferRef.current;
+      bufferRef.current = [];
+      for (const item of queued) sink.capture(item.event, item.props);
     });
     return () => {
       active = false;
@@ -118,10 +138,18 @@ export function PostHogProvider({
   const value = React.useMemo<AnalyticsSink>(
     () => ({
       capture(event, props) {
-        sinkRef.current.capture(event, props);
+        if (readyRef.current) {
+          sinkRef.current.capture(event, props);
+        } else if (enabled) {
+          // SDK still loading — buffer for flush on init. When analytics is
+          // disabled (no key), this is a silent no-op, as before.
+          bufferRef.current.push(
+            props !== undefined ? { event, props } : { event },
+          );
+        }
       },
     }),
-    [],
+    [enabled],
   );
 
   return React.createElement(AnalyticsContext.Provider, { value }, children);
