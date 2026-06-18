@@ -1,0 +1,8 @@
+# Build output — produced by `prepare` on install, never committed.
+dist/
+
+# Dependencies
+node_modules/
+
+# Build info
+*.tsbuildinfo
