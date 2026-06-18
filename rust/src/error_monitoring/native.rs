@@ -64,12 +64,19 @@ pub fn report(error: &dyn StdError) {
 
 #[cfg(test)]
 mod tests {
+	use std::{
+		sync::{Arc, Mutex},
+		time::Duration,
+	};
+
 	use super::*;
 
 	#[test]
 	fn sample_rate_policy() {
 		assert_eq!(Config::traces_sample_rate_for("production"), 0.1);
 		assert_eq!(Config::traces_sample_rate_for("development"), 1.0);
+		assert_eq!(Config::traces_sample_rate_for("staging"), 1.0);
+		assert_eq!(Config::traces_sample_rate_for(""), 1.0);
 	}
 
 	#[test]
@@ -80,5 +87,65 @@ mod tests {
 			traces_sample_rate: 1.0,
 		};
 		assert!(init(&config).is_none());
+	}
+
+	#[test]
+	fn init_returns_a_guard_with_a_valid_dsn() {
+		let config = Config {
+			dsn: Some("https://abc@example.com/1".to_string()),
+			environment: "test".to_string(),
+			traces_sample_rate: 1.0,
+		};
+		let guard = init(&config);
+		assert!(guard.is_some(), "a syntactically valid DSN should yield a guard");
+		// Drop the guard explicitly; it must not block on a network flush
+		// (default transport with an unreachable host would, hence the short
+		// shutdown — but dropping the guard here is enough for the assertion).
+		drop(guard);
+	}
+
+	// In-memory transport: captures envelopes instead of POSTing them. This
+	// replicates `sentry::test::TestTransport` without enabling the `test`
+	// feature (which we are not allowed to add), so `report` is covered
+	// deterministically with no network.
+	struct CapturingTransport {
+		envelopes: Arc<Mutex<Vec<sentry::Envelope>>>,
+	}
+
+	impl sentry::Transport for CapturingTransport {
+		fn send_envelope(&self, envelope: sentry::Envelope) {
+			self.envelopes.lock().unwrap().push(envelope);
+		}
+	}
+
+	#[test]
+	fn report_captures_the_error_as_an_event() {
+		let captured: Arc<Mutex<Vec<sentry::Envelope>>> = Arc::new(Mutex::new(Vec::new()));
+		let sink = captured.clone();
+
+		let options = sentry::ClientOptions {
+			dsn: Some("https://public@example.com/1".parse().unwrap()),
+			transport: Some(Arc::new(move |_: &sentry::ClientOptions| {
+				Arc::new(CapturingTransport { envelopes: sink.clone() }) as Arc<dyn sentry::Transport>
+			})),
+			..Default::default()
+		};
+
+		let hub = Arc::new(sentry::Hub::new(Some(Arc::new(options.into())), Arc::new(Default::default())));
+		sentry::Hub::run(hub.clone(), || {
+			let err = std::io::Error::other("disk on fire");
+			report(&err);
+		});
+		hub.client().unwrap().flush(Some(Duration::from_secs(1)));
+
+		let envelopes = captured.lock().unwrap();
+		assert_eq!(envelopes.len(), 1, "report should send exactly one envelope");
+		let event = envelopes[0].event().expect("the captured envelope should carry an event");
+		let exception = event.exception.values.first().expect("capture_error records an exception value");
+		assert!(
+			exception.value.as_deref().unwrap_or_default().contains("disk on fire"),
+			"the reported error message should reach Sentry, got {:?}",
+			exception.value
+		);
 	}
 }

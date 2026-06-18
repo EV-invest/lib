@@ -133,15 +133,119 @@ mod tests {
 	}
 
 	#[test]
+	fn capture_body_with_no_props_still_carries_lib_marker() {
+		let body = capture_body("phc_abc", "anon-1", &Event::new("app_booted"));
+		let props = body["properties"].as_object().unwrap();
+		assert_eq!(props.len(), 1);
+		assert_eq!(props["$lib"], "ev-analytics");
+	}
+
+	#[test]
+	fn capture_body_serializes_every_prop_value_variant() {
+		let event = Event::new("e").prop("flag", true).prop("count", 7_i64).prop("ratio", 1.5_f64).prop("label", "tier_a");
+		let body = capture_body("k", "d", &event);
+		assert_eq!(body["properties"]["flag"], json!(true));
+		assert_eq!(body["properties"]["count"], json!(7));
+		assert_eq!(body["properties"]["ratio"], json!(1.5));
+		assert_eq!(body["properties"]["label"], json!("tier_a"));
+	}
+
+	#[test]
+	fn capture_body_props_are_btreemap_sorted() {
+		let event = Event::new("e").prop("zebra", 1).prop("alpha", 2).prop("mango", 3);
+		let body = capture_body("k", "d", &event);
+		let keys: Vec<&String> = body["properties"].as_object().unwrap().keys().collect();
+		// BTreeMap sorts user keys; "$lib" is inserted last but '$' < letters so it sorts first.
+		assert_eq!(keys, vec!["$lib", "alpha", "mango", "zebra"]);
+	}
+
+	#[test]
+	fn capture_body_escapes_special_characters_in_name_and_values() {
+		let event = Event::new("weird\"name\n\t").prop("k", "a\"b\\c\nd");
+		let body = capture_body("key", r#"id"with\quotes"#, &event);
+		// serde escapes control/quote chars; round-tripping the rendered JSON must
+		// recover the exact originals (proves correct escaping, not corruption).
+		let rendered = serde_json::to_string(&body).unwrap();
+		let parsed: Value = serde_json::from_str(&rendered).unwrap();
+		assert_eq!(parsed["event"], "weird\"name\n\t");
+		assert_eq!(parsed["distinct_id"], r#"id"with\quotes"#);
+		assert_eq!(parsed["properties"]["k"], "a\"b\\c\nd");
+	}
+
+	#[test]
+	fn capture_body_user_key_named_lib_is_clobbered_by_marker() {
+		// Documented behavior: the "$lib" marker is inserted last and overwrites any
+		// user property of the same name. Keep — "$lib" is a reserved PostHog key.
+		let event = Event::new("e").prop("$lib", "user-supplied");
+		let body = capture_body("k", "d", &event);
+		assert_eq!(body["properties"]["$lib"], "ev-analytics");
+	}
+
+	#[test]
+	fn capture_body_non_finite_f64_becomes_null() {
+		// serde_json cannot represent NaN/Inf, so `to_value` errors and the
+		// `unwrap_or(Value::Null)` fallback turns the property into JSON null. This
+		// keeps the body serializable (PostHog rejects bare NaN) rather than
+		// panicking or producing invalid JSON. Documenting, not asserting it is ideal.
+		let event = Event::new("e")
+			.prop("nan", f64::NAN)
+			.prop("inf", f64::INFINITY)
+			.prop("neg_inf", f64::NEG_INFINITY)
+			.prop("ok", 2.0_f64);
+		let body = capture_body("k", "d", &event);
+		assert_eq!(body["properties"]["nan"], Value::Null);
+		assert_eq!(body["properties"]["inf"], Value::Null);
+		assert_eq!(body["properties"]["neg_inf"], Value::Null);
+		assert_eq!(body["properties"]["ok"], json!(2.0));
+		// The whole body must still serialize to valid JSON.
+		assert!(serde_json::to_string(&body).is_ok());
+	}
+
+	#[test]
 	fn prop_values_serialize_as_primitives() {
 		assert_eq!(serde_json::to_value(PropValue::Bool(true)).unwrap(), json!(true));
 		assert_eq!(serde_json::to_value(PropValue::Int(7)).unwrap(), json!(7));
+		assert_eq!(serde_json::to_value(PropValue::Num(1.5)).unwrap(), json!(1.5));
 		assert_eq!(serde_json::to_value(PropValue::Str("x".into())).unwrap(), json!("x"));
+	}
+
+	#[test]
+	fn prop_value_from_impls_pick_the_right_variant() {
+		assert_eq!(PropValue::from(true), PropValue::Bool(true));
+		assert_eq!(PropValue::from(9_i64), PropValue::Int(9));
+		assert_eq!(PropValue::from(9_i32), PropValue::Int(9));
+		assert_eq!(PropValue::from(-3_i32), PropValue::Int(-3));
+		assert_eq!(PropValue::from(2.5_f64), PropValue::Num(2.5));
+		assert_eq!(PropValue::from("s"), PropValue::Str("s".to_string()));
+		assert_eq!(PropValue::from(String::from("s")), PropValue::Str("s".to_string()));
+	}
+
+	#[test]
+	fn event_new_and_prop_chaining() {
+		let event = Event::new("calculator_submitted").prop("amount", 1000).prop("currency", "usd");
+		assert_eq!(event.name, "calculator_submitted");
+		assert_eq!(event.props.len(), 2);
+		assert_eq!(event.props.get("amount"), Some(&PropValue::Int(1000)));
+		assert_eq!(event.props.get("currency"), Some(&PropValue::Str("usd".to_string())));
+	}
+
+	#[test]
+	fn event_default_is_empty() {
+		let event = Event::default();
+		assert_eq!(event.name, "");
+		assert!(event.props.is_empty());
 	}
 
 	#[test]
 	fn prop_overwrites_by_key() {
 		let event = Event::new("e").prop("k", 1).prop("k", 2);
 		assert_eq!(event.props.get("k"), Some(&PropValue::Int(2)));
+		assert_eq!(event.props.len(), 1);
+	}
+
+	#[test]
+	fn prop_overwrite_can_change_value_type() {
+		let event = Event::new("e").prop("k", 1_i64).prop("k", "now-a-string");
+		assert_eq!(event.props.get("k"), Some(&PropValue::Str("now-a-string".to_string())));
 	}
 }

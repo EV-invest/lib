@@ -126,4 +126,77 @@ mod tests {
 		assert!(render(with_key).contains("on"));
 		assert!(render(without_key).contains("off"));
 	}
+
+	#[test]
+	fn provider_renders_children_unchanged() {
+		fn app() -> Element {
+			rsx! {
+				AnalyticsProvider { api_key: "phc_x".to_string(),
+					div { "child-content" }
+				}
+			}
+		}
+		assert!(render(app).contains("child-content"));
+	}
+
+	#[test]
+	fn host_defaults_when_unset() {
+		// The provider stores the default host when none is passed; the explicit host
+		// is kept otherwise. Read it back through the context handle's config.
+		#[component]
+		fn Probe() -> Element {
+			let analytics = use_analytics();
+			let host = analytics.config.read().host.clone();
+			rsx! {
+				span { {host} }
+			}
+		}
+		fn default_host() -> Element {
+			rsx! {
+				AnalyticsProvider { Probe {} }
+			}
+		}
+		fn explicit_host() -> Element {
+			rsx! {
+				AnalyticsProvider { host: "https://eu.i.posthog.com".to_string(), Probe {} }
+			}
+		}
+		assert!(render(default_host).contains(DEFAULT_HOST));
+		assert!(render(explicit_host).contains("https://eu.i.posthog.com"));
+	}
+
+	#[test]
+	fn capture_is_noop_on_native_without_panicking() {
+		// On non-wasm targets `capture` must do nothing (no network, no panic),
+		// whether or not a key is set. Exercising both paths under SSR proves the
+		// `#[cfg(not(target_arch = "wasm32"))]` arm is reachable and inert.
+		#[component]
+		fn Probe() -> Element {
+			let analytics = use_analytics();
+			analytics.capture(Event::new("native_noop_with_key").prop("k", 1));
+			rsx! {
+				span { "rendered" }
+			}
+		}
+		#[component]
+		fn ProbeNoKey() -> Element {
+			let analytics = use_analytics();
+			analytics.capture(Event::new("native_noop_no_key"));
+			rsx! {
+				span { "rendered" }
+			}
+		}
+		fn with_key() -> Element {
+			rsx! {
+				AnalyticsProvider { api_key: "phc_x".to_string(), Probe {} }
+			}
+		}
+		fn without_key() -> Element {
+			rsx! {
+				AnalyticsProvider { ProbeNoKey {} }
+			}
+		}
+		assert!(render(with_key).contains("rendered"));
+		assert!(render(without_key).contains("rendered"));
+	}
 }

@@ -74,11 +74,57 @@ describe("createPostHogSink", () => {
       person_profiles: "identified_only",
     });
   });
+
+  it("forwards undefined props when no props are passed", () => {
+    const ph = fakePostHog();
+    const sink = createPostHogSink(ph, { key: "phc_test" });
+    sink.capture("naked_event");
+    expect(ph.capture).toHaveBeenCalledWith("naked_event", undefined);
+  });
+
+  it("stays permanently disabled without a key and never retries init", () => {
+    const ph = fakePostHog();
+    const sink = createPostHogSink(ph, {});
+    sink.capture("a");
+    sink.capture("b");
+    sink.capture("c");
+    expect(ph.init).not.toHaveBeenCalled();
+    expect(ph.capture).not.toHaveBeenCalled();
+  });
+
+  it("captures every event once initialized (not just the first)", () => {
+    const ph = fakePostHog();
+    const sink = createPostHogSink(ph, { key: "phc_test" });
+    sink.capture("a");
+    sink.capture("b");
+    expect(ph.capture).toHaveBeenCalledTimes(2);
+    expect(ph.capture).toHaveBeenNthCalledWith(1, "a", undefined);
+    expect(ph.capture).toHaveBeenNthCalledWith(2, "b", undefined);
+  });
+
+  it("defaults capturePageview to true when only a custom host is set", () => {
+    const ph = fakePostHog();
+    const sink = createPostHogSink(ph, {
+      key: "phc_test",
+      host: "https://eu.i.posthog.com",
+    });
+    sink.capture("a");
+    expect(ph.init).toHaveBeenCalledWith("phc_test", {
+      api_host: "https://eu.i.posthog.com",
+      capture_pageview: true,
+      person_profiles: "identified_only",
+    });
+  });
 });
 
 describe("noopSink", () => {
   it("never throws and records nothing", () => {
     const sink = noopSink();
     expect(() => sink.capture("anything", { a: 1 })).not.toThrow();
+  });
+
+  it("is callable with no props", () => {
+    const sink = noopSink();
+    expect(() => sink.capture("bare")).not.toThrow();
   });
 });

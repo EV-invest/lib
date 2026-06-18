@@ -109,4 +109,31 @@ mod tests {
 		}
 		assert!(render(app).contains("body"));
 	}
+
+	#[test]
+	fn tracker_without_on_event_renders_without_panicking() {
+		// `on_event: None` must render the subtree and expose context without firing
+		// anything. The exposure effect does not run under dioxus-ssr, so we assert
+		// only on rendered output + context wiring (event-name logic is covered by
+		// the config.rs `TrackedEvent` tests).
+		#[component]
+		fn Probe() -> Element {
+			let _track = use_experiment_event();
+			let (experiment, variant) = use_experiment();
+			rsx! {
+				span { "{experiment}:{variant}" }
+			}
+		}
+		fn app() -> Element {
+			rsx! {
+				ExperimentTracker { experiment: "hero".to_string(), variant: "a".to_string(), on_event: None,
+					Probe {}
+					p { "body" }
+				}
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("hero:a"), "{html}");
+		assert!(html.contains("body"), "{html}");
+	}
 }
