@@ -1,0 +1,84 @@
+import { describe, it, expect, vi } from "vitest";
+import {
+  createPostHogSink,
+  noopSink,
+  type PostHogLike,
+} from "../src/index";
+
+function fakePostHog() {
+  return {
+    init: vi.fn(),
+    capture: vi.fn(),
+  } satisfies PostHogLike;
+}
+
+describe("createPostHogSink", () => {
+  it("no-ops (never inits, never captures) when the key is absent", () => {
+    const ph = fakePostHog();
+    const sink = createPostHogSink(ph, {});
+    sink.capture("hero_cta_clicked", { variant: "b" });
+    expect(ph.init).not.toHaveBeenCalled();
+    expect(ph.capture).not.toHaveBeenCalled();
+  });
+
+  it("no-ops when the key is the empty string", () => {
+    const ph = fakePostHog();
+    const sink = createPostHogSink(ph, { key: "" });
+    sink.capture("x");
+    expect(ph.init).not.toHaveBeenCalled();
+    expect(ph.capture).not.toHaveBeenCalled();
+  });
+
+  it("inits lazily and exactly once across many captures (idempotent)", () => {
+    const ph = fakePostHog();
+    const sink = createPostHogSink(ph, { key: "phc_test" });
+    expect(ph.init).not.toHaveBeenCalled();
+    sink.capture("a");
+    sink.capture("b");
+    sink.capture("c");
+    expect(ph.init).toHaveBeenCalledTimes(1);
+  });
+
+  it("forwards (event, props) to posthog.capture", () => {
+    const ph = fakePostHog();
+    const sink = createPostHogSink(ph, { key: "phc_test" });
+    sink.capture("calculator_submitted", { amount: 42, ok: true });
+    expect(ph.capture).toHaveBeenCalledWith("calculator_submitted", {
+      amount: 42,
+      ok: true,
+    });
+  });
+
+  it('inits with person_profiles "identified_only" and the default host', () => {
+    const ph = fakePostHog();
+    const sink = createPostHogSink(ph, { key: "phc_test" });
+    sink.capture("a");
+    expect(ph.init).toHaveBeenCalledWith("phc_test", {
+      api_host: "https://us.i.posthog.com",
+      capture_pageview: true,
+      person_profiles: "identified_only",
+    });
+  });
+
+  it("honors a custom host and capturePageview override", () => {
+    const ph = fakePostHog();
+    const sink = createPostHogSink(ph, {
+      key: "phc_test",
+      host: "https://eu.i.posthog.com",
+      capturePageview: false,
+    });
+    sink.capture("a");
+    expect(ph.init).toHaveBeenCalledWith("phc_test", {
+      api_host: "https://eu.i.posthog.com",
+      capture_pageview: false,
+      person_profiles: "identified_only",
+    });
+  });
+});
+
+describe("noopSink", () => {
+  it("never throws and records nothing", () => {
+    const sink = noopSink();
+    expect(() => sink.capture("anything", { a: 1 })).not.toThrow();
+  });
+});

@@ -1,0 +1,75 @@
+{
+  "name": "@evinvest/analytics",
+  "version": "0.1.0",
+  "description": "Vendor-neutral, dep-light product analytics: an injectable event sink with a PostHog factory, a React provider, and a posthog-node server sink — mirroring the ev::analytics Rust feature.",
+  "license": "BlueOak-1.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EV-invest/lib.git",
+    "directory": "ts/analytics"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build:core": "TSUP_ONLY=core tsup",
+    "build:react": "TSUP_ONLY=react tsup",
+    "build": "npm run build:core && npm run build:react",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.core.json --noEmit",
+    "prepare": "npm run build"
+  },
+  "peerDependencies": {
+    "posthog-js": "^1.381.0",
+    "posthog-node": "^4 || ^5",
+    "react": "^18 || ^19"
+  },
+  "peerDependenciesMeta": {
+    "posthog-js": {
+      "optional": true
+    },
+    "posthog-node": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "jsdom": "^25.0.1",
+    "posthog-js": "^1.381.0",
+    "posthog-node": "^5",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
