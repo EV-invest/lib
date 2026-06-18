@@ -11,23 +11,40 @@ import { defineConfig, type Options } from 'tsup';
 // `TSUP_ONLY` (`core` then `react`). The array below stays the single source of
 // truth for both passes; run with no filter it still builds everything.
 const core: Options = {
-  entry: { index: 'src/index.ts', node: 'src/node/index.ts' },
+  // Server-safe entries (no `"use client"`): the core, the posthog-node sink,
+  // and the Next.js server helpers (`./next`, which use `next/headers`).
+  entry: {
+    index: 'src/index.ts',
+    node: 'src/node/index.ts',
+    next: 'src/next/index.ts',
+  },
   format: ['esm'],
   dts: true,
   clean: true,
   sourcemap: true,
   target: 'es2022',
-  external: ['posthog-node'],
+  external: ['posthog-node', 'next', 'next/headers'],
 };
 
 const react: Options = {
-  entry: { react: 'src/react/index.ts' },
+  // Client entries (`"use client"`): the provider/hooks and the App Router
+  // page-view tracker (`./next/client`). Built together so they share the
+  // `AnalyticsContext` chunk — `PostHogPageView` must read the same context the
+  // provider populates.
+  entry: { react: 'src/react/index.ts', 'next-client': 'src/next/client.tsx' },
   format: ['esm'],
   dts: true,
   clean: false,
   sourcemap: true,
   target: 'es2022',
-  external: ['react', 'react-dom', 'react/jsx-runtime', 'posthog-js'],
+  external: [
+    'react',
+    'react-dom',
+    'react/jsx-runtime',
+    'posthog-js',
+    'next',
+    'next/navigation',
+  ],
   banner: { js: '"use client";' },
 };
 
