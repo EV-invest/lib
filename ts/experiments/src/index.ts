@@ -112,7 +112,11 @@ export function pickVariant<C extends ExperimentConfig, K extends ExperimentKey<
   rng: () => number = Math.random,
 ): Variant<C, K> {
   const { variants, weights } = config[key] as C[K];
-  const total = weights.reduce((sum, w) => sum + w, 0);
+  // Only positive weights contribute, mirroring the Rust core. A non-positive
+  // total (no weight at all) falls back to the control (variants[0]) instead of
+  // the last variant, so a zero-weight experiment is deterministically control.
+  const total = weights.reduce((sum, w) => (w > 0 ? sum + w : sum), 0);
+  if (total <= 0) return variants[0] as Variant<C, K>;
   let r = rng() * total;
   for (let i = 0; i < variants.length; i++) {
     r -= weights[i] ?? 0;
