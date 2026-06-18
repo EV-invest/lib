@@ -20,6 +20,9 @@ it enables.
 | --- | --- |
 | `architecture` | I/O-free, `wasm32`-safe DDD tactical kernel: typed ids, entities, aggregate roots, repositories, gateways, the unit of work, domain events, specifications |
 | `uikit` | dep-light Dioxus UI kit (mirrors `@evinvest/uikit`): 63 shadcn-semantics components on `dioxus` + `tailwind_fuse`, no `@radix-ui`/`cva`. Ships the shared design tokens (`tokens.css`) |
+| `analytics` | PostHog product analytics (mirrors `@evinvest/analytics`): does network I/O, gated per-target — `reqwest` + `serde`/`serde_json` native, pure-Rust HTTP on wasm |
+| `error_monitoring` | Sentry error monitoring (mirrors `@evinvest/error-monitoring`): does network I/O; the native `sentry` crate is native-only, wasm reports over pure-Rust HTTP |
+| `experiments` | frontend-only A/B testing (mirrors `@evinvest/experiments`): reports exposure through an injected sink, never imports `analytics` |
 | `wasm` | opt-in switch layering browser/js backends onto whatever features are enabled |
 
 ### Consume it
@@ -50,8 +53,10 @@ cargo check -p ev --features "architecture wasm" --target wasm32-unknown-unknown
 ## TypeScript
 
 TS packages live under [`ts/`](ts/), one directory per library, each with its own
-`package.json`: [`ts/architecture/`](ts/architecture/) (the DDD kernel) and
-[`ts/uikit/`](ts/uikit/) (the dep-light React UI kit mirroring `ev::uikit`).
+`package.json`: [`ts/architecture/`](ts/architecture/) (the DDD kernel),
+[`ts/uikit/`](ts/uikit/) (the dep-light React UI kit mirroring `ev::uikit`),
+[`ts/analytics/`](ts/analytics/) (PostHog), [`ts/error-monitoring/`](ts/error-monitoring/)
+(Sentry), and [`ts/experiments/`](ts/experiments/) (A/B testing).
 
 ## Dev shell
 

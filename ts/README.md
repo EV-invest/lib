@@ -5,8 +5,11 @@ own `package.json`, built ESM-only with `tsup` and tested with `vitest`.
 
 ```
 ts/
-├── architecture/   port of the `architecture` Cargo feature (DDD kernel)
-└── uikit/          port of the `uikit` Cargo feature (dep-light React UI kit)
+├── architecture/      port of the `architecture` Cargo feature (DDD kernel)
+├── uikit/             port of the `uikit` Cargo feature (dep-light React UI kit)
+├── analytics/         port of the `analytics` Cargo feature (PostHog product analytics)
+├── error-monitoring/  port of the `error_monitoring` Cargo feature (Sentry error monitoring)
+└── experiments/       port of the `experiments` Cargo feature (frontend-only A/B testing)
 ```
 
 Each package mirrors the _semantics_ of its Rust counterpart in
