@@ -82,22 +82,23 @@ describe("PostHogProvider", () => {
     );
     await flushEffects();
     expect(phInit).toHaveBeenCalledTimes(1);
+    // The provider fires the initial $pageview itself, so posthog's own
+    // initial-pageview autocapture is disabled to avoid double-counting.
     expect(phInit).toHaveBeenCalledWith("phc_react", {
       api_host: "https://us.i.posthog.com",
-      capture_pageview: true,
+      capture_pageview: false,
       person_profiles: "identified_only",
     });
     expect(phCapture).toHaveBeenCalledWith("$pageview", undefined);
+    expect(
+      phCapture.mock.calls.filter(([event]) => event === "$pageview"),
+    ).toHaveLength(1);
     unmount();
   });
 
-  it("wires explicit host and capturePageview through to init", async () => {
+  it("wires the explicit host through to init", async () => {
     const { unmount } = render(
-      <PostHogProvider
-        apiKey="phc_react"
-        host="https://eu.i.posthog.com"
-        capturePageview={false}
-      >
+      <PostHogProvider apiKey="phc_react" host="https://eu.i.posthog.com">
         <span>x</span>
       </PostHogProvider>,
     );
@@ -107,6 +108,48 @@ describe("PostHogProvider", () => {
       capture_pageview: false,
       person_profiles: "identified_only",
     });
+    unmount();
+  });
+
+  it("buffers captures fired before posthog-js loads, then flushes them", async () => {
+    // Mirrors an experiment firing `${key}_exposed` from a mount effect: the
+    // child effect runs before the provider's async import resolves, so the
+    // capture must be buffered and delivered once the SDK is ready.
+    function Exposed() {
+      const capture = useAnalytics();
+      React.useEffect(() => {
+        capture("hero_exposed", { variant: "b" });
+      }, [capture]);
+      return null;
+    }
+    const { unmount } = render(
+      <PostHogProvider apiKey="phc_react">
+        <Exposed />
+      </PostHogProvider>,
+    );
+    await flushEffects();
+    expect(phCapture).toHaveBeenCalledWith("hero_exposed", { variant: "b" });
+    unmount();
+  });
+
+  it("suppresses the initial $pageview when capturePageview is false", async () => {
+    function Exposed() {
+      const capture = useAnalytics();
+      React.useEffect(() => {
+        capture("hero_exposed", { variant: "a" });
+      }, [capture]);
+      return null;
+    }
+    const { unmount } = render(
+      <PostHogProvider apiKey="phc_react" capturePageview={false}>
+        <Exposed />
+      </PostHogProvider>,
+    );
+    await flushEffects();
+    expect(phCapture).toHaveBeenCalledWith("hero_exposed", { variant: "a" });
+    expect(
+      phCapture.mock.calls.filter(([event]) => event === "$pageview"),
+    ).toHaveLength(0);
     unmount();
   });
 

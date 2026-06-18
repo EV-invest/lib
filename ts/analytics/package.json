@@ -1,6 +1,6 @@
 {
   "name": "@evinvest/analytics",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Vendor-neutral, dep-light product analytics: an injectable event sink with a PostHog factory, a React provider, and a posthog-node server sink — mirroring the ev::analytics Rust feature.",
   "license": "BlueOak-1.0.0",
   "publishConfig": {
@@ -24,6 +24,14 @@
     "./node": {
       "types": "./dist/node.d.ts",
       "import": "./dist/node.js"
+    },
+    "./next": {
+      "types": "./dist/next.d.ts",
+      "import": "./dist/next.js"
+    },
+    "./next/client": {
+      "types": "./dist/next-client.d.ts",
+      "import": "./dist/next-client.js"
     }
   },
   "types": "./dist/index.d.ts",
@@ -44,11 +52,15 @@
     "prepare": "npm run build"
   },
   "peerDependencies": {
+    "next": "^14 || ^15 || ^16",
     "posthog-js": "^1.381.0",
     "posthog-node": "^4 || ^5",
     "react": "^18 || ^19"
   },
   "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    },
     "posthog-js": {
       "optional": true
     },
@@ -64,6 +76,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "jsdom": "^25.0.1",
+    "next": "^16",
     "posthog-js": "^1.381.0",
     "posthog-node": "^5",
     "react": "^19.2.1",
