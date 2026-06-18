@@ -1,0 +1,68 @@
+{
+  "name": "@evinvest/experiments",
+  "version": "0.1.0",
+  "description": "Dep-light A/B experiments toolkit: a zero-dep server-safe core plus React and Next.js subpaths, mirroring the experiments Cargo feature. Emits exposure/events through an injected sink — never imports an analytics SDK.",
+  "license": "BlueOak-1.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EV-invest/lib.git",
+    "directory": "ts/experiments"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js"
+    },
+    "./next": {
+      "types": "./dist/next.d.ts",
+      "import": "./dist/next.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup && tsup --config tsup.react.config.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.core.json --noEmit",
+    "prepare": "tsup && tsup --config tsup.react.config.ts"
+  },
+  "peerDependencies": {
+    "next": "^14 || ^15 || ^16",
+    "react": "^18 || ^19"
+  },
+  "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "jsdom": "^25.0.1",
+    "next": "^16",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
