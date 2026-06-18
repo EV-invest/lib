@@ -12,11 +12,14 @@ lib/                 (repo: EV-invest/lib)
 ├── Cargo.toml       thin virtual workspace — anchors the crate at the repo root
 ├── rust/            the `ev` crate (sources); one library per Cargo feature
 │   ├── Cargo.toml
-│   ├── src/{lib.rs, architecture/, uikit/}
+│   ├── src/{lib.rs, architecture/, uikit/, analytics/, error_monitoring/, experiments/}
 │   └── tests/
 ├── ts/              TypeScript packages, one directory per library
 │   ├── architecture/
-│   └── uikit/
+│   ├── uikit/
+│   ├── analytics/
+│   ├── error-monitoring/
+│   └── experiments/
 ├── docs/
 │   ├── ARCHITECTURE.md          (this file)
 │   └── .readme_assets/          README fragments (README.md is generated)
@@ -94,6 +97,41 @@ the Rust overlays/engines carry documented fidelity gaps (inline positioning
 instead of portals, keyboard instead of pointer-drag, no recharts/embla/vaul) —
 the full list is in [`ts/uikit/README.md`](../ts/uikit/README.md#limitations).
 
+## The I/O libraries — analytics, error_monitoring, experiments
+
+Three frontend-facing libraries that, unlike the kernel, **do network I/O**.
+Each is a Cargo feature on `ev` and an npm package under `ts/`, mirroring the
+other's semantics.
+
+| Cargo feature      | npm package                  | Purpose                        | Network I/O? | wasm-safe? |
+| ------------------ | ---------------------------- | ------------------------------ | ------------ | ---------- |
+| `analytics`        | `@evinvest/analytics`        | PostHog product analytics      | yes          | yes        |
+| `error_monitoring` | `@evinvest/error-monitoring` | Sentry error monitoring        | yes          | yes        |
+| `experiments`      | `@evinvest/experiments`      | A/B testing (frontend-only)    | via the host | yes        |
+
+The property taxonomy is deliberate:
+
+- **I/O-free** is a property of the **kernel only**. The kernel ships zero
+  runtime deps and touches no host.
+- **wasm-safe** holds for the kernel **and** `uikit` **and** these three.
+- **"no I/O" is *not*** a property of these three. Network I/O is their purpose:
+  `analytics` POSTs PostHog events, `error_monitoring` reports to Sentry. Asking
+  them to be I/O-free would defeat them.
+
+Doing I/O while staying wasm-safe is reconciled by **per-target dep gating**.
+Native builds use `reqwest`(rustls) / the `sentry` crate; wasm builds use
+pure-Rust HTTP (the `reqwest` fetch backend plus `web-sys`/`js-sys`/`wasm-bindgen`),
+selected through `[target.'cfg(target_arch="wasm32")']` tables behind the `wasm`
+feature. `error_monitoring`'s native `sentry` crate is native-only and is never
+linked into a wasm build. `experiments` is frontend-only and reports exposure
+through an **injected sink** — it never imports `analytics`, so there is no
+cross-library coupling. None of this touches the kernel, which stays I/O-free.
+
+The TS packages expose backends through subpath exports — analytics
+`.`/`./react`/`./node`; error-monitoring `.`/`./react`/`./node`/`./next`;
+experiments `.`/`./react`/`./next` — with the vendor SDKs as optional
+`peerDependencies`.
+
 ## Cross-language parity
 
 The TS packages are not line-by-line translations; they preserve the _semantics_
@@ -116,5 +154,7 @@ ones:
   table is the contract between the two.
 - A new library = a Rust module behind a Cargo feature **and** (if it has a TS
   consumer) a package under `ts/`. Keep the feature name and the package name in
-  step (`architecture` ↔ `ts/architecture`).
+  step, following the naming convention: **snake_case in Rust, kebab-case in TS;
+  identical when single-token** (`architecture` ↔ `ts/architecture`;
+  `error_monitoring` ↔ `ts/error-monitoring`).
 
