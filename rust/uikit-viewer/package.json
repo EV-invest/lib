@@ -1,0 +1,14 @@
+{
+  "name": "uikit-viewer-css",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Tailwind CLI for the Dioxus uikit viewer — generates assets/tailwind.css from the kit's Rust sources.",
+  "scripts": {
+    "css": "tailwindcss -i ./input.css -o ./assets/tailwind.css",
+    "css:watch": "tailwindcss -i ./input.css -o ./assets/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.0",
+    "tailwindcss": "^4.1.0"
+  }
+}
