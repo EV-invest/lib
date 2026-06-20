@@ -36,6 +36,13 @@ export interface Toast {
 
 const DEFAULT_DURATION = 4000;
 
+// Swipe-to-dismiss tuning (pointer physics, TS-only — Rust stays render-only).
+// Values from Sonner: a horizontal drag past 45px, or a flick faster than
+// 0.11px/ms, flings the toast off; anything short snaps back.
+const SWIPE_THRESHOLD = 45;
+const SWIPE_VELOCITY = 0.11;
+const SWIPE_FLING_MS = 200;
+
 /**
  * Module-level toast store: a plain observable holding the live toast array.
  * `toast(...)` mutates it and notifies subscribers; the {@link Toaster}
@@ -142,14 +149,97 @@ const positionClasses: Record<ToastPosition, string> = {
 };
 
 function ToastItem({ toast: t }: { toast: Toast }) {
-  React.useEffect(() => {
+  const ref = React.useRef<HTMLLIElement>(null);
+  // Holds whichever timeout is pending for this toast (auto-dismiss, or the
+  // swipe-fling fallback); `clearTimer` cancels it on unmount or gesture start.
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const dragRef = React.useRef<{ x: number; time: number; dx: number } | null>(
+    null,
+  );
+
+  const clearTimer = React.useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
+  const startTimer = React.useCallback(() => {
+    clearTimer();
     if (t.duration === Infinity || t.state === "closing") return;
-    const timer = setTimeout(() => store.dismiss(t.id), t.duration);
-    return () => clearTimeout(timer);
-  }, [t.id, t.duration, t.state]);
+    timerRef.current = setTimeout(() => store.dismiss(t.id), t.duration);
+  }, [clearTimer, t.id, t.duration, t.state]);
+
+  React.useEffect(() => {
+    startTimer();
+    return clearTimer;
+  }, [startTimer, clearTimer]);
+
+  // ── swipe-to-dismiss (horizontal pointer drag) ──────────────────────────
+  // The live transform is driven inline, so the finished enter keyframe's fill
+  // (CSS animations beat normal declarations) is released with `animation:none`
+  // for the duration of the gesture and handed back to the CSS on snap-back.
+  const onPointerDown = (e: React.PointerEvent<HTMLLIElement>) => {
+    const el = ref.current;
+    if (!el || e.button > 0 || t.state === "closing") return;
+    if ((e.target as HTMLElement).closest('[data-slot="toast-close"]')) return;
+    clearTimer();
+    dragRef.current = { x: e.clientX, time: e.timeStamp, dx: 0 };
+    el.setAttribute("data-swiping", "true");
+    el.style.animation = "none";
+    el.style.transition = "none";
+    try {
+      el.setPointerCapture?.(e.pointerId);
+    } catch {
+      // jsdom / unsupported — capture is a nice-to-have, the drag works without it
+    }
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLLIElement>) => {
+    const drag = dragRef.current;
+    const el = ref.current;
+    if (!drag || !el) return;
+    const dx = e.clientX - drag.x;
+    drag.dx = dx;
+    const dist = el.offsetWidth || 256;
+    el.style.transform = `translateX(${dx}px)`;
+    el.style.opacity = `${Math.max(0, 1 - Math.abs(dx) / dist)}`;
+  };
+
+  const onPointerEnd = (e: React.PointerEvent<HTMLLIElement>) => {
+    const drag = dragRef.current;
+    const el = ref.current;
+    if (!drag || !el) return;
+    dragRef.current = null;
+    el.removeAttribute("data-swiping");
+    const dt = e.timeStamp - drag.time;
+    const velocity = dt > 0 ? Math.abs(drag.dx) / dt : 0;
+    el.style.transition = `transform ${SWIPE_FLING_MS}ms ease-out, opacity ${SWIPE_FLING_MS}ms ease-out`;
+    if (drag.dx !== 0 && (Math.abs(drag.dx) >= SWIPE_THRESHOLD || velocity > SWIPE_VELOCITY)) {
+      el.style.transform = `translateX(${drag.dx > 0 ? 150 : -150}%)`;
+      el.style.opacity = "0";
+      const remove = () => store.remove(t.id);
+      el.addEventListener("transitionend", remove, { once: true });
+      timerRef.current = setTimeout(remove, SWIPE_FLING_MS + 50); // fallback if transitionend is missed
+    } else {
+      el.style.transform = "translateX(0)";
+      el.style.opacity = "1";
+      el.addEventListener(
+        "transitionend",
+        () => {
+          // hand the resting + future exit styles back to the CSS keyframes
+          el.style.transition = "";
+          el.style.transform = "";
+          el.style.opacity = "";
+          el.style.animation = "";
+          startTimer();
+        },
+        { once: true },
+      );
+    }
+  };
 
   return (
     <li
+      ref={ref}
       role="status"
       aria-live="polite"
       data-slot="toast"
@@ -158,8 +248,12 @@ function ToastItem({ toast: t }: { toast: Toast }) {
       onAnimationEnd={() => {
         if (t.state === "closing") store.remove(t.id);
       }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerEnd}
+      onPointerCancel={onPointerEnd}
       className={cn(
-        "pointer-events-auto flex w-full items-start gap-3 rounded-md border p-4 text-sm shadow-lg",
+        "pointer-events-auto flex w-full touch-pan-y items-start gap-3 rounded-md border p-4 text-sm shadow-lg select-none",
         toastVariantClasses[t.variant],
       )}
     >
@@ -207,8 +301,9 @@ export interface ToasterProps extends React.ComponentProps<"ol"> {
  * `data-state="closed"`, plays the exit keyframe from the shared `tokens.css`,
  * and is unmounted on its `animationend` (no timer matched to the CSS).
  * Direction follows `data-position`; `prefers-reduced-motion` swaps the slide
- * for a fade. Single dark palette — no theme switching (the upstream
- * `next-themes` dependency is dropped).
+ * for a fade. Toasts are also swipe-to-dismiss (horizontal pointer drag — this
+ * pointer physics is TS-only; Rust stays render-only). Single dark palette — no
+ * theme switching (the upstream `next-themes` dependency is dropped).
  */
 export function Toaster({
   position = "bottom-right",

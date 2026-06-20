@@ -139,8 +139,9 @@ measuring needs host-only `web-sys`). Known gaps:
   `prefers-reduced-motion` swaps it for a plain fade. TS exposes a global
   `toast()` backed by a module store with `setTimeout` auto-dismiss; Rust uses a
   `ToasterProvider` + `use_toaster()` hook and omits auto-dismiss (host-timer-free
-  — dismiss via the close button or `.dismiss(id)`). Swipe-to-dismiss and stacking
-  are not reproduced.
+  — dismiss via the close button or `.dismiss(id)`). Swipe-to-dismiss (horizontal
+  pointer drag, past 45px or a fast flick) is TS-only, like the other pointer
+  physics; stacking is not reproduced.
 - **form:** react-hook-form is dropped — these are presentational + ARIA-id
   wiring; consumers own validation/state. Rust `FormControl` can't inject ids
   onto an arbitrary child (no `Slot`), so the consumer wires them.

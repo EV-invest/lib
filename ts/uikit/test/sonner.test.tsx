@@ -1,6 +1,27 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, fireEvent, act, cleanup } from "@testing-library/react";
+import {
+  render,
+  fireEvent,
+  createEvent,
+  act,
+  cleanup,
+} from "@testing-library/react";
 import { Toaster, toast } from "../src/components/sonner";
+
+// jsdom doesn't implement PointerEvent, so RTL's `fireEvent.pointer*` drops
+// clientX (and timeStamp). Build the event by hand and pin both, mirroring the
+// slider test's pattern, so swipe distance + velocity are deterministic.
+function firePointer(
+  el: HTMLElement,
+  type: "pointerDown" | "pointerMove" | "pointerUp",
+  clientX: number,
+  timeStamp: number,
+) {
+  const event = createEvent[type](el, { clientX, button: 0, pointerId: 1 });
+  Object.defineProperty(event, "clientX", { value: clientX });
+  Object.defineProperty(event, "timeStamp", { value: timeStamp });
+  fireEvent(el, event);
+}
 
 // The toast store is module-global, and dismissal is now two-phase: `dismiss`
 // (close button / auto-dismiss) flips the toast to `data-state="closed"` to play
@@ -89,6 +110,60 @@ describe("Toaster", () => {
       fireEvent.animationEnd(item);
     });
     expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(0);
+  });
+
+  it("flings the toast off past the distance threshold, removing it on transitionend", () => {
+    const { container, getByText } = render(<Toaster />);
+    act(() => {
+      toast("Swipe me", { duration: Infinity });
+    });
+    const item = getByText("Swipe me").closest<HTMLElement>(
+      '[data-slot="toast"]',
+    )!;
+    firePointer(item, "pointerDown", 0, 1000);
+    firePointer(item, "pointerMove", 80, 1100);
+    expect(item).toHaveAttribute("data-swiping", "true");
+    expect(item.style.transform).toBe("translateX(80px)");
+    firePointer(item, "pointerUp", 80, 6000); // 80px >= 45px; slow, so distance-driven
+    expect(item.style.transform).toContain("150%");
+    expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(1);
+    fireEvent.transitionEnd(item);
+    expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(0);
+  });
+
+  it("flings a short but fast flick off via the velocity threshold", () => {
+    const { container, getByText } = render(<Toaster />);
+    act(() => {
+      toast("Flick", { duration: Infinity });
+    });
+    const item = getByText("Flick").closest<HTMLElement>(
+      '[data-slot="toast"]',
+    )!;
+    firePointer(item, "pointerDown", 0, 1000);
+    firePointer(item, "pointerMove", 20, 1005);
+    firePointer(item, "pointerUp", 20, 1010); // 20px < 45px but 2px/ms > 0.11
+    expect(item.style.transform).toContain("150%");
+    fireEvent.transitionEnd(item);
+    expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(0);
+  });
+
+  it("snaps back and keeps the toast on a short, slow drag", () => {
+    const { container, getByText } = render(<Toaster />);
+    act(() => {
+      toast("Hold on", { duration: Infinity });
+    });
+    const item = getByText("Hold on").closest<HTMLElement>(
+      '[data-slot="toast"]',
+    )!;
+    firePointer(item, "pointerDown", 0, 1000);
+    firePointer(item, "pointerMove", 12, 1500);
+    firePointer(item, "pointerUp", 12, 2000); // 12px < 45px, 0.012px/ms < 0.11
+    expect(item.style.transform).toBe("translateX(0)");
+    expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(1);
+    fireEvent.transitionEnd(item);
+    expect(item).not.toHaveAttribute("data-swiping");
+    expect(item).toHaveAttribute("data-state", "open");
+    expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(1);
   });
 
   it("places the stack per the position prop", () => {
