@@ -4,9 +4,24 @@
 //! singleton store, Dioxus has no clean cross-component mutable singleton, so the
 //! Rust kit uses a [`ToasterProvider`] that owns a [`Toasts`] signal in context
 //! plus a [`use_toaster`] hook returning a [`ToasterHandle`] with `.success`,
-//! `.error`, `.info`, `.warning` and `.dismiss`. Auto-dismiss, swipe-to-dismiss
-//! and stacking animations are omitted; the palette is the single dark theme
-//! (no `next-themes`). See the README "Limitations".
+//! `.error`, `.info`, `.warning` and `.dismiss`.
+//!
+//! ## Animation
+//!
+//! Enter and exit are animated without a host timer — the constraint that keeps
+//! this kit render-only. Each toast carries a [`ToastState`] (`Open` →
+//! `Closing`): a fresh toast mounts as `data-state="open"` and the shared
+//! `tokens.css` plays a slide+fade keyframe (direction picked from the toaster's
+//! `data-position`). [`ToasterHandle::dismiss`] (and the close button) flip it to
+//! `Closing`/`data-state="closed"`, which swaps in the exit keyframe; the live
+//! removal then rides the DOM `animationend` event (`onanimationend`) instead of
+//! a `setTimeout`. The keyframes ship in `tokens.css` so the lifecycle completes
+//! even when the consumer hasn't installed a Tailwind animation plugin, and a
+//! `prefers-reduced-motion` block swaps the slide for a plain fade.
+//!
+//! Auto-dismiss (needs a host timer) and swipe-to-dismiss (pointer physics) stay
+//! TS-only, as does stacking; the palette is the single dark theme (no
+//! `next-themes`). See the README "Limitations".
 
 use dioxus::prelude::*;
 
@@ -82,11 +97,32 @@ impl ToastPosition {
 	}
 }
 
+/// Lifecycle phase of a single toast. A toast mounts `Open` (plays the enter
+/// keyframe); [`ToasterHandle::dismiss`] flips it to `Closing` (plays the exit
+/// keyframe), and it is dropped from the list once the exit `animationend`
+/// fires. Mirrors the TS `data-state` of `"open"` / `"closed"`.
+#[derive(Clone, Copy, Default, PartialEq)]
+pub enum ToastState {
+	#[default]
+	Open,
+	Closing,
+}
+
+impl ToastState {
+	fn as_str(&self) -> &'static str {
+		match self {
+			ToastState::Open => "open",
+			ToastState::Closing => "closed",
+		}
+	}
+}
+
 #[derive(Clone, PartialEq)]
 pub struct Toast {
 	pub id: u64,
 	pub message: String,
 	pub variant: ToastVariant,
+	pub state: ToastState,
 }
 
 /// The live toast list, held in context by [`ToasterProvider`] alongside the
@@ -115,6 +151,7 @@ impl ToasterHandle {
 			id,
 			message: message.into(),
 			variant,
+			state: ToastState::Open,
 		});
 		id
 	}
@@ -139,7 +176,21 @@ impl ToasterHandle {
 		self.push(message, ToastVariant::Warning)
 	}
 
+	/// Begins the exit animation: the toast flips to [`ToastState::Closing`]
+	/// (`data-state="closed"`) and stays mounted so the exit keyframe can play.
+	/// The live node is removed by [`ToasterHandle::remove`] when its
+	/// `animationend` fires — there is no host timer.
 	pub fn dismiss(&self, id: u64) {
+		let mut items = self.toasts.items;
+		if let Some(toast) = items.write().iter_mut().find(|t| t.id == id) {
+			toast.state = ToastState::Closing;
+		}
+	}
+
+	/// Drops a toast from the list outright. Wired to the exit `animationend`;
+	/// the no-op-when-still-open guard lives at the call site (the enter
+	/// `animationend` fires too, but only `Closing` toasts are removed).
+	fn remove(&self, id: u64) {
 		let mut items = self.toasts.items;
 		items.write().retain(|t| t.id != id);
 	}
@@ -181,6 +232,12 @@ pub fn Toaster(#[props(default)] position: ToastPosition, #[props(default)] clas
 					"aria-live": "polite",
 					"data-slot": "toast",
 					"data-variant": t.variant.as_str(),
+					"data-state": t.state.as_str(),
+					onanimationend: move |_| {
+						if t.state == ToastState::Closing {
+							handle.remove(t.id);
+						}
+					},
 					class: cn!("pointer-events-auto flex w-full items-start gap-3 rounded-md border p-4 text-sm shadow-lg", t.variant.class()),
 					div { class: "flex-1 space-y-1",
 						div { class: "font-medium", "{t.message}" }
@@ -235,6 +292,7 @@ mod tests {
 		let html = render(app);
 		assert!(html.contains("role=\"status\""), "{html}");
 		assert!(html.contains("data-variant=\"success\""), "{html}");
+		assert!(html.contains("data-state=\"open\""), "fresh toast mounts open: {html}");
 		assert!(html.contains("Done"), "{html}");
 		assert!(html.contains("data-slot=\"toast\""), "{html}");
 	}
@@ -274,17 +332,42 @@ mod tests {
 		fn Seed() -> Element {
 			let toaster = use_toaster();
 			use_hook(move || {
-				let id = toaster.toast("plain");
+				toaster.toast("plain");
 				toaster.info("info");
 				toaster.warning("warning");
-				toaster.dismiss(id);
 			});
 			rsx! {}
 		}
 		let html = render(app);
-		assert!(!html.contains("plain"), "dismissed toast gone: {html}");
 		assert!(html.contains("data-variant=\"info\""), "{html}");
 		assert!(html.contains("data-variant=\"warning\""), "{html}");
+	}
+
+	#[test]
+	fn dismiss_marks_toast_closing_for_exit_animation() {
+		fn app() -> Element {
+			rsx! {
+				ToasterProvider {
+					Seed {}
+					Toaster {}
+				}
+			}
+		}
+		#[component]
+		fn Seed() -> Element {
+			let toaster = use_toaster();
+			use_hook(move || {
+				let id = toaster.success("keep");
+				toaster.dismiss(id);
+			});
+			rsx! {}
+		}
+		// Dismiss animates out rather than removing: the toast stays mounted in
+		// the closing state (the live node is dropped on `animationend`, which
+		// the static SSR render cannot fire).
+		let html = render(app);
+		assert!(html.contains("keep"), "closing toast still mounted: {html}");
+		assert!(html.contains("data-state=\"closed\""), "{html}");
 	}
 
 	#[test]
