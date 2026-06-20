@@ -175,6 +175,7 @@ export {
 // Tier B — self-contained interactive components.
 export * from "./components/accordion";
 export * from "./components/collapsible";
+export * from "./components/container";
 export * from "./components/tabs";
 export * from "./components/toggle";
 export * from "./components/toggle-group";
