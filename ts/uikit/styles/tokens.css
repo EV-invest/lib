@@ -8,6 +8,8 @@
  *   @theme inline {}  — wires values into Tailwind utilities (processed by
  *                       Tailwind v4; ignored as unknown at-rule by browsers)
  *   :root {}          — raw CSS custom properties; work everywhere
+ *   @keyframes / rules — toast (sonner) enter/exit motion at the tail; shipped
+ *                       here so the lifecycle is self-contained (see below)
  */
 
 @theme inline {
@@ -121,5 +123,69 @@
 @media (min-width: 1024px) {
   :root {
     --page-px: 3rem;
+  }
+}
+
+/* ── Toast (sonner) enter / exit ─────────────────────────────────────────────
+   The toaster removes a live toast on its exit `animationend` (no host timer),
+   so a keyframe must always run — these ship here instead of leaning on a
+   consumer Tailwind animate plugin, keeping the lifecycle self-contained.
+
+   The plain fade is the reduced-motion-safe baseline; the directional
+   slide+scale is layered on only under `prefers-reduced-motion: no-preference`,
+   with the direction taken from the toaster's `data-position`. Both `ev::uikit`
+   (Dioxus) and `@evinvest/uikit` (React) drive the identical
+   `[data-slot=toast][data-state=open|closed]` machine. */
+@keyframes ev-toast-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ev-toast-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes ev-toast-in-top {
+  from { opacity: 0; transform: translate3d(0, -120%, 0) scale(0.96); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes ev-toast-out-top {
+  from { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  to { opacity: 0; transform: translate3d(0, -120%, 0) scale(0.96); }
+}
+@keyframes ev-toast-in-bottom {
+  from { opacity: 0; transform: translate3d(0, 120%, 0) scale(0.96); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes ev-toast-out-bottom {
+  from { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  to { opacity: 0; transform: translate3d(0, 120%, 0) scale(0.96); }
+}
+
+[data-slot="toast"] {
+  animation-duration: 400ms;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.21, 1.02, 0.73, 1);
+}
+[data-slot="toast"][data-state="open"] {
+  animation-name: ev-toast-fade-in;
+}
+[data-slot="toast"][data-state="closed"] {
+  animation-name: ev-toast-fade-out;
+  animation-duration: 200ms;
+  animation-timing-function: cubic-bezier(0.06, 0.71, 0.55, 1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-position^="top"] [data-slot="toast"][data-state="open"] {
+    animation-name: ev-toast-in-top;
+  }
+  [data-position^="top"] [data-slot="toast"][data-state="closed"] {
+    animation-name: ev-toast-out-top;
+  }
+  [data-position^="bottom"] [data-slot="toast"][data-state="open"] {
+    animation-name: ev-toast-in-bottom;
+  }
+  [data-position^="bottom"] [data-slot="toast"][data-state="closed"] {
+    animation-name: ev-toast-out-bottom;
   }
 }
