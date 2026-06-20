@@ -33,6 +33,7 @@ mod card;
 mod carousel;
 mod checkbox;
 mod collapsible;
+mod container;
 mod empty;
 mod field;
 mod input;
@@ -70,6 +71,7 @@ pub use carousel::{Carousel, CarouselContent, CarouselItem, CarouselNext, Carous
 pub use checkbox::Checkbox;
 pub use collapsible::{Collapsible, CollapsibleContent, CollapsibleTrigger};
 pub use command::{Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, CommandShortcut};
+pub use container::Container;
 pub use drawer::{Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerDirection, DrawerFooter, DrawerHeader, DrawerOverlay, DrawerTitle, DrawerTrigger};
 pub use empty::{Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyMediaVariant, EmptyTitle};
 pub use field::{Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldLegendVariant, FieldOrientation, FieldSeparator, FieldSet, FieldTitle};
