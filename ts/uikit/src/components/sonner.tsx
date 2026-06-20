@@ -3,6 +3,14 @@ import { cn } from "../lib/cn";
 
 export type ToastVariant = "default" | "success" | "error" | "info" | "warning";
 
+/**
+ * Lifecycle phase of a toast. It is added `"open"` (plays the enter keyframe);
+ * {@link ToastFn.dismiss} flips it to `"closing"` (plays the exit keyframe) and
+ * the live node is dropped once the exit `animationend` fires. Mirrors Rust's
+ * `ToastState` enum and the `data-state` the shared `tokens.css` keys on.
+ */
+export type ToastState = "open" | "closing";
+
 export type ToastPosition =
   | "top-left"
   | "top-center"
@@ -23,6 +31,7 @@ export interface Toast {
   description?: React.ReactNode;
   duration: number;
   variant: ToastVariant;
+  state: ToastState;
 }
 
 const DEFAULT_DURATION = 4000;
@@ -50,13 +59,27 @@ const store = (() => {
       description: opts.description,
       duration: opts.duration ?? DEFAULT_DURATION,
       variant: opts.variant ?? "default",
+      state: "open",
     };
     toasts = [...toasts, next];
     emit();
     return next.id;
   };
 
+  // Begins the exit animation: flip the toast to `closing` (`data-state=closed`)
+  // and keep it mounted so the exit keyframe can play. The live node is dropped
+  // by `remove`, wired to the exit `animationend` — no timer matched to the CSS.
   const dismiss = (toastId: number) => {
+    toasts = toasts.map((t) =>
+      t.id === toastId ? { ...t, state: "closing" as const } : t,
+    );
+    emit();
+  };
+
+  // Drops a toast outright. Wired to the exit `animationend`; the guard that it
+  // is actually `closing` (the enter `animationend` fires too) lives at the call
+  // site in {@link ToastItem}.
+  const remove = (toastId: number) => {
     toasts = toasts.filter((t) => t.id !== toastId);
     emit();
   };
@@ -69,7 +92,7 @@ const store = (() => {
     };
   };
 
-  return { add, dismiss, subscribe };
+  return { add, dismiss, remove, subscribe };
 })();
 
 export interface ToastFn {
@@ -120,10 +143,10 @@ const positionClasses: Record<ToastPosition, string> = {
 
 function ToastItem({ toast: t }: { toast: Toast }) {
   React.useEffect(() => {
-    if (t.duration === Infinity) return;
+    if (t.duration === Infinity || t.state === "closing") return;
     const timer = setTimeout(() => store.dismiss(t.id), t.duration);
     return () => clearTimeout(timer);
-  }, [t.id, t.duration]);
+  }, [t.id, t.duration, t.state]);
 
   return (
     <li
@@ -131,6 +154,10 @@ function ToastItem({ toast: t }: { toast: Toast }) {
       aria-live="polite"
       data-slot="toast"
       data-variant={t.variant}
+      data-state={t.state === "closing" ? "closed" : "open"}
+      onAnimationEnd={() => {
+        if (t.state === "closing") store.remove(t.id);
+      }}
       className={cn(
         "pointer-events-auto flex w-full items-start gap-3 rounded-md border p-4 text-sm shadow-lg",
         toastVariantClasses[t.variant],
@@ -175,8 +202,13 @@ export interface ToasterProps extends React.ComponentProps<"ol"> {
 /**
  * Renders the live toast stack from the module store. Fixed-positioned per
  * `position` (default `bottom-right`); each toast auto-dismisses after its
- * `duration` (default 4000ms) via `setTimeout`. Single dark palette — no theme
- * switching (the upstream `next-themes` dependency is dropped).
+ * `duration` (default 4000ms) via `setTimeout`, which routes through the same
+ * animated `dismiss` as the close button: the toast flips to
+ * `data-state="closed"`, plays the exit keyframe from the shared `tokens.css`,
+ * and is unmounted on its `animationend` (no timer matched to the CSS).
+ * Direction follows `data-position`; `prefers-reduced-motion` swaps the slide
+ * for a fade. Single dark palette — no theme switching (the upstream
+ * `next-themes` dependency is dropped).
  */
 export function Toaster({
   position = "bottom-right",
