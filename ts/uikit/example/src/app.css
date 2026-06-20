@@ -1,0 +1,10 @@
+@import "tailwindcss";
+/* enter/exit utilities for the overlay components (dialog, select, …). The
+   toaster ships its own keyframes in tokens.css, so it animates without this. */
+@import "tw-animate-css";
+/* the kit's theme contract (dark palette + @theme tokens + toast keyframes) */
+@import "../../styles/tokens.css";
+
+/* the kit's class strings live outside this app's root, so point Tailwind at the
+   local uikit source as well as this example */
+@source "../../src/**/*.{ts,tsx}";
