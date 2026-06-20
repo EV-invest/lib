@@ -91,7 +91,7 @@
   --border: color-mix(in srgb, #e6e1d3 10%, transparent);
   --input: color-mix(in srgb, #e6e1d3 20%, transparent);
   --ring: #2a9d8f;
-  --radius: 0.5rem;
+  --radius: 0.375rem; /* 6px on mobile; bumped to 8px ≥ sm (see @media below) */
 
   /* ── sidebar (PC nav) ───────────────────────────────────────── */
   --sidebar: #0c1626;
@@ -103,4 +103,23 @@
   --sidebar-border: color-mix(in srgb, #e6e1d3 10%, transparent);
   --sidebar-ring: #2a9d8f;
   --sidebar-width: 14rem;
+
+  /* ── page container — responsive gutter + max width (uikit <Container>) ─ */
+  --page-max: 90rem; /* 1440px */
+  --page-px: 1rem; /* 16px — mobile gutter, scales up below */
+}
+
+/* Mobile-first scale-ups: roomier gutters + slightly larger radii on bigger
+   viewports. Lives here (not per-component) so every consumer scales alike. */
+@media (min-width: 640px) {
+  :root {
+    --radius: 0.5rem;
+    --page-px: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --page-px: 3rem;
+  }
 }
