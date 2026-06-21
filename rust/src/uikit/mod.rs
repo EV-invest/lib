@@ -48,6 +48,7 @@ mod radio_group;
 mod scroll_area;
 mod separator;
 mod sidebar;
+mod size;
 mod skeleton;
 mod slider;
 mod spinner;
@@ -64,7 +65,7 @@ pub use aspect_ratio::AspectRatio;
 pub use avatar::{Avatar, AvatarFallback, AvatarImage};
 pub use badge::{Badge, BadgeVariant};
 pub use breadcrumb::{Breadcrumb, BreadcrumbEllipsis, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator};
-pub use button::{Button, ButtonSize, ButtonVariant, button_classes};
+pub use button::{Button, ButtonVariant, button_classes};
 pub use button_group::{ButtonGroup, ButtonGroupOrientation, ButtonGroupSeparator, ButtonGroupText};
 pub use card::{Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle};
 pub use carousel::{Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselOrientation, CarouselPrevious};
@@ -85,8 +86,9 @@ pub use pagination::{Pagination, PaginationContent, PaginationEllipsis, Paginati
 pub use progress::Progress;
 pub use radio_group::{RadioGroup, RadioGroupItem};
 pub use scroll_area::{ScrollArea, ScrollBar, ScrollBarOrientation};
-pub use select::{Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectTriggerSize, SelectValue};
+pub use select::{Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue};
 pub use separator::{Orientation, Separator};
+pub use size::Size;
 pub use sidebar::{
 	Sidebar, SidebarCollapsible, SidebarContent, SidebarContext, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarInset, SidebarMenu,
 	SidebarMenuButton, SidebarMenuButtonSize, SidebarMenuButtonVariant, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarSeparator, SidebarSide, SidebarTrigger, SidebarVariant,
@@ -99,7 +101,7 @@ pub use switch::Switch;
 pub use table::{Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow};
 pub use tabs::{Tabs, TabsContent, TabsList, TabsOrientation, TabsTrigger};
 pub use textarea::Textarea;
-pub use toggle::{Toggle, ToggleSize, ToggleVariant, toggle_classes};
+pub use toggle::{Toggle, ToggleVariant, toggle_classes};
 pub use toggle_group::{ToggleGroup, ToggleGroupItem};
 
 // Tier C — overlay/portal components. Glob-exported (each module's public

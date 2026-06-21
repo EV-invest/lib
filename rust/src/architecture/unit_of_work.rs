@@ -17,7 +17,7 @@ use async_trait::async_trait;
 /// # Examples
 ///
 /// ```
-/// use ev::architecture::UnitOfWork;
+/// use ev_lib::architecture::UnitOfWork;
 ///
 /// struct InMemoryTx;
 ///

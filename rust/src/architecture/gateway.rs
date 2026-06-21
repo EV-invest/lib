@@ -17,7 +17,7 @@
 /// # Examples
 ///
 /// ```
-/// use ev::architecture::Gateway;
+/// use ev_lib::architecture::Gateway;
 /// use std::sync::Arc;
 ///
 /// trait Ledger: Gateway {

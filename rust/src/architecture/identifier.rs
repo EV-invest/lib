@@ -16,7 +16,7 @@ use uuid::Uuid;
 /// # Examples
 ///
 /// ```
-/// use ev::architecture::{Id, Identifier};
+/// use ev_lib::architecture::{Id, Identifier};
 ///
 /// struct UserTag;
 /// type UserId = Id<UserTag, u64>;
@@ -45,7 +45,7 @@ pub trait Identifier: Copy + Eq + Hash + Debug {
 /// Distinct tags are incompatible, even over the same primitive:
 ///
 /// ```compile_fail
-/// use ev::architecture::Id;
+/// use ev_lib::architecture::Id;
 ///
 /// struct AccountTag;
 /// struct TransferTag;
@@ -61,7 +61,7 @@ pub trait Identifier: Copy + Eq + Hash + Debug {
 /// Serialization is transparent:
 ///
 /// ```
-/// use ev::architecture::Id;
+/// use ev_lib::architecture::Id;
 ///
 /// struct AccountTag;
 /// type AccountId = Id<AccountTag, u128>;

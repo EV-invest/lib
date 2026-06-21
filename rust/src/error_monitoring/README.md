@@ -1,4 +1,4 @@
-# `ev::error_monitoring`
+# `ev_lib::error_monitoring`
 
 Sentry error monitoring — the Rust mirror of
 [`@evinvest/error-monitoring`](../../../ts/error-monitoring). Two transports
@@ -34,7 +34,7 @@ ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, f
 ### Native (Axum / any server)
 
 ```rust
-use ev::error_monitoring::{Config, NewSentryLayer, SentryHttpLayer, init, report, tracing_layer};
+use ev_lib::error_monitoring::{Config, NewSentryLayer, SentryHttpLayer, init, report, tracing_layer};
 
 // 1. Init *before* the async runtime; hold the guard for the life of the process.
 fn main() -> anyhow::Result<()> {
@@ -78,7 +78,7 @@ report(&error);
 
 ```rust
 use dioxus::prelude::*;
-use ev::error_monitoring::{init, report_error};
+use ev_lib::error_monitoring::{init, report_error};
 
 #[component]
 fn App() -> Element {
@@ -98,7 +98,7 @@ The Rust crate is the source of truth; the TS package preserves its
 *semantics*. The native side is the real `sentry` crate; the TS side wraps the
 Sentry JS SDKs. Parity is by behaviour.
 
-| Concept | Rust (`ev::error_monitoring`) | TS (`@evinvest/error-monitoring`) |
+| Concept | Rust (`ev_lib::error_monitoring`) | TS (`@evinvest/error-monitoring`) |
 | --- | --- | --- |
 | server init | `init(&Config) -> Option<ClientInitGuard>` | `initServer(opts)` (`./node`) |
 | sample rate policy | `Config::traces_sample_rate_for(env)` (0.1 prod / 1.0 else) | `defaultTracesSampleRate` (0.1 / 1.0) |
@@ -130,9 +130,9 @@ Sentry JS SDKs. Parity is by behaviour.
 Verified from the repo root:
 
 ```sh
-cargo test   -p ev --features error_monitoring
-cargo clippy -p ev --features error_monitoring --all-targets -- -D warnings
-cargo check  -p ev --features "error_monitoring wasm" --target wasm32-unknown-unknown
+cargo test   -p ev_lib --features error_monitoring
+cargo clippy -p ev_lib --features error_monitoring --all-targets -- -D warnings
+cargo check  -p ev_lib --features "error_monitoring wasm" --target wasm32-unknown-unknown
 ```
 
 See [`GUIDE.md`](./GUIDE.md) for the full cookbook.

@@ -1,4 +1,4 @@
-# `ev::error_monitoring` — cookbook
+# `ev_lib::error_monitoring` — cookbook
 
 End-to-end Rust recipes for every surface of the `error_monitoring` feature. For
 the API summary and the parity table, see [`README.md`](./README.md). The TS
@@ -49,7 +49,7 @@ before the async runtime starts, so do not use `#[tokio::main]` — build the
 runtime by hand and keep the guard alive for the whole process:
 
 ```rust
-use ev::error_monitoring::{Config, init, tracing_layer};
+use ev_lib::error_monitoring::{Config, init, tracing_layer};
 
 fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
@@ -78,7 +78,7 @@ breadcrumbs and events:
 ```rust
 fn init_tracing() {
     use tracing_subscriber::{EnvFilter, fmt, prelude::*};
-    use ev::error_monitoring::tracing_layer;
+    use ev_lib::error_monitoring::tracing_layer;
 
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
     tracing_subscriber::registry()
@@ -96,7 +96,7 @@ directly on the `Router` in the wrong order can leak memory:
 ```rust
 use axum::{Router, body::Body, http::Request};
 use tower::ServiceBuilder;
-use ev::error_monitoring::{NewSentryLayer, SentryHttpLayer};
+use ev_lib::error_monitoring::{NewSentryLayer, SentryHttpLayer};
 
 fn build(state: AppState) -> Router {
     Router::new()
@@ -122,7 +122,7 @@ Expected domain errors (not-found, validation, conflict) are client mistakes and
 must not be reported:
 
 ```rust
-use ev::error_monitoring::report;
+use ev_lib::error_monitoring::report;
 
 async fn handler(/* … */) -> Result<Json<Reply>, StatusCode> {
     match do_work().await {
@@ -146,7 +146,7 @@ outermost and forwards to the previous hook:
 
 ```rust
 use dioxus::prelude::*;
-use ev::error_monitoring::{init, report_error};
+use ev_lib::error_monitoring::{init, report_error};
 
 #[component]
 fn App() -> Element {
@@ -187,7 +187,7 @@ bytes sent to Sentry without a network — this is what the browser transport
 POSTs:
 
 ```rust
-use ev::error_monitoring::{auth_header, envelope, ingest_url, parse_dsn};
+use ev_lib::error_monitoring::{auth_header, envelope, ingest_url, parse_dsn};
 
 let dsn = parse_dsn("https://pub@o9.ingest.sentry.io/4500").unwrap();
 assert_eq!(ingest_url(&dsn), "https://o9.ingest.sentry.io/api/4500/envelope/");
@@ -206,7 +206,7 @@ assert_eq!(body.split('\n').count(), 3); // envelope header / item header / even
   function:
 
   ```rust
-  # use ev::error_monitoring::Config;
+  # use ev_lib::error_monitoring::Config;
   assert_eq!(Config::traces_sample_rate_for("production"), 0.1);
   assert_eq!(Config::traces_sample_rate_for("staging"), 1.0);
   ```

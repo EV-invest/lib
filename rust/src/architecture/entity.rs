@@ -9,7 +9,7 @@ use super::identifier::Identifier;
 /// # Examples
 ///
 /// ```
-/// use ev::architecture::{Entity, Id};
+/// use ev_lib::architecture::{Entity, Id};
 ///
 /// struct OrderTag;
 /// type OrderId = Id<OrderTag, u64>;
@@ -43,7 +43,7 @@ pub trait Entity {
 /// # Examples
 ///
 /// ```
-/// use ev::architecture::{AggregateRoot, Entity, Id};
+/// use ev_lib::architecture::{AggregateRoot, Entity, Id};
 ///
 /// struct OrderTag;
 /// type OrderId = Id<OrderTag, u64>;

@@ -11,18 +11,39 @@
 use dioxus::prelude::*;
 use ev_lib::uikit::*;
 
+/// The theme contract; inlined into the Tailwind-processed `<style>` so its
+/// `@theme`/`:root` tokens drive the utilities. Absolute path via the manifest
+/// dir so it resolves identically from the example crate and the test crate.
+const TOKENS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/uikit/tokens.css"));
+const DIST: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/visual/dist");
+/// The board. One line per primitive — the only place to edit when adding one.
+#[rustfmt::skip]
+const GALLERY: &[(&str, fn() -> Element)] = &[
+	("Button", d_button), ("Badge", d_badge), ("Label", d_label), ("Kbd", d_kbd),
+	("Avatar", d_avatar), ("Separator", d_separator), ("Skeleton", d_skeleton),
+	("Spinner", d_spinner), ("AspectRatio", d_aspect_ratio), ("Progress", d_progress),
+	("Alert", d_alert), ("Card", d_card), ("Table", d_table), ("Breadcrumb", d_breadcrumb),
+	("Pagination", d_pagination), ("Empty", d_empty), ("Item", d_item), ("Field", d_field),
+	("ButtonGroup", d_button_group),
+	("Input", d_input), ("Textarea", d_textarea), ("Checkbox", d_checkbox),
+	("Switch", d_switch), ("RadioGroup", d_radio_group), ("Slider", d_slider),
+	("Toggle", d_toggle), ("ToggleGroup", d_toggle_group), ("Tabs", d_tabs),
+	("Accordion", d_accordion), ("Collapsible", d_collapsible), ("InputGroup", d_input_group),
+	("InputOTP", d_input_otp), ("Carousel", d_carousel), ("Calendar", d_calendar), ("Chart", d_chart),
+	("Tooltip", d_tooltip), ("Popover", d_popover), ("HoverCard", d_hover_card),
+	("DropdownMenu", d_dropdown_menu), ("ContextMenu", d_context_menu), ("Menubar", d_menubar),
+	("Select", d_select), ("Dialog", d_dialog), ("AlertDialog", d_alert_dialog),
+	("Sheet", d_sheet), ("Drawer", d_drawer), ("Command", d_command), ("NavigationMenu", d_navigation_menu),
+	("Sidebar", d_sidebar), ("Resizable", d_resizable), ("ScrollArea", d_scroll_area),
+	("Form", d_form), ("Container", d_container),
+];
 fn render_fragment(app: fn() -> Element) -> String {
 	let mut dom = VirtualDom::new(app);
 	dom.rebuild_in_place();
 	dioxus_ssr::render(&dom)
 }
 
-/// The theme contract; inlined into the Tailwind-processed `<style>` so its
-/// `@theme`/`:root` tokens drive the utilities. Absolute path via the manifest
-/// dir so it resolves identically from the example crate and the test crate.
-const TOKENS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/uikit/tokens.css"));
 
-const DIST: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/visual/dist");
 
 fn head(title: &str) -> String {
 	// ponytail: Tailwind browser CDN, pinned to the repo's tailwind version.
@@ -114,9 +135,9 @@ fn d_button() -> Element {
 		Button { variant: ButtonVariant::Ghost, "Ghost" }
 		Button { variant: ButtonVariant::Destructive, "Destructive" }
 		Button { variant: ButtonVariant::Link, "Link" }
-		Button { size: ButtonSize::Sm, "Small" }
-		Button { size: ButtonSize::Lg, "Large" }
-		Button { size: ButtonSize::Icon, "+" }
+		Button { size: Size::Sm, "Small" }
+		Button { size: Size::Lg, "Large" }
+		Button { size: Size::Md, icon: true, "+" }
 		Button { disabled: true, "Disabled" }
 	}
 }
@@ -222,7 +243,7 @@ fn d_card() -> Element {
 			}
 			CardContent { "Projected IRR 18.4% over a 5-year horizon." }
 			CardFooter {
-				Button { size: ButtonSize::Sm, "Invest" }
+				Button { size: Size::Sm, "Invest" }
 			}
 		}
 	}
@@ -307,7 +328,7 @@ fn d_empty() -> Element {
 				EmptyDescription { "Add your first position to see it here." }
 			}
 			EmptyContent {
-				Button { size: ButtonSize::Sm, "Add position" }
+				Button { size: Size::Sm, "Add position" }
 			}
 		}
 	}
@@ -422,8 +443,8 @@ fn d_toggle() -> Element {
 	rsx! {
 		Toggle { "Bold" }
 		Toggle { variant: ToggleVariant::Outline, default_pressed: true, "Italic" }
-		Toggle { size: ToggleSize::Sm, "Sm" }
-		Toggle { size: ToggleSize::Lg, "Lg" }
+		Toggle { size: Size::Sm, "Sm" }
+		Toggle { size: Size::Lg, "Lg" }
 	}
 }
 
@@ -566,7 +587,7 @@ fn d_popover() -> Element {
 			PopoverContent {
 				div { class: "flex flex-col gap-2",
 					"Popover body"
-					Button { size: ButtonSize::Sm, "Action" }
+					Button { size: Size::Sm, "Action" }
 				}
 			}
 		}
@@ -819,24 +840,3 @@ fn d_container() -> Element {
 	}
 }
 
-/// The board. One line per primitive — the only place to edit when adding one.
-#[rustfmt::skip]
-const GALLERY: &[(&str, fn() -> Element)] = &[
-	("Button", d_button), ("Badge", d_badge), ("Label", d_label), ("Kbd", d_kbd),
-	("Avatar", d_avatar), ("Separator", d_separator), ("Skeleton", d_skeleton),
-	("Spinner", d_spinner), ("AspectRatio", d_aspect_ratio), ("Progress", d_progress),
-	("Alert", d_alert), ("Card", d_card), ("Table", d_table), ("Breadcrumb", d_breadcrumb),
-	("Pagination", d_pagination), ("Empty", d_empty), ("Item", d_item), ("Field", d_field),
-	("ButtonGroup", d_button_group),
-	("Input", d_input), ("Textarea", d_textarea), ("Checkbox", d_checkbox),
-	("Switch", d_switch), ("RadioGroup", d_radio_group), ("Slider", d_slider),
-	("Toggle", d_toggle), ("ToggleGroup", d_toggle_group), ("Tabs", d_tabs),
-	("Accordion", d_accordion), ("Collapsible", d_collapsible), ("InputGroup", d_input_group),
-	("InputOTP", d_input_otp), ("Carousel", d_carousel), ("Calendar", d_calendar), ("Chart", d_chart),
-	("Tooltip", d_tooltip), ("Popover", d_popover), ("HoverCard", d_hover_card),
-	("DropdownMenu", d_dropdown_menu), ("ContextMenu", d_context_menu), ("Menubar", d_menubar),
-	("Select", d_select), ("Dialog", d_dialog), ("AlertDialog", d_alert_dialog),
-	("Sheet", d_sheet), ("Drawer", d_drawer), ("Command", d_command), ("NavigationMenu", d_navigation_menu),
-	("Sidebar", d_sidebar), ("Resizable", d_resizable), ("ScrollArea", d_scroll_area),
-	("Form", d_form), ("Container", d_container),
-];

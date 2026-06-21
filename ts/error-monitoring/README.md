@@ -1,7 +1,7 @@
 # @evinvest/error-monitoring
 
 A **vendor-neutral** error-monitoring toolkit — the TypeScript mirror of the
-`error_monitoring` feature of the [`ev`](https://github.com/EV-invest/lib) Rust
+`error_monitoring` feature of the [`ev_lib`](https://github.com/EV-invest/lib) Rust
 crate. The core is a tiny injectable [`ErrorSink`](#core----vendor-neutral) port
 that imports **no** monitoring SDK; concrete [Sentry](https://sentry.io)
 adapters for React, Node/Edge, and Next.js live behind separate subpath exports
@@ -130,6 +130,6 @@ npm run build       # tsup → dist/ (ESM + d.ts); only ./react carries "use cli
 The Rust counterpart is verified from the repo root:
 
 ```sh
-cargo test  -p ev --features error_monitoring
-cargo clippy -p ev --features error_monitoring --all-targets -- -D warnings
+cargo test  -p ev_lib --features error_monitoring
+cargo clippy -p ev_lib --features error_monitoring --all-targets -- -D warnings
 ```

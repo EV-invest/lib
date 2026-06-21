@@ -1,4 +1,4 @@
-# `ev::analytics` — cookbook
+# `ev_lib::analytics` — cookbook
 
 End-to-end Rust recipes for every surface of the `analytics` feature. For the
 API summary and the parity table, see [`README.md`](./README.md). The TS mirror
@@ -41,7 +41,7 @@ on the server and in the browser.
   flags (`tier`, `variant`, `count`), not raw input.
 
 ```rust
-use ev::analytics::Event;
+use ev_lib::analytics::Event;
 
 // good — enum-like labels and counts
 Event::new("calculator_submitted").prop("tier", "pro").prop("amount", 1200).prop("recurring", true);
@@ -56,7 +56,7 @@ The library never reads the environment for you — pass the values in. On the
 server, read them at startup:
 
 ```rust
-use ev::analytics::Analytics;
+use ev_lib::analytics::Analytics;
 
 let analytics = Analytics::new(
     std::env::var("POSTHOG_KEY").ok(),     // None → capture is a silent no-op
@@ -81,7 +81,7 @@ analytics, not request-critical** — log a failure, don't fail the request:
 
 ```rust
 use axum::{Json, extract::State, http::StatusCode};
-use ev::analytics::{Analytics, Event};
+use ev_lib::analytics::{Analytics, Event};
 
 #[derive(Clone)]
 struct AppState {
@@ -114,7 +114,7 @@ Mount [`AnalyticsProvider`] once near the root, then read the handle with
 
 ```rust
 use dioxus::prelude::*;
-use ev::analytics::{AnalyticsProvider, Event, use_analytics};
+use ev_lib::analytics::{AnalyticsProvider, Event, use_analytics};
 
 #[component]
 fn App() -> Element {
@@ -155,7 +155,7 @@ when no key is set. The browser identity is an anonymous id persisted in the
 without a server. It is what both transports send:
 
 ```rust
-use ev::analytics::{Event, capture_body};
+use ev_lib::analytics::{Event, capture_body};
 
 let body = capture_body("phc_key", "anon-1", &Event::new("hero_cta_clicked").prop("variant", "b"));
 assert_eq!(body["event"], "hero_cta_clicked");
@@ -174,7 +174,7 @@ The timestamp is left to PostHog's receive time.
   endpoint:
 
   ```rust
-  # use ev::analytics::{Analytics, Event};
+  # use ev_lib::analytics::{Analytics, Event};
   #[tokio::test]
   async fn capture_is_noop_when_disabled() {
       let analytics = Analytics::new(None, None);

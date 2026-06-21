@@ -56,21 +56,21 @@ impl ItemVariant {
 #[derive(Clone, Default, PartialEq)]
 pub enum ItemSize {
 	#[default]
-	Default,
+	Md,
 	Sm,
 }
 
 impl ItemSize {
 	fn class(&self) -> &'static str {
 		match self {
-			ItemSize::Default => "p-4 gap-4 ",
+			ItemSize::Md => "p-4 gap-4 ",
 			ItemSize::Sm => "py-3 px-4 gap-2.5",
 		}
 	}
 
 	fn attr(&self) -> &'static str {
 		match self {
-			ItemSize::Default => "default",
+			ItemSize::Md => "md",
 			ItemSize::Sm => "sm",
 		}
 	}
@@ -196,7 +196,7 @@ mod tests {
 		let html = render(app);
 		assert!(html.contains("data-slot=\"item\""), "{html}");
 		assert!(html.contains("data-variant=\"default\""), "{html}");
-		assert!(html.contains("data-size=\"default\""), "{html}");
+		assert!(html.contains("data-size=\"md\""), "{html}");
 		assert!(html.contains("rounded-md"), "{html}");
 	}
 

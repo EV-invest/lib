@@ -16,7 +16,7 @@ use super::entity::AggregateRoot;
 /// adds the actual CRUD:
 ///
 /// ```
-/// use ev::architecture::{AggregateRoot, Entity, Id, Reader, Repository};
+/// use ev_lib::architecture::{AggregateRoot, Entity, Id, Reader, Repository};
 ///
 /// struct BlogTag;
 /// type BlogId = Id<BlogTag>;
