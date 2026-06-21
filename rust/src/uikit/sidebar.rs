@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use tailwind_fuse::{AsTailwindClass, TwVariant};
 
 use crate::{
 	cn,
@@ -256,40 +257,25 @@ pub fn SidebarMenuItem(#[props(default)] class: String, children: Element) -> El
 	}
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(PartialEq, TwVariant)]
 pub enum SidebarMenuButtonVariant {
-	#[default]
+	#[tw(default, class = "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground")]
 	Default,
+	#[tw(
+		class = "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]"
+	)]
 	Outline,
 }
 
-impl SidebarMenuButtonVariant {
-	fn class(&self) -> &'static str {
-		match self {
-			SidebarMenuButtonVariant::Default => "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-			SidebarMenuButtonVariant::Outline =>
-				"bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
-		}
-	}
-}
-
-#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[derive(strum::AsRefStr, PartialEq, TwVariant)]
 #[strum(serialize_all = "kebab-case")]
 pub enum SidebarMenuButtonSize {
-	#[default]
+	#[tw(default, class = "h-8 text-sm")]
 	Default,
+	#[tw(class = "h-7 text-xs")]
 	Sm,
+	#[tw(class = "h-12 text-sm group-data-[collapsible=icon]:p-0!")]
 	Lg,
-}
-
-impl SidebarMenuButtonSize {
-	fn class(&self) -> &'static str {
-		match self {
-			SidebarMenuButtonSize::Default => "h-8 text-sm",
-			SidebarMenuButtonSize::Sm => "h-7 text-xs",
-			SidebarMenuButtonSize::Lg => "h-12 text-sm group-data-[collapsible=icon]:p-0!",
-		}
-	}
 }
 
 #[component]
@@ -300,7 +286,7 @@ pub fn SidebarMenuButton(
 	#[props(default)] class: String,
 	children: Element,
 ) -> Element {
-	let cls = cn!(SIDEBAR_MENU_BUTTON_BASE, variant.class(), size.class(), class);
+	let cls = cn!(SIDEBAR_MENU_BUTTON_BASE, variant.as_class(), size.as_class(), class);
 	rsx! {
 		button {
 			r#type: "button",

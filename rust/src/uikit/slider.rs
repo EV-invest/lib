@@ -41,10 +41,24 @@ pub fn Slider(
 	let percent = ((current - min) / span * 100.0).clamp(0.0, 100.0);
 	let ori: &str = orientation.as_ref();
 
-	let (range_style, thumb_style) = match orientation {
-		SliderOrientation::Horizontal => (format!("width: {percent}%;"), format!("left: {percent}%;")),
-		SliderOrientation::Vertical => (format!("height: {percent}%;"), format!("bottom: {percent}%;")),
+	let range_style = match orientation {
+		SliderOrientation::Horizontal => format!("width: {percent}%;"),
+		SliderOrientation::Vertical => format!("height: {percent}%;"),
 	};
+	// The thumb is absolutely positioned within the (relative) root and centred on
+	// the value point; without `position:absolute` the `%` offset is ignored and
+	// flow layout parks it at the end of the row.
+	let thumb_style = match orientation {
+		SliderOrientation::Horizontal => format!("position: absolute; left: {percent}%; top: 50%; transform: translate(-50%, -50%);"),
+		SliderOrientation::Vertical => format!("position: absolute; bottom: {percent}%; left: 50%; transform: translate(-50%, 50%);"),
+	};
+
+	// Track geometry, captured on mount and re-measured on each press, lets a
+	// pointer drag map cursor position → value (the TS port reads
+	// `getBoundingClientRect`; we use Dioxus' renderer-agnostic `get_client_rect`).
+	let mut track = use_signal(|| Option::<std::rc::Rc<MountedData>>::None);
+	let mut bounds = use_signal(|| (0.0_f64, 1.0_f64));
+	let mut dragging = use_signal(|| false);
 
 	let on_key = move |e: KeyboardEvent| {
 		if disabled {
@@ -61,17 +75,47 @@ pub fn Slider(
 		state.set(clamp_step(next, min, max, step));
 	};
 
-	// pointer-drag: TS-only, see README Limitations
+	let axis = move |e: &PointerEvent| match orientation {
+		SliderOrientation::Horizontal => e.client_coordinates().x,
+		SliderOrientation::Vertical => e.client_coordinates().y,
+	};
+
+	// Pointer handling lives on the root, not the track: the thumb sits above the
+	// track (absolute), so grabbing it must still start a drag.
 	rsx! {
 		span {
 			class: cn!(ROOT_BASE, class),
 			"data-slot": "slider",
 			"data-orientation": ori,
 			"data-disabled": disabled,
+			onpointerdown: move |e: PointerEvent| async move {
+				if disabled {
+					return;
+				}
+				let Some(t) = track() else { return };
+				let Ok(rect) = t.get_client_rect().await else { return };
+				let (origin, size) = match orientation {
+					SliderOrientation::Horizontal => (rect.origin.x, rect.size.width),
+					SliderOrientation::Vertical => (rect.origin.y, rect.size.height),
+				};
+				bounds.set((origin, size));
+				dragging.set(true);
+				state.set(value_at(axis(&e), origin, size, min, max, step, orientation));
+			},
+			onpointermove: move |e: PointerEvent| {
+				if !dragging() || disabled {
+					return;
+				}
+				let (origin, size) = bounds();
+				state.set(value_at(axis(&e), origin, size, min, max, step, orientation));
+			},
+			onpointerup: move |_| dragging.set(false),
+			onpointerleave: move |_| dragging.set(false),
 			span {
 				class: TRACK_BASE,
 				"data-slot": "slider-track",
 				"data-orientation": ori,
+				onmounted: move |e: MountedEvent| track.set(Some(e.data())),
 				span {
 					class: RANGE_BASE,
 					"data-slot": "slider-range",
@@ -95,6 +139,17 @@ pub fn Slider(
 			}
 		}
 	}
+}
+
+/// Maps a client coordinate along the active axis to a stepped value, given the
+/// track's origin and size on that axis. Vertical runs bottom-to-top.
+fn value_at(client: f64, origin: f64, size: f64, min: f64, max: f64, step: f64, orientation: SliderOrientation) -> f64 {
+	let size = size.max(f64::EPSILON);
+	let ratio = match orientation {
+		SliderOrientation::Horizontal => (client - origin) / size,
+		SliderOrientation::Vertical => 1.0 - (client - origin) / size,
+	};
+	clamp_step(min + ratio * (max - min), min, max, step)
 }
 fn clamp_step(value: f64, min: f64, max: f64, step: f64) -> f64 {
 	let clamped = value.clamp(min, max);

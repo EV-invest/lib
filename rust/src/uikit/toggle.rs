@@ -1,32 +1,24 @@
 use dioxus::prelude::*;
+use tailwind_fuse::{AsTailwindClass, TwVariant};
 
 use crate::{
 	cn,
 	uikit::{Size, primitives::use_controllable},
 };
 
-const TOGGLE_BASE: &str = "inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium \
-                           hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-50 \
-                           data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none \
-                           [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:border-ring \
-                           focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none transition-[color,box-shadow] \
-                           aria-invalid:ring-destructive/20 aria-invalid:border-destructive whitespace-nowrap";
-
-#[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
+#[derive(strum::AsRefStr, PartialEq, TwVariant)]
 #[strum(serialize_all = "kebab-case")]
+#[tw(class = "inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium \
+              hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-50 \
+              data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none \
+              [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:border-ring \
+              focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none transition-[color,box-shadow] \
+              aria-invalid:ring-destructive/20 aria-invalid:border-destructive whitespace-nowrap")]
 pub enum ToggleVariant {
-	#[default]
+	#[tw(default, class = "bg-transparent")]
 	Transparent,
+	#[tw(class = "border border-input bg-transparent shadow-xs hover:bg-accent hover:text-accent-foreground")]
 	Outline,
-}
-
-impl ToggleVariant {
-	fn class(&self) -> &'static str {
-		match self {
-			ToggleVariant::Transparent => "bg-transparent",
-			ToggleVariant::Outline => "border border-input bg-transparent shadow-xs hover:bg-accent hover:text-accent-foreground",
-		}
-	}
 }
 
 /// Fuses the base, variant and size classes with a caller override, last wins.
@@ -34,7 +26,7 @@ impl ToggleVariant {
 /// canonical class string.
 pub fn toggle_classes(variant: &ToggleVariant, size: Size, class: &str) -> String {
 	let dims = format!("h-{0} min-w-{0} {1}", size.scale(), toggle_padding(size));
-	cn!(TOGGLE_BASE, variant.class(), &dims, class)
+	cn!(variant.as_class(), &dims, class)
 }
 #[component]
 pub fn Toggle(
