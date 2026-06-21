@@ -1,48 +1,42 @@
 use dioxus::prelude::*;
+use tailwind_fuse::{AsTailwindClass, TwVariant};
 
 use crate::{cn, uikit::Size};
 
-const BUTTON_BASE: &str = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm \
-                           font-medium transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-50 \
-                           [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 \
-                           outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] \
-                           aria-invalid:ring-destructive/20 aria-invalid:border-destructive";
-/// Canonical superset of the cabinet and landing variants.
-#[derive(Clone, Default, PartialEq)]
+/// Canonical superset of the cabinet and landing variants. The base rides on the
+/// enum via `#[tw(class)]`, so `as_class()` already yields base + variant.
+#[derive(PartialEq, TwVariant)]
+#[tw(class = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm \
+              font-medium transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-50 \
+              [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 \
+              outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] \
+              aria-invalid:ring-destructive/20 aria-invalid:border-destructive")]
 pub enum ButtonVariant {
-	#[default]
+	#[tw(default, class = "bg-primary text-primary-foreground hover:bg-primary/90")]
 	Default,
+	#[tw(class = "bg-secondary text-secondary-foreground hover:bg-secondary/80")]
 	Secondary,
+	#[tw(class = "border bg-transparent shadow-xs hover:bg-accent hover:text-accent-foreground")]
 	Outline,
+	#[tw(class = "hover:bg-accent hover:text-accent-foreground")]
 	Ghost,
+	#[tw(class = "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20")]
 	Destructive,
+	#[tw(class = "text-primary underline-offset-4 hover:underline")]
 	Link,
-}
-
-impl ButtonVariant {
-	fn class(&self) -> &'static str {
-		match self {
-			ButtonVariant::Default => "bg-primary text-primary-foreground hover:bg-primary/90",
-			ButtonVariant::Secondary => "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-			ButtonVariant::Outline => "border bg-transparent shadow-xs hover:bg-accent hover:text-accent-foreground",
-			ButtonVariant::Ghost => "hover:bg-accent hover:text-accent-foreground",
-			ButtonVariant::Destructive => "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20",
-			ButtonVariant::Link => "text-primary underline-offset-4 hover:underline",
-		}
-	}
 }
 
 /// Fuses the base, variant and size classes with a caller override, last wins.
 /// Mirrors the TS `buttonVariants` helper so consumers (e.g. pagination) can
 /// reuse the same canonical class string without rendering a `Button`. An
-/// `icon` button is a square (`size-*`); otherwise height + per-size padding.
+/// `icon` button is a square (`h-N aspect-square`); otherwise height + per-size padding.
 pub fn button_classes(variant: &ButtonVariant, size: Size, icon: bool, class: &str) -> String {
 	let dims = if icon {
-		format!("size-{}", size.scale())
+		format!("h-{} aspect-square px-0", size.scale())
 	} else {
 		format!("h-{} {}", size.scale(), text_padding(size))
 	};
-	cn!(BUTTON_BASE, variant.class(), &dims, class)
+	cn!(variant.as_class(), &dims, class)
 }
 #[component]
 pub fn Button(
@@ -99,7 +93,19 @@ mod tests {
 			}
 		}
 		let html = render(app);
-		assert!(html.contains("size-8"), "{html}");
+		assert!(html.contains("h-8 aspect-square"), "{html}");
+	}
+
+	#[test]
+	fn icon_lg_drops_text_padding() {
+		fn app() -> Element {
+			rsx! {
+				Button { size: Size::Lg, icon: true, "x" }
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("h-10 aspect-square"), "{html}");
+		assert!(!html.contains("px-6"), "icon button must not carry text padding: {html}");
 	}
 
 	#[test]

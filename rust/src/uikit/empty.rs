@@ -1,8 +1,7 @@
 use dioxus::prelude::*;
+use tailwind_fuse::{AsTailwindClass, TwVariant};
 
 use crate::cn;
-
-const EMPTY_MEDIA_BASE: &str = "flex shrink-0 items-center justify-center mb-2 [&_svg]:pointer-events-none [&_svg]:shrink-0";
 #[component]
 pub fn Empty(#[props(default)] class: String, children: Element) -> Element {
 	let cls = cn!(
@@ -22,26 +21,19 @@ pub fn EmptyHeader(#[props(default)] class: String, children: Element) -> Elemen
 	}
 }
 
-#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[derive(strum::AsRefStr, PartialEq, TwVariant)]
 #[strum(serialize_all = "kebab-case")]
+#[tw(class = "flex shrink-0 items-center justify-center mb-2 [&_svg]:pointer-events-none [&_svg]:shrink-0")]
 pub enum EmptyMediaVariant {
-	#[default]
+	#[tw(default, class = "bg-transparent")]
 	Default,
+	#[tw(class = "bg-muted text-foreground flex size-10 shrink-0 items-center justify-center rounded-lg [&_svg:not([class*='size-'])]:size-6")]
 	Icon,
-}
-
-impl EmptyMediaVariant {
-	fn class(&self) -> &'static str {
-		match self {
-			EmptyMediaVariant::Default => "bg-transparent",
-			EmptyMediaVariant::Icon => "bg-muted text-foreground flex size-10 shrink-0 items-center justify-center rounded-lg [&_svg:not([class*='size-'])]:size-6",
-		}
-	}
 }
 
 #[component]
 pub fn EmptyMedia(#[props(default)] variant: EmptyMediaVariant, #[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(EMPTY_MEDIA_BASE, variant.class(), class);
+	let cls = cn!(variant.as_class(), class);
 	rsx! {
 		div {
 			class: cls,

@@ -10,6 +10,7 @@ unused_features = "allow"
 
 [workspace.dependencies]
 async-trait = "0.1.89"
+derive_more = { version = "2.1", features = ["display"] }
 dioxus = { version = "0.7", default-features = false }
 dioxus-ssr = "0.7"
 ev_lib = { path = "rust" }

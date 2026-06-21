@@ -1,30 +1,23 @@
 use dioxus::prelude::*;
+use tailwind_fuse::{AsTailwindClass, TwVariant};
 
 use crate::cn;
 
-const ALERT_BASE: &str = "relative w-full rounded-lg border px-4 py-3 text-sm grid \
-                          has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] grid-cols-[0_1fr] \
-                          has-[>svg]:gap-x-3 gap-y-0.5 items-start [&>svg]:size-4 [&>svg]:translate-y-0.5 \
-                          [&>svg]:text-current";
-#[derive(Clone, Default, PartialEq)]
+#[derive(PartialEq, TwVariant)]
+#[tw(class = "relative w-full rounded-lg border px-4 py-3 text-sm grid \
+              has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] grid-cols-[0_1fr] \
+              has-[>svg]:gap-x-3 gap-y-0.5 items-start [&>svg]:size-4 [&>svg]:translate-y-0.5 \
+              [&>svg]:text-current")]
 pub enum AlertVariant {
-	#[default]
+	#[tw(default, class = "bg-card text-card-foreground")]
 	Default,
+	#[tw(class = "text-destructive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-destructive/90")]
 	Destructive,
-}
-
-impl AlertVariant {
-	fn class(&self) -> &'static str {
-		match self {
-			AlertVariant::Default => "bg-card text-card-foreground",
-			AlertVariant::Destructive => "text-destructive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-destructive/90",
-		}
-	}
 }
 
 #[component]
 pub fn Alert(#[props(default)] variant: AlertVariant, #[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(ALERT_BASE, variant.class(), class);
+	let cls = cn!(variant.as_class(), class);
 	rsx! {
 		div { class: cls, "data-slot": "alert", role: "alert", {children} }
 	}
