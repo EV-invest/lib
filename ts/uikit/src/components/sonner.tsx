@@ -144,13 +144,15 @@ const toastVariantClasses: Record<ToastVariant, string> = {
   warning: "bg-popover text-popover-foreground border-border",
 };
 
+// The toaster carries the viewport inset itself (no padding) so the absolutely
+// positioned toasts size to its box and don't spill past the edge.
 const positionClasses: Record<ToastPosition, string> = {
-  "top-left": "top-0 left-0 items-start",
-  "top-center": "top-0 left-1/2 -translate-x-1/2 items-center",
-  "top-right": "top-0 right-0 items-end",
-  "bottom-left": "bottom-0 left-0 items-start",
-  "bottom-center": "bottom-0 left-1/2 -translate-x-1/2 items-center",
-  "bottom-right": "bottom-0 right-0 items-end",
+  "top-left": "top-4 left-4",
+  "top-center": "top-4 left-1/2 -translate-x-1/2",
+  "top-right": "top-4 right-4",
+  "bottom-left": "bottom-4 left-4",
+  "bottom-center": "bottom-4 left-1/2 -translate-x-1/2",
+  "bottom-right": "bottom-4 right-4",
 };
 
 // Sonner-style stacking: only the front VISIBLE_TOASTS show collapsed; GAP is
@@ -453,7 +455,7 @@ export function Toaster({
         } as React.CSSProperties
       }
       className={cn(
-        "pointer-events-none fixed z-100 w-[calc(100%-2rem)] max-w-sm p-4",
+        "pointer-events-none fixed z-100 w-[calc(100%-2rem)] max-w-sm",
         positionClasses[position],
         className,
       )}

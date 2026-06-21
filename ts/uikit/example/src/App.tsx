@@ -58,9 +58,10 @@ const TOAST_VARIANTS: ToastVariant[] = [
 
 function fire(variant: ToastVariant) {
   const title = variant[0]!.toUpperCase() + variant.slice(1);
-  const opts = { description: "Drag me sideways to dismiss, or wait it out." };
-  if (variant === "default") toast(`${title} toast`, opts);
-  else toast[variant](`${title} toast`, opts);
+  // single line, to match the Dioxus port (Rust toasts have no description) when
+  // comparing the two viewers side by side
+  if (variant === "default") toast(`${title} toast`);
+  else toast[variant](`${title} toast`);
 }
 
 function Section({
@@ -141,12 +142,7 @@ export default function App() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() =>
-                    toast("Won't auto-close", {
-                      duration: Infinity,
-                      description: "Dismiss it with the × or a swipe.",
-                    })
-                  }
+                  onClick={() => toast("Persistent — won't auto-close", { duration: Infinity })}
                 >
                   Persistent
                 </Button>
