@@ -126,83 +126,20 @@
   }
 }
 
-/* ── Toast (sonner) enter / exit ─────────────────────────────────────────────
-   The toaster removes a live toast on its exit `animationend` (no host timer),
-   so a keyframe must always run — these ship here instead of leaning on a
-   consumer Tailwind animate plugin, keeping the lifecycle self-contained.
-
-   The plain fade is the reduced-motion-safe baseline; the directional
-   slide+scale is layered on only under `prefers-reduced-motion: no-preference`,
-   with the direction taken from the toaster's `data-position`. Both `ev::uikit`
-   (Dioxus) and `@evinvest/uikit` (React) drive the identical
-   `[data-slot=toast][data-state=open|closed]` machine. */
-@keyframes ev-toast-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes ev-toast-fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-@keyframes ev-toast-in-top {
-  from { opacity: 0; transform: translate3d(0, -120%, 0) scale(0.96); }
-  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-}
-@keyframes ev-toast-out-top {
-  from { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-  to { opacity: 0; transform: translate3d(0, -120%, 0) scale(0.96); }
-}
-@keyframes ev-toast-in-bottom {
-  from { opacity: 0; transform: translate3d(0, 120%, 0) scale(0.96); }
-  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-}
-@keyframes ev-toast-out-bottom {
-  from { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-  to { opacity: 0; transform: translate3d(0, 120%, 0) scale(0.96); }
-}
-
-[data-slot="toast"] {
-  animation-duration: 400ms;
-  animation-fill-mode: both;
-  animation-timing-function: cubic-bezier(0.21, 1.02, 0.73, 1);
-}
-[data-slot="toast"][data-state="open"] {
-  animation-name: ev-toast-fade-in;
-}
-[data-slot="toast"][data-state="closed"] {
-  animation-name: ev-toast-fade-out;
-  animation-duration: 200ms;
-  animation-timing-function: cubic-bezier(0.06, 0.71, 0.55, 1);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  [data-position^="top"] [data-slot="toast"][data-state="open"] {
-    animation-name: ev-toast-in-top;
-  }
-  [data-position^="top"] [data-slot="toast"][data-state="closed"] {
-    animation-name: ev-toast-out-top;
-  }
-  [data-position^="bottom"] [data-slot="toast"][data-state="open"] {
-    animation-name: ev-toast-in-bottom;
-  }
-  [data-position^="bottom"] [data-slot="toast"][data-state="closed"] {
-    animation-name: ev-toast-out-bottom;
-  }
-}
-
-/* ── Toast stacking (Sonner-style) — opt-in via data-stack on the toaster ─────
-   Active only when the toaster sets data-stack (the React port, which feeds the
-   measured layout vars). Toasts are absolutely stacked at the pinned edge: they
-   pile up collapsed (front three peeking, each lifted + scaled by --index and
-   clamped to --front-height) and spread to their measured --offset on hover or
-   keyboard focus. Expansion is pure CSS — no JS state. Vars: the toaster sets
-   --front-height + --gap; each toast sets --index, --z-index, --offset,
-   --initial-height. The Dioxus port omits data-stack, so the keyframes above
-   drive it as a flow column instead. */
+/* ── Toast stacking (Sonner-style), shared by both ports via data-stack ──────
+   Both `ev::uikit` (Dioxus) and `@evinvest/uikit` (React) set data-stack on the
+   toaster and drive the same machine: toasts are absolutely stacked at the
+   pinned edge, pile up collapsed (front three peeking, each lifted + scaled by
+   --index and clamped to --front-height), and spread to --offset on hover /
+   keyboard focus (pure CSS — no JS state). Vars: the toaster sets --front-height
+   + --gap; each toast sets --index, --z-index, --offset, --initial-height. React
+   measures real heights; Dioxus can't (host-only), so it feeds a constant height
+   — collapse is exact, expansion is uniform. `data-mounted` flips in the enter,
+   `data-state=closed` slides out, and the node is dropped on the transform's
+   transitionend. */
 
 [data-slot="toaster"][data-stack] [data-slot="toast"] {
   position: absolute;
-  animation: none; /* the stack model transitions --y instead of keyframing */
   --y: var(--enter, translateY(0));
   opacity: 0;
   z-index: var(--z-index, 1);
@@ -291,4 +228,14 @@
 /* 1:1 finger tracking during a swipe — kill the transition */
 [data-slot="toaster"][data-stack] [data-slot="toast"][data-swiping="true"] {
   transition: none;
+}
+
+/* reduced motion: near-instant transform (still fires transitionend, so the
+   exit removal works) + a gentle opacity fade, no height animation */
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="toaster"][data-stack] [data-slot="toast"] {
+    transition:
+      transform 1ms linear,
+      opacity 200ms;
+  }
 }
