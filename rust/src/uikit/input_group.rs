@@ -42,8 +42,8 @@ pub fn InputGroup(#[props(default)] class: String, children: Element) -> Element
 	}
 }
 
-#[derive(derive_more::Display, Clone, Default, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum InputGroupAddonAlign {
 	#[default]
 	InlineStart,
@@ -71,7 +71,7 @@ pub fn InputGroupAddon(#[props(default)] align: InputGroupAddonAlign, #[props(de
 			role: "group",
 			class: cls,
 			"data-slot": "input-group-addon",
-			"data-align": "{align}",
+			"data-align": align.as_ref(),
 			{children}
 		}
 	}

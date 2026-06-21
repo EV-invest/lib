@@ -22,8 +22,8 @@ pub fn EmptyHeader(#[props(default)] class: String, children: Element) -> Elemen
 	}
 }
 
-#[derive(derive_more::Display, Clone, Default, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum EmptyMediaVariant {
 	#[default]
 	Default,
@@ -46,7 +46,7 @@ pub fn EmptyMedia(#[props(default)] variant: EmptyMediaVariant, #[props(default)
 		div {
 			class: cls,
 			"data-slot": "empty-icon",
-			"data-variant": "{variant}",
+			"data-variant": variant.as_ref(),
 			{children}
 		}
 	}

@@ -69,16 +69,16 @@ pub fn SidebarProvider(
 	}
 }
 
-#[derive(derive_more::Display, Clone, Default, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum SidebarSide {
 	#[default]
 	Left,
 	Right,
 }
 
-#[derive(derive_more::Display, Clone, Default, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum SidebarVariant {
 	#[default]
 	Sidebar,
@@ -86,8 +86,8 @@ pub enum SidebarVariant {
 	Inset,
 }
 
-#[derive(derive_more::Display, Clone, Default, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum SidebarCollapsible {
 	#[default]
 	Offcanvas,
@@ -113,7 +113,7 @@ pub fn Sidebar(
 	}
 
 	let state = ctx.state();
-	let data_collapsible = if state == "collapsed" { collapsible.to_string() } else { String::new() };
+	let data_collapsible = if state == "collapsed" { collapsible.as_ref() } else { "" };
 	let inner = cn!(
 		"bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm",
 		class
@@ -123,8 +123,8 @@ pub fn Sidebar(
 			class: "group peer text-sidebar-foreground hidden md:block",
 			"data-state": state,
 			"data-collapsible": data_collapsible,
-			"data-variant": "{variant}",
-			"data-side": "{side}",
+			"data-variant": variant.as_ref(),
+			"data-side": side.as_ref(),
 			"data-slot": "sidebar",
 			div { class: inner, "data-slot": "sidebar-inner", {children} }
 		}
@@ -273,8 +273,8 @@ impl SidebarMenuButtonVariant {
 	}
 }
 
-#[derive(derive_more::Display, Clone, Default, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum SidebarMenuButtonSize {
 	#[default]
 	Default,
@@ -306,7 +306,7 @@ pub fn SidebarMenuButton(
 			r#type: "button",
 			"data-slot": "sidebar-menu-button",
 			"data-sidebar": "menu-button",
-			"data-size": "{size}",
+			"data-size": size.as_ref(),
 			"data-active": is_active,
 			class: cls,
 			{children}

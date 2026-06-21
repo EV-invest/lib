@@ -49,8 +49,8 @@ const GAP: u32 = 14;
 const TOAST_HEIGHT_EST: u32 = 56;
 /// Default auto-dismiss lifetime (ms). Mirrors the TS `DEFAULT_DURATION`.
 const DEFAULT_DURATION_MS: u32 = 4000;
-#[derive(derive_more::Display, Clone, Copy, Default, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum ToastVariant {
 	#[default]
 	Default,
@@ -74,8 +74,8 @@ impl ToastVariant {
 
 /// Where the stack is pinned. Mirrors the TS `position` prop; default
 /// bottom-right.
-#[derive(derive_more::Display, Clone, Copy, Default, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum ToastPosition {
 	TopLeft,
 	TopCenter,
@@ -251,7 +251,7 @@ pub fn Toaster(#[props(default)] position: ToastPosition, #[props(default)] clas
 		ol {
 			class: cls,
 			"data-slot": "toaster",
-			"data-position": "{position}",
+			"data-position": position.as_ref(),
 			"data-y-position": y,
 			"data-stack": "",
 			style: "--front-height: {TOAST_HEIGHT_EST}px; --gap: {GAP}px;",
@@ -287,7 +287,7 @@ fn ToastItem(toast: Toast, index: usize, total: usize) -> Element {
 			role: "status",
 			"aria-live": "polite",
 			"data-slot": "toast",
-			"data-variant": "{toast.variant}",
+			"data-variant": toast.variant.as_ref(),
 			"data-state": state.as_str(),
 			"data-front": "{front}",
 			"data-visible": "{visible}",
@@ -511,7 +511,7 @@ mod tests {
 			(ToastPosition::BottomCenter, "bottom-center"),
 			(ToastPosition::BottomRight, "bottom-right"),
 		] {
-			assert_eq!(pos.to_string(), expected);
+			assert_eq!(pos.as_ref(), expected);
 		}
 	}
 }
