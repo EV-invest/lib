@@ -1,0 +1,15 @@
+{
+  "name": "ev-uikit-visual",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Visual-regression harness for the Rust uikit gallery. `gen` rebuilds the static board from the live components; the spec screenshots each primitive.",
+  "scripts": {
+    "gen": "cd ../../.. && nix develop -c cargo run --example all_primitives --features uikit",
+    "test:visual": "npm run gen && playwright test",
+    "test:visual:update": "npm run gen && playwright test --update-snapshots"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.59.1"
+  }
+}
