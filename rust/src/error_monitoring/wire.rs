@@ -23,7 +23,7 @@ pub struct Dsn {
 /// Parses a Sentry DSN, returning `None` when it is empty or malformed.
 ///
 /// ```
-/// use ev::error_monitoring::parse_dsn;
+/// use ev_lib::error_monitoring::parse_dsn;
 /// let dsn = parse_dsn("https://abc123@o1.ingest.sentry.io/42").unwrap();
 /// assert_eq!(dsn.public_key, "abc123");
 /// assert_eq!(dsn.host, "o1.ingest.sentry.io");
@@ -61,7 +61,7 @@ pub fn auth_header(dsn: &Dsn) -> String {
 /// 32-char hex id (no dashes); the browser transport mints one per report.
 ///
 /// ```
-/// use ev::error_monitoring::envelope;
+/// use ev_lib::error_monitoring::envelope;
 /// let body = envelope("production", "0123456789abcdef0123456789abcdef", "boom");
 /// let lines: Vec<&str> = body.split('\n').collect();
 /// assert_eq!(lines.len(), 3);

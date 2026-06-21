@@ -1,8 +1,8 @@
 # @evinvest/uikit
 
 A **dep-light** React UI kit with shadcn-style semantics — the TypeScript mirror
-of the `uikit` feature of the [`ev`](https://github.com/EV-invest/lib) Rust crate
-(`ev::uikit`, Dioxus). Both ports are driven from the same canonical class
+of the `uikit` feature of the [`ev_lib`](https://github.com/EV-invest/lib) Rust crate
+(`ev_lib::uikit`, Dioxus). Both ports are driven from the same canonical class
 strings and the same design tokens, so a component looks and behaves the same
 whether it is rendered by React or by Dioxus.
 
@@ -86,7 +86,7 @@ The Rust crate is the source of truth; this package preserves its _semantics_
 while reading like idiomatic React. Canonical class strings are identical per
 element across the two ports.
 
-| Concept | Rust (`ev::uikit`) | TS (`@evinvest/uikit`) |
+| Concept | Rust (`ev_lib::uikit`) | TS (`@evinvest/uikit`) |
 | --- | --- | --- |
 | class fusion | `cn!` macro (`tailwind_fuse`) | `cn` (`clsx` + `tailwind-merge`) |
 | variants | `enum` + `fn class()` match | `as const` map keyed by variant |
@@ -156,7 +156,7 @@ npm run build       # tsup → dist/ (ESM + d.ts)
 The Rust counterpart is verified from the repo root:
 
 ```sh
-cargo test  -p ev --features uikit
-cargo clippy -p ev --features uikit --all-targets -- -D warnings
-cargo check -p ev --features "uikit wasm" --target wasm32-unknown-unknown
+cargo test  -p ev_lib --features uikit
+cargo clippy -p ev_lib --features uikit --all-targets -- -D warnings
+cargo check -p ev_lib --features "uikit wasm" --target wasm32-unknown-unknown
 ```

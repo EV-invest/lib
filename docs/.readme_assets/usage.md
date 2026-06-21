@@ -2,13 +2,13 @@
 
 | Path | What | Stack |
 | ---- | ---- | ----- |
-| [`rust/`](rust/) | the `ev` crate — one library per Cargo feature | Rust |
+| [`rust/`](rust/) | the crate — one library per Cargo feature | Rust |
 | [`ts/`](ts/) | TypeScript packages — one directory per library | TypeScript |
 
 Each language lives in its own top-level directory so neither toolchain trips
 over the other. A thin root `Cargo.toml` workspace anchors the crate (whose
 sources live in `rust/`) at the repo root, where the shared CI and tooling run; a
-consumer's git dependency still resolves the `ev` package by name. See
+consumer's git dependency still resolves the package by name. See
 [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Rust: one crate, a feature per library
@@ -28,7 +28,7 @@ it enables.
 ### Consume it
 
 ```toml
-ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["architecture"] }
+ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["architecture"] }
 ```
 
 For a target that also builds to wasm, enable `wasm` **per-target** so native
@@ -36,25 +36,25 @@ builds never link browser backends:
 
 ```toml
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["architecture", "wasm"] }
+ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["architecture", "wasm"] }
 ```
 
 ### Develop & test
 
 cargo runs from the repo root (the workspace anchors the crate in `rust/`); pass
-`-p ev` because feature flags aren't allowed at a virtual-workspace root:
+`-p ev_lib` because feature flags aren't allowed at a virtual-workspace root:
 
 ```sh
-cargo test  -p ev --features architecture
-cargo clippy -p ev --features architecture --all-targets -- -D warnings
-cargo check -p ev --features "architecture wasm" --target wasm32-unknown-unknown
+cargo test  -p ev_lib --features architecture
+cargo clippy -p ev_lib --features architecture --all-targets -- -D warnings
+cargo check -p ev_lib --features "architecture wasm" --target wasm32-unknown-unknown
 ```
 
 ## TypeScript
 
 TS packages live under [`ts/`](ts/), one directory per library, each with its own
 `package.json`: [`ts/architecture/`](ts/architecture/) (the DDD kernel),
-[`ts/uikit/`](ts/uikit/) (the dep-light React UI kit mirroring `ev::uikit`),
+[`ts/uikit/`](ts/uikit/) (the dep-light React UI kit mirroring the Rust `uikit`),
 [`ts/analytics/`](ts/analytics/) (PostHog), [`ts/error-monitoring/`](ts/error-monitoring/)
 (Sentry), and [`ts/experiments/`](ts/experiments/) (A/B testing).
 

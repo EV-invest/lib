@@ -1,5 +1,5 @@
 #![feature(default_field_values)]
-//! `ev` — EV-invest's shared Rust libraries, one per Cargo feature.
+//! EV-invest's shared Rust libraries, one per Cargo feature.
 //!
 //! Each library is a self-contained module gated behind a feature flag, so a
 //! consumer pulls in only what it asks for and nothing else is compiled:

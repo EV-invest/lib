@@ -1,8 +1,6 @@
-# Thin virtual workspace. The `ev` crate's sources live in `rust/` (mirroring
-# `ts/`), but the shared CI and tooling drive cargo from the repo root, so the
-# workspace anchors the crate here. The package publishes as `ev_lib`, but its
-# lib name stays `ev`, so `use ev::…` resolves for git and registry consumers
-# alike. See docs/ARCHITECTURE.md.
+# Thin virtual workspace. The crate's sources live in `rust/` (mirroring `ts/`),
+# but the shared CI and tooling drive cargo from the repo root, so the workspace
+# anchors the crate here. See docs/ARCHITECTURE.md.
 [workspace]
 resolver = "3"
 members = ["rust"]

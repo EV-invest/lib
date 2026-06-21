@@ -1252,6 +1252,7 @@ dependencies = [
  "async-trait",
  "dioxus",
  "dioxus-ssr",
+ "ev_lib",
  "jiff",
  "js-sys",
  "reqwest 0.13.4",

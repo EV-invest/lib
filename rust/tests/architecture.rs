@@ -4,7 +4,7 @@
 
 use std::sync::Mutex;
 
-use ev::architecture::{AggregateRoot, Entity, Gateway, Id, Reader, Repository, Specification, UnitOfWork};
+use ev_lib::architecture::{AggregateRoot, Entity, Gateway, Id, Reader, Repository, Specification, UnitOfWork};
 
 type BlogId = Id<BlogTag>;
 trait BlogRepository: Repository<Aggregate = Blog> + Reader<Aggregate = Blog> {

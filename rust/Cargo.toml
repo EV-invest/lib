@@ -6,9 +6,6 @@ description = "EV-invest shared Rust libraries, one per feature"
 license = "BlueOak-1.0.0"
 repository = "https://github.com/EV-invest/lib"
 
-[lib]
-name = "ev_lib"
-
 [features]
 # Each library is opt-in. No default features: a consumer enables only what it uses.
 architecture = ["dep:async-trait", "dep:serde", "dep:uuid", "dep:jiff"]
@@ -84,6 +81,11 @@ wasm-bindgen-futures = { version = "0.4", optional = true }
 web-sys = { version = "0.3", optional = true, features = ["Document", "Window", "HtmlDocument", "Storage", "Navigator"] }
 
 [dev-dependencies]
+# Self dev-dependency: turns every library feature on for the crate's *own* test
+# build (unit + integration), so `cargo nextest run` at the repo root exercises
+# the whole suite without remembering `--all-features`. Consumers are unaffected —
+# features stay opt-in with no `default`. Keep this list in sync with `[features]`.
+ev_lib = { path = ".", features = ["architecture", "uikit", "analytics", "error_monitoring", "experiments"] }
 async-trait.workspace = true
 dioxus = { workspace = true, features = ["signals", "hooks"] }
 dioxus-ssr.workspace = true

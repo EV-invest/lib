@@ -23,7 +23,7 @@ impl Experiment {
 	///
 	/// # Examples
 	/// ```
-	/// use ev::experiments::Experiment;
+	/// use ev_lib::experiments::Experiment;
 	/// let hero = Experiment::new(["a", "b"], [0.5, 0.5]);
 	/// assert_eq!(hero.variants.len(), 2);
 	/// ```
@@ -38,7 +38,7 @@ impl Experiment {
 	///
 	/// # Examples
 	/// ```
-	/// use ev::experiments::Experiment;
+	/// use ev_lib::experiments::Experiment;
 	/// let team = Experiment::uniform(["a", "b", "c"]);
 	/// assert_eq!(team.weights, vec![1.0, 1.0, 1.0]);
 	/// ```
@@ -54,7 +54,7 @@ impl Experiment {
 ///
 /// # Examples
 /// ```
-/// use ev::experiments::cookie_name;
+/// use ev_lib::experiments::cookie_name;
 /// assert_eq!(cookie_name("hero"), "ab_hero");
 /// ```
 pub fn cookie_name(key: &str) -> String {
@@ -71,12 +71,12 @@ pub fn cookie_name(key: &str) -> String {
 ///
 /// # Examples
 /// ```
-/// use ev::experiments::Experiment;
+/// use ev_lib::experiments::Experiment;
 /// let exp = Experiment::new(["a", "b"], [0.5, 0.5]);
 /// // A draw below the first weight lands on the control.
-/// assert_eq!(ev::experiments::pick_variant(&exp, || 0.1), "a");
+/// assert_eq!(ev_lib::experiments::pick_variant(&exp, || 0.1), "a");
 /// // A draw above it lands on the second variant.
-/// assert_eq!(ev::experiments::pick_variant(&exp, || 0.9), "b");
+/// assert_eq!(ev_lib::experiments::pick_variant(&exp, || 0.9), "b");
 /// ```
 pub fn pick_variant(exp: &Experiment, mut rng: impl FnMut() -> f64) -> String {
 	let total: f64 = exp.weights.iter().copied().filter(|w| *w > 0.0).sum();
@@ -101,7 +101,7 @@ pub fn pick_variant(exp: &Experiment, mut rng: impl FnMut() -> f64) -> String {
 ///
 /// # Examples
 /// ```
-/// use ev::experiments::{Experiment, resolve_variant};
+/// use ev_lib::experiments::{Experiment, resolve_variant};
 /// let exp = Experiment::new(["a", "b"], [0.5, 0.5]);
 /// assert_eq!(resolve_variant(&exp, Some("b")), "b");
 /// assert_eq!(resolve_variant(&exp, Some("zzz")), "a");
@@ -120,7 +120,7 @@ pub fn resolve_variant(exp: &Experiment, raw: Option<&str>) -> String {
 ///
 /// # Examples
 /// ```
-/// use ev::experiments::{Experiment, next_variant};
+/// use ev_lib::experiments::{Experiment, next_variant};
 /// let exp = Experiment::new(["a", "b", "c"], [1.0, 1.0, 1.0]);
 /// assert_eq!(next_variant(&exp, "a", 1), "b");
 /// assert_eq!(next_variant(&exp, "c", 1), "a");
@@ -141,7 +141,7 @@ pub fn next_variant(exp: &Experiment, current: &str, step: i32) -> String {
 ///
 /// # Examples
 /// ```
-/// assert_eq!(ev::experiments::exposed_event("hero"), "hero_exposed");
+/// assert_eq!(ev_lib::experiments::exposed_event("hero"), "hero_exposed");
 /// ```
 pub fn exposed_event(experiment: &str) -> String {
 	format!("{experiment}_exposed")
@@ -152,7 +152,7 @@ pub fn exposed_event(experiment: &str) -> String {
 ///
 /// # Examples
 /// ```
-/// assert_eq!(ev::experiments::action_event("team", "cta_clicked"), "team_cta_clicked");
+/// assert_eq!(ev_lib::experiments::action_event("team", "cta_clicked"), "team_cta_clicked");
 /// ```
 pub fn action_event(experiment: &str, action: &str) -> String {
 	format!("{experiment}_{action}")

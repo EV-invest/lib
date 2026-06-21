@@ -3,7 +3,8 @@ use dioxus::prelude::*;
 use crate::{
 	cn,
 	uikit::{
-		button::{ButtonSize, ButtonVariant, button_classes},
+		Size,
+		button::{ButtonVariant, button_classes},
 		primitives::use_controllable,
 	},
 };
@@ -101,7 +102,7 @@ pub fn Calendar(
 		view.set(current.add_months(delta));
 	};
 
-	let nav_class = button_classes(&ButtonVariant::Ghost, &ButtonSize::Icon, "size-8 p-0 select-none");
+	let nav_class = button_classes(&ButtonVariant::Ghost, Size::Md, true, "size-8 p-0 select-none");
 	let caption = format!("{} {}", MONTHS[(current.month - 1) as usize], current.year);
 
 	let lead = CalendarDate::first_weekday_monday0(current.year, current.month);
@@ -180,7 +181,7 @@ fn DayCell(cell: Option<u32>, date: CalendarDate, selected: Option<CalendarDate>
 	let is_today = today == Some(this);
 	let aria_selected = if is_selected { "true" } else { "false" };
 
-	let mut day_class = button_classes(&ButtonVariant::Ghost, &ButtonSize::Icon, "size-auto w-full aspect-square font-normal leading-none");
+	let mut day_class = button_classes(&ButtonVariant::Ghost, Size::Md, true, "size-auto w-full aspect-square font-normal leading-none");
 	if is_selected {
 		day_class = cn!(day_class, "bg-primary text-primary-foreground");
 	} else if is_today {
