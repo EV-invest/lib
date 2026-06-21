@@ -40,7 +40,8 @@ const GAP: u32 = 14;
 /// Dioxus can't measure a toast's height (it needs host-only `web-sys`), so the
 /// stack assumes this height (px) for the collapse clamp and the expanded
 /// spacing: the collapsed pile is exact, the expanded list is uniformly spaced.
-const TOAST_HEIGHT_EST: u32 = 64;
+/// Tuned to a single-line toast (p-4 + one text-sm line).
+const TOAST_HEIGHT_EST: u32 = 56;
 #[derive(Clone, Copy, Default, PartialEq)]
 pub enum ToastVariant {
 	#[default]
@@ -88,13 +89,15 @@ pub enum ToastPosition {
 
 impl ToastPosition {
 	fn class(&self) -> &'static str {
+		// the toaster carries the viewport inset itself (no padding) so the
+		// absolutely positioned toasts size to its box and don't spill past the edge
 		match self {
-			ToastPosition::TopLeft => "top-0 left-0 items-start",
-			ToastPosition::TopCenter => "top-0 left-1/2 -translate-x-1/2 items-center",
-			ToastPosition::TopRight => "top-0 right-0 items-end",
-			ToastPosition::BottomLeft => "bottom-0 left-0 items-start",
-			ToastPosition::BottomCenter => "bottom-0 left-1/2 -translate-x-1/2 items-center",
-			ToastPosition::BottomRight => "bottom-0 right-0 items-end",
+			ToastPosition::TopLeft => "top-4 left-4",
+			ToastPosition::TopCenter => "top-4 left-1/2 -translate-x-1/2",
+			ToastPosition::TopRight => "top-4 right-4",
+			ToastPosition::BottomLeft => "bottom-4 left-4",
+			ToastPosition::BottomCenter => "bottom-4 left-1/2 -translate-x-1/2",
+			ToastPosition::BottomRight => "bottom-4 right-4",
 		}
 	}
 
@@ -242,7 +245,7 @@ pub fn Toaster(#[props(default)] position: ToastPosition, #[props(default)] clas
 		ToastPosition::TopLeft | ToastPosition::TopCenter | ToastPosition::TopRight => "top",
 		_ => "bottom",
 	};
-	let cls = cn!("pointer-events-none fixed z-100 w-[calc(100%-2rem)] max-w-sm p-4", position.class(), class);
+	let cls = cn!("pointer-events-none fixed z-100 w-[calc(100%-2rem)] max-w-sm", position.class(), class);
 	let items = toasts.items.read();
 	let total = items.len();
 	rsx! {
