@@ -17,12 +17,13 @@
 //! constant [`TOAST_HEIGHT_EST`], so the collapsed pile is exact and the expanded
 //! list is uniformly spaced.
 //!
-//! Animation stays host-timer-free: a [`ToastItem`] flips `data-mounted` in
-//! ([`use_effect`]) to play the enter transition, [`ToasterHandle::dismiss`] (and
-//! the close button) flip [`ToastState`] to `Closing`/`data-state="closed"` to
-//! slide it out, and the live node is dropped on the exit transform's
-//! `transitionend` (`ontransitionend`, guarded to the closing state) rather than
-//! a `setTimeout`. A `prefers-reduced-motion` block reduces the motion.
+//! Animation stays host-timer-free: the enter is a CSS keyframe (it plays on DOM
+//! insertion, so no host-only mount flip is needed — Dioxus effect timing can't
+//! drive one), [`ToasterHandle::dismiss`] (and the close button) flip
+//! [`ToastState`] to `Closing`/`data-state="closed"` to slide it out, and the
+//! live node is dropped on the exit transform's `transitionend`
+//! (`ontransitionend`, guarded to the closing state) rather than a `setTimeout`.
+//! A `prefers-reduced-motion` block reduces the motion.
 //!
 //! Auto-dismiss (needs a host timer, so no hover-pause either) and swipe-to-dismiss
 //! (pointer physics) stay TS-only; the palette is the single dark theme (no
@@ -264,20 +265,16 @@ pub fn Toaster(#[props(default)] position: ToastPosition, #[props(default)] clas
 	}
 }
 
-/// One toast in the stack. Mirrors the TS `ToastItem`: a `data-mounted` flip
-/// plays the enter, `data-state="closed"` slides it out, and the live node is
-/// dropped on the exit transform's `transitionend` (guarded to the closing state
-/// so an open-state restack never removes it). Layout vars come from the
-/// constant height — no measuring.
+/// One toast in the stack. Mirrors the TS `ToastItem`: the enter is a CSS
+/// keyframe (plays on insertion), `data-state="closed"` slides it out, and the
+/// live node is dropped on the exit transform's `transitionend` (guarded to the
+/// closing state so an open-state restack never removes it). Layout vars come
+/// from the constant height — no measuring.
 #[component]
 fn ToastItem(toast: Toast, index: usize, total: usize) -> Element {
 	let handle = use_toaster();
-	let mut mounted = use_signal(|| false);
-	use_effect(move || mounted.set(true));
-
 	let id = toast.id;
 	let state = toast.state;
-	let is_mounted = mounted();
 	let front = index == 0;
 	let visible = index < VISIBLE_TOASTS;
 	let offset = index as u32 * (TOAST_HEIGHT_EST + GAP);
@@ -290,7 +287,6 @@ fn ToastItem(toast: Toast, index: usize, total: usize) -> Element {
 			"data-slot": "toast",
 			"data-variant": toast.variant.as_str(),
 			"data-state": state.as_str(),
-			"data-mounted": "{is_mounted}",
 			"data-front": "{front}",
 			"data-visible": "{visible}",
 			style: "--index: {index}; --z-index: {z}; --offset: {offset}px; --initial-height: {TOAST_HEIGHT_EST}px;",

@@ -48,7 +48,7 @@ afterEach(() => {
 });
 
 describe("Toaster", () => {
-  it("renders nothing until a toast is enqueued, then shows it open + mounted", () => {
+  it("renders nothing until a toast is enqueued, then shows it open", () => {
     const { container, getByText } = render(<Toaster />);
     expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(0);
     act(() => {
@@ -57,7 +57,6 @@ describe("Toaster", () => {
     const item = getByText("Saved").closest('[data-slot="toast"]')!;
     expect(item).toHaveAttribute("role", "status");
     expect(item).toHaveAttribute("data-state", "open");
-    expect(item).toHaveAttribute("data-mounted", "true");
     expect(item).toHaveAttribute("data-front", "true");
   });
 

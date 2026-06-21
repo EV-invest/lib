@@ -180,7 +180,6 @@ function ToastItem({
   removeHeight,
 }: ToastItemProps) {
   const ref = React.useRef<HTMLLIElement>(null);
-  const [mounted, setMounted] = React.useState(false);
   const [height, setHeight] = React.useState(0);
   // remaining auto-dismiss budget (banked across hover pauses), the last start
   // timestamp, and the swipe-fling fallback timer.
@@ -192,9 +191,6 @@ function ToastItem({
   const dragRef = React.useRef<{ x: number; time: number; dx: number } | null>(
     null,
   );
-
-  // flip data-mounted on the next commit so the enter transition plays
-  React.useEffect(() => setMounted(true), []);
 
   // measure the *natural* height for the stack maths; re-measure on content
   // change. Back toasts are clamped to --front-height by the CSS, so unset the
@@ -316,7 +312,6 @@ function ToastItem({
       data-slot="toast"
       data-variant={t.variant}
       data-state={t.state === "closing" ? "closed" : "open"}
-      data-mounted={mounted}
       data-front={index === 0}
       data-visible={index < VISIBLE_TOASTS}
       onTransitionEnd={onTransitionEnd}
