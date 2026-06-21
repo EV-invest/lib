@@ -12,14 +12,14 @@ const TOGGLE_BASE: &str = "inline-flex items-center justify-center gap-2 rounded
 #[derive(Clone, Copy, Default, PartialEq)]
 pub enum ToggleVariant {
 	#[default]
-	Default,
+	Transparent,
 	Outline,
 }
 
 impl ToggleVariant {
 	fn class(&self) -> &'static str {
 		match self {
-			ToggleVariant::Default => "bg-transparent",
+			ToggleVariant::Transparent => "bg-transparent",
 			ToggleVariant::Outline => "border border-input bg-transparent shadow-xs hover:bg-accent hover:text-accent-foreground",
 		}
 	}
@@ -27,17 +27,17 @@ impl ToggleVariant {
 
 #[derive(Clone, Copy, Default, PartialEq)]
 pub enum ToggleSize {
-	#[default]
-	Default,
 	Sm,
+	#[default]
+	Md,
 	Lg,
 }
 
 impl ToggleSize {
 	fn class(&self) -> &'static str {
 		match self {
-			ToggleSize::Default => "h-9 px-2 min-w-9",
 			ToggleSize::Sm => "h-8 px-1.5 min-w-8",
+			ToggleSize::Md => "h-9 px-2 min-w-9",
 			ToggleSize::Lg => "h-10 px-2.5 min-w-10",
 		}
 	}
