@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use ev::uikit::{
+use ev_lib::uikit::{
 	Alert, AlertDescription, AlertTitle, AlertVariant, Badge, BadgeVariant, Button, ButtonSize, ButtonVariant, Card, CardContent, CardDescription, CardHeader, CardTitle, Separator, Spinner,
 	ToastPosition, ToastVariant, Toaster, ToasterProvider, use_toaster,
 };
@@ -38,7 +38,7 @@ fn Gallery() -> Element {
 			div { class: "mx-auto max-w-3xl space-y-12 p-6 sm:p-12",
 				header { class: "space-y-2",
 					div { class: "flex items-center gap-3",
-						h1 { class: "text-2xl font-bold tracking-tight", "ev::uikit" }
+						h1 { class: "text-2xl font-bold tracking-tight", "ev_lib::uikit" }
 						Badge { variant: BadgeVariant::Success, "Dioxus" }
 					}
 					p { class: "text-muted-foreground text-sm",

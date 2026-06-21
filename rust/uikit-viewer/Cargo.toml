@@ -3,14 +3,14 @@ name = "uikit-viewer"
 version = "0.0.0"
 edition = "2024"
 publish = false
-description = "Dioxus web viewer for ev::uikit — the mirror of ts/uikit/example."
-
-[lints]
-workspace = true
+description = "Dioxus web viewer for ev_lib::uikit — the mirror of ts/uikit/example."
 
 # wasm-only: the gallery and its renderer pull in only for the browser target, so
 # a native `cargo build`/workspace check sees just the stub `main` (no dioxus-web,
-# no `ev` wasm backend). Serve it with `dx serve` (see README).
+# no `ev_lib` wasm backend). Serve it with `dx serve` (see README).
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 dioxus = { version = "0.7", features = ["web"] }
-ev = { path = "..", package = "ev_lib", features = ["uikit", "wasm"] }
+ev_lib = { path = "..", features = ["uikit", "wasm"] }
+
+[lints]
+workspace = true
