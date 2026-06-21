@@ -27,8 +27,8 @@ pub fn ItemSeparator(#[props(default)] class: String) -> Element {
 	}
 }
 
-#[derive(derive_more::Display, Clone, Default, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum ItemVariant {
 	#[default]
 	Default,
@@ -46,8 +46,8 @@ impl ItemVariant {
 	}
 }
 
-#[derive(derive_more::Display, Clone, Default, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum ItemSize {
 	#[default]
 	Md,
@@ -70,15 +70,15 @@ pub fn Item(#[props(default)] variant: ItemVariant, #[props(default)] size: Item
 		div {
 			class: cls,
 			"data-slot": "item",
-			"data-variant": "{variant}",
-			"data-size": "{size}",
+			"data-variant": variant.as_ref(),
+			"data-size": size.as_ref(),
 			{children}
 		}
 	}
 }
 
-#[derive(derive_more::Display, Clone, Default, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum ItemMediaVariant {
 	#[default]
 	Default,
@@ -103,7 +103,7 @@ pub fn ItemMedia(#[props(default)] variant: ItemMediaVariant, #[props(default)] 
 		div {
 			class: cls,
 			"data-slot": "item-media",
-			"data-variant": "{variant}",
+			"data-variant": variant.as_ref(),
 			{children}
 		}
 	}

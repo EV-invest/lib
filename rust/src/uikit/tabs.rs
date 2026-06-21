@@ -13,8 +13,8 @@ const TABS_TRIGGER: &str = "data-[state=active]:bg-background focus-visible:bord
                             data-[state=active]:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4";
 
 /// Tab layout axis; also drives the roving-focus arrow keys in the TS mirror.
-#[derive(derive_more::Display, Clone, Copy, Default, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum TabsOrientation {
 	#[default]
 	Horizontal,
@@ -34,7 +34,7 @@ pub fn Tabs(
 	use_context_provider(|| TabsCtx { value: state, orientation });
 	let cls = cn!("flex flex-col gap-2", class);
 	rsx! {
-		div { class: cls, "data-slot": "tabs", "data-orientation": "{orientation}", {children} }
+		div { class: cls, "data-slot": "tabs", "data-orientation": orientation.as_ref(), {children} }
 	}
 }
 #[component]
@@ -46,7 +46,7 @@ pub fn TabsList(#[props(default)] class: String, children: Element) -> Element {
 			role: "tablist",
 			class: cls,
 			"data-slot": "tabs-list",
-			"aria-orientation": "{ctx.orientation}",
+			"aria-orientation": ctx.orientation.as_ref(),
 			{children}
 		}
 	}

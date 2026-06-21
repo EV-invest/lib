@@ -9,8 +9,8 @@ use crate::{
 // drag-to-dismiss: omitted vs vaul — see README Limitations
 
 /// Edge the drawer slides in from.
-#[derive(derive_more::Display, Clone, Copy, Default, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum DrawerDirection {
 	#[default]
 	Bottom,
@@ -92,7 +92,7 @@ pub fn DrawerContent(#[props(default)] class: String, children: Element) -> Elem
 			class: cls,
 			"data-slot": "drawer-content",
 			"data-state": "open",
-			"data-vaul-drawer-direction": "{direction}",
+			"data-vaul-drawer-direction": direction.as_ref(),
 			onkeydown: move |e| {
 				if e.key() == Key::Escape {
 					ctx.open.set(false);
