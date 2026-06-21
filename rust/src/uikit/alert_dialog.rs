@@ -3,7 +3,8 @@ use dioxus::prelude::*;
 use crate::{
 	cn,
 	uikit::{
-		button::{ButtonSize, ButtonVariant, button_classes},
+		Size,
+		button::{ButtonVariant, button_classes},
 		primitives::{Controllable, use_controllable},
 	},
 };
@@ -96,7 +97,7 @@ pub fn AlertDialogDescription(#[props(default)] class: String, children: Element
 #[component]
 pub fn AlertDialogAction(#[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<AlertDialogCtx>();
-	let cls = button_classes(&ButtonVariant::Default, &ButtonSize::Default, &class);
+	let cls = button_classes(&ButtonVariant::Default, Size::Md, false, &class);
 	rsx! {
 		button {
 			r#type: "button",
@@ -110,7 +111,7 @@ pub fn AlertDialogAction(#[props(default)] class: String, children: Element) -> 
 #[component]
 pub fn AlertDialogCancel(#[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<AlertDialogCtx>();
-	let cls = button_classes(&ButtonVariant::Outline, &ButtonSize::Default, &class);
+	let cls = button_classes(&ButtonVariant::Outline, Size::Md, false, &class);
 	rsx! {
 		button {
 			r#type: "button",

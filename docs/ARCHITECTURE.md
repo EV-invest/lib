@@ -10,7 +10,7 @@ mirror its _semantics_ idiomatically.
 ```
 lib/                 (repo: EV-invest/lib)
 ├── Cargo.toml       thin virtual workspace — anchors the crate at the repo root
-├── rust/            the `ev` crate (sources); one library per Cargo feature
+├── rust/            the crate (sources); one library per Cargo feature
 │   ├── Cargo.toml
 │   ├── src/{lib.rs, architecture/, uikit/, analytics/, error_monitoring/, experiments/}
 │   └── tests/
@@ -30,7 +30,7 @@ Each language owns a top-level directory (`rust/`, `ts/`) so neither toolchain
 trips over the other. The shared tooling (CI, formatters, lint config) drives
 `cargo` from the repo root, so a **thin virtual workspace** at `./Cargo.toml`
 anchors the crate there while its sources stay in `rust/`. The crate is still a
-single package: a consumer's git dependency resolves `ev` **by name**, regardless
+single package: a consumer's git dependency resolves it **by name**, regardless
 of the subdirectory.
 
 ```toml
@@ -91,6 +91,11 @@ keeps from the repo's discipline:
 - **`tokens.css` is the contract:** the design tokens (CSS custom properties +
   Tailwind `@theme inline`) ship from both packages in byte parity. Every
   component class references a token; a consumer must `@import` `tokens.css`.
+- **CSS is generated at runtime by the v4 browser CDN**, which DOM-scans the
+  live page — so class strings may be composed dynamically (`format!("h-{}", n)`),
+  e.g. the shared `Size` whose `scale()` magnitude each component applies on its
+  own axis (`h-`/`size-`/`min-w-`). A consumer on a *static* Tailwind build must
+  likewise DOM-scan or safelist the kit's magnitudes.
 
 Because Dioxus has no renderer-agnostic portal and layout measuring is host-only,
 the Rust overlays/engines carry documented fidelity gaps (inline positioning
@@ -100,7 +105,7 @@ the full list is in [`ts/uikit/README.md`](../ts/uikit/README.md#limitations).
 ## The I/O libraries — analytics, error_monitoring, experiments
 
 Three frontend-facing libraries that, unlike the kernel, **do network I/O**.
-Each is a Cargo feature on `ev` and an npm package under `ts/`, mirroring the
+Each is a Cargo feature on the crate and an npm package under `ts/`, mirroring the
 other's semantics.
 
 | Cargo feature      | npm package                  | Purpose                        | Network I/O? | wasm-safe? |

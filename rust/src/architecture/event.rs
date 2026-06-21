@@ -18,7 +18,7 @@ use serde::{Serialize, de::DeserializeOwned};
 /// # Examples
 ///
 /// ```
-/// use ev::architecture::DomainEvent;
+/// use ev_lib::architecture::DomainEvent;
 /// use serde::{Deserialize, Serialize};
 ///
 /// #[derive(Clone, Deserialize, Serialize)]
@@ -44,7 +44,7 @@ pub trait DomainEvent: Clone + Serialize + DeserializeOwned + Send + 'static {
 /// # Examples
 ///
 /// ```
-/// use ev::architecture::{AggregateRoot, DomainEvent, EmitsEvents, Entity, Id};
+/// use ev_lib::architecture::{AggregateRoot, DomainEvent, EmitsEvents, Entity, Id};
 /// use serde::{Deserialize, Serialize};
 ///
 /// struct CartTag;

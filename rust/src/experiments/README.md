@@ -1,4 +1,4 @@
-# `ev::experiments`
+# `ev_lib::experiments`
 
 Frontend-only A/B testing — the Rust mirror of
 [`@evinvest/experiments`](../../../ts/experiments). Cookie-bucketed weighted
@@ -32,7 +32,7 @@ is testable without a browser.
 ### The bucketing core (pure, `wasm32`-safe)
 
 ```rust
-use ev::experiments::{Experiment, pick_variant, resolve_variant, next_variant, cookie_name};
+use ev_lib::experiments::{Experiment, pick_variant, resolve_variant, next_variant, cookie_name};
 
 let hero = Experiment::new(["a", "b"], [0.5, 0.5]); // variants[0] is the control
 let team = Experiment::uniform(["a", "b", "c"]);    // equal weights
@@ -46,7 +46,7 @@ next_variant(&team, "c", 1);                         // "a" — wraps
 ### Browser variant assignment (wasm)
 
 ```rust
-use ev::experiments::{assign_variant, current_variant};
+use ev_lib::experiments::{assign_variant, current_variant};
 
 let variant = assign_variant(&hero, "hero");  // sticky: assigns + writes ab_hero on first visit
 let current = current_variant(&hero, "hero"); // reads ab_hero without assigning
@@ -56,7 +56,7 @@ let current = current_variant(&hero, "hero"); // reads ab_hero without assigning
 
 ```rust
 use dioxus::prelude::*;
-use ev::experiments::{ExperimentTracker, ExposureSink, use_experiment_event};
+use ev_lib::experiments::{ExperimentTracker, ExposureSink, use_experiment_event};
 
 #[component]
 fn Hero(variant: String, on_event: ExposureSink) -> Element {
@@ -90,7 +90,7 @@ importing each other.
 The Rust crate is the source of truth; the TS package preserves its
 *semantics*.
 
-| Concept | Rust (`ev::experiments`) | TS (`@evinvest/experiments`) |
+| Concept | Rust (`ev_lib::experiments`) | TS (`@evinvest/experiments`) |
 | --- | --- | --- |
 | experiment | `Experiment::new(variants, weights)` / `::uniform` | config entry `{ variants, weights }` (`.`) |
 | cookie name | `cookie_name(key)` → `ab_<key>` | `cookieName(key)` (`.`) |
@@ -122,9 +122,9 @@ The Rust crate is the source of truth; the TS package preserves its
 Verified from the repo root:
 
 ```sh
-cargo test   -p ev --features experiments
-cargo clippy -p ev --features experiments --all-targets -- -D warnings
-cargo check  -p ev --features "experiments wasm" --target wasm32-unknown-unknown
+cargo test   -p ev_lib --features experiments
+cargo clippy -p ev_lib --features experiments --all-targets -- -D warnings
+cargo check  -p ev_lib --features "experiments wasm" --target wasm32-unknown-unknown
 ```
 
 See [`GUIDE.md`](./GUIDE.md) for the full cookbook, including the analytics

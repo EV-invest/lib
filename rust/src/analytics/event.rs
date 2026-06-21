@@ -62,7 +62,7 @@ impl From<String> for PropValue {
 /// properties. Build it fluently:
 ///
 /// ```
-/// use ev::analytics::Event;
+/// use ev_lib::analytics::Event;
 /// let e = Event::new("calculator_submitted").prop("amount", 1000).prop("currency", "usd");
 /// assert_eq!(e.name, "calculator_submitted");
 /// ```
@@ -96,7 +96,7 @@ impl Event {
 /// server; the timestamp is left to PostHog's receive time.
 ///
 /// ```
-/// use ev::analytics::{Event, capture_body};
+/// use ev_lib::analytics::{Event, capture_body};
 /// let body = capture_body("phc_key", "anon-1", &Event::new("hero_cta_clicked"));
 /// assert_eq!(body["event"], "hero_cta_clicked");
 /// assert_eq!(body["distinct_id"], "anon-1");

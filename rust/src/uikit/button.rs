@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::cn;
+use crate::{cn, uikit::Size};
 
 const BUTTON_BASE: &str = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm \
                            font-medium transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-50 \
@@ -32,48 +32,35 @@ impl ButtonVariant {
 	}
 }
 
-/// Canonical superset: cabinet sizes plus landing's `icon-sm` / `icon-lg`.
-#[derive(Clone, Default, PartialEq)]
-pub enum ButtonSize {
-	#[default]
-	Default,
-	Sm,
-	Lg,
-	Icon,
-	IconSm,
-	IconLg,
-}
-
-impl ButtonSize {
-	fn class(&self) -> &'static str {
-		match self {
-			ButtonSize::Default => "h-9 px-4 py-2 has-[>svg]:px-3",
-			ButtonSize::Sm => "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-			ButtonSize::Lg => "h-10 rounded-md px-6 has-[>svg]:px-4",
-			ButtonSize::Icon => "size-9",
-			ButtonSize::IconSm => "size-8",
-			ButtonSize::IconLg => "size-10",
-		}
+/// Per-size padding for text buttons; the height comes from [`Size::scale`].
+fn text_padding(size: Size) -> &'static str {
+	match size {
+		Size::Sm => "rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
+		Size::Md => "px-4 py-2 has-[>svg]:px-3",
+		Size::Lg => "rounded-md px-6 has-[>svg]:px-4",
 	}
 }
 
 /// Fuses the base, variant and size classes with a caller override, last wins.
 /// Mirrors the TS `buttonVariants` helper so consumers (e.g. pagination) can
-/// reuse the same canonical class string without rendering a `Button`.
-pub fn button_classes(variant: &ButtonVariant, size: &ButtonSize, class: &str) -> String {
-	cn!(BUTTON_BASE, variant.class(), size.class(), class)
+/// reuse the same canonical class string without rendering a `Button`. An
+/// `icon` button is a square (`size-*`); otherwise height + per-size padding.
+pub fn button_classes(variant: &ButtonVariant, size: Size, icon: bool, class: &str) -> String {
+	let dims = if icon { format!("size-{}", size.scale()) } else { format!("h-{} {}", size.scale(), text_padding(size)) };
+	cn!(BUTTON_BASE, variant.class(), &dims, class)
 }
 
 #[component]
 pub fn Button(
 	#[props(default)] variant: ButtonVariant,
-	#[props(default)] size: ButtonSize,
+	#[props(default)] size: Size,
+	#[props(default)] icon: bool,
 	#[props(default)] class: String,
 	#[props(default)] disabled: bool,
 	onclick: Option<EventHandler<MouseEvent>>,
 	children: Element,
 ) -> Element {
-	let cls = button_classes(&variant, &size, &class);
+	let cls = button_classes(&variant, size, icon, &class);
 	rsx! {
 		button {
 			class: cls,
@@ -106,7 +93,7 @@ mod tests {
 	fn icon_sm_size_is_canon_only_here() {
 		fn app() -> Element {
 			rsx! {
-				Button { size: ButtonSize::IconSm, "x" }
+				Button { size: Size::Sm, icon: true, "x" }
 			}
 		}
 		let html = render(app);

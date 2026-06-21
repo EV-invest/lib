@@ -3,7 +3,7 @@
 A generic, I/O-free **DDD tactical kernel** for TypeScript: typed ids, entities,
 aggregate roots, domain events, repositories, gateways, the unit of work, and
 specifications. It is the TypeScript port of the `architecture` feature of the
-[`ev`](https://github.com/EV-invest/lib) Rust crate, and preserves the _semantics_
+[`ev_lib`](https://github.com/EV-invest/lib) Rust crate, and preserves the _semantics_
 of that public API while reading like idiomatic TS.
 
 Zero runtime dependencies. ESM-only. Strict types.

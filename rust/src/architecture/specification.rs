@@ -12,7 +12,7 @@
 /// Named, reusable rules compose at compile time with zero dynamic dispatch:
 ///
 /// ```
-/// use ev::architecture::Specification;
+/// use ev_lib::architecture::Specification;
 ///
 /// struct Published;
 /// impl Specification<Blog> for Published {
@@ -44,7 +44,7 @@
 /// struct:
 ///
 /// ```
-/// use ev::architecture::Specification;
+/// use ev_lib::architecture::Specification;
 ///
 /// let is_even = |n: &i32| n % 2 == 0;
 /// assert!(is_even.holds(&4));
@@ -55,7 +55,7 @@
 /// `holds` is available on `dyn` — the combinators are `Sized`-gated):
 ///
 /// ```
-/// use ev::architecture::Specification;
+/// use ev_lib::architecture::Specification;
 ///
 /// let rules: Vec<Box<dyn Specification<i32>>> = vec![
 ///     Box::new(|n: &i32| *n > 0),

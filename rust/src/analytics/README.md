@@ -1,4 +1,4 @@
-# `ev::analytics`
+# `ev_lib::analytics`
 
 PostHog product analytics — the Rust mirror of
 [`@evinvest/analytics`](../../../ts/analytics). A small typed event API with two
@@ -33,7 +33,7 @@ ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, f
 ### Native (Axum / any server)
 
 ```rust
-use ev::analytics::{Analytics, Event};
+use ev_lib::analytics::{Analytics, Event};
 
 // Build once and share (it holds a pooled reqwest client). A `None` key no-ops.
 let analytics = Analytics::new(std::env::var("POSTHOG_KEY").ok(), std::env::var("POSTHOG_HOST").ok());
@@ -47,7 +47,7 @@ analytics
 
 ```rust
 use dioxus::prelude::*;
-use ev::analytics::{AnalyticsProvider, Event, use_analytics};
+use ev_lib::analytics::{AnalyticsProvider, Event, use_analytics};
 
 #[component]
 fn App() -> Element {
@@ -80,7 +80,7 @@ The Rust crate is the source of truth; the TS package preserves its
 vendor-neutral `AnalyticsSink` seam over a PostHog SDK, while Rust POSTs to
 PostHog's `/capture/` directly — so the parity below is by behaviour.
 
-| Concept | Rust (`ev::analytics`) | TS (`@evinvest/analytics`) |
+| Concept | Rust (`ev_lib::analytics`) | TS (`@evinvest/analytics`) |
 | --- | --- | --- |
 | native capture | `Analytics::capture(distinct_id, &Event)` | `createServerSink(client).capture(event, props)` (`./node`) |
 | browser capture | `use_analytics().capture(Event)` | `useCapture()` / `useAnalytics()` (`./react`) |
@@ -108,9 +108,9 @@ PostHog's `/capture/` directly — so the parity below is by behaviour.
 Verified from the repo root:
 
 ```sh
-cargo test   -p ev --features analytics
-cargo clippy -p ev --features analytics --all-targets -- -D warnings
-cargo check  -p ev --features "analytics wasm" --target wasm32-unknown-unknown
+cargo test   -p ev_lib --features analytics
+cargo clippy -p ev_lib --features analytics --all-targets -- -D warnings
+cargo check  -p ev_lib --features "analytics wasm" --target wasm32-unknown-unknown
 ```
 
 See [`GUIDE.md`](./GUIDE.md) for the full cookbook.

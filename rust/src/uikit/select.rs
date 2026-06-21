@@ -2,27 +2,13 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::primitives::{Controllable, use_controllable},
+	uikit::{
+		Size,
+		primitives::{Controllable, use_controllable},
+	},
 };
 
 // dep-light: inline positioning + backdrop; no portal/floating/drag — see README Limitations
-
-/// Trigger size; `Sm` mirrors the landing `size="sm"` variant.
-#[derive(Clone, Copy, Default, PartialEq)]
-pub enum SelectTriggerSize {
-	#[default]
-	Default,
-	Sm,
-}
-
-impl SelectTriggerSize {
-	fn as_str(&self) -> &'static str {
-		match self {
-			SelectTriggerSize::Default => "default",
-			SelectTriggerSize::Sm => "sm",
-		}
-	}
-}
 
 #[component]
 pub fn Select(
@@ -44,7 +30,7 @@ pub fn Select(
 	}
 }
 #[component]
-pub fn SelectTrigger(#[props(default)] size: SelectTriggerSize, #[props(default)] class: String, children: Element) -> Element {
+pub fn SelectTrigger(#[props(default)] size: Size, #[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<SelectCtx>();
 	let open = ctx.open.get();
 	let data_state = if open { "open" } else { "closed" };
@@ -53,9 +39,10 @@ pub fn SelectTrigger(#[props(default)] size: SelectTriggerSize, #[props(default)
 		 focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 aria-invalid:border-destructive \
 		 flex w-fit items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs \
 		 transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 \
-		 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex \
+		 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex \
 		 *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 \
 		 [&_svg:not([class*='size-'])]:size-4",
+		&format!("h-{}", size.scale()),
 		class
 	);
 	rsx! {
@@ -64,7 +51,6 @@ pub fn SelectTrigger(#[props(default)] size: SelectTriggerSize, #[props(default)
 			role: "combobox",
 			class: cls,
 			"data-slot": "select-trigger",
-			"data-size": size.as_str(),
 			"data-state": data_state,
 			"aria-expanded": if open { "true" } else { "false" },
 			onclick: move |_| ctx.open.set(!ctx.open.get()),
@@ -273,11 +259,11 @@ mod tests {
 		fn app() -> Element {
 			rsx! {
 				Select {
-					SelectTrigger { size: SelectTriggerSize::Sm, "x" }
+					SelectTrigger { size: Size::Sm, "x" }
 				}
 			}
 		}
 		let html = render(app);
-		assert!(html.contains("data-size=\"sm\""), "{html}");
+		assert!(html.contains("h-8"), "{html}");
 	}
 }
