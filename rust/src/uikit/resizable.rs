@@ -14,20 +14,12 @@ const GRIP_BASE: &str = "bg-border z-10 flex h-4 w-3 items-center justify-center
 
 /// Layout axis of a [`ResizablePanelGroup`]; rendered as `data-panel-group-direction`
 /// so the canonical class selectors flip the flex axis and the handle geometry.
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Copy, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum ResizableDirection {
 	#[default]
 	Horizontal,
 	Vertical,
-}
-
-impl ResizableDirection {
-	fn as_str(&self) -> &'static str {
-		match self {
-			ResizableDirection::Horizontal => "horizontal",
-			ResizableDirection::Vertical => "vertical",
-		}
-	}
 }
 
 #[component]
@@ -42,7 +34,7 @@ pub fn ResizablePanelGroup(#[props(default)] direction: ResizableDirection, #[pr
 		div {
 			class: cls,
 			"data-slot": "resizable-panel-group",
-			"data-panel-group-direction": direction.as_str(),
+			"data-panel-group-direction": "{direction}",
 			{children}
 		}
 	}
@@ -73,7 +65,7 @@ pub fn ResizablePanel(index: usize, #[props(default = 50.0)] default_size: f64, 
 #[component]
 pub fn ResizableHandle(index: usize, #[props(default)] with_handle: bool, #[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<ResizableCtx>();
-	let dir = ctx.direction.as_str();
+	let dir = ctx.direction;
 
 	// pointer-drag: TS-only, keyboard in Rust — see README Limitations
 	let on_key = move |e: KeyboardEvent| {
@@ -91,7 +83,7 @@ pub fn ResizableHandle(index: usize, #[props(default)] with_handle: bool, #[prop
 		div {
 			class: cls,
 			"data-slot": "resizable-handle",
-			"data-panel-group-direction": dir,
+			"data-panel-group-direction": "{dir}",
 			role: "separator",
 			"aria-orientation": if ctx.direction == ResizableDirection::Horizontal { "vertical" } else { "horizontal" },
 			tabindex: "0",

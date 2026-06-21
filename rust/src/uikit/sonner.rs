@@ -13,7 +13,8 @@ use dioxus::prelude::*;
 use crate::cn;
 
 const TOAST_CLOSE: &str = "text-foreground/50 hover:text-foreground shrink-0 transition-colors";
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Copy, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum ToastVariant {
 	#[default]
 	Default,
@@ -33,21 +34,12 @@ impl ToastVariant {
 			ToastVariant::Warning => "bg-popover text-popover-foreground border-border",
 		}
 	}
-
-	fn as_str(&self) -> &'static str {
-		match self {
-			ToastVariant::Default => "default",
-			ToastVariant::Success => "success",
-			ToastVariant::Error => "error",
-			ToastVariant::Info => "info",
-			ToastVariant::Warning => "warning",
-		}
-	}
 }
 
 /// Where the stack is pinned. Mirrors the TS `position` prop; default
 /// bottom-right.
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Copy, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum ToastPosition {
 	TopLeft,
 	TopCenter,
@@ -67,17 +59,6 @@ impl ToastPosition {
 			ToastPosition::BottomLeft => "bottom-0 left-0 items-start",
 			ToastPosition::BottomCenter => "bottom-0 left-1/2 -translate-x-1/2 items-center",
 			ToastPosition::BottomRight => "bottom-0 right-0 items-end",
-		}
-	}
-
-	fn as_str(&self) -> &'static str {
-		match self {
-			ToastPosition::TopLeft => "top-left",
-			ToastPosition::TopCenter => "top-center",
-			ToastPosition::TopRight => "top-right",
-			ToastPosition::BottomLeft => "bottom-left",
-			ToastPosition::BottomCenter => "bottom-center",
-			ToastPosition::BottomRight => "bottom-right",
 		}
 	}
 }
@@ -173,14 +154,14 @@ pub fn Toaster(#[props(default)] position: ToastPosition, #[props(default)] clas
 	let handle = ToasterHandle { toasts };
 	let cls = cn!("pointer-events-none fixed z-100 flex w-[calc(100%-2rem)] max-w-sm flex-col gap-2 p-4", position.class(), class);
 	rsx! {
-		ol { class: cls, "data-slot": "toaster", "data-position": position.as_str(),
+		ol { class: cls, "data-slot": "toaster", "data-position": "{position}",
 			for t in toasts.items.read().iter().cloned() {
 				li {
 					key: "{t.id}",
 					role: "status",
 					"aria-live": "polite",
 					"data-slot": "toast",
-					"data-variant": t.variant.as_str(),
+					"data-variant": "{t.variant}",
 					class: cn!("pointer-events-auto flex w-full items-start gap-3 rounded-md border p-4 text-sm shadow-lg", t.variant.class()),
 					div { class: "flex-1 space-y-1",
 						div { class: "font-medium", "{t.message}" }
@@ -310,7 +291,7 @@ mod tests {
 			(ToastPosition::BottomCenter, "bottom-center"),
 			(ToastPosition::BottomRight, "bottom-right"),
 		] {
-			assert_eq!(pos.as_str(), expected);
+			assert_eq!(pos.to_string(), expected);
 		}
 	}
 }

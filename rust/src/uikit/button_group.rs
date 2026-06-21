@@ -9,7 +9,8 @@ const BUTTON_GROUP_BASE: &str = "flex w-fit items-stretch [&>*]:focus-visible:z-
 const BUTTON_GROUP_TEXT_BASE: &str = "bg-muted flex items-center gap-2 rounded-md border px-4 text-sm font-medium \
                                       shadow-xs [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4";
 const BUTTON_GROUP_SEPARATOR_BASE: &str = "bg-input relative !m-0 self-stretch shrink-0 data-[orientation=vertical]:h-auto";
-#[derive(Clone, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum ButtonGroupOrientation {
 	#[default]
 	Horizontal,
@@ -23,13 +24,6 @@ impl ButtonGroupOrientation {
 			ButtonGroupOrientation::Vertical => "flex-col [&>*:not(:first-child)]:rounded-t-none [&>*:not(:first-child)]:border-t-0 [&>*:not(:last-child)]:rounded-b-none",
 		}
 	}
-
-	fn attr(&self) -> &'static str {
-		match self {
-			ButtonGroupOrientation::Horizontal => "horizontal",
-			ButtonGroupOrientation::Vertical => "vertical",
-		}
-	}
 }
 
 #[component]
@@ -39,7 +33,7 @@ pub fn ButtonGroup(#[props(default)] orientation: ButtonGroupOrientation, #[prop
 		div {
 			role: "group",
 			"data-slot": "button-group",
-			"data-orientation": orientation.attr(),
+			"data-orientation": "{orientation}",
 			class: cls,
 			{children}
 		}

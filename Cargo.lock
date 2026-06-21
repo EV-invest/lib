@@ -1250,6 +1250,7 @@ name = "ev_lib"
 version = "0.2.0"
 dependencies = [
  "async-trait",
+ "derive_more",
  "dioxus",
  "dioxus-ssr",
  "ev_lib",

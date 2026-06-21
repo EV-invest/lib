@@ -12,7 +12,8 @@ const TOGGLE_BASE: &str = "inline-flex items-center justify-center gap-2 rounded
                            focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none transition-[color,box-shadow] \
                            aria-invalid:ring-destructive/20 aria-invalid:border-destructive whitespace-nowrap";
 
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Copy, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum ToggleVariant {
 	#[default]
 	Transparent,

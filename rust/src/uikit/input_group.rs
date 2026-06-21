@@ -42,7 +42,8 @@ pub fn InputGroup(#[props(default)] class: String, children: Element) -> Element
 	}
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum InputGroupAddonAlign {
 	#[default]
 	InlineStart,
@@ -60,15 +61,6 @@ impl InputGroupAddonAlign {
 			InputGroupAddonAlign::BlockEnd => "order-last w-full justify-start px-3 pb-3 [.border-t]:pt-3 group-has-[>input]/input-group:pb-2.5",
 		}
 	}
-
-	fn attr(&self) -> &'static str {
-		match self {
-			InputGroupAddonAlign::InlineStart => "inline-start",
-			InputGroupAddonAlign::InlineEnd => "inline-end",
-			InputGroupAddonAlign::BlockStart => "block-start",
-			InputGroupAddonAlign::BlockEnd => "block-end",
-		}
-	}
 }
 
 #[component]
@@ -79,7 +71,7 @@ pub fn InputGroupAddon(#[props(default)] align: InputGroupAddonAlign, #[props(de
 			role: "group",
 			class: cls,
 			"data-slot": "input-group-addon",
-			"data-align": align.attr(),
+			"data-align": "{align}",
 			{children}
 		}
 	}

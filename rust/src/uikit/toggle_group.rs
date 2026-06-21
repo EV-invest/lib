@@ -19,8 +19,8 @@ pub fn ToggleGroup(#[props(default)] variant: ToggleVariant, #[props(default)] s
 		div {
 			class: cls,
 			"data-slot": "toggle-group",
-			"data-variant": variant_attr(&variant),
-			"data-size": size_attr(&size),
+			"data-variant": "{variant}",
+			"data-size": "{size}",
 			{children}
 		}
 	}
@@ -50,8 +50,8 @@ pub fn ToggleGroupItem(
 			r#type: "button",
 			class: cls,
 			"data-slot": "toggle-group-item",
-			"data-variant": variant_attr(&variant),
-			"data-size": size_attr(&size),
+			"data-variant": "{variant}",
+			"data-size": "{size}",
 			"data-state": if on { "on" } else { "off" },
 			"aria-pressed": on,
 			disabled,
@@ -60,21 +60,6 @@ pub fn ToggleGroupItem(
 		}
 	}
 }
-fn variant_attr(variant: &ToggleVariant) -> &'static str {
-	match variant {
-		ToggleVariant::Outline => "outline",
-		ToggleVariant::Transparent => "transparent",
-	}
-}
-
-fn size_attr(size: &Size) -> &'static str {
-	match size {
-		Size::Md => "md",
-		Size::Sm => "sm",
-		Size::Lg => "lg",
-	}
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;

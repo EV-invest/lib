@@ -3,7 +3,8 @@ use dioxus::prelude::*;
 use crate::{cn, uikit::label::Label};
 
 const FIELD_BASE: &str = "group/field flex w-full gap-3 data-[invalid=true]:text-destructive";
-#[derive(Clone, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum FieldOrientation {
 	#[default]
 	Vertical,
@@ -26,30 +27,14 @@ impl FieldOrientation {
 			                                 @md/field-group:has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
 		}
 	}
-
-	fn data(&self) -> &'static str {
-		match self {
-			FieldOrientation::Vertical => "vertical",
-			FieldOrientation::Horizontal => "horizontal",
-			FieldOrientation::Responsive => "responsive",
-		}
-	}
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum FieldLegendVariant {
 	#[default]
 	Legend,
 	Label,
-}
-
-impl FieldLegendVariant {
-	fn data(&self) -> &'static str {
-		match self {
-			FieldLegendVariant::Legend => "legend",
-			FieldLegendVariant::Label => "label",
-		}
-	}
 }
 
 #[component]
@@ -64,7 +49,7 @@ pub fn FieldSet(#[props(default)] class: String, children: Element) -> Element {
 pub fn FieldLegend(#[props(default)] variant: FieldLegendVariant, #[props(default)] class: String, children: Element) -> Element {
 	let cls = cn!("mb-3 font-medium data-[variant=legend]:text-base data-[variant=label]:text-sm", class);
 	rsx! {
-		legend { class: cls, "data-slot": "field-legend", "data-variant": variant.data(), {children} }
+		legend { class: cls, "data-slot": "field-legend", "data-variant": "{variant}", {children} }
 	}
 }
 
@@ -88,7 +73,7 @@ pub fn Field(#[props(default)] orientation: FieldOrientation, #[props(default)] 
 			role: "group",
 			class: cls,
 			"data-slot": "field",
-			"data-orientation": orientation.data(),
+			"data-orientation": "{orientation}",
 			{children}
 		}
 	}
