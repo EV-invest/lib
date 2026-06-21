@@ -29,15 +29,6 @@ impl ToggleVariant {
 	}
 }
 
-/// Per-size horizontal padding; height + min-width come from [`Size::scale`].
-fn toggle_padding(size: Size) -> &'static str {
-	match size {
-		Size::Sm => "px-1.5",
-		Size::Md => "px-2",
-		Size::Lg => "px-2.5",
-	}
-}
-
 /// Fuses the base, variant and size classes with a caller override, last wins.
 /// Mirrors the TS `toggleVariants` helper so `toggle-group` can reuse the same
 /// canonical class string.
@@ -45,7 +36,6 @@ pub fn toggle_classes(variant: &ToggleVariant, size: Size, class: &str) -> Strin
 	let dims = format!("h-{0} min-w-{0} {1}", size.scale(), toggle_padding(size));
 	cn!(TOGGLE_BASE, variant.class(), &dims, class)
 }
-
 #[component]
 pub fn Toggle(
 	#[props(default)] variant: ToggleVariant,
@@ -71,6 +61,14 @@ pub fn Toggle(
 			onclick: move |_| state.set(!on),
 			{children}
 		}
+	}
+}
+/// Per-size horizontal padding; height + min-width come from [`Size::scale`].
+fn toggle_padding(size: Size) -> &'static str {
+	match size {
+		Size::Sm => "px-1.5",
+		Size::Md => "px-2",
+		Size::Lg => "px-2.5",
 	}
 }
 
