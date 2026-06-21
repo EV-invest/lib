@@ -85,10 +85,6 @@ web-sys = { version = "0.3", optional = true, features = ["Document", "Window", 
 async-trait.workspace = true
 dioxus = { workspace = true, features = ["signals", "hooks"] }
 dioxus-ssr.workspace = true
-# Self dev-dependency: turns every library feature on for the crate's *own* test
-# build (unit + integration), so `cargo nextest run` at the repo root exercises
-# the whole suite without remembering `--all-features`. Consumers are unaffected —
-# features stay opt-in with no `default`. Keep this list in sync with `[features]`.
 ev_lib = { workspace = true, features = ["architecture", "uikit", "analytics", "error_monitoring", "experiments"] }
 jiff = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }

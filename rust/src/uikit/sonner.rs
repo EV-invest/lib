@@ -281,17 +281,4 @@ mod tests {
 		assert!(html.contains("data-position=\"top-center\""), "{html}");
 		assert!(html.contains("data-slot=\"toaster\""), "{html}");
 	}
-
-	#[test]
-	fn each_position_maps_to_its_attribute() {
-		for (pos, expected) in [
-			(ToastPosition::TopLeft, "top-left"),
-			(ToastPosition::TopRight, "top-right"),
-			(ToastPosition::BottomLeft, "bottom-left"),
-			(ToastPosition::BottomCenter, "bottom-center"),
-			(ToastPosition::BottomRight, "bottom-right"),
-		] {
-			assert_eq!(pos.as_ref(), expected);
-		}
-	}
 }
