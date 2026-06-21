@@ -6,21 +6,26 @@
 //! plus a [`use_toaster`] hook returning a [`ToasterHandle`] with `.success`,
 //! `.error`, `.info`, `.warning` and `.dismiss`.
 //!
-//! ## Animation
+//! ## Stacking + animation
 //!
-//! Enter and exit are animated without a host timer — the constraint that keeps
-//! this kit render-only. Each toast carries a [`ToastState`] (`Open` →
-//! `Closing`): a fresh toast mounts as `data-state="open"` and the shared
-//! `tokens.css` plays a slide+fade keyframe (direction picked from the toaster's
-//! `data-position`). [`ToasterHandle::dismiss`] (and the close button) flip it to
-//! `Closing`/`data-state="closed"`, which swaps in the exit keyframe; the live
-//! removal then rides the DOM `animationend` event (`onanimationend`) instead of
-//! a `setTimeout`. The keyframes ship in `tokens.css` so the lifecycle completes
-//! even when the consumer hasn't installed a Tailwind animation plugin, and a
-//! `prefers-reduced-motion` block swaps the slide for a plain fade.
+//! Mirrors Sonner (and the TS port) via the shared `data-stack` CSS in
+//! `tokens.css`: toasts are absolutely stacked at the pinned edge and pile up
+//! collapsed (front [`VISIBLE_TOASTS`] peeking, scaled by depth), expanding into
+//! a list on hover / keyboard focus — pure CSS, no host state. Each [`ToastItem`]
+//! feeds the layout vars (`--index`, `--offset`, …); because heights can't be
+//! measured here (that needs host-only `web-sys`), they're derived from a
+//! constant [`TOAST_HEIGHT_EST`], so the collapsed pile is exact and the expanded
+//! list is uniformly spaced.
 //!
-//! Auto-dismiss (needs a host timer) and swipe-to-dismiss (pointer physics) stay
-//! TS-only, as does stacking; the palette is the single dark theme (no
+//! Animation stays host-timer-free: a [`ToastItem`] flips `data-mounted` in
+//! ([`use_effect`]) to play the enter transition, [`ToasterHandle::dismiss`] (and
+//! the close button) flip [`ToastState`] to `Closing`/`data-state="closed"` to
+//! slide it out, and the live node is dropped on the exit transform's
+//! `transitionend` (`ontransitionend`, guarded to the closing state) rather than
+//! a `setTimeout`. A `prefers-reduced-motion` block reduces the motion.
+//!
+//! Auto-dismiss (needs a host timer, so no hover-pause either) and swipe-to-dismiss
+//! (pointer physics) stay TS-only; the palette is the single dark theme (no
 //! `next-themes`). See the README "Limitations".
 
 use dioxus::prelude::*;
@@ -28,6 +33,14 @@ use dioxus::prelude::*;
 use crate::cn;
 
 const TOAST_CLOSE: &str = "text-foreground/50 hover:text-foreground shrink-0 transition-colors";
+/// Only the front three toasts show while the stack is collapsed.
+const VISIBLE_TOASTS: usize = 3;
+/// Gap (px) between toasts once the stack is expanded.
+const GAP: u32 = 14;
+/// Dioxus can't measure a toast's height (it needs host-only `web-sys`), so the
+/// stack assumes this height (px) for the collapse clamp and the expanded
+/// spacing: the collapsed pile is exact, the expanded list is uniformly spaced.
+const TOAST_HEIGHT_EST: u32 = 64;
 #[derive(Clone, Copy, Default, PartialEq)]
 pub enum ToastVariant {
 	#[default]
@@ -214,54 +227,97 @@ pub fn use_toaster() -> ToasterHandle {
 	ToasterHandle { toasts: use_context::<Toasts>() }
 }
 
-/// Renders the toast stack from context. Fixed-positioned per `position`
-/// (default bottom-right). Unlike the TS mirror there is no `setTimeout`
-/// auto-dismiss — the kit is render-only and host-timer-free; dismiss happens on
-/// the close button or via [`ToasterHandle::dismiss`].
+/// Renders the toast stack from context as a Sonner-style pile: collapsed by
+/// default (front three peeking, scaled by depth), expanding into a list on
+/// hover / keyboard focus (pure CSS). Fixed-positioned per `position` (default
+/// bottom-right). Unlike the TS mirror there is no `setTimeout` auto-dismiss (so
+/// nothing to pause on hover) and no swipe — the kit is render-only and
+/// host-timer-free; dismiss happens on the close button or via
+/// [`ToasterHandle::dismiss`], which slides the toast out and drops it on its
+/// `transitionend`.
 #[component]
 pub fn Toaster(#[props(default)] position: ToastPosition, #[props(default)] class: String) -> Element {
 	let toasts = use_context::<Toasts>();
-	let handle = ToasterHandle { toasts };
-	let cls = cn!("pointer-events-none fixed z-100 flex w-[calc(100%-2rem)] max-w-sm flex-col gap-2 p-4", position.class(), class);
+	let y = match position {
+		ToastPosition::TopLeft | ToastPosition::TopCenter | ToastPosition::TopRight => "top",
+		_ => "bottom",
+	};
+	let cls = cn!("pointer-events-none fixed z-100 w-[calc(100%-2rem)] max-w-sm p-4", position.class(), class);
+	let items = toasts.items.read();
+	let total = items.len();
 	rsx! {
-		ol { class: cls, "data-slot": "toaster", "data-position": position.as_str(),
-			for t in toasts.items.read().iter().cloned() {
-				li {
-					key: "{t.id}",
-					role: "status",
-					"aria-live": "polite",
-					"data-slot": "toast",
-					"data-variant": t.variant.as_str(),
-					"data-state": t.state.as_str(),
-					onanimationend: move |_| {
-						if t.state == ToastState::Closing {
-							handle.remove(t.id);
-						}
-					},
-					class: cn!("pointer-events-auto flex w-full items-start gap-3 rounded-md border p-4 text-sm shadow-lg", t.variant.class()),
-					div { class: "flex-1 space-y-1",
-						div { class: "font-medium", "{t.message}" }
-					}
-					button {
-						r#type: "button",
-						"aria-label": "Close",
-						"data-slot": "toast-close",
-						class: TOAST_CLOSE,
-						onclick: move |_| handle.dismiss(t.id),
-						svg {
-							xmlns: "http://www.w3.org/2000/svg",
-							width: "16",
-							height: "16",
-							view_box: "0 0 24 24",
-							fill: "none",
-							stroke: "currentColor",
-							"stroke-width": "2",
-							"stroke-linecap": "round",
-							"stroke-linejoin": "round",
-							"aria-hidden": "true",
-							path { d: "M18 6 6 18M6 6l12 12" }
-						}
-					}
+		ol {
+			class: cls,
+			"data-slot": "toaster",
+			"data-position": position.as_str(),
+			"data-y-position": y,
+			"data-stack": "",
+			style: "--front-height: {TOAST_HEIGHT_EST}px; --gap: {GAP}px;",
+			// newest first → front of the stack (index 0)
+			for (index, t) in items.iter().rev().cloned().enumerate() {
+				ToastItem { key: "{t.id}", toast: t, index, total }
+			}
+		}
+	}
+}
+
+/// One toast in the stack. Mirrors the TS `ToastItem`: a `data-mounted` flip
+/// plays the enter, `data-state="closed"` slides it out, and the live node is
+/// dropped on the exit transform's `transitionend` (guarded to the closing state
+/// so an open-state restack never removes it). Layout vars come from the
+/// constant height — no measuring.
+#[component]
+fn ToastItem(toast: Toast, index: usize, total: usize) -> Element {
+	let handle = use_toaster();
+	let mut mounted = use_signal(|| false);
+	use_effect(move || mounted.set(true));
+
+	let id = toast.id;
+	let state = toast.state;
+	let is_mounted = mounted();
+	let front = index == 0;
+	let visible = index < VISIBLE_TOASTS;
+	let offset = index as u32 * (TOAST_HEIGHT_EST + GAP);
+	let z = total - index;
+
+	rsx! {
+		li {
+			role: "status",
+			"aria-live": "polite",
+			"data-slot": "toast",
+			"data-variant": toast.variant.as_str(),
+			"data-state": state.as_str(),
+			"data-mounted": "{is_mounted}",
+			"data-front": "{front}",
+			"data-visible": "{visible}",
+			style: "--index: {index}; --z-index: {z}; --offset: {offset}px; --initial-height: {TOAST_HEIGHT_EST}px;",
+			ontransitionend: move |_| {
+				if state == ToastState::Closing {
+					handle.remove(id);
+				}
+			},
+			class: cn!("pointer-events-auto flex w-full items-start gap-3 rounded-md border p-4 text-sm shadow-lg", toast.variant.class()),
+			div { class: "flex-1 space-y-1",
+				div { class: "font-medium", "{toast.message}" }
+			}
+			button {
+				r#type: "button",
+				"aria-label": "Close",
+				"data-slot": "toast-close",
+				class: TOAST_CLOSE,
+				onclick: move |_| handle.dismiss(id),
+				svg {
+					xmlns: "http://www.w3.org/2000/svg",
+					width: "16",
+					height: "16",
+					view_box: "0 0 24 24",
+					fill: "none",
+					stroke: "currentColor",
+					"stroke-width": "2",
+					"stroke-linecap": "round",
+					"stroke-linejoin": "round",
+					"aria-hidden": "true",
+					path { d: "M18 6 6 18M6 6l12 12" }
 				}
 			}
 		}
@@ -381,7 +437,37 @@ mod tests {
 		}
 		let html = render(app);
 		assert!(html.contains("data-position=\"top-center\""), "{html}");
+		assert!(html.contains("data-y-position=\"top\""), "{html}");
+		assert!(html.contains("data-stack"), "stack model is on: {html}");
 		assert!(html.contains("data-slot=\"toaster\""), "{html}");
+	}
+
+	#[test]
+	fn stack_marks_front_and_depth() {
+		fn app() -> Element {
+			rsx! {
+				ToasterProvider {
+					Seed {}
+					Toaster {}
+				}
+			}
+		}
+		#[component]
+		fn Seed() -> Element {
+			let toaster = use_toaster();
+			use_hook(move || {
+				toaster.info("older");
+				toaster.warning("newer");
+			});
+			rsx! {}
+		}
+		// newest toast is the front of the stack (index 0); both carry stacking vars
+		let html = render(app);
+		assert!(html.contains("data-front=\"true\""), "a front toast: {html}");
+		assert!(html.contains("data-front=\"false\""), "a back toast: {html}");
+		assert!(html.contains("--index: 0"), "{html}");
+		assert!(html.contains("--index: 1"), "{html}");
+		assert!(html.contains("data-visible=\"true\""), "{html}");
 	}
 
 	#[test]

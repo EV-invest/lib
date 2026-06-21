@@ -132,16 +132,19 @@ measuring needs host-only `web-sys`). Known gaps:
 - **calendar:** single month, single-date selection (no range/multi-month, no
   locale/dropdown features). Rust does manual date math; TS uses the built-in
   `Date`.
-- **sonner:** both ports animate enter/exit — a per-toast `data-state`
-  (`open`/`closed`) drives slide+fade keyframes shipped in `tokens.css`, and the
-  live toast is unmounted on its exit `animationend` (no host timer), so dismissal
-  animates out in Dioxus too. Slide direction follows the toaster `position`, and
-  `prefers-reduced-motion` swaps it for a plain fade. TS exposes a global
-  `toast()` backed by a module store with `setTimeout` auto-dismiss; Rust uses a
+- **sonner:** both ports stack toasts Sonner-style — a collapsed pile (front
+  three peeking, scaled by depth) that spreads into a list on hover / keyboard
+  focus, via the shared `data-stack` CSS in `tokens.css`. Enter/exit ride a
+  `data-mounted` + `data-state` transition machine, unmounting on `transitionend`
+  (no host timer), so it animates out in Dioxus too. React measures each toast's
+  height for exact expanded spacing; Dioxus can't (layout measuring needs
+  host-only `web-sys`), so it assumes a constant height — collapsed pile exact,
+  expanded list uniform. TS exposes a global `toast()` (module store) with
+  `setTimeout` auto-dismiss that **pauses while the stack is hovered/focused** and
+  supports **persistent** toasts (`duration: Infinity`); Rust uses a
   `ToasterProvider` + `use_toaster()` hook and omits auto-dismiss (host-timer-free
   — dismiss via the close button or `.dismiss(id)`). Swipe-to-dismiss (horizontal
-  pointer drag, past 45px or a fast flick) is TS-only, like the other pointer
-  physics; stacking is not reproduced.
+  drag, past 45px or a fast flick) is TS-only pointer physics.
 - **form:** react-hook-form is dropped — these are presentational + ARIA-id
   wiring; consumers own validation/state. Rust `FormControl` can't inject ids
   onto an arbitrary child (no `Slot`), so the consumer wires them.

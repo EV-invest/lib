@@ -31,9 +31,11 @@ another so Tailwind regenerates as you edit class strings.
   kit's Rust sources (`../src/uikit`) and this viewer's `src` so Tailwind scans
   the class-string literals and generates the utilities. `npm run css` writes
   `assets/tailwind.css` (gitignored), which `src/viewer.rs` links via `asset!`.
-- The Rust toaster has no host timer, so auto-dismiss is omitted here (dismiss via
-  the close button or a swipe-free click) — but **enter/exit still animate**, the
-  whole point of this branch. Swipe-to-dismiss is React-only.
+- The toaster **stacks** like the React one (collapsed pile → spreads on
+  hover/focus) and animates enter/exit. Heights can't be measured here, so the
+  stack assumes a constant height (collapse exact, expansion uniform). The Rust
+  toaster has no host timer, so auto-dismiss (and hover-pause) and swipe-to-dismiss
+  are React-only — dismiss via the close button or `.dismiss(id)`.
 
 > Generate the CSS before `dx serve` or a wasm `cargo check` — `asset!` needs
 > `assets/tailwind.css` to exist. Native builds don't (the gallery is wasm-gated).
