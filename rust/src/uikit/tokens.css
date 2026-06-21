@@ -150,16 +150,22 @@
     transform 350ms cubic-bezier(0.21, 0.8, 0.4, 1),
     opacity 350ms,
     height 350ms;
-  /* the enter is a keyframe (not a transition) so it plays on DOM insertion in
-     both ports — no JS "mounted" flip, whose pre-paint timing the Dioxus effect
-     couldn't drive (the new toast just popped in). Its implicit `to` is the
-     resting state above. */
+  /* the enter is a keyframe (plays on DOM insertion in both ports — no JS mount
+     flip, whose pre-paint timing the Dioxus effect couldn't drive). It animates
+     the independent `translate` property, NOT `transform`, so it *composes* with
+     the stack transform instead of overriding it: a toast pushed back mid-enter
+     keeps repositioning smoothly instead of fighting the keyframe (rapid-fire
+     lag). */
   animation: ev-toast-enter 350ms cubic-bezier(0.21, 0.8, 0.4, 1) backwards;
 }
 @keyframes ev-toast-enter {
   from {
     opacity: 0;
-    transform: var(--enter, translateY(100%)) translateX(var(--swipe-x, 0px));
+    translate: 0 var(--enter-y, 100%);
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
   }
 }
 
@@ -167,17 +173,17 @@
 [data-slot="toaster"][data-stack][data-y-position="bottom"] [data-slot="toast"] {
   bottom: 0;
   --lift: -1;
-  --enter: translateY(100%);
+  --enter-y: 100%;
 }
 [data-slot="toaster"][data-stack][data-y-position="top"] [data-slot="toast"] {
   top: 0;
   --lift: 1;
-  --enter: translateY(-100%);
+  --enter-y: -100%;
 }
 
 /* closing: slide back off + fade out; the node is dropped on its transitionend */
 [data-slot="toaster"][data-stack] [data-slot="toast"][data-state="closed"] {
-  --y: var(--enter);
+  --y: translateY(var(--enter-y));
   opacity: 0;
 }
 
