@@ -112,8 +112,8 @@ export default function App() {
             <CardHeader>
               <CardTitle>Toaster</CardTitle>
               <CardDescription>
-                Enter / exit animate via the shared <code>tokens.css</code>{" "}
-                keyframes; drag a toast sideways to flick it away.
+                Toasts pile up collapsed and <strong>spread on hover</strong>{" "}
+                (Sonner-style stacking). Drag one sideways to flick it away.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -128,6 +128,16 @@ export default function App() {
                     {v}
                   </Button>
                 ))}
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    fire("success");
+                    fire("info");
+                    fire("warning");
+                  }}
+                >
+                  Stack ×3
+                </Button>
               </div>
               <Separator />
               <div className="space-y-2">

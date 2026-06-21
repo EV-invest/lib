@@ -189,3 +189,104 @@
     animation-name: ev-toast-out-bottom;
   }
 }
+
+/* ── Toast stacking (Sonner-style) — opt-in via data-stack on the toaster ─────
+   Active only when the toaster sets data-stack (the React port, which feeds the
+   measured layout vars). Toasts are absolutely stacked at the pinned edge: they
+   pile up collapsed (front three peeking, each lifted + scaled by --index and
+   clamped to --front-height) and spread to their measured --offset on hover or
+   keyboard focus. Expansion is pure CSS — no JS state. Vars: the toaster sets
+   --front-height + --gap; each toast sets --index, --z-index, --offset,
+   --initial-height. The Dioxus port omits data-stack, so the keyframes above
+   drive it as a flow column instead. */
+
+[data-slot="toaster"][data-stack] [data-slot="toast"] {
+  position: absolute;
+  animation: none; /* the stack model transitions --y instead of keyframing */
+  --y: var(--enter, translateY(0));
+  opacity: 0;
+  z-index: var(--z-index, 1);
+  transform: var(--y) translateX(var(--swipe-x, 0px));
+  transition:
+    transform 400ms cubic-bezier(0.21, 1.02, 0.73, 1),
+    opacity 400ms,
+    height 400ms;
+}
+
+/* pin to the toaster's edge; set the lift sign + the off-screen enter offset */
+[data-slot="toaster"][data-stack][data-y-position="bottom"] [data-slot="toast"] {
+  bottom: 0;
+  --lift: -1;
+  --enter: translateY(100%);
+}
+[data-slot="toaster"][data-stack][data-y-position="top"] [data-slot="toast"] {
+  top: 0;
+  --lift: 1;
+  --enter: translateY(-100%);
+}
+
+/* mounted + open: rest at the edge, opaque (the enter transition plays from the
+   pre-mount --enter set above) */
+[data-slot="toaster"][data-stack]
+  [data-slot="toast"][data-mounted="true"][data-state="open"] {
+  --y: translateY(0);
+  opacity: 1;
+}
+
+/* collapsed: back toasts lift + shrink by depth, clamp to the front height */
+[data-slot="toaster"][data-stack]
+  [data-slot="toast"][data-mounted="true"][data-state="open"][data-front="false"] {
+  --y: translateY(calc(var(--lift) * var(--gap) * var(--index)))
+    scale(calc(1 - var(--index) * 0.05));
+  height: var(--front-height);
+}
+[data-slot="toaster"][data-stack] [data-slot="toast"][data-front="false"] > * {
+  opacity: 0;
+  transition: opacity 300ms;
+}
+/* only the front three show while collapsed */
+[data-slot="toaster"][data-stack] [data-slot="toast"][data-visible="false"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* expanded (hover / keyboard focus): spread to the measured offset, real height,
+   content + overflow back */
+[data-slot="toaster"][data-stack]:hover
+  [data-slot="toast"][data-mounted="true"][data-state="open"],
+[data-slot="toaster"][data-stack]:focus-within
+  [data-slot="toast"][data-mounted="true"][data-state="open"] {
+  --y: translateY(calc(var(--lift) * var(--offset)));
+  height: var(--initial-height);
+}
+[data-slot="toaster"][data-stack]:hover [data-slot="toast"] > *,
+[data-slot="toaster"][data-stack]:focus-within [data-slot="toast"] > *,
+[data-slot="toaster"][data-stack]:hover [data-slot="toast"][data-visible="false"],
+[data-slot="toaster"][data-stack]:focus-within
+  [data-slot="toast"][data-visible="false"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* a transparent strip over the gap so the hover area stays contiguous between
+   spread toasts (otherwise the pointer falls through the gap and it collapses) */
+[data-slot="toaster"][data-stack] [data-slot="toast"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: calc(var(--gap) + 1px);
+}
+[data-slot="toaster"][data-stack][data-y-position="bottom"]
+  [data-slot="toast"]::after {
+  bottom: 100%;
+}
+[data-slot="toaster"][data-stack][data-y-position="top"]
+  [data-slot="toast"]::after {
+  top: 100%;
+}
+
+/* 1:1 finger tracking during a swipe — kill the transition */
+[data-slot="toaster"][data-stack] [data-slot="toast"][data-swiping="true"] {
+  transition: none;
+}

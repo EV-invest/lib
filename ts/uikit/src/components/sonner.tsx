@@ -148,8 +148,31 @@ const positionClasses: Record<ToastPosition, string> = {
   "bottom-right": "bottom-0 right-0 items-end",
 };
 
-function ToastItem({ toast: t }: { toast: Toast }) {
+// Sonner-style stacking: only the front VISIBLE_TOASTS show collapsed; GAP is
+// the px between them once expanded.
+const VISIBLE_TOASTS = 3;
+const GAP = 14;
+
+interface ToastItemProps {
+  toast: Toast;
+  index: number; // 0 = front / newest
+  total: number;
+  offset: number; // px from the pinned edge to this toast's expanded slot
+  reportHeight: (id: number, height: number) => void;
+  removeHeight: (id: number) => void;
+}
+
+function ToastItem({
+  toast: t,
+  index,
+  total,
+  offset,
+  reportHeight,
+  removeHeight,
+}: ToastItemProps) {
   const ref = React.useRef<HTMLLIElement>(null);
+  const [mounted, setMounted] = React.useState(false);
+  const [height, setHeight] = React.useState(0);
   // Holds whichever timeout is pending for this toast (auto-dismiss, or the
   // swipe-fling fallback); `clearTimer` cancels it on unmount or gesture start.
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(
@@ -158,6 +181,26 @@ function ToastItem({ toast: t }: { toast: Toast }) {
   const dragRef = React.useRef<{ x: number; time: number; dx: number } | null>(
     null,
   );
+
+  // flip data-mounted on the next commit so the enter transition plays
+  React.useEffect(() => setMounted(true), []);
+
+  // measure the *natural* height for the stack maths; re-measure on content
+  // change. Back toasts are clamped to --front-height by the CSS, so unset the
+  // height for the read (Sonner does the same) then hand it back to the CSS.
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const h = el.getBoundingClientRect().height;
+    el.style.height = "";
+    if (h) {
+      setHeight(h);
+      reportHeight(t.id, h);
+    }
+  }, [t.id, t.message, t.description, reportHeight]);
+
+  React.useEffect(() => () => removeHeight(t.id), [t.id, removeHeight]);
 
   const clearTimer = React.useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -173,19 +216,25 @@ function ToastItem({ toast: t }: { toast: Toast }) {
     return clearTimer;
   }, [startTimer, clearTimer]);
 
+  // exit rides the transition: a closing toast slides back off and is dropped on
+  // the transform's `transitionend` (guarded so stack repositioning never fires
+  // it). No host timer — keeps parity with the Dioxus port.
+  const onTransitionEnd = (e: React.TransitionEvent<HTMLLIElement>) => {
+    if (t.state === "closing" && e.propertyName === "transform") {
+      store.remove(t.id);
+    }
+  };
+
   // ── swipe-to-dismiss (horizontal pointer drag) ──────────────────────────
-  // The live transform is driven inline, so the finished enter keyframe's fill
-  // (CSS animations beat normal declarations) is released with `animation:none`
-  // for the duration of the gesture and handed back to the CSS on snap-back.
+  // Tracked through the `--swipe-x` var so it *composes* with the stack
+  // transform (`var(--y) translateX(var(--swipe-x))`) instead of overriding it.
   const onPointerDown = (e: React.PointerEvent<HTMLLIElement>) => {
     const el = ref.current;
     if (!el || e.button > 0 || t.state === "closing") return;
     if ((e.target as HTMLElement).closest('[data-slot="toast-close"]')) return;
     clearTimer();
     dragRef.current = { x: e.clientX, time: e.timeStamp, dx: 0 };
-    el.setAttribute("data-swiping", "true");
-    el.style.animation = "none";
-    el.style.transition = "none";
+    el.setAttribute("data-swiping", "true"); // CSS drops the transition for 1:1 tracking
     try {
       el.setPointerCapture?.(e.pointerId);
     } catch {
@@ -200,7 +249,7 @@ function ToastItem({ toast: t }: { toast: Toast }) {
     const dx = e.clientX - drag.x;
     drag.dx = dx;
     const dist = el.offsetWidth || 256;
-    el.style.transform = `translateX(${dx}px)`;
+    el.style.setProperty("--swipe-x", `${dx}px`);
     el.style.opacity = `${Math.max(0, 1 - Math.abs(dx) / dist)}`;
   };
 
@@ -209,27 +258,28 @@ function ToastItem({ toast: t }: { toast: Toast }) {
     const el = ref.current;
     if (!drag || !el) return;
     dragRef.current = null;
-    el.removeAttribute("data-swiping");
+    el.removeAttribute("data-swiping"); // CSS restores the transition
     const dt = e.timeStamp - drag.time;
     const velocity = dt > 0 ? Math.abs(drag.dx) / dt : 0;
-    el.style.transition = `transform ${SWIPE_FLING_MS}ms ease-out, opacity ${SWIPE_FLING_MS}ms ease-out`;
-    if (drag.dx !== 0 && (Math.abs(drag.dx) >= SWIPE_THRESHOLD || velocity > SWIPE_VELOCITY)) {
-      el.style.transform = `translateX(${drag.dx > 0 ? 150 : -150}%)`;
+    if (
+      drag.dx !== 0 &&
+      (Math.abs(drag.dx) >= SWIPE_THRESHOLD || velocity > SWIPE_VELOCITY)
+    ) {
+      el.style.setProperty("--swipe-x", `${drag.dx > 0 ? 150 : -150}%`);
       el.style.opacity = "0";
       const remove = () => store.remove(t.id);
       el.addEventListener("transitionend", remove, { once: true });
       timerRef.current = setTimeout(remove, SWIPE_FLING_MS + 50); // fallback if transitionend is missed
     } else {
-      el.style.transform = "translateX(0)";
+      // snap back: clear the swipe offset (transition carries it home), then hand
+      // styling back to the CSS and re-arm auto-dismiss
+      el.style.setProperty("--swipe-x", "0px");
       el.style.opacity = "1";
       el.addEventListener(
         "transitionend",
         () => {
-          // hand the resting + future exit styles back to the CSS keyframes
-          el.style.transition = "";
-          el.style.transform = "";
+          el.style.removeProperty("--swipe-x");
           el.style.opacity = "";
-          el.style.animation = "";
           startTimer();
         },
         { once: true },
@@ -245,13 +295,22 @@ function ToastItem({ toast: t }: { toast: Toast }) {
       data-slot="toast"
       data-variant={t.variant}
       data-state={t.state === "closing" ? "closed" : "open"}
-      onAnimationEnd={() => {
-        if (t.state === "closing") store.remove(t.id);
-      }}
+      data-mounted={mounted}
+      data-front={index === 0}
+      data-visible={index < VISIBLE_TOASTS}
+      onTransitionEnd={onTransitionEnd}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerEnd}
       onPointerCancel={onPointerEnd}
+      style={
+        {
+          "--index": index,
+          "--z-index": total - index,
+          "--offset": `${offset}px`,
+          "--initial-height": `${height}px`,
+        } as React.CSSProperties
+      }
       className={cn(
         "pointer-events-auto flex w-full touch-pan-y items-start gap-3 rounded-md border p-4 text-sm shadow-lg select-none",
         toastVariantClasses[t.variant],
@@ -295,15 +354,16 @@ export interface ToasterProps extends React.ComponentProps<"ol"> {
 
 /**
  * Renders the live toast stack from the module store. Fixed-positioned per
- * `position` (default `bottom-right`); each toast auto-dismisses after its
- * `duration` (default 4000ms) via `setTimeout`, which routes through the same
- * animated `dismiss` as the close button: the toast flips to
- * `data-state="closed"`, plays the exit keyframe from the shared `tokens.css`,
- * and is unmounted on its `animationend` (no timer matched to the CSS).
- * Direction follows `data-position`; `prefers-reduced-motion` swaps the slide
- * for a fade. Toasts are also swipe-to-dismiss (horizontal pointer drag — this
- * pointer physics is TS-only; Rust stays render-only). Single dark palette — no
- * theme switching (the upstream `next-themes` dependency is dropped).
+ * `position` (default `bottom-right`).
+ *
+ * Stacking mirrors Sonner: toasts pile up collapsed (the front three peeking,
+ * each scaled + lifted by depth and clamped to the front toast's height) and
+ * spread into a list on hover / keyboard focus — driven by the measured
+ * `--front-height`/`--offset` vars and the `data-stack` CSS in `tokens.css`.
+ * Each toast auto-dismisses after its `duration` (default 4000ms) via the same
+ * animated `dismiss` as the close button (`data-state="closed"` → slide out →
+ * unmount on `transitionend`), and is swipe-to-dismiss (horizontal drag, TS-only
+ * pointer physics). Single dark palette — no theme switching.
  */
 export function Toaster({
   position = "bottom-right",
@@ -311,22 +371,68 @@ export function Toaster({
   ...props
 }: ToasterProps) {
   const [toasts, setToasts] = React.useState<Toast[]>([]);
+  const [heights, setHeights] = React.useState<Map<number, number>>(new Map());
 
   React.useEffect(() => store.subscribe(setToasts), []);
+
+  const reportHeight = React.useCallback((id: number, h: number) => {
+    setHeights((prev) => {
+      if (prev.get(id) === h) return prev;
+      const next = new Map(prev);
+      next.set(id, h);
+      return next;
+    });
+  }, []);
+  const removeHeight = React.useCallback((id: number) => {
+    setHeights((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Map(prev);
+      next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const yPosition = position.startsWith("top") ? "top" : "bottom";
+  const ordered = [...toasts].reverse(); // newest first → front of the stack
+  const frontHeight = ordered[0] ? (heights.get(ordered[0].id) ?? 0) : 0;
+
+  // cumulative offset: heights of the toasts in front of this one + index * GAP
+  let sum = 0;
+  const offsets = ordered.map((t, i) => {
+    const o = sum + i * GAP;
+    sum += heights.get(t.id) ?? 0;
+    return o;
+  });
 
   return (
     <ol
       data-slot="toaster"
       data-position={position}
+      data-y-position={yPosition}
+      data-stack=""
+      style={
+        {
+          "--front-height": `${frontHeight}px`,
+          "--gap": `${GAP}px`,
+        } as React.CSSProperties
+      }
       className={cn(
-        "pointer-events-none fixed z-100 flex w-[calc(100%-2rem)] max-w-sm flex-col gap-2 p-4",
+        "pointer-events-none fixed z-100 w-[calc(100%-2rem)] max-w-sm p-4",
         positionClasses[position],
         className,
       )}
       {...props}
     >
-      {toasts.map((t) => (
-        <ToastItem key={t.id} toast={t} />
+      {ordered.map((t, i) => (
+        <ToastItem
+          key={t.id}
+          toast={t}
+          index={i}
+          total={ordered.length}
+          offset={offsets[i]!}
+          reportHeight={reportHeight}
+          removeHeight={removeHeight}
+        />
       ))}
     </ol>
   );

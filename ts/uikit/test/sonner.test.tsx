@@ -8,9 +8,9 @@ import {
 } from "@testing-library/react";
 import { Toaster, toast } from "../src/components/sonner";
 
-// jsdom doesn't implement PointerEvent, so RTL's `fireEvent.pointer*` drops
-// clientX (and timeStamp). Build the event by hand and pin both, mirroring the
-// slider test's pattern, so swipe distance + velocity are deterministic.
+// jsdom implements neither PointerEvent nor TransitionEvent, so RTL's
+// `fireEvent.*` drops their init fields (clientX / timeStamp / propertyName).
+// Build the events by hand and pin what we need, mirroring the slider test.
 function firePointer(
   el: HTMLElement,
   type: "pointerDown" | "pointerMove" | "pointerUp",
@@ -22,13 +22,16 @@ function firePointer(
   Object.defineProperty(event, "timeStamp", { value: timeStamp });
   fireEvent(el, event);
 }
+function fireTransitionEnd(el: HTMLElement, propertyName = "transform") {
+  const event = createEvent.transitionEnd(el, { propertyName });
+  Object.defineProperty(event, "propertyName", { value: propertyName });
+  fireEvent(el, event);
+}
 
-// The toast store is module-global, and dismissal is now two-phase: `dismiss`
-// (close button / auto-dismiss) flips the toast to `data-state="closed"` to play
-// the exit keyframe, and the live node is unmounted on its `animationend`. jsdom
-// runs no CSS animations, so the lifecycle tests drive that event by hand with
-// `fireEvent.animationEnd`; this afterEach drains any survivors (close each, then
-// fire the exit animationend) so the store is empty before the next test.
+// The store is module-global, and dismissal is two-phase: `dismiss` flips a toast
+// to data-state="closed" to slide it out, and the node is dropped on the exit
+// transform's transitionend. jsdom runs no transitions, so the lifecycle tests
+// fire that by hand; this afterEach drains survivors so the store starts empty.
 afterEach(() => {
   act(() => {
     document
@@ -37,15 +40,15 @@ afterEach(() => {
   });
   act(() => {
     document
-      .querySelectorAll('[data-slot="toast"]')
-      .forEach((t) => fireEvent.animationEnd(t));
+      .querySelectorAll<HTMLElement>('[data-slot="toast"]')
+      .forEach((t) => fireTransitionEnd(t));
   });
   vi.useRealTimers();
   cleanup();
 });
 
 describe("Toaster", () => {
-  it("renders nothing until a toast is enqueued, then shows it open", () => {
+  it("renders nothing until a toast is enqueued, then shows it open + mounted", () => {
     const { container, getByText } = render(<Toaster />);
     expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(0);
     act(() => {
@@ -54,6 +57,26 @@ describe("Toaster", () => {
     const item = getByText("Saved").closest('[data-slot="toast"]')!;
     expect(item).toHaveAttribute("role", "status");
     expect(item).toHaveAttribute("data-state", "open");
+    expect(item).toHaveAttribute("data-mounted", "true");
+    expect(item).toHaveAttribute("data-front", "true");
+  });
+
+  it("marks front / depth / visibility across a stack", () => {
+    const { getByText } = render(<Toaster />);
+    act(() => {
+      toast("first", { duration: Infinity });
+      toast("second", { duration: Infinity });
+      toast("third", { duration: Infinity });
+      toast("fourth", { duration: Infinity });
+    });
+    // newest is the front of the stack (index 0); 4th pushes the 1st past the
+    // visible-three window
+    const fourth = getByText("fourth").closest('[data-slot="toast"]')!;
+    const first = getByText("first").closest('[data-slot="toast"]')!;
+    expect(fourth).toHaveAttribute("data-front", "true");
+    expect(fourth).toHaveAttribute("data-visible", "true");
+    expect(first).toHaveAttribute("data-front", "false");
+    expect(first).toHaveAttribute("data-visible", "false");
   });
 
   it("pins the variant via the helper methods", () => {
@@ -65,32 +88,31 @@ describe("Toaster", () => {
     expect(item).toHaveAttribute("data-variant", "success");
   });
 
-  it("animates out on the close button, then unmounts on animationend", () => {
+  it("slides out on the close button, then unmounts on transitionend", () => {
     const { container, getByText, getByLabelText } = render(<Toaster />);
     act(() => {
       toast.error("Oops", { duration: Infinity });
     });
-    const item = getByText("Oops").closest('[data-slot="toast"]')!;
+    const item = getByText("Oops").closest<HTMLElement>('[data-slot="toast"]')!;
     fireEvent.click(getByLabelText("Close"));
-    // exit animation starts; the node stays mounted until its animationend
     expect(item).toHaveAttribute("data-state", "closed");
     expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(1);
-    fireEvent.animationEnd(item);
+    fireTransitionEnd(item);
     expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(0);
   });
 
-  it("the enter animationend does not remove an open toast", () => {
+  it("a reposition transitionend does not remove an open toast", () => {
     const { container, getByText } = render(<Toaster />);
     act(() => {
       toast("Stay", { duration: Infinity });
     });
-    const item = getByText("Stay").closest('[data-slot="toast"]')!;
-    fireEvent.animationEnd(item); // enter keyframe finished — must be a no-op
+    const item = getByText("Stay").closest<HTMLElement>('[data-slot="toast"]')!;
+    fireTransitionEnd(item); // open toast settling — must be a no-op
     expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(1);
     expect(item).toHaveAttribute("data-state", "open");
   });
 
-  it("auto-dismisses after the duration, then unmounts on animationend", () => {
+  it("auto-dismisses after the duration, then unmounts on transitionend", () => {
     vi.useFakeTimers();
     const { container } = render(<Toaster />);
     act(() => {
@@ -103,16 +125,15 @@ describe("Toaster", () => {
     act(() => {
       vi.advanceTimersByTime(1000);
     });
-    // duration elapsed -> exit animation, node still mounted
-    const item = container.querySelector('[data-slot="toast"]')!;
+    const item = container.querySelector<HTMLElement>('[data-slot="toast"]')!;
     expect(item).toHaveAttribute("data-state", "closed");
     act(() => {
-      fireEvent.animationEnd(item);
+      fireTransitionEnd(item);
     });
     expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(0);
   });
 
-  it("flings the toast off past the distance threshold, removing it on transitionend", () => {
+  it("flings past the distance threshold via --swipe-x, removing on transitionend", () => {
     const { container, getByText } = render(<Toaster />);
     act(() => {
       toast("Swipe me", { duration: Infinity });
@@ -123,9 +144,9 @@ describe("Toaster", () => {
     firePointer(item, "pointerDown", 0, 1000);
     firePointer(item, "pointerMove", 80, 1100);
     expect(item).toHaveAttribute("data-swiping", "true");
-    expect(item.style.transform).toBe("translateX(80px)");
-    firePointer(item, "pointerUp", 80, 6000); // 80px >= 45px; slow, so distance-driven
-    expect(item.style.transform).toContain("150%");
+    expect(item.style.getPropertyValue("--swipe-x")).toBe("80px");
+    firePointer(item, "pointerUp", 80, 6000); // 80px >= 45px; distance-driven
+    expect(item.style.getPropertyValue("--swipe-x")).toContain("150%");
     expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(1);
     fireEvent.transitionEnd(item);
     expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(0);
@@ -142,12 +163,12 @@ describe("Toaster", () => {
     firePointer(item, "pointerDown", 0, 1000);
     firePointer(item, "pointerMove", 20, 1005);
     firePointer(item, "pointerUp", 20, 1010); // 20px < 45px but 2px/ms > 0.11
-    expect(item.style.transform).toContain("150%");
+    expect(item.style.getPropertyValue("--swipe-x")).toContain("150%");
     fireEvent.transitionEnd(item);
     expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(0);
   });
 
-  it("snaps back and keeps the toast on a short, slow drag", () => {
+  it("snaps back to --swipe-x 0 and keeps the toast on a short, slow drag", () => {
     const { container, getByText } = render(<Toaster />);
     act(() => {
       toast("Hold on", { duration: Infinity });
@@ -158,17 +179,18 @@ describe("Toaster", () => {
     firePointer(item, "pointerDown", 0, 1000);
     firePointer(item, "pointerMove", 12, 1500);
     firePointer(item, "pointerUp", 12, 2000); // 12px < 45px, 0.012px/ms < 0.11
-    expect(item.style.transform).toBe("translateX(0)");
+    expect(item.style.getPropertyValue("--swipe-x")).toBe("0px");
     expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(1);
     fireEvent.transitionEnd(item);
     expect(item).not.toHaveAttribute("data-swiping");
-    expect(item).toHaveAttribute("data-state", "open");
     expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(1);
   });
 
-  it("places the stack per the position prop", () => {
+  it("stacks (data-stack) and places per the position prop", () => {
     const { container } = render(<Toaster position="top-center" />);
     const root = container.querySelector('[data-slot="toaster"]')!;
     expect(root).toHaveAttribute("data-position", "top-center");
+    expect(root).toHaveAttribute("data-y-position", "top");
+    expect(root).toHaveAttribute("data-stack");
   });
 });
