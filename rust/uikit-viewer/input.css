@@ -1,0 +1,8 @@
+@import "tailwindcss";
+/* the kit's theme contract (dark palette + @theme tokens + toast keyframes) */
+@import "../src/uikit/tokens.css";
+
+/* the kit's class strings live as string literals in the Rust sources, plus this
+   viewer's own RSX — scan both so Tailwind generates the utilities they use */
+@source "../src/uikit";
+@source "./src";

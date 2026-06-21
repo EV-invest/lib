@@ -5,7 +5,7 @@
 # alike. See docs/ARCHITECTURE.md.
 [workspace]
 resolver = "3"
-members = ["rust"]
+members = ["rust", "rust/uikit-viewer"]
 
 [workspace.lints.rust]
 unused_features = "allow"

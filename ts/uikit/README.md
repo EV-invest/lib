@@ -132,9 +132,19 @@ measuring needs host-only `web-sys`). Known gaps:
 - **calendar:** single month, single-date selection (no range/multi-month, no
   locale/dropdown features). Rust does manual date math; TS uses the built-in
   `Date`.
-- **sonner:** TS exposes a global `toast()` backed by a module store with
-  auto-dismiss; Rust uses a `ToasterProvider` + `use_toaster()` hook and omits
-  auto-dismiss (dismiss via the close button or `.dismiss(id)`).
+- **sonner:** both ports stack toasts Sonner-style — a collapsed pile (front
+  three peeking, scaled by depth) that spreads into a list on hover / keyboard
+  focus, via the shared `data-stack` CSS in `tokens.css`. The enter is a CSS
+  keyframe (plays on insertion), the exit slides out on `data-state="closed"` and
+  unmounts on `transitionend` (no host timer). React measures each toast's height
+  for exact expanded spacing; Dioxus can't (layout measuring needs host-only
+  `web-sys`), so it assumes a constant height — collapsed pile exact, expanded
+  list uniform. Both **auto-dismiss** (default 4000ms) and **pause while the stack
+  is hovered/focused**, and support **persistent** toasts; React does it with a
+  `setTimeout` (`duration: Infinity` to persist), Dioxus with a host-timer-free
+  CSS "life" animation whose `animationend` closes the toast (`use_toaster().show(
+  msg, variant, None)` to persist). Swipe-to-dismiss (horizontal drag, past 45px
+  or a fast flick) is TS-only pointer physics.
 - **form:** react-hook-form is dropped — these are presentational + ARIA-id
   wiring; consumers own validation/state. Rust `FormControl` can't inject ids
   onto an arbitrary child (no `Slot`), so the consumer wires them.
