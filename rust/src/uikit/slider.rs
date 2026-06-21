@@ -34,23 +34,24 @@ pub fn Slider(
 	#[props(default = 1.0)] step: f64,
 	#[props(default)] orientation: SliderOrientation,
 	#[props(default)] disabled: bool,
+	aria_label: Option<String>,
 ) -> Element {
 	let state = use_controllable(value, default_value, on_value_change);
 	let current = clamp_step(state.get(), min, max, step);
 	let span = (max - min).max(f64::EPSILON);
-	let percent = ((current - min) / span * 100.0).clamp(0.0, 100.0);
+	let p = pct(((current - min) / span * 100.0).clamp(0.0, 100.0));
 	let ori: &str = orientation.as_ref();
 
 	let range_style = match orientation {
-		SliderOrientation::Horizontal => format!("width: {percent}%;"),
-		SliderOrientation::Vertical => format!("height: {percent}%;"),
+		SliderOrientation::Horizontal => format!("width: {p}%;"),
+		SliderOrientation::Vertical => format!("height: {p}%;"),
 	};
 	// The thumb is absolutely positioned within the (relative) root and centred on
 	// the value point; without `position:absolute` the `%` offset is ignored and
 	// flow layout parks it at the end of the row.
 	let thumb_style = match orientation {
-		SliderOrientation::Horizontal => format!("position: absolute; left: {percent}%; top: 50%; transform: translate(-50%, -50%);"),
-		SliderOrientation::Vertical => format!("position: absolute; bottom: {percent}%; left: 50%; transform: translate(-50%, 50%);"),
+		SliderOrientation::Horizontal => format!("position: absolute; left: {p}%; top: 50%; transform: translate(-50%, -50%);"),
+		SliderOrientation::Vertical => format!("position: absolute; bottom: {p}%; left: 50%; transform: translate(-50%, 50%);"),
 	};
 
 	// Track geometry, captured on mount and re-measured on each press, lets a
@@ -87,7 +88,8 @@ pub fn Slider(
 			class: cn!(ROOT_BASE, class),
 			"data-slot": "slider",
 			"data-orientation": ori,
-			"data-disabled": disabled,
+			"data-disabled": disabled.then_some(true),
+			"aria-label": aria_label,
 			onpointerdown: move |e: PointerEvent| async move {
 				if disabled {
 					return;
@@ -100,6 +102,15 @@ pub fn Slider(
 				};
 				bounds.set((origin, size));
 				dragging.set(true);
+				// Pointer capture (the trick Radix uses): route every later move/up to
+				// the track so a drag keeps tracking once the cursor leaves the thin
+				// ~16px-tall hit area. Web-only; a no-op on other renderers.
+				#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+				if let Some(el) = t.downcast::<web_sys::Element>() {
+					// best-effort: a stale pointer_id just leaves the drag in its
+					// pre-capture, cursor-must-stay-over mode; it never panics.
+					let _ = el.set_pointer_capture(e.pointer_id());
+				}
 				state.set(value_at(axis(&e), origin, size, min, max, step, orientation));
 			},
 			onpointermove: move |e: PointerEvent| {
@@ -110,7 +121,6 @@ pub fn Slider(
 				state.set(value_at(axis(&e), origin, size, min, max, step, orientation));
 			},
 			onpointerup: move |_| dragging.set(false),
-			onpointerleave: move |_| dragging.set(false),
 			span {
 				class: TRACK_BASE,
 				"data-slot": "slider-track",
@@ -134,7 +144,7 @@ pub fn Slider(
 				"aria-valuemin": min,
 				"aria-valuemax": max,
 				"aria-orientation": ori,
-				"aria-disabled": disabled,
+				"aria-disabled": disabled.then_some(true),
 				onkeydown: on_key,
 			}
 		}
@@ -150,6 +160,13 @@ fn value_at(client: f64, origin: f64, size: f64, min: f64, max: f64, step: f64, 
 		SliderOrientation::Vertical => 1.0 - (client - origin) / size,
 	};
 	clamp_step(min + ratio * (max - min), min, max, step)
+}
+/// Position as a percentage string, ≤4 decimals with trailing zeros trimmed —
+/// matches the reference (Radix) serialization (`38.9474`, `25`), keeping the
+/// emitted `style` byte-stable instead of leaking f64 round-off.
+fn pct(percent: f64) -> String {
+	let s = format!("{percent:.4}");
+	s.trim_end_matches('0').trim_end_matches('.').to_string()
 }
 fn clamp_step(value: f64, min: f64, max: f64, step: f64) -> f64 {
 	let clamped = value.clamp(min, max);
