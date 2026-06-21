@@ -83,7 +83,9 @@ web-sys = { version = "0.3", optional = true, features = ["Document", "Window", 
 
 [dev-dependencies]
 async-trait.workspace = true
+axum = { workspace = true, features = ["ws"] }
 dioxus = { workspace = true, features = ["signals", "hooks"] }
+dioxus-liveview = { workspace = true, features = ["axum"] }
 dioxus-ssr.workspace = true
 ev_lib = { workspace = true, features = ["architecture", "uikit", "analytics", "error_monitoring", "experiments"] }
 jiff = { workspace = true, features = ["serde"] }
