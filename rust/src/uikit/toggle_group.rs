@@ -61,14 +61,14 @@ pub fn ToggleGroupItem(
 }
 fn variant_attr(variant: &ToggleVariant) -> &'static str {
 	match variant {
-		ToggleVariant::Default => "default",
 		ToggleVariant::Outline => "outline",
+		ToggleVariant::Transparent => "transparent",
 	}
 }
 
 fn size_attr(size: &ToggleSize) -> &'static str {
 	match size {
-		ToggleSize::Default => "default",
+		ToggleSize::Md => "md",
 		ToggleSize::Sm => "sm",
 		ToggleSize::Lg => "lg",
 	}
