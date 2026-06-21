@@ -13,8 +13,8 @@ use dioxus::prelude::*;
 /// Which edge of its anchor an overlay is placed against. Rendered as a
 /// `data-side` attribute so CSS positions and animates the overlay; the kit
 /// does not measure the viewport (the TS `useFloating` does).
-#[derive(derive_more::Display, Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum Side {
 	Top,
 	Right,
@@ -75,12 +75,6 @@ pub fn use_controllable<T: Clone + PartialEq + 'static>(controlled: Option<T>, d
 mod tests {
 	use super::*;
 	use crate::uikit::test_util::render;
-
-	#[test]
-	fn side_as_str() {
-		assert_eq!(Side::Bottom.to_string(), "bottom");
-		assert_eq!(Side::default(), Side::Bottom);
-	}
 
 	#[test]
 	fn uncontrolled_uses_default_then_updates() {

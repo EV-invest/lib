@@ -19,8 +19,8 @@ pub fn ToggleGroup(#[props(default)] variant: ToggleVariant, #[props(default)] s
 		div {
 			class: cls,
 			"data-slot": "toggle-group",
-			"data-variant": "{variant}",
-			"data-size": "{size}",
+			"data-variant": variant.as_ref(),
+			"data-size": size.as_ref(),
 			{children}
 		}
 	}
@@ -50,8 +50,8 @@ pub fn ToggleGroupItem(
 			r#type: "button",
 			class: cls,
 			"data-slot": "toggle-group-item",
-			"data-variant": "{variant}",
-			"data-size": "{size}",
+			"data-variant": variant.as_ref(),
+			"data-size": size.as_ref(),
 			"data-state": if on { "on" } else { "off" },
 			"aria-pressed": on,
 			disabled,

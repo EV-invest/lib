@@ -3,8 +3,8 @@ use dioxus::prelude::*;
 use crate::cn;
 
 const SEPARATOR_BASE: &str = "bg-border shrink-0";
-#[derive(derive_more::Display, Clone, Default, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum Orientation {
 	#[default]
 	Horizontal,
@@ -27,7 +27,7 @@ pub fn Separator(#[props(default)] orientation: Orientation, #[props(default)] c
 		div {
 			role: "separator",
 			"data-slot": "separator",
-			"data-orientation": "{orientation}",
+			"data-orientation": orientation.as_ref(),
 			class: cls,
 		}
 	}

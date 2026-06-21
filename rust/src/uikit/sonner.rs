@@ -13,8 +13,8 @@ use dioxus::prelude::*;
 use crate::cn;
 
 const TOAST_CLOSE: &str = "text-foreground/50 hover:text-foreground shrink-0 transition-colors";
-#[derive(derive_more::Display, Clone, Copy, Default, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum ToastVariant {
 	#[default]
 	Default,
@@ -38,8 +38,8 @@ impl ToastVariant {
 
 /// Where the stack is pinned. Mirrors the TS `position` prop; default
 /// bottom-right.
-#[derive(derive_more::Display, Clone, Copy, Default, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum ToastPosition {
 	TopLeft,
 	TopCenter,
@@ -154,14 +154,14 @@ pub fn Toaster(#[props(default)] position: ToastPosition, #[props(default)] clas
 	let handle = ToasterHandle { toasts };
 	let cls = cn!("pointer-events-none fixed z-100 flex w-[calc(100%-2rem)] max-w-sm flex-col gap-2 p-4", position.class(), class);
 	rsx! {
-		ol { class: cls, "data-slot": "toaster", "data-position": "{position}",
+		ol { class: cls, "data-slot": "toaster", "data-position": position.as_ref(),
 			for t in toasts.items.read().iter().cloned() {
 				li {
 					key: "{t.id}",
 					role: "status",
 					"aria-live": "polite",
 					"data-slot": "toast",
-					"data-variant": "{t.variant}",
+					"data-variant": t.variant.as_ref(),
 					class: cn!("pointer-events-auto flex w-full items-start gap-3 rounded-md border p-4 text-sm shadow-lg", t.variant.class()),
 					div { class: "flex-1 space-y-1",
 						div { class: "font-medium", "{t.message}" }
@@ -291,7 +291,7 @@ mod tests {
 			(ToastPosition::BottomCenter, "bottom-center"),
 			(ToastPosition::BottomRight, "bottom-right"),
 		] {
-			assert_eq!(pos.to_string(), expected);
+			assert_eq!(pos.as_ref(), expected);
 		}
 	}
 }

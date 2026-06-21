@@ -13,7 +13,7 @@ architecture = ["dep:async-trait", "dep:serde", "dep:uuid", "dep:jiff"]
 # Dep-light Dioxus UI kit (mirrors `@evinvest/uikit`). Renderer-agnostic RSX components;
 # pulls only Dioxus + tailwind_fuse (the `cn!` engine). Unlike the kernel this
 # library carries runtime deps — a UI kit can't be zero-dep; see AGENTS.md.
-uikit = ["dep:dioxus", "dep:tailwind_fuse", "dep:derive_more"]
+uikit = ["dep:dioxus", "dep:tailwind_fuse", "dep:strum"]
 
 # PostHog product analytics (mirrors `@evinvest/analytics`). A small typed event
 # API: native (Axum) async capture over `reqwest`; the Dioxus/wasm frontend POSTs
@@ -58,11 +58,11 @@ wasm = ["uuid?/js", "dioxus?/web"]
 
 [dependencies]
 async-trait = { workspace = true, optional = true }
-derive_more = { workspace = true, optional = true }
 dioxus = { workspace = true, features = ["macro", "html", "signals", "hooks"], optional = true }
 jiff = { workspace = true, features = ["serde"], optional = true }
 serde = { workspace = true, features = ["derive"], optional = true }
 serde_json = { workspace = true, optional = true }
+strum = { workspace = true, optional = true }
 tailwind_fuse = { workspace = true, optional = true }
 uuid = { workspace = true, features = ["serde", "v4"], optional = true }
 
@@ -82,14 +82,14 @@ wasm-bindgen-futures = { version = "0.4", optional = true }
 web-sys = { version = "0.3", optional = true, features = ["Document", "Window", "HtmlDocument", "Storage", "Navigator"] }
 
 [dev-dependencies]
+async-trait.workspace = true
+dioxus = { workspace = true, features = ["signals", "hooks"] }
+dioxus-ssr.workspace = true
 # Self dev-dependency: turns every library feature on for the crate's *own* test
 # build (unit + integration), so `cargo nextest run` at the repo root exercises
 # the whole suite without remembering `--all-features`. Consumers are unaffected —
 # features stay opt-in with no `default`. Keep this list in sync with `[features]`.
-ev_lib = { path = ".", features = ["architecture", "uikit", "analytics", "error_monitoring", "experiments"] }
-async-trait.workspace = true
-dioxus = { workspace = true, features = ["signals", "hooks"] }
-dioxus-ssr.workspace = true
+ev_lib = { workspace = true, features = ["architecture", "uikit", "analytics", "error_monitoring", "experiments"] }
 jiff = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

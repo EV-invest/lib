@@ -15,8 +15,8 @@ const THUMB_BASE: &str = "border-primary ring-ring/50 block size-4 shrink-0 roun
 
 /// Orientation of a [`Slider`]; rendered as `data-orientation` so the landing
 /// class selectors lay the track out horizontally or vertically.
-#[derive(derive_more::Display, Clone, Copy, Default, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum SliderOrientation {
 	#[default]
 	Horizontal,
@@ -39,7 +39,7 @@ pub fn Slider(
 	let current = clamp_step(state.get(), min, max, step);
 	let span = (max - min).max(f64::EPSILON);
 	let percent = ((current - min) / span * 100.0).clamp(0.0, 100.0);
-	let ori = orientation;
+	let ori: &str = orientation.as_ref();
 
 	let (range_style, thumb_style) = match orientation {
 		SliderOrientation::Horizontal => (format!("width: {percent}%;"), format!("left: {percent}%;")),
@@ -66,30 +66,30 @@ pub fn Slider(
 		span {
 			class: cn!(ROOT_BASE, class),
 			"data-slot": "slider",
-			"data-orientation": "{ori}",
+			"data-orientation": ori,
 			"data-disabled": disabled,
 			span {
 				class: TRACK_BASE,
 				"data-slot": "slider-track",
-				"data-orientation": "{ori}",
+				"data-orientation": ori,
 				span {
 					class: RANGE_BASE,
 					"data-slot": "slider-range",
-					"data-orientation": "{ori}",
+					"data-orientation": ori,
 					style: range_style,
 				}
 			}
 			span {
 				class: THUMB_BASE,
 				"data-slot": "slider-thumb",
-				"data-orientation": "{ori}",
+				"data-orientation": ori,
 				style: thumb_style,
 				role: "slider",
 				tabindex: if disabled { "-1" } else { "0" },
 				"aria-valuenow": current,
 				"aria-valuemin": min,
 				"aria-valuemax": max,
-				"aria-orientation": "{ori}",
+				"aria-orientation": ori,
 				"aria-disabled": disabled,
 				onkeydown: on_key,
 			}

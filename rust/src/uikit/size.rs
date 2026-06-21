@@ -1,5 +1,5 @@
-#[derive(derive_more::Display, Clone, Copy, Default, PartialEq)]
-#[display(rename_all = "kebab-case")]
+#[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum Size {
 	Sm,
 	#[default]
