@@ -186,6 +186,51 @@ describe("Toaster", () => {
     expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(1);
   });
 
+  it("pauses auto-dismiss while hovered, resumes on leave", () => {
+    vi.useFakeTimers();
+    const { container, getByText } = render(<Toaster />);
+    act(() => {
+      toast.info("Hover me", { duration: 1000 });
+    });
+    const item = getByText("Hover me").closest<HTMLElement>(
+      '[data-slot="toast"]',
+    )!;
+    act(() => {
+      fireEvent.pointerOver(item); // bubbles to the toaster -> pause
+    });
+    act(() => {
+      vi.advanceTimersByTime(5000); // well past 1000ms, but paused
+    });
+    expect(item).toHaveAttribute("data-state", "open");
+    expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(1);
+    act(() => {
+      fireEvent.pointerOut(item, { relatedTarget: document.body }); // leave -> resume
+    });
+    act(() => {
+      vi.advanceTimersByTime(1000); // remaining budget elapses
+    });
+    expect(container.querySelector('[data-slot="toast"]')).toHaveAttribute(
+      "data-state",
+      "closed",
+    );
+  });
+
+  it("never auto-dismisses a persistent (duration Infinity) toast", () => {
+    vi.useFakeTimers();
+    const { container } = render(<Toaster />);
+    act(() => {
+      toast("Sticky", { duration: Infinity });
+    });
+    act(() => {
+      vi.advanceTimersByTime(60_000);
+    });
+    expect(container.querySelector('[data-slot="toast"]')).toHaveAttribute(
+      "data-state",
+      "open",
+    );
+    expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(1);
+  });
+
   it("stacks (data-stack) and places per the position prop", () => {
     const { container } = render(<Toaster position="top-center" />);
     const root = container.querySelector('[data-slot="toaster"]')!;

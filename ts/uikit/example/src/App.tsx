@@ -138,6 +138,18 @@ export default function App() {
                 >
                   Stack ×3
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    toast("Won't auto-close", {
+                      duration: Infinity,
+                      description: "Dismiss it with the × or a swipe.",
+                    })
+                  }
+                >
+                  Persistent
+                </Button>
               </div>
               <Separator />
               <div className="space-y-2">

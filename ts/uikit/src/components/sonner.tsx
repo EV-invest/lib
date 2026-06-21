@@ -21,6 +21,11 @@ export type ToastPosition =
 
 export interface ToastOptions {
   description?: React.ReactNode;
+  /**
+   * Auto-dismiss delay in ms (default 4000). Pass `Infinity` for a **persistent**
+   * toast that never times out — it stays until the close button, a swipe, or
+   * `toast.dismiss(id)` removes it. Hovering the stack also pauses the countdown.
+   */
   duration?: number;
   variant?: ToastVariant;
 }
@@ -158,6 +163,7 @@ interface ToastItemProps {
   index: number; // 0 = front / newest
   total: number;
   offset: number; // px from the pinned edge to this toast's expanded slot
+  paused: boolean; // the stack is hovered/focused — hold the auto-dismiss
   reportHeight: (id: number, height: number) => void;
   removeHeight: (id: number) => void;
 }
@@ -167,15 +173,18 @@ function ToastItem({
   index,
   total,
   offset,
+  paused,
   reportHeight,
   removeHeight,
 }: ToastItemProps) {
   const ref = React.useRef<HTMLLIElement>(null);
   const [mounted, setMounted] = React.useState(false);
   const [height, setHeight] = React.useState(0);
-  // Holds whichever timeout is pending for this toast (auto-dismiss, or the
-  // swipe-fling fallback); `clearTimer` cancels it on unmount or gesture start.
-  const timerRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(
+  // remaining auto-dismiss budget (banked across hover pauses), the last start
+  // timestamp, and the swipe-fling fallback timer.
+  const remainingRef = React.useRef(t.duration);
+  const startedRef = React.useRef(0);
+  const flingRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
   const dragRef = React.useRef<{ x: number; time: number; dx: number } | null>(
@@ -202,19 +211,29 @@ function ToastItem({
 
   React.useEffect(() => () => removeHeight(t.id), [t.id, removeHeight]);
 
-  const clearTimer = React.useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-  }, []);
-  const startTimer = React.useCallback(() => {
-    clearTimer();
-    if (t.duration === Infinity || t.state === "closing") return;
-    timerRef.current = setTimeout(() => store.dismiss(t.id), t.duration);
-  }, [clearTimer, t.id, t.duration, t.state]);
-
+  // Auto-dismiss, pausable on hover. While `paused` (or closing, or a persistent
+  // `duration: Infinity`) no timer runs; the cleanup banks the elapsed time so a
+  // resume continues from the remaining budget rather than restarting.
   React.useEffect(() => {
-    startTimer();
-    return clearTimer;
-  }, [startTimer, clearTimer]);
+    if (t.duration === Infinity || t.state === "closing" || paused) return;
+    startedRef.current = Date.now();
+    const id = setTimeout(() => store.dismiss(t.id), remainingRef.current);
+    return () => {
+      clearTimeout(id);
+      remainingRef.current = Math.max(
+        0,
+        remainingRef.current - (Date.now() - startedRef.current),
+      );
+    };
+  }, [paused, t.id, t.duration, t.state]);
+
+  // cancel the swipe-fling fallback if the toast unmounts first
+  React.useEffect(
+    () => () => {
+      if (flingRef.current) clearTimeout(flingRef.current);
+    },
+    [],
+  );
 
   // exit rides the transition: a closing toast slides back off and is dropped on
   // the transform's `transitionend` (guarded so stack repositioning never fires
@@ -232,7 +251,7 @@ function ToastItem({
     const el = ref.current;
     if (!el || e.button > 0 || t.state === "closing") return;
     if ((e.target as HTMLElement).closest('[data-slot="toast-close"]')) return;
-    clearTimer();
+    // auto-dismiss is already paused (a swipe means the pointer is over the stack)
     dragRef.current = { x: e.clientX, time: e.timeStamp, dx: 0 };
     el.setAttribute("data-swiping", "true"); // CSS drops the transition for 1:1 tracking
     try {
@@ -269,10 +288,11 @@ function ToastItem({
       el.style.opacity = "0";
       const remove = () => store.remove(t.id);
       el.addEventListener("transitionend", remove, { once: true });
-      timerRef.current = setTimeout(remove, SWIPE_FLING_MS + 50); // fallback if transitionend is missed
+      flingRef.current = setTimeout(remove, SWIPE_FLING_MS + 50); // fallback if transitionend is missed
     } else {
-      // snap back: clear the swipe offset (transition carries it home), then hand
-      // styling back to the CSS and re-arm auto-dismiss
+      // snap back: clear the swipe offset (the transition carries it home), then
+      // hand styling back to the CSS. Auto-dismiss stays paused while hovered and
+      // re-arms from the remaining budget once the pointer leaves.
       el.style.setProperty("--swipe-x", "0px");
       el.style.opacity = "1";
       el.addEventListener(
@@ -280,7 +300,6 @@ function ToastItem({
         () => {
           el.style.removeProperty("--swipe-x");
           el.style.opacity = "";
-          startTimer();
         },
         { once: true },
       );
@@ -372,8 +391,20 @@ export function Toaster({
 }: ToasterProps) {
   const [toasts, setToasts] = React.useState<Toast[]>([]);
   const [heights, setHeights] = React.useState<Map<number, number>>(new Map());
+  const [paused, setPaused] = React.useState(false);
 
   React.useEffect(() => store.subscribe(setToasts), []);
+
+  // Pause auto-dismiss while the stack is hovered or keyboard-focused (Sonner
+  // does the same). pointerover/out + focusin/out bubble from the toasts, so they
+  // fire even though the <ol> itself is pointer-events:none; the contains() guard
+  // keeps it paused while moving *within* the stack.
+  const onEnter = () => setPaused(true);
+  const onLeave = (e: React.PointerEvent | React.FocusEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+      setPaused(false);
+    }
+  };
 
   const reportHeight = React.useCallback((id: number, h: number) => {
     setHeights((prev) => {
@@ -394,7 +425,12 @@ export function Toaster({
 
   const yPosition = position.startsWith("top") ? "top" : "bottom";
   const ordered = [...toasts].reverse(); // newest first → front of the stack
-  const frontHeight = ordered[0] ? (heights.get(ordered[0].id) ?? 0) : 0;
+  // front toast's height; until it's measured fall back to the tallest known one
+  // so the back toasts don't clamp to 0 for a frame when a new toast arrives
+  const known = [...heights.values()];
+  const frontHeight = ordered[0]
+    ? (heights.get(ordered[0].id) ?? (known.length ? Math.max(...known) : 0))
+    : 0;
 
   // cumulative offset: heights of the toasts in front of this one + index * GAP
   let sum = 0;
@@ -422,6 +458,10 @@ export function Toaster({
         className,
       )}
       {...props}
+      onPointerOver={onEnter}
+      onPointerOut={onLeave}
+      onFocus={onEnter}
+      onBlur={onLeave}
     >
       {ordered.map((t, i) => (
         <ToastItem
@@ -430,6 +470,7 @@ export function Toaster({
           index={i}
           total={ordered.length}
           offset={offsets[i]!}
+          paused={paused}
           reportHeight={reportHeight}
           removeHeight={removeHeight}
         />
