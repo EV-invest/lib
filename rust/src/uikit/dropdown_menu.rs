@@ -32,20 +32,12 @@ const SUB_TRIGGER: &str = "focus:bg-accent focus:text-accent-foreground data-[st
                            data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4";
 
 /// Default vs destructive item styling; mirrors the TS `variant` union.
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum DropdownMenuItemVariant {
 	#[default]
 	Default,
 	Destructive,
-}
-
-impl DropdownMenuItemVariant {
-	fn as_str(&self) -> &'static str {
-		match self {
-			DropdownMenuItemVariant::Default => "default",
-			DropdownMenuItemVariant::Destructive => "destructive",
-		}
-	}
 }
 
 #[component]
@@ -93,7 +85,7 @@ pub fn DropdownMenuContent(#[props(default)] side: Side, #[props(default)] class
 			tabindex: "-1",
 			"data-slot": "dropdown-menu-content",
 			"data-state": "open",
-			"data-side": side.as_str(),
+			"data-side": side.as_ref(),
 			onkeydown: move |e| {
 				if e.key() == Key::Escape {
 					ctx.open.set(false);
@@ -126,7 +118,7 @@ pub fn DropdownMenuItem(
 			role: "menuitem",
 			tabindex: "-1",
 			"data-slot": "dropdown-menu-item",
-			"data-variant": variant.as_str(),
+			"data-variant": variant.as_ref(),
 			"data-inset": inset,
 			"data-disabled": disabled,
 			onclick: move |e| {

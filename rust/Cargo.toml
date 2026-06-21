@@ -6,11 +6,6 @@ description = "EV-invest shared Rust libraries, one per feature"
 license = "BlueOak-1.0.0"
 repository = "https://github.com/EV-invest/lib"
 
-# Published as `ev_lib` (the crates.io name `ev` is taken), but the import path
-# stays `use ev::…` for git and registry consumers alike.
-[lib]
-name = "ev"
-
 [features]
 # Each library is opt-in. No default features: a consumer enables only what it uses.
 architecture = ["dep:async-trait", "dep:serde", "dep:uuid", "dep:jiff"]
@@ -18,7 +13,16 @@ architecture = ["dep:async-trait", "dep:serde", "dep:uuid", "dep:jiff"]
 # Dep-light Dioxus UI kit (mirrors `@evinvest/uikit`). Renderer-agnostic RSX components;
 # pulls only Dioxus + tailwind_fuse (the `cn!` engine). Unlike the kernel this
 # library carries runtime deps — a UI kit can't be zero-dep; see AGENTS.md.
-uikit = ["dep:dioxus", "dep:tailwind_fuse"]
+# `asset` + `document`: the `Fonts` component bundles the brand webfonts via
+# `asset!` and injects their `@font-face` through `document::Style`.
+uikit = [
+    "dep:dioxus",
+    "dep:tailwind_fuse",
+    "tailwind_fuse?/variant",
+    "dep:strum",
+    "dioxus?/asset",
+    "dioxus?/document",
+]
 
 # PostHog product analytics (mirrors `@evinvest/analytics`). A small typed event
 # API: native (Axum) async capture over `reqwest`; the Dioxus/wasm frontend POSTs
@@ -59,7 +63,7 @@ experiments = ["dep:dioxus", "dep:js-sys", "dep:web-sys", "dep:wasm-bindgen"]
 # the `pkg?/feature` syntax (no-op when that feature is off). Enable it
 # per-target on the consumer side (`[target.'cfg(target_arch = "wasm32")']`),
 # never globally, so native builds don't link browser backends.
-wasm = ["uuid?/js", "dioxus?/web"]
+wasm = ["uuid?/js", "dioxus?/web", "dep:web-sys"]
 
 [dependencies]
 async-trait = { workspace = true, optional = true }
@@ -67,6 +71,7 @@ dioxus = { workspace = true, features = ["macro", "html", "signals", "hooks"], o
 jiff = { workspace = true, features = ["serde"], optional = true }
 serde = { workspace = true, features = ["derive"], optional = true }
 serde_json = { workspace = true, optional = true }
+strum = { workspace = true, optional = true }
 tailwind_fuse = { workspace = true, optional = true }
 uuid = { workspace = true, features = ["serde", "v4"], optional = true }
 
@@ -83,14 +88,21 @@ js-sys = { version = "0.3", optional = true }
 reqwest = { version = "0.13", optional = true, default-features = false, features = ["json"] }
 wasm-bindgen = { version = "0.2", optional = true }
 wasm-bindgen-futures = { version = "0.4", optional = true }
-web-sys = { version = "0.3", optional = true, features = ["Document", "Window", "HtmlDocument", "Storage", "Navigator"] }
+web-sys = { version = "0.3", optional = true, features = ["Document", "Window", "HtmlDocument", "Storage", "Navigator", "Element"] }
 
 [dev-dependencies]
 async-trait.workspace = true
+axum = { workspace = true, features = ["ws"] }
 dioxus = { workspace = true, features = ["signals", "hooks"] }
+dioxus-liveview = { workspace = true, features = ["axum"] }
 dioxus-ssr.workspace = true
+ev_lib = { workspace = true, features = ["architecture", "uikit", "analytics", "error_monitoring", "experiments"] }
 jiff = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 tokio = { workspace = true, features = ["macros", "rt", "net", "io-util", "time"] }
 uuid = { workspace = true, features = ["serde", "v4"] }
+
+[[example]]
+name = "all_primitives"
+required-features = ["uikit"]

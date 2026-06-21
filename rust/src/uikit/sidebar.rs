@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use tailwind_fuse::{AsTailwindClass, TwVariant};
 
 use crate::{
 	cn,
@@ -69,23 +70,16 @@ pub fn SidebarProvider(
 	}
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum SidebarSide {
 	#[default]
 	Left,
 	Right,
 }
 
-impl SidebarSide {
-	fn attr(&self) -> &'static str {
-		match self {
-			SidebarSide::Left => "left",
-			SidebarSide::Right => "right",
-		}
-	}
-}
-
-#[derive(Clone, Default, PartialEq)]
+#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum SidebarVariant {
 	#[default]
 	Sidebar,
@@ -93,32 +87,13 @@ pub enum SidebarVariant {
 	Inset,
 }
 
-impl SidebarVariant {
-	fn attr(&self) -> &'static str {
-		match self {
-			SidebarVariant::Sidebar => "sidebar",
-			SidebarVariant::Floating => "floating",
-			SidebarVariant::Inset => "inset",
-		}
-	}
-}
-
-#[derive(Clone, Default, PartialEq)]
+#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum SidebarCollapsible {
 	#[default]
 	Offcanvas,
 	Icon,
 	None,
-}
-
-impl SidebarCollapsible {
-	fn attr(&self) -> &'static str {
-		match self {
-			SidebarCollapsible::Offcanvas => "offcanvas",
-			SidebarCollapsible::Icon => "icon",
-			SidebarCollapsible::None => "none",
-		}
-	}
 }
 
 #[component]
@@ -139,7 +114,7 @@ pub fn Sidebar(
 	}
 
 	let state = ctx.state();
-	let data_collapsible = if state == "collapsed" { collapsible.attr() } else { "" };
+	let data_collapsible = if state == "collapsed" { collapsible.as_ref() } else { "" };
 	let inner = cn!(
 		"bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm",
 		class
@@ -149,8 +124,8 @@ pub fn Sidebar(
 			class: "group peer text-sidebar-foreground hidden md:block",
 			"data-state": state,
 			"data-collapsible": data_collapsible,
-			"data-variant": variant.attr(),
-			"data-side": side.attr(),
+			"data-variant": variant.as_ref(),
+			"data-side": side.as_ref(),
 			"data-slot": "sidebar",
 			div { class: inner, "data-slot": "sidebar-inner", {children} }
 		}
@@ -282,47 +257,25 @@ pub fn SidebarMenuItem(#[props(default)] class: String, children: Element) -> El
 	}
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(PartialEq, TwVariant)]
 pub enum SidebarMenuButtonVariant {
-	#[default]
+	#[tw(default, class = "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground")]
 	Default,
+	#[tw(
+		class = "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]"
+	)]
 	Outline,
 }
 
-impl SidebarMenuButtonVariant {
-	fn class(&self) -> &'static str {
-		match self {
-			SidebarMenuButtonVariant::Default => "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-			SidebarMenuButtonVariant::Outline =>
-				"bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
-		}
-	}
-}
-
-#[derive(Clone, Default, PartialEq)]
+#[derive(strum::AsRefStr, PartialEq, TwVariant)]
+#[strum(serialize_all = "kebab-case")]
 pub enum SidebarMenuButtonSize {
-	#[default]
+	#[tw(default, class = "h-8 text-sm")]
 	Default,
+	#[tw(class = "h-7 text-xs")]
 	Sm,
+	#[tw(class = "h-12 text-sm group-data-[collapsible=icon]:p-0!")]
 	Lg,
-}
-
-impl SidebarMenuButtonSize {
-	fn class(&self) -> &'static str {
-		match self {
-			SidebarMenuButtonSize::Default => "h-8 text-sm",
-			SidebarMenuButtonSize::Sm => "h-7 text-xs",
-			SidebarMenuButtonSize::Lg => "h-12 text-sm group-data-[collapsible=icon]:p-0!",
-		}
-	}
-
-	fn attr(&self) -> &'static str {
-		match self {
-			SidebarMenuButtonSize::Default => "default",
-			SidebarMenuButtonSize::Sm => "sm",
-			SidebarMenuButtonSize::Lg => "lg",
-		}
-	}
 }
 
 #[component]
@@ -333,13 +286,13 @@ pub fn SidebarMenuButton(
 	#[props(default)] class: String,
 	children: Element,
 ) -> Element {
-	let cls = cn!(SIDEBAR_MENU_BUTTON_BASE, variant.class(), size.class(), class);
+	let cls = cn!(SIDEBAR_MENU_BUTTON_BASE, variant.as_class(), size.as_class(), class);
 	rsx! {
 		button {
 			r#type: "button",
 			"data-slot": "sidebar-menu-button",
 			"data-sidebar": "menu-button",
-			"data-size": size.attr(),
+			"data-size": size.as_ref(),
 			"data-active": is_active,
 			class: cls,
 			{children}

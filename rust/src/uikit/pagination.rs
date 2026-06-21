@@ -2,7 +2,10 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::button::{ButtonSize, ButtonVariant, button_classes},
+	uikit::{
+		Size,
+		button::{ButtonVariant, button_classes},
+	},
 };
 
 #[component]
@@ -35,9 +38,9 @@ pub fn PaginationItem(children: Element) -> Element {
 }
 
 #[component]
-pub fn PaginationLink(#[props(default)] is_active: bool, #[props(default = ButtonSize::Icon)] size: ButtonSize, #[props(default)] class: String, children: Element) -> Element {
+pub fn PaginationLink(#[props(default)] is_active: bool, #[props(default)] size: Size, #[props(default = true)] icon: bool, #[props(default)] class: String, children: Element) -> Element {
 	let variant = if is_active { ButtonVariant::Outline } else { ButtonVariant::Ghost };
-	let cls = button_classes(&variant, &size, &class);
+	let cls = button_classes(&variant, size, icon, &class);
 	rsx! {
 		a {
 			"aria-current": if is_active { "page" },
@@ -55,7 +58,7 @@ pub fn PaginationPrevious(#[props(default)] class: String) -> Element {
 	rsx! {
 		PaginationLink {
 			is_active: false,
-			size: ButtonSize::Default,
+			icon: false,
 			class: cls,
 			svg {
 				view_box: "0 0 24 24",
@@ -75,7 +78,7 @@ pub fn PaginationNext(#[props(default)] class: String) -> Element {
 	rsx! {
 		PaginationLink {
 			is_active: false,
-			size: ButtonSize::Default,
+			icon: false,
 			class: cls,
 			span { class: "hidden sm:block", "Next" }
 			svg {

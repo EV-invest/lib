@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use tailwind_fuse::{AsTailwindClass, TwVariant};
 
 use crate::cn;
 
@@ -21,36 +22,23 @@ pub fn ScrollArea(#[props(default)] class: String, children: Element) -> Element
 	}
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(strum::AsRefStr, PartialEq, TwVariant)]
+#[strum(serialize_all = "kebab-case")]
+#[tw(class = "flex touch-none p-px transition-colors select-none")]
 pub enum ScrollBarOrientation {
-	#[default]
+	#[tw(default, class = "h-full w-2.5 border-l border-l-transparent")]
 	Vertical,
+	#[tw(class = "h-2.5 flex-col border-t border-t-transparent")]
 	Horizontal,
-}
-
-impl ScrollBarOrientation {
-	fn class(&self) -> &'static str {
-		match self {
-			ScrollBarOrientation::Vertical => "h-full w-2.5 border-l border-l-transparent",
-			ScrollBarOrientation::Horizontal => "h-2.5 flex-col border-t border-t-transparent",
-		}
-	}
-
-	fn attr(&self) -> &'static str {
-		match self {
-			ScrollBarOrientation::Vertical => "vertical",
-			ScrollBarOrientation::Horizontal => "horizontal",
-		}
-	}
 }
 
 #[component]
 pub fn ScrollBar(#[props(default)] orientation: ScrollBarOrientation, #[props(default)] class: String) -> Element {
-	let cls = cn!("flex touch-none p-px transition-colors select-none", orientation.class(), class);
+	let cls = cn!(orientation.as_class(), class);
 	rsx! {
 		div {
 			"data-slot": "scroll-area-scrollbar",
-			"data-orientation": orientation.attr(),
+			"data-orientation": orientation.as_ref(),
 			class: cls,
 			div { "data-slot": "scroll-area-thumb", class: "bg-border relative flex-1 rounded-full" }
 		}

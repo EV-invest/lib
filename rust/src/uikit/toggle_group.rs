@@ -3,8 +3,9 @@ use dioxus::prelude::*;
 use crate::{
 	cn,
 	uikit::{
+		Size,
 		primitives::use_controllable,
-		toggle::{ToggleSize, ToggleVariant, toggle_classes},
+		toggle::{ToggleVariant, toggle_classes},
 	},
 };
 
@@ -12,14 +13,14 @@ use crate::{
 /// React context: variant/size are passed to each [`ToggleGroupItem`] directly,
 /// keeping the Rust kernel context-free.
 #[component]
-pub fn ToggleGroup(#[props(default)] variant: ToggleVariant, #[props(default)] size: ToggleSize, #[props(default)] class: String, children: Element) -> Element {
+pub fn ToggleGroup(#[props(default)] variant: ToggleVariant, #[props(default)] size: Size, #[props(default)] class: String, children: Element) -> Element {
 	let cls = cn!("group/toggle-group flex w-fit items-center rounded-md data-[variant=outline]:shadow-xs", class);
 	rsx! {
 		div {
 			class: cls,
 			"data-slot": "toggle-group",
-			"data-variant": variant_attr(&variant),
-			"data-size": size_attr(&size),
+			"data-variant": variant.as_ref(),
+			"data-size": size.as_ref(),
 			{children}
 		}
 	}
@@ -29,7 +30,7 @@ pub fn ToggleGroup(#[props(default)] variant: ToggleVariant, #[props(default)] s
 #[component]
 pub fn ToggleGroupItem(
 	#[props(default)] variant: ToggleVariant,
-	#[props(default)] size: ToggleSize,
+	#[props(default)] size: Size,
 	#[props(default)] class: String,
 	#[props(default)] disabled: bool,
 	pressed: Option<bool>,
@@ -40,7 +41,7 @@ pub fn ToggleGroupItem(
 	let state = use_controllable(pressed, default_pressed, on_pressed_change);
 	let on = state.get();
 	let cls = cn!(
-		toggle_classes(&variant, &size, ""),
+		toggle_classes(&variant, size, ""),
 		"min-w-0 flex-1 shrink-0 rounded-none shadow-none first:rounded-l-md last:rounded-r-md focus:z-10 focus-visible:z-10 data-[variant=outline]:border-l-0 data-[variant=outline]:first:border-l",
 		class
 	);
@@ -49,8 +50,8 @@ pub fn ToggleGroupItem(
 			r#type: "button",
 			class: cls,
 			"data-slot": "toggle-group-item",
-			"data-variant": variant_attr(&variant),
-			"data-size": size_attr(&size),
+			"data-variant": variant.as_ref(),
+			"data-size": size.as_ref(),
 			"data-state": if on { "on" } else { "off" },
 			"aria-pressed": on,
 			disabled,
@@ -59,21 +60,6 @@ pub fn ToggleGroupItem(
 		}
 	}
 }
-fn variant_attr(variant: &ToggleVariant) -> &'static str {
-	match variant {
-		ToggleVariant::Default => "default",
-		ToggleVariant::Outline => "outline",
-	}
-}
-
-fn size_attr(size: &ToggleSize) -> &'static str {
-	match size {
-		ToggleSize::Default => "default",
-		ToggleSize::Sm => "sm",
-		ToggleSize::Lg => "lg",
-	}
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -95,7 +81,7 @@ mod tests {
 	fn item_reuses_toggle_classes_and_adjacency() {
 		fn app() -> Element {
 			rsx! {
-				ToggleGroupItem { size: ToggleSize::Sm, "A" }
+				ToggleGroupItem { size: Size::Sm, "A" }
 			}
 		}
 		let html = render(app);

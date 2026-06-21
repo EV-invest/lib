@@ -15,20 +15,12 @@ const THUMB_BASE: &str = "border-primary ring-ring/50 block size-4 shrink-0 roun
 
 /// Orientation of a [`Slider`]; rendered as `data-orientation` so the landing
 /// class selectors lay the track out horizontally or vertically.
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
+#[strum(serialize_all = "kebab-case")]
 pub enum SliderOrientation {
 	#[default]
 	Horizontal,
 	Vertical,
-}
-
-impl SliderOrientation {
-	fn as_str(&self) -> &'static str {
-		match self {
-			SliderOrientation::Horizontal => "horizontal",
-			SliderOrientation::Vertical => "vertical",
-		}
-	}
 }
 
 #[component]
@@ -42,17 +34,32 @@ pub fn Slider(
 	#[props(default = 1.0)] step: f64,
 	#[props(default)] orientation: SliderOrientation,
 	#[props(default)] disabled: bool,
+	aria_label: Option<String>,
 ) -> Element {
 	let state = use_controllable(value, default_value, on_value_change);
 	let current = clamp_step(state.get(), min, max, step);
 	let span = (max - min).max(f64::EPSILON);
-	let percent = ((current - min) / span * 100.0).clamp(0.0, 100.0);
-	let ori = orientation.as_str();
+	let p = pct(((current - min) / span * 100.0).clamp(0.0, 100.0));
+	let ori: &str = orientation.as_ref();
 
-	let (range_style, thumb_style) = match orientation {
-		SliderOrientation::Horizontal => (format!("width: {percent}%;"), format!("left: {percent}%;")),
-		SliderOrientation::Vertical => (format!("height: {percent}%;"), format!("bottom: {percent}%;")),
+	let range_style = match orientation {
+		SliderOrientation::Horizontal => format!("width: {p}%;"),
+		SliderOrientation::Vertical => format!("height: {p}%;"),
 	};
+	// The thumb is absolutely positioned within the (relative) root and centred on
+	// the value point; without `position:absolute` the `%` offset is ignored and
+	// flow layout parks it at the end of the row.
+	let thumb_style = match orientation {
+		SliderOrientation::Horizontal => format!("position: absolute; left: {p}%; top: 50%; transform: translate(-50%, -50%);"),
+		SliderOrientation::Vertical => format!("position: absolute; bottom: {p}%; left: 50%; transform: translate(-50%, 50%);"),
+	};
+
+	// Track geometry, captured on mount and re-measured on each press, lets a
+	// pointer drag map cursor position → value (the TS port reads
+	// `getBoundingClientRect`; we use Dioxus' renderer-agnostic `get_client_rect`).
+	let mut track = use_signal(|| Option::<std::rc::Rc<MountedData>>::None);
+	let mut bounds = use_signal(|| (0.0_f64, 1.0_f64));
+	let mut dragging = use_signal(|| false);
 
 	let on_key = move |e: KeyboardEvent| {
 		if disabled {
@@ -69,17 +76,56 @@ pub fn Slider(
 		state.set(clamp_step(next, min, max, step));
 	};
 
-	// pointer-drag: TS-only, see README Limitations
+	let axis = move |e: &PointerEvent| match orientation {
+		SliderOrientation::Horizontal => e.client_coordinates().x,
+		SliderOrientation::Vertical => e.client_coordinates().y,
+	};
+
+	// Pointer handling lives on the root, not the track: the thumb sits above the
+	// track (absolute), so grabbing it must still start a drag.
 	rsx! {
 		span {
 			class: cn!(ROOT_BASE, class),
 			"data-slot": "slider",
 			"data-orientation": ori,
-			"data-disabled": disabled,
+			"data-disabled": disabled.then_some(true),
+			"aria-label": aria_label,
+			onpointerdown: move |e: PointerEvent| async move {
+				if disabled {
+					return;
+				}
+				let Some(t) = track() else { return };
+				let Ok(rect) = t.get_client_rect().await else { return };
+				let (origin, size) = match orientation {
+					SliderOrientation::Horizontal => (rect.origin.x, rect.size.width),
+					SliderOrientation::Vertical => (rect.origin.y, rect.size.height),
+				};
+				bounds.set((origin, size));
+				dragging.set(true);
+				// Pointer capture (the trick Radix uses): route every later move/up to
+				// the track so a drag keeps tracking once the cursor leaves the thin
+				// ~16px-tall hit area. Web-only; a no-op on other renderers.
+				#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+				if let Some(el) = t.downcast::<web_sys::Element>() {
+					// best-effort: a stale pointer_id just leaves the drag in its
+					// pre-capture, cursor-must-stay-over mode; it never panics.
+					let _ = el.set_pointer_capture(e.pointer_id());
+				}
+				state.set(value_at(axis(&e), origin, size, min, max, step, orientation));
+			},
+			onpointermove: move |e: PointerEvent| {
+				if !dragging() || disabled {
+					return;
+				}
+				let (origin, size) = bounds();
+				state.set(value_at(axis(&e), origin, size, min, max, step, orientation));
+			},
+			onpointerup: move |_| dragging.set(false),
 			span {
 				class: TRACK_BASE,
 				"data-slot": "slider-track",
 				"data-orientation": ori,
+				onmounted: move |e: MountedEvent| track.set(Some(e.data())),
 				span {
 					class: RANGE_BASE,
 					"data-slot": "slider-range",
@@ -98,11 +144,29 @@ pub fn Slider(
 				"aria-valuemin": min,
 				"aria-valuemax": max,
 				"aria-orientation": ori,
-				"aria-disabled": disabled,
+				"aria-disabled": disabled.then_some(true),
 				onkeydown: on_key,
 			}
 		}
 	}
+}
+
+/// Maps a client coordinate along the active axis to a stepped value, given the
+/// track's origin and size on that axis. Vertical runs bottom-to-top.
+fn value_at(client: f64, origin: f64, size: f64, min: f64, max: f64, step: f64, orientation: SliderOrientation) -> f64 {
+	let size = size.max(f64::EPSILON);
+	let ratio = match orientation {
+		SliderOrientation::Horizontal => (client - origin) / size,
+		SliderOrientation::Vertical => 1.0 - (client - origin) / size,
+	};
+	clamp_step(min + ratio * (max - min), min, max, step)
+}
+/// Position as a percentage string, ≤4 decimals with trailing zeros trimmed —
+/// matches the reference (Radix) serialization (`38.9474`, `25`), keeping the
+/// emitted `style` byte-stable instead of leaking f64 round-off.
+fn pct(percent: f64) -> String {
+	let s = format!("{percent:.4}");
+	s.trim_end_matches('0').trim_end_matches('.').to_string()
 }
 fn clamp_step(value: f64, min: f64, max: f64, step: f64) -> f64 {
 	let clamped = value.clamp(min, max);

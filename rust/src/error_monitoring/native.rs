@@ -10,7 +10,7 @@ use std::error::Error as StdError;
 ///
 /// ```ignore
 /// use tower::ServiceBuilder;
-/// use ev::error_monitoring::{NewSentryLayer, SentryHttpLayer};
+/// use ev_lib::error_monitoring::{NewSentryLayer, SentryHttpLayer};
 /// let svc = ServiceBuilder::new()
 ///     .layer(NewSentryLayer::<axum::extract::Request>::new_from_top())
 ///     .layer(SentryHttpLayer::new().enable_transaction());

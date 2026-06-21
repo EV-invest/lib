@@ -1,13 +1,13 @@
-# ev::uikit — Dioxus viewer
+# ev_lib::uikit — Dioxus viewer
 
 The Dioxus → wasm mirror of [`ts/uikit/example`](../../ts/uikit/example): the
 same gallery (toaster animations front and centre, plus a representative slice of
-components), rendered by `ev::uikit` instead of `@evinvest/uikit`. Use the two
+components), rendered by `ev_lib::uikit` instead of `@evinvest/uikit`. Use the two
 side by side to confirm a component looks and behaves the same in both ports.
 
-It's a **wasm-only** workspace member: the `dioxus`/`ev` deps and the gallery
+It's a **wasm-only** workspace member: the `dioxus`/`ev_lib` deps and the gallery
 compile only for `wasm32`, so a native `cargo build` (and the repo's
-`cargo … -p ev` commands) see only a stub `main` and are unaffected.
+`cargo … -p ev_lib` commands) see only a stub `main` and are unaffected.
 
 ## Run
 

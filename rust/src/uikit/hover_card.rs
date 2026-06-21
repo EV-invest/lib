@@ -55,7 +55,7 @@ pub fn HoverCardContent(#[props(default)] side: Side, #[props(default = String::
 			class: cls,
 			"data-slot": "hover-card-content",
 			"data-state": "open",
-			"data-side": side.as_str(),
+			"data-side": side.as_ref(),
 			"data-align": align,
 			{children}
 		}

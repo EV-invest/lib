@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use tailwind_fuse::{AsTailwindClass, TwVariant};
 
 use crate::{
 	cn,
@@ -8,34 +9,19 @@ use crate::{
 // dep-light: inline positioning + backdrop; no portal/floating/drag — see README Limitations
 // drag-to-dismiss: omitted vs vaul — see README Limitations
 
-/// Edge the drawer slides in from.
-#[derive(Clone, Copy, Default, PartialEq)]
+/// Edge the drawer slides in from. The shared content base rides on the enum.
+#[derive(strum::AsRefStr, PartialEq, TwVariant)]
+#[strum(serialize_all = "kebab-case")]
+#[tw(class = "bg-background fixed z-50 flex h-auto border")]
 pub enum DrawerDirection {
-	#[default]
+	#[tw(default, class = "inset-x-0 bottom-0 mt-24 max-h-[80vh] flex-col rounded-t-lg border-b-0")]
 	Bottom,
+	#[tw(class = "inset-x-0 top-0 mb-24 max-h-[80vh] flex-col rounded-b-lg border-t-0")]
 	Top,
+	#[tw(class = "inset-y-0 left-0 w-3/4 flex-row border-r sm:max-w-sm")]
 	Left,
+	#[tw(class = "inset-y-0 right-0 w-3/4 flex-row border-l sm:max-w-sm")]
 	Right,
-}
-
-impl DrawerDirection {
-	fn as_str(&self) -> &'static str {
-		match self {
-			DrawerDirection::Bottom => "bottom",
-			DrawerDirection::Top => "top",
-			DrawerDirection::Left => "left",
-			DrawerDirection::Right => "right",
-		}
-	}
-
-	fn content_class(&self) -> &'static str {
-		match self {
-			DrawerDirection::Bottom => "inset-x-0 bottom-0 mt-24 max-h-[80vh] flex-col rounded-t-lg border-b-0",
-			DrawerDirection::Top => "inset-x-0 top-0 mb-24 max-h-[80vh] flex-col rounded-b-lg border-t-0",
-			DrawerDirection::Left => "inset-y-0 left-0 w-3/4 flex-row border-r sm:max-w-sm",
-			DrawerDirection::Right => "inset-y-0 right-0 w-3/4 flex-row border-l sm:max-w-sm",
-		}
-	}
 }
 
 #[component]
@@ -88,7 +74,7 @@ pub fn DrawerContent(#[props(default)] class: String, children: Element) -> Elem
 		return rsx! {};
 	}
 	let direction = ctx.direction;
-	let cls = cn!("bg-background fixed z-50 flex h-auto border", direction.content_class(), class);
+	let cls = cn!(direction.as_class(), class);
 	rsx! {
 		div {
 			class: "fixed inset-0 z-50 bg-black/50",
@@ -100,7 +86,7 @@ pub fn DrawerContent(#[props(default)] class: String, children: Element) -> Elem
 			class: cls,
 			"data-slot": "drawer-content",
 			"data-state": "open",
-			"data-vaul-drawer-direction": direction.as_str(),
+			"data-vaul-drawer-direction": direction.as_ref(),
 			onkeydown: move |e| {
 				if e.key() == Key::Escape {
 					ctx.open.set(false);

@@ -3,7 +3,8 @@ use dioxus::prelude::*;
 use crate::{
 	cn,
 	uikit::{
-		button::{Button, ButtonSize, ButtonVariant},
+		Size,
+		button::{Button, ButtonVariant},
 		primitives::{Controllable, use_controllable},
 	},
 };
@@ -99,7 +100,8 @@ pub fn CarouselPrevious(#[props(default)] class: String) -> Element {
 	rsx! {
 		Button {
 			variant: ButtonVariant::Outline,
-			size: ButtonSize::Icon,
+			size: Size::Md,
+			icon: true,
 			class: cls,
 			disabled: !ctx.can_scroll_prev(),
 			onclick: move |_| ctx.scroll_prev(),
@@ -129,7 +131,8 @@ pub fn CarouselNext(#[props(default)] class: String) -> Element {
 	rsx! {
 		Button {
 			variant: ButtonVariant::Outline,
-			size: ButtonSize::Icon,
+			size: Size::Md,
+			icon: true,
 			class: cls,
 			disabled: !ctx.can_scroll_next(),
 			onclick: move |_| ctx.scroll_next(),

@@ -1,59 +1,37 @@
 use dioxus::prelude::*;
+use tailwind_fuse::{AsTailwindClass, TwVariant};
 
-use crate::{cn, uikit::primitives::use_controllable};
+use crate::{
+	cn,
+	uikit::{Size, primitives::use_controllable},
+};
 
-const TOGGLE_BASE: &str = "inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium \
-                           hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-50 \
-                           data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none \
-                           [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:border-ring \
-                           focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none transition-[color,box-shadow] \
-                           aria-invalid:ring-destructive/20 aria-invalid:border-destructive whitespace-nowrap";
-
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(strum::AsRefStr, PartialEq, TwVariant)]
+#[strum(serialize_all = "kebab-case")]
+#[tw(class = "inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium \
+              hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-50 \
+              data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none \
+              [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:border-ring \
+              focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none transition-[color,box-shadow] \
+              aria-invalid:ring-destructive/20 aria-invalid:border-destructive whitespace-nowrap")]
 pub enum ToggleVariant {
-	#[default]
-	Default,
+	#[tw(default, class = "bg-transparent")]
+	Transparent,
+	#[tw(class = "border border-input bg-transparent shadow-xs hover:bg-accent hover:text-accent-foreground")]
 	Outline,
-}
-
-impl ToggleVariant {
-	fn class(&self) -> &'static str {
-		match self {
-			ToggleVariant::Default => "bg-transparent",
-			ToggleVariant::Outline => "border border-input bg-transparent shadow-xs hover:bg-accent hover:text-accent-foreground",
-		}
-	}
-}
-
-#[derive(Clone, Copy, Default, PartialEq)]
-pub enum ToggleSize {
-	#[default]
-	Default,
-	Sm,
-	Lg,
-}
-
-impl ToggleSize {
-	fn class(&self) -> &'static str {
-		match self {
-			ToggleSize::Default => "h-9 px-2 min-w-9",
-			ToggleSize::Sm => "h-8 px-1.5 min-w-8",
-			ToggleSize::Lg => "h-10 px-2.5 min-w-10",
-		}
-	}
 }
 
 /// Fuses the base, variant and size classes with a caller override, last wins.
 /// Mirrors the TS `toggleVariants` helper so `toggle-group` can reuse the same
 /// canonical class string.
-pub fn toggle_classes(variant: &ToggleVariant, size: &ToggleSize, class: &str) -> String {
-	cn!(TOGGLE_BASE, variant.class(), size.class(), class)
+pub fn toggle_classes(variant: &ToggleVariant, size: Size, class: &str) -> String {
+	let dims = format!("h-{0} min-w-{0} {1}", size.scale(), toggle_padding(size));
+	cn!(variant.as_class(), &dims, class)
 }
-
 #[component]
 pub fn Toggle(
 	#[props(default)] variant: ToggleVariant,
-	#[props(default)] size: ToggleSize,
+	#[props(default)] size: Size,
 	#[props(default)] class: String,
 	#[props(default)] disabled: bool,
 	pressed: Option<bool>,
@@ -63,7 +41,7 @@ pub fn Toggle(
 ) -> Element {
 	let state = use_controllable(pressed, default_pressed, on_pressed_change);
 	let on = state.get();
-	let cls = toggle_classes(&variant, &size, &class);
+	let cls = toggle_classes(&variant, size, &class);
 	rsx! {
 		button {
 			r#type: "button",
@@ -75,6 +53,14 @@ pub fn Toggle(
 			onclick: move |_| state.set(!on),
 			{children}
 		}
+	}
+}
+/// Per-size horizontal padding; height + min-width come from [`Size::scale`].
+fn toggle_padding(size: Size) -> &'static str {
+	match size {
+		Size::Sm => "px-1.5",
+		Size::Md => "px-2",
+		Size::Lg => "px-2.5",
 	}
 }
 
@@ -110,7 +96,7 @@ mod tests {
 	fn outline_variant_classes() {
 		fn app() -> Element {
 			rsx! {
-				Toggle { variant: ToggleVariant::Outline, size: ToggleSize::Sm, "B" }
+				Toggle { variant: ToggleVariant::Outline, size: Size::Sm, "B" }
 			}
 		}
 		let html = render(app);

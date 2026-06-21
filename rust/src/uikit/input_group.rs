@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use tailwind_fuse::{AsTailwindClass, TwVariant};
 
 use crate::{
 	cn,
@@ -42,72 +43,44 @@ pub fn InputGroup(#[props(default)] class: String, children: Element) -> Element
 	}
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(strum::AsRefStr, PartialEq, TwVariant)]
+#[strum(serialize_all = "kebab-case")]
 pub enum InputGroupAddonAlign {
-	#[default]
+	#[tw(default, class = "order-first pl-3 has-[>button]:ml-[-0.45rem] has-[>kbd]:ml-[-0.35rem]")]
 	InlineStart,
+	#[tw(class = "order-last pr-3 has-[>button]:mr-[-0.45rem] has-[>kbd]:mr-[-0.35rem]")]
 	InlineEnd,
+	#[tw(class = "order-first w-full justify-start px-3 pt-3 [.border-b]:pb-3 group-has-[>input]/input-group:pt-2.5")]
 	BlockStart,
+	#[tw(class = "order-last w-full justify-start px-3 pb-3 [.border-t]:pt-3 group-has-[>input]/input-group:pb-2.5")]
 	BlockEnd,
-}
-
-impl InputGroupAddonAlign {
-	fn class(&self) -> &'static str {
-		match self {
-			InputGroupAddonAlign::InlineStart => "order-first pl-3 has-[>button]:ml-[-0.45rem] has-[>kbd]:ml-[-0.35rem]",
-			InputGroupAddonAlign::InlineEnd => "order-last pr-3 has-[>button]:mr-[-0.45rem] has-[>kbd]:mr-[-0.35rem]",
-			InputGroupAddonAlign::BlockStart => "order-first w-full justify-start px-3 pt-3 [.border-b]:pb-3 group-has-[>input]/input-group:pt-2.5",
-			InputGroupAddonAlign::BlockEnd => "order-last w-full justify-start px-3 pb-3 [.border-t]:pt-3 group-has-[>input]/input-group:pb-2.5",
-		}
-	}
-
-	fn attr(&self) -> &'static str {
-		match self {
-			InputGroupAddonAlign::InlineStart => "inline-start",
-			InputGroupAddonAlign::InlineEnd => "inline-end",
-			InputGroupAddonAlign::BlockStart => "block-start",
-			InputGroupAddonAlign::BlockEnd => "block-end",
-		}
-	}
 }
 
 #[component]
 pub fn InputGroupAddon(#[props(default)] align: InputGroupAddonAlign, #[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(INPUT_GROUP_ADDON_BASE, align.class(), class);
+	let cls = cn!(INPUT_GROUP_ADDON_BASE, align.as_class(), class);
 	rsx! {
 		div {
 			role: "group",
 			class: cls,
 			"data-slot": "input-group-addon",
-			"data-align": align.attr(),
+			"data-align": align.as_ref(),
 			{children}
 		}
 	}
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(PartialEq, TwVariant)]
 pub enum InputGroupButtonSize {
-	#[default]
+	#[tw(default, class = "h-6 gap-1 px-2 rounded-[calc(var(--radius)-5px)] [&>svg:not([class*='size-'])]:size-3.5 has-[>svg]:px-2")]
 	Xs,
+	#[tw(class = "h-8 px-2.5 gap-1.5 rounded-md has-[>svg]:px-2.5")]
 	Sm,
-	IconXs,
-	IconSm,
-}
-
-impl InputGroupButtonSize {
-	fn class(&self) -> &'static str {
-		match self {
-			InputGroupButtonSize::Xs => "h-6 gap-1 px-2 rounded-[calc(var(--radius)-5px)] [&>svg:not([class*='size-'])]:size-3.5 has-[>svg]:px-2",
-			InputGroupButtonSize::Sm => "h-8 px-2.5 gap-1.5 rounded-md has-[>svg]:px-2.5",
-			InputGroupButtonSize::IconXs => "size-6 rounded-[calc(var(--radius)-5px)] p-0 has-[>svg]:p-0",
-			InputGroupButtonSize::IconSm => "size-8 p-0 has-[>svg]:p-0",
-		}
-	}
 }
 
 #[component]
-pub fn InputGroupButton(#[props(default)] size: InputGroupButtonSize, #[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(INPUT_GROUP_BUTTON_BASE, size.class(), class);
+pub fn InputGroupButton(#[props(default)] size: InputGroupButtonSize, #[props(default)] icon: bool, #[props(default)] class: String, children: Element) -> Element {
+	let cls = cn!(INPUT_GROUP_BUTTON_BASE, size.as_class(), icon.then_some("aspect-square px-0"), class);
 	rsx! {
 		Button {
 			variant: ButtonVariant::Ghost,
@@ -242,6 +215,23 @@ mod tests {
 		assert!(html.contains("data-slot=\"button\""), "{html}");
 		assert!(html.contains("hover:bg-accent"), "ghost variant: {html}");
 		assert!(html.contains("h-6"), "xs size class: {html}");
+	}
+
+	#[test]
+	fn icon_button_squares_and_drops_padding() {
+		fn app() -> Element {
+			rsx! {
+				InputGroupButton { size: InputGroupButtonSize::Sm, icon: true, "b" }
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("aspect-square"), "{html}");
+		assert!(html.contains("px-0"), "icon button folds to square, padding zeroed: {html}");
+	}
+
+	#[test]
+	fn addon_align_serializes_kebab() {
+		assert_eq!(InputGroupAddonAlign::InlineStart.as_ref(), "inline-start");
 	}
 
 	#[test]

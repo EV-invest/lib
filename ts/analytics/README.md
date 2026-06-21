@@ -1,8 +1,8 @@
 # @evinvest/analytics
 
 A **vendor-neutral, dep-light** product-analytics sink — the TypeScript mirror
-of the `analytics` feature of the [`ev`](https://github.com/EV-invest/lib) Rust
-crate (`ev::analytics`). Code against one tiny seam — `AnalyticsSink` — and pick
+of the `analytics` feature of the [`ev_lib`](https://github.com/EV-invest/lib) Rust
+crate (`ev_lib::analytics`). Code against one tiny seam — `AnalyticsSink` — and pick
 your vendor at the edges. The default vendor is PostHog, but the **core imports
 no SDK**: you inject the PostHog instance, or bring your own sink.
 
@@ -122,7 +122,7 @@ taxonomy, server capture, custom sinks, testing).
 The Rust crate is the source of truth; this package preserves its *semantics*
 while reading like idiomatic TS. The seam is the same on both sides.
 
-| Concept | Rust (`ev::analytics`) | TS (`@evinvest/analytics`) |
+| Concept | Rust (`ev_lib::analytics`) | TS (`@evinvest/analytics`) |
 | --- | --- | --- |
 | the seam | `AnalyticsSink` trait | `AnalyticsSink` interface |
 | vendor factory | `posthog_sink(client, cfg)` | `createPostHogSink(posthog, config)` |
@@ -153,7 +153,7 @@ npm run build       # tsup → dist/ (ESM + d.ts; react.js is "use client")
 The Rust counterpart is verified from the repo root:
 
 ```sh
-cargo test  -p ev --features analytics
-cargo clippy -p ev --features analytics --all-targets -- -D warnings
-cargo check -p ev --features "analytics wasm" --target wasm32-unknown-unknown
+cargo test  -p ev_lib --features analytics
+cargo clippy -p ev_lib --features analytics --all-targets -- -D warnings
+cargo check -p ev_lib --features "analytics wasm" --target wasm32-unknown-unknown
 ```

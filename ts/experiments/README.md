@@ -1,7 +1,7 @@
 # @evinvest/experiments
 
 A **dep-light** A/B experiments toolkit — the TypeScript mirror of the
-`experiments` feature of the [`ev`](https://github.com/EV-invest/lib) Rust crate.
+`experiments` feature of the [`ev_lib`](https://github.com/EV-invest/lib) Rust crate.
 It ships a zero-dependency, server-safe **core** plus thin **React** and
 **Next.js** subpaths, preserving the feature's semantics (cookie shape, weighted
 pick, control fallback) while reading like idiomatic TS.

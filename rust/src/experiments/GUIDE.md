@@ -1,4 +1,4 @@
-# `ev::experiments` — cookbook
+# `ev_lib::experiments` — cookbook
 
 End-to-end Rust recipes for every surface of the `experiments` feature. For the
 API summary and the parity table, see [`README.md`](./README.md). The TS mirror
@@ -35,7 +35,7 @@ whatever capture it uses.
 dashboard contract.
 
 ```rust
-use ev::experiments::Experiment;
+use ev_lib::experiments::Experiment;
 
 let hero = Experiment::new(["a", "b"], [0.5, 0.5]);
 let team = Experiment::new(["a", "b", "c"], [2.0, 1.0, 1.0]); // 50% / 25% / 25%
@@ -49,7 +49,7 @@ returns the existing variant if it's still valid, otherwise draws a weighted
 variant (via `js_sys::Math::random`) and writes the sticky cookie:
 
 ```rust
-use ev::experiments::{assign_variant, current_variant};
+use ev_lib::experiments::{assign_variant, current_variant};
 
 let variant = assign_variant(&hero, "hero");  // assigns + persists on first visit
 let current = current_variant(&hero, "hero"); // resolve without assigning (control fallback)
@@ -59,7 +59,7 @@ These are `wasm32`-only (they touch `document.cookie`). On non-browser builds
 (SSR / native tests), resolve to the control with the pure core:
 
 ```rust
-use ev::experiments::resolve_variant;
+use ev_lib::experiments::resolve_variant;
 let variant = resolve_variant(&hero, None); // "a"
 ```
 
@@ -72,7 +72,7 @@ the variant content:
 
 ```rust
 use dioxus::prelude::*;
-use ev::experiments::{Experiment, ExperimentTracker, ExposureSink, assign_variant};
+use ev_lib::experiments::{Experiment, ExperimentTracker, ExposureSink, assign_variant};
 
 #[component]
 fn Hero(on_event: ExposureSink) -> Element {
@@ -101,7 +101,7 @@ bucketed `variant` merged in, through the same injected sink:
 
 ```rust
 use dioxus::prelude::*;
-use ev::experiments::use_experiment_event;
+use ev_lib::experiments::use_experiment_event;
 use std::collections::BTreeMap;
 
 #[component]
@@ -134,8 +134,8 @@ into an `analytics` `Event` and forwards it to `use_analytics().capture(...)`.
 
 ```rust
 use dioxus::prelude::*;
-use ev::analytics::{Event, use_analytics};
-use ev::experiments::{ExperimentTracker, ExposureSink, TrackedEvent};
+use ev_lib::analytics::{Event, use_analytics};
+use ev_lib::experiments::{ExperimentTracker, ExposureSink, TrackedEvent};
 
 #[component]
 fn TrackedHero() -> Element {
@@ -184,7 +184,7 @@ let on_event: ExposureSink = use_callback(|tracked: TrackedEvent| {
   `analytics`).
 
 ```rust
-use ev::experiments::{action_event, exposed_event, TrackedEvent};
+use ev_lib::experiments::{action_event, exposed_event, TrackedEvent};
 
 assert_eq!(exposed_event("hero"), "hero_exposed");
 assert_eq!(action_event("team", "cta_clicked"), "team_cta_clicked");
@@ -198,7 +198,7 @@ Bucketing is deterministic given an `rng`, so the whole core tests natively with
 no browser — inject a closure instead of `Math::random`:
 
 ```rust
-use ev::experiments::{Experiment, next_variant, pick_variant, resolve_variant};
+use ev_lib::experiments::{Experiment, next_variant, pick_variant, resolve_variant};
 
 let exp = Experiment::new(["a", "b"], [0.5, 0.5]);
 assert_eq!(pick_variant(&exp, || 0.1), "a");        // below the first weight → control

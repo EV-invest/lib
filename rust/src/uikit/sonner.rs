@@ -34,6 +34,7 @@
 //! "Limitations".
 
 use dioxus::prelude::*;
+use tailwind_fuse::{AsTailwindClass, TwVariant};
 
 use crate::cn;
 
@@ -49,75 +50,40 @@ const GAP: u32 = 14;
 const TOAST_HEIGHT_EST: u32 = 56;
 /// Default auto-dismiss lifetime (ms). Mirrors the TS `DEFAULT_DURATION`.
 const DEFAULT_DURATION_MS: u32 = 4000;
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(strum::AsRefStr, PartialEq, TwVariant)]
+#[strum(serialize_all = "kebab-case")]
+#[tw(class = "pointer-events-auto flex w-full items-start gap-3 rounded-md border p-4 text-sm shadow-lg")]
 pub enum ToastVariant {
-	#[default]
+	#[tw(default, class = "bg-popover text-popover-foreground border-border")]
 	Default,
+	#[tw(class = "bg-popover text-popover-foreground border-main-accent-t2/40")]
 	Success,
+	#[tw(class = "bg-popover text-popover-foreground border-destructive/50")]
 	Error,
+	#[tw(class = "bg-popover text-popover-foreground border-border")]
 	Info,
+	#[tw(class = "bg-popover text-popover-foreground border-border")]
 	Warning,
 }
 
-impl ToastVariant {
-	fn class(&self) -> &'static str {
-		match self {
-			ToastVariant::Default => "bg-popover text-popover-foreground border-border",
-			ToastVariant::Success => "bg-popover text-popover-foreground border-main-accent-t2/40",
-			ToastVariant::Error => "bg-popover text-popover-foreground border-destructive/50",
-			ToastVariant::Info => "bg-popover text-popover-foreground border-border",
-			ToastVariant::Warning => "bg-popover text-popover-foreground border-border",
-		}
-	}
-
-	fn as_str(&self) -> &'static str {
-		match self {
-			ToastVariant::Default => "default",
-			ToastVariant::Success => "success",
-			ToastVariant::Error => "error",
-			ToastVariant::Info => "info",
-			ToastVariant::Warning => "warning",
-		}
-	}
-}
-
 /// Where the stack is pinned. Mirrors the TS `position` prop; default
-/// bottom-right.
-#[derive(Clone, Copy, Default, PartialEq)]
+/// bottom-right. The shared stack base rides on the enum.
+#[derive(strum::AsRefStr, PartialEq, TwVariant)]
+#[strum(serialize_all = "kebab-case")]
+#[tw(class = "pointer-events-none fixed z-100 w-[calc(100%-2rem)] max-w-sm")]
 pub enum ToastPosition {
+	#[tw(class = "top-4 left-4")]
 	TopLeft,
+	#[tw(class = "top-4 left-1/2 -translate-x-1/2")]
 	TopCenter,
+	#[tw(class = "top-4 right-4")]
 	TopRight,
+	#[tw(class = "bottom-4 left-4")]
 	BottomLeft,
+	#[tw(class = "bottom-4 left-1/2 -translate-x-1/2")]
 	BottomCenter,
-	#[default]
+	#[tw(default, class = "bottom-4 right-4")]
 	BottomRight,
-}
-
-impl ToastPosition {
-	fn class(&self) -> &'static str {
-		// the toaster carries the viewport inset itself (no padding) so the
-		// absolutely positioned toasts size to its box and don't spill past the edge
-		match self {
-			ToastPosition::TopLeft => "top-4 left-4",
-			ToastPosition::TopCenter => "top-4 left-1/2 -translate-x-1/2",
-			ToastPosition::TopRight => "top-4 right-4",
-			ToastPosition::BottomLeft => "bottom-4 left-4",
-			ToastPosition::BottomCenter => "bottom-4 left-1/2 -translate-x-1/2",
-			ToastPosition::BottomRight => "bottom-4 right-4",
-		}
-	}
-
-	fn as_str(&self) -> &'static str {
-		match self {
-			ToastPosition::TopLeft => "top-left",
-			ToastPosition::TopCenter => "top-center",
-			ToastPosition::TopRight => "top-right",
-			ToastPosition::BottomLeft => "bottom-left",
-			ToastPosition::BottomCenter => "bottom-center",
-			ToastPosition::BottomRight => "bottom-right",
-		}
-	}
 }
 
 /// Lifecycle phase of a single toast. A toast mounts `Open` (plays the enter
@@ -263,14 +229,14 @@ pub fn Toaster(#[props(default)] position: ToastPosition, #[props(default)] clas
 		ToastPosition::TopLeft | ToastPosition::TopCenter | ToastPosition::TopRight => "top",
 		_ => "bottom",
 	};
-	let cls = cn!("pointer-events-none fixed z-100 w-[calc(100%-2rem)] max-w-sm", position.class(), class);
+	let cls = cn!(position.as_class(), class);
 	let items = toasts.items.read();
 	let total = items.len();
 	rsx! {
 		ol {
 			class: cls,
 			"data-slot": "toaster",
-			"data-position": position.as_str(),
+			"data-position": position.as_ref(),
 			"data-y-position": y,
 			"data-stack": "",
 			style: "--front-height: {TOAST_HEIGHT_EST}px; --gap: {GAP}px;",
@@ -306,7 +272,7 @@ fn ToastItem(toast: Toast, index: usize, total: usize) -> Element {
 			role: "status",
 			"aria-live": "polite",
 			"data-slot": "toast",
-			"data-variant": toast.variant.as_str(),
+			"data-variant": toast.variant.as_ref(),
 			"data-state": state.as_str(),
 			"data-front": "{front}",
 			"data-visible": "{visible}",
@@ -322,7 +288,7 @@ fn ToastItem(toast: Toast, index: usize, total: usize) -> Element {
 					handle.remove(id);
 				}
 			},
-			class: cn!("pointer-events-auto flex w-full items-start gap-3 rounded-md border p-4 text-sm shadow-lg", toast.variant.class()),
+			class: toast.variant.as_class(),
 			div { class: "flex-1 space-y-1",
 				div { class: "font-medium", "{toast.message}" }
 			}
@@ -522,15 +488,7 @@ mod tests {
 	}
 
 	#[test]
-	fn each_position_maps_to_its_attribute() {
-		for (pos, expected) in [
-			(ToastPosition::TopLeft, "top-left"),
-			(ToastPosition::TopRight, "top-right"),
-			(ToastPosition::BottomLeft, "bottom-left"),
-			(ToastPosition::BottomCenter, "bottom-center"),
-			(ToastPosition::BottomRight, "bottom-right"),
-		] {
-			assert_eq!(pos.as_str(), expected);
-		}
+	fn position_serializes_kebab() {
+		assert_eq!(ToastPosition::TopLeft.as_ref(), "top-left");
 	}
 }
