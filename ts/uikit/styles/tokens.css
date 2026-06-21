@@ -207,10 +207,12 @@
   opacity: 0;
   z-index: var(--z-index, 1);
   transform: var(--y) translateX(var(--swipe-x, 0px));
+  /* a plain easeOut (no overshoot) so a restack settles instead of bouncing
+     back past its slot */
   transition:
-    transform 400ms cubic-bezier(0.21, 1.02, 0.73, 1),
-    opacity 400ms,
-    height 400ms;
+    transform 350ms cubic-bezier(0.21, 0.8, 0.4, 1),
+    opacity 350ms,
+    height 350ms;
 }
 
 /* pin to the toaster's edge; set the lift sign + the off-screen enter offset */
