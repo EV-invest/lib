@@ -49,7 +49,8 @@ const GAP: u32 = 14;
 const TOAST_HEIGHT_EST: u32 = 56;
 /// Default auto-dismiss lifetime (ms). Mirrors the TS `DEFAULT_DURATION`.
 const DEFAULT_DURATION_MS: u32 = 4000;
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Copy, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum ToastVariant {
 	#[default]
 	Default,
@@ -69,21 +70,12 @@ impl ToastVariant {
 			ToastVariant::Warning => "bg-popover text-popover-foreground border-border",
 		}
 	}
-
-	fn as_str(&self) -> &'static str {
-		match self {
-			ToastVariant::Default => "default",
-			ToastVariant::Success => "success",
-			ToastVariant::Error => "error",
-			ToastVariant::Info => "info",
-			ToastVariant::Warning => "warning",
-		}
-	}
 }
 
 /// Where the stack is pinned. Mirrors the TS `position` prop; default
 /// bottom-right.
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Copy, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum ToastPosition {
 	TopLeft,
 	TopCenter,
@@ -105,17 +97,6 @@ impl ToastPosition {
 			ToastPosition::BottomLeft => "bottom-4 left-4",
 			ToastPosition::BottomCenter => "bottom-4 left-1/2 -translate-x-1/2",
 			ToastPosition::BottomRight => "bottom-4 right-4",
-		}
-	}
-
-	fn as_str(&self) -> &'static str {
-		match self {
-			ToastPosition::TopLeft => "top-left",
-			ToastPosition::TopCenter => "top-center",
-			ToastPosition::TopRight => "top-right",
-			ToastPosition::BottomLeft => "bottom-left",
-			ToastPosition::BottomCenter => "bottom-center",
-			ToastPosition::BottomRight => "bottom-right",
 		}
 	}
 }
@@ -270,7 +251,7 @@ pub fn Toaster(#[props(default)] position: ToastPosition, #[props(default)] clas
 		ol {
 			class: cls,
 			"data-slot": "toaster",
-			"data-position": position.as_str(),
+			"data-position": "{position}",
 			"data-y-position": y,
 			"data-stack": "",
 			style: "--front-height: {TOAST_HEIGHT_EST}px; --gap: {GAP}px;",
@@ -306,7 +287,7 @@ fn ToastItem(toast: Toast, index: usize, total: usize) -> Element {
 			role: "status",
 			"aria-live": "polite",
 			"data-slot": "toast",
-			"data-variant": toast.variant.as_str(),
+			"data-variant": "{toast.variant}",
 			"data-state": state.as_str(),
 			"data-front": "{front}",
 			"data-visible": "{visible}",
@@ -530,7 +511,7 @@ mod tests {
 			(ToastPosition::BottomCenter, "bottom-center"),
 			(ToastPosition::BottomRight, "bottom-right"),
 		] {
-			assert_eq!(pos.as_str(), expected);
+			assert_eq!(pos.to_string(), expected);
 		}
 	}
 }

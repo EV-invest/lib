@@ -3,7 +3,8 @@ use dioxus::prelude::*;
 use crate::cn;
 
 const SEPARATOR_BASE: &str = "bg-border shrink-0";
-#[derive(Clone, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum Orientation {
 	#[default]
 	Horizontal,
@@ -17,13 +18,6 @@ impl Orientation {
 			Orientation::Vertical => "data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px",
 		}
 	}
-
-	fn attr(&self) -> &'static str {
-		match self {
-			Orientation::Horizontal => "horizontal",
-			Orientation::Vertical => "vertical",
-		}
-	}
 }
 
 #[component]
@@ -33,7 +27,7 @@ pub fn Separator(#[props(default)] orientation: Orientation, #[props(default)] c
 		div {
 			role: "separator",
 			"data-slot": "separator",
-			"data-orientation": orientation.attr(),
+			"data-orientation": "{orientation}",
 			class: cls,
 		}
 	}

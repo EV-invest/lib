@@ -13,24 +13,14 @@ use dioxus::prelude::*;
 /// Which edge of its anchor an overlay is placed against. Rendered as a
 /// `data-side` attribute so CSS positions and animates the overlay; the kit
 /// does not measure the viewport (the TS `useFloating` does).
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(derive_more::Display, Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum Side {
 	Top,
 	Right,
 	#[default]
 	Bottom,
 	Left,
-}
-
-impl Side {
-	pub fn as_str(&self) -> &'static str {
-		match self {
-			Side::Top => "top",
-			Side::Right => "right",
-			Side::Bottom => "bottom",
-			Side::Left => "left",
-		}
-	}
 }
 
 /// Controlled/uncontrolled state, the mirror of TS `useControllableState`. When
@@ -88,7 +78,7 @@ mod tests {
 
 	#[test]
 	fn side_as_str() {
-		assert_eq!(Side::Bottom.as_str(), "bottom");
+		assert_eq!(Side::Bottom.to_string(), "bottom");
 		assert_eq!(Side::default(), Side::Bottom);
 	}
 

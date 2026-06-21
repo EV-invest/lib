@@ -33,20 +33,12 @@ const SUB_TRIGGER: &str = "focus:bg-accent focus:text-accent-foreground data-[st
                            data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4";
 
 /// Default vs destructive item styling; mirrors the TS `variant` union.
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Copy, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum ContextMenuItemVariant {
 	#[default]
 	Default,
 	Destructive,
-}
-
-impl ContextMenuItemVariant {
-	fn as_str(&self) -> &'static str {
-		match self {
-			ContextMenuItemVariant::Default => "default",
-			ContextMenuItemVariant::Destructive => "destructive",
-		}
-	}
 }
 
 #[component]
@@ -130,7 +122,7 @@ pub fn ContextMenuItem(
 			role: "menuitem",
 			tabindex: "-1",
 			"data-slot": "context-menu-item",
-			"data-variant": variant.as_str(),
+			"data-variant": "{variant}",
 			"data-inset": inset,
 			"data-disabled": disabled,
 			onclick: move |e| {

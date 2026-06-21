@@ -70,7 +70,7 @@ pub fn PopoverContent(#[props(default)] side: Side, #[props(default = String::fr
 			class: cls,
 			"data-slot": "popover-content",
 			"data-state": "open",
-			"data-side": side.as_str(),
+			"data-side": "{side}",
 			"data-align": align,
 			{children}
 		}
