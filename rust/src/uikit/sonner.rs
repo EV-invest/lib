@@ -9,58 +9,45 @@
 //! (no `next-themes`). See the README "Limitations".
 
 use dioxus::prelude::*;
+use tailwind_fuse::{AsTailwindClass, TwVariant};
 
 use crate::cn;
 
 const TOAST_CLOSE: &str = "text-foreground/50 hover:text-foreground shrink-0 transition-colors";
-#[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
+#[derive(strum::AsRefStr, PartialEq, TwVariant)]
 #[strum(serialize_all = "kebab-case")]
+#[tw(class = "pointer-events-auto flex w-full items-start gap-3 rounded-md border p-4 text-sm shadow-lg")]
 pub enum ToastVariant {
-	#[default]
+	#[tw(default, class = "bg-popover text-popover-foreground border-border")]
 	Default,
+	#[tw(class = "bg-popover text-popover-foreground border-main-accent-t2/40")]
 	Success,
+	#[tw(class = "bg-popover text-popover-foreground border-destructive/50")]
 	Error,
+	#[tw(class = "bg-popover text-popover-foreground border-border")]
 	Info,
+	#[tw(class = "bg-popover text-popover-foreground border-border")]
 	Warning,
 }
 
-impl ToastVariant {
-	fn class(&self) -> &'static str {
-		match self {
-			ToastVariant::Default => "bg-popover text-popover-foreground border-border",
-			ToastVariant::Success => "bg-popover text-popover-foreground border-main-accent-t2/40",
-			ToastVariant::Error => "bg-popover text-popover-foreground border-destructive/50",
-			ToastVariant::Info => "bg-popover text-popover-foreground border-border",
-			ToastVariant::Warning => "bg-popover text-popover-foreground border-border",
-		}
-	}
-}
-
 /// Where the stack is pinned. Mirrors the TS `position` prop; default
-/// bottom-right.
-#[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
+/// bottom-right. The shared stack base rides on the enum.
+#[derive(strum::AsRefStr, PartialEq, TwVariant)]
 #[strum(serialize_all = "kebab-case")]
+#[tw(class = "pointer-events-none fixed z-100 flex w-[calc(100%-2rem)] max-w-sm flex-col gap-2 p-4")]
 pub enum ToastPosition {
+	#[tw(class = "top-0 left-0 items-start")]
 	TopLeft,
+	#[tw(class = "top-0 left-1/2 -translate-x-1/2 items-center")]
 	TopCenter,
+	#[tw(class = "top-0 right-0 items-end")]
 	TopRight,
+	#[tw(class = "bottom-0 left-0 items-start")]
 	BottomLeft,
+	#[tw(class = "bottom-0 left-1/2 -translate-x-1/2 items-center")]
 	BottomCenter,
-	#[default]
+	#[tw(default, class = "bottom-0 right-0 items-end")]
 	BottomRight,
-}
-
-impl ToastPosition {
-	fn class(&self) -> &'static str {
-		match self {
-			ToastPosition::TopLeft => "top-0 left-0 items-start",
-			ToastPosition::TopCenter => "top-0 left-1/2 -translate-x-1/2 items-center",
-			ToastPosition::TopRight => "top-0 right-0 items-end",
-			ToastPosition::BottomLeft => "bottom-0 left-0 items-start",
-			ToastPosition::BottomCenter => "bottom-0 left-1/2 -translate-x-1/2 items-center",
-			ToastPosition::BottomRight => "bottom-0 right-0 items-end",
-		}
-	}
 }
 
 #[derive(Clone, PartialEq)]
@@ -152,7 +139,7 @@ pub fn use_toaster() -> ToasterHandle {
 pub fn Toaster(#[props(default)] position: ToastPosition, #[props(default)] class: String) -> Element {
 	let toasts = use_context::<Toasts>();
 	let handle = ToasterHandle { toasts };
-	let cls = cn!("pointer-events-none fixed z-100 flex w-[calc(100%-2rem)] max-w-sm flex-col gap-2 p-4", position.class(), class);
+	let cls = cn!(position.as_class(), class);
 	rsx! {
 		ol { class: cls, "data-slot": "toaster", "data-position": position.as_ref(),
 			for t in toasts.items.read().iter().cloned() {
@@ -162,7 +149,7 @@ pub fn Toaster(#[props(default)] position: ToastPosition, #[props(default)] clas
 					"aria-live": "polite",
 					"data-slot": "toast",
 					"data-variant": t.variant.as_ref(),
-					class: cn!("pointer-events-auto flex w-full items-start gap-3 rounded-md border p-4 text-sm shadow-lg", t.variant.class()),
+					class: t.variant.as_class(),
 					div { class: "flex-1 space-y-1",
 						div { class: "font-medium", "{t.message}" }
 					}
@@ -280,5 +267,10 @@ mod tests {
 		let html = render(app);
 		assert!(html.contains("data-position=\"top-center\""), "{html}");
 		assert!(html.contains("data-slot=\"toaster\""), "{html}");
+	}
+
+	#[test]
+	fn position_serializes_kebab() {
+		assert_eq!(ToastPosition::TopLeft.as_ref(), "top-left");
 	}
 }

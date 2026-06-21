@@ -1,32 +1,24 @@
 use dioxus::prelude::*;
+use tailwind_fuse::{AsTailwindClass, TwVariant};
 
 use crate::{cn, uikit::label::Label};
 
-const FIELD_BASE: &str = "group/field flex w-full gap-3 data-[invalid=true]:text-destructive";
-#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[derive(strum::AsRefStr, PartialEq, TwVariant)]
 #[strum(serialize_all = "kebab-case")]
+#[tw(class = "group/field flex w-full gap-3 data-[invalid=true]:text-destructive")]
 pub enum FieldOrientation {
-	#[default]
+	#[tw(default, class = "flex-col [&>*]:w-full [&>.sr-only]:w-auto")]
 	Vertical,
+	#[tw(class = "flex-row items-center [&>[data-slot=field-label]]:flex-auto \
+	              has-[>[data-slot=field-content]]:items-start \
+	              has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px")]
 	Horizontal,
+	#[tw(class = "flex-col [&>*]:w-full [&>.sr-only]:w-auto @md/field-group:flex-row \
+	              @md/field-group:items-center @md/field-group:[&>*]:w-auto \
+	              @md/field-group:[&>[data-slot=field-label]]:flex-auto \
+	              @md/field-group:has-[>[data-slot=field-content]]:items-start \
+	              @md/field-group:has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px")]
 	Responsive,
-}
-impl FieldOrientation {
-	fn class(&self) -> &'static str {
-		match self {
-			FieldOrientation::Vertical => "flex-col [&>*]:w-full [&>.sr-only]:w-auto",
-			FieldOrientation::Horizontal =>
-				"flex-row items-center [&>[data-slot=field-label]]:flex-auto \
-			                                 has-[>[data-slot=field-content]]:items-start \
-			                                 has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
-			FieldOrientation::Responsive =>
-				"flex-col [&>*]:w-full [&>.sr-only]:w-auto @md/field-group:flex-row \
-			                                 @md/field-group:items-center @md/field-group:[&>*]:w-auto \
-			                                 @md/field-group:[&>[data-slot=field-label]]:flex-auto \
-			                                 @md/field-group:has-[>[data-slot=field-content]]:items-start \
-			                                 @md/field-group:has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
-		}
-	}
 }
 
 #[derive(strum::AsRefStr, Clone, Default, PartialEq)]
@@ -67,7 +59,7 @@ pub fn FieldGroup(#[props(default)] class: String, children: Element) -> Element
 
 #[component]
 pub fn Field(#[props(default)] orientation: FieldOrientation, #[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(FIELD_BASE, orientation.class(), class);
+	let cls = cn!(orientation.as_class(), class);
 	rsx! {
 		div {
 			role: "group",
