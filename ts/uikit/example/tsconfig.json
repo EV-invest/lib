@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    // Vite renders from ../src (live HMR); tsc reads the bundled dist types to
+    // dodge a dual @types/react identity clash from cross-checking kit source.
+    "paths": { "@evinvest/uikit": ["../dist/index.d.ts"] }
+  },
+  "include": ["src", "vite.config.ts"]
+}
