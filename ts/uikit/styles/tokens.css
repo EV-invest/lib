@@ -16,9 +16,14 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  --font-sans: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-playfair), "Playfair Display", ui-serif, Georgia, serif;
-  --font-mono: var(--font-inter), "Inter", ui-monospace, monospace;
+  /* The leading var() carries its own fallback: next/font (landing) sets
+   * `--font-inter` / `--font-playfair`; a Rust consumer renders `uikit::Fonts`,
+   * which `@font-face`s the same families. Without the in-var fallback an
+   * undefined leading var would invalidate the whole `font-family` and drop the
+   * browser to its default — so it must never resolve to guaranteed-invalid. */
+  --font-sans: var(--font-inter, "Inter"), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair, "Playfair Display"), ui-serif, Georgia, serif;
+  --font-mono: var(--font-inter, "Inter"), ui-monospace, monospace;
 
   /* shadcn semantic utilities */
   --color-background: var(--background);
