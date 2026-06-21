@@ -16,7 +16,7 @@ const CHEVRON_LEFT: &str = "m15 18-6-6 6-6";
 const CHEVRON_RIGHT: &str = "m9 18 6-6-6-6";
 /// A calendar date as plain `(year, month 1-12, day 1-31)`. The kernel does its
 /// own date math (no `chrono`/`jiff`): `wasm32`-safe and dependency-free.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CalendarDate {
 	pub year: i32,
 	pub month: u32,

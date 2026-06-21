@@ -8,7 +8,7 @@ use crate::{
 	},
 };
 
-#[derive(Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Default, Eq, PartialEq)]
 pub enum CarouselOrientation {
 	#[default]
 	Horizontal,

@@ -21,7 +21,7 @@ use serde::{Serialize, de::DeserializeOwned};
 /// use ev::architecture::DomainEvent;
 /// use serde::{Deserialize, Serialize};
 ///
-/// #[derive(Clone, Serialize, Deserialize)]
+/// #[derive(Clone, Deserialize, Serialize)]
 /// enum BlogEvent {
 ///     Published { slug: String },
 /// }
@@ -50,7 +50,7 @@ pub trait DomainEvent: Clone + Serialize + DeserializeOwned + Send + 'static {
 /// struct CartTag;
 /// type CartId = Id<CartTag, u64>;
 ///
-/// #[derive(Clone, Serialize, Deserialize)]
+/// #[derive(Clone, Deserialize, Serialize)]
 /// enum CartEvent {
 ///     ItemAdded { sku: String },
 /// }
@@ -114,7 +114,7 @@ pub struct EventEnvelope<E: DomainEvent> {
 mod tests {
 	use super::*;
 
-	#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+	#[derive(Clone, Debug, serde::Deserialize, PartialEq, serde::Serialize)]
 	struct Published {
 		slug: String,
 	}

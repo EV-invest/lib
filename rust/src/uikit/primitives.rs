@@ -13,7 +13,7 @@ use dioxus::prelude::*;
 /// Which edge of its anchor an overlay is placed against. Rendered as a
 /// `data-side` attribute so CSS positions and animates the overlay; the kit
 /// does not measure the viewport (the TS `useFloating` does).
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum Side {
 	Top,
 	Right,
