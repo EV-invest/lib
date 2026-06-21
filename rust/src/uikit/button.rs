@@ -32,24 +32,18 @@ impl ButtonVariant {
 	}
 }
 
-/// Per-size padding for text buttons; the height comes from [`Size::scale`].
-fn text_padding(size: Size) -> &'static str {
-	match size {
-		Size::Sm => "rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-		Size::Md => "px-4 py-2 has-[>svg]:px-3",
-		Size::Lg => "rounded-md px-6 has-[>svg]:px-4",
-	}
-}
-
 /// Fuses the base, variant and size classes with a caller override, last wins.
 /// Mirrors the TS `buttonVariants` helper so consumers (e.g. pagination) can
 /// reuse the same canonical class string without rendering a `Button`. An
 /// `icon` button is a square (`size-*`); otherwise height + per-size padding.
 pub fn button_classes(variant: &ButtonVariant, size: Size, icon: bool, class: &str) -> String {
-	let dims = if icon { format!("size-{}", size.scale()) } else { format!("h-{} {}", size.scale(), text_padding(size)) };
+	let dims = if icon {
+		format!("size-{}", size.scale())
+	} else {
+		format!("h-{} {}", size.scale(), text_padding(size))
+	};
 	cn!(BUTTON_BASE, variant.class(), &dims, class)
 }
-
 #[component]
 pub fn Button(
 	#[props(default)] variant: ButtonVariant,
@@ -69,6 +63,14 @@ pub fn Button(
 			onclick: move |e| { if let Some(h) = onclick { h.call(e); } },
 			{children}
 		}
+	}
+}
+/// Per-size padding for text buttons; the height comes from [`Size::scale`].
+fn text_padding(size: Size) -> &'static str {
+	match size {
+		Size::Sm => "rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
+		Size::Md => "px-4 py-2 has-[>svg]:px-3",
+		Size::Lg => "rounded-md px-6 has-[>svg]:px-4",
 	}
 }
 

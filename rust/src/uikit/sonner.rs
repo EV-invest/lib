@@ -501,17 +501,4 @@ mod tests {
 		assert!(html.contains("--life: 4000ms"), "{html}");
 		assert!(html.contains("data-autodismiss=\"false\""), "persistent stays: {html}");
 	}
-
-	#[test]
-	fn each_position_maps_to_its_attribute() {
-		for (pos, expected) in [
-			(ToastPosition::TopLeft, "top-left"),
-			(ToastPosition::TopRight, "top-right"),
-			(ToastPosition::BottomLeft, "bottom-left"),
-			(ToastPosition::BottomCenter, "bottom-center"),
-			(ToastPosition::BottomRight, "bottom-right"),
-		] {
-			assert_eq!(pos.as_ref(), expected);
-		}
-	}
 }

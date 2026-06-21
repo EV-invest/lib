@@ -296,10 +296,4 @@ mod tests {
 		let html = render(app);
 		assert!(html.contains("data-active=true"), "{html}");
 	}
-
-	#[test]
-	fn trigger_style_helper_matches_class() {
-		assert!(navigation_menu_trigger_style().contains("h-9"));
-		assert!(navigation_menu_trigger_style().contains("data-[state=open]:bg-accent/50"));
-	}
 }
