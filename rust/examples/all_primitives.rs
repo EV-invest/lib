@@ -17,22 +17,6 @@ use dioxus_liveview::{LiveViewPool, axum_socket, interpreter_glue};
 
 const PORT: u16 = 52414;
 
-/// The whole board as one live component: each cell hosts a real, interactive
-/// instance of the primitive (mirrors `cell()`/`board()` markup from gallery.rs).
-fn app() -> Element {
-	rsx! {
-		h1 { class: "mb-6 text-2xl font-semibold", "EV UIKit — Component Library" }
-		div { class: "grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3",
-			for (name, render) in GALLERY.iter().copied() {
-				section { class: "stage flex flex-col gap-3 rounded-lg border border-border bg-card/30 p-5",
-					h3 { class: "text-xs font-medium uppercase tracking-wide text-muted-foreground", "{name}" }
-					div { class: "flex flex-1 flex-wrap items-center gap-3", {render()} }
-				}
-			}
-		}
-	}
-}
-
 #[tokio::main]
 async fn main() {
 	write_dist(); // keep the static board fresh for the visual-regression pass
@@ -57,4 +41,19 @@ async fn main() {
 	println!("EV UIKit live on http://{addr}");
 	let listener = tokio::net::TcpListener::bind(addr).await.expect("bind port");
 	axum::serve(listener, router.into_make_service()).await.expect("serve");
+}
+/// The whole board as one live component: each cell hosts a real, interactive
+/// instance of the primitive (mirrors `cell()`/`board()` markup from gallery.rs).
+fn app() -> Element {
+	rsx! {
+		h1 { class: "mb-6 text-2xl font-semibold", "EV UIKit — Component Library" }
+		div { class: "grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3",
+			for (name, render) in GALLERY.iter().copied() {
+				section { class: "stage flex flex-col gap-3 rounded-lg border border-border bg-card/30 p-5",
+					h3 { class: "text-xs font-medium uppercase tracking-wide text-muted-foreground", "{name}" }
+					div { class: "flex flex-1 flex-wrap items-center gap-3", {render()} }
+				}
+			}
+		}
+	}
 }

@@ -38,13 +38,7 @@ pub fn PaginationItem(children: Element) -> Element {
 }
 
 #[component]
-pub fn PaginationLink(
-	#[props(default)] is_active: bool,
-	#[props(default)] size: Size,
-	#[props(default = true)] icon: bool,
-	#[props(default)] class: String,
-	children: Element,
-) -> Element {
+pub fn PaginationLink(#[props(default)] is_active: bool, #[props(default)] size: Size, #[props(default = true)] icon: bool, #[props(default)] class: String, children: Element) -> Element {
 	let variant = if is_active { ButtonVariant::Outline } else { ButtonVariant::Ghost };
 	let cls = button_classes(&variant, size, icon, &class);
 	rsx! {
