@@ -13,4 +13,4 @@ workspace = true
 # no `ev` wasm backend). Serve it with `dx serve` (see README).
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 dioxus = { version = "0.7", features = ["web"] }
-ev = { path = "..", features = ["uikit", "wasm"] }
+ev = { path = "..", package = "ev_lib", features = ["uikit", "wasm"] }
