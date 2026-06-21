@@ -1392,7 +1392,7 @@ dependencies = [
 
 [[package]]
 name = "ev_lib"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "async-trait",
  "axum",
@@ -4314,7 +4314,7 @@ checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
 
 [[package]]
 name = "uikit-viewer"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "dioxus",
  "ev_lib",
