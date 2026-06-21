@@ -22,7 +22,8 @@ pub fn EmptyHeader(#[props(default)] class: String, children: Element) -> Elemen
 	}
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum EmptyMediaVariant {
 	#[default]
 	Default,
@@ -36,13 +37,6 @@ impl EmptyMediaVariant {
 			EmptyMediaVariant::Icon => "bg-muted text-foreground flex size-10 shrink-0 items-center justify-center rounded-lg [&_svg:not([class*='size-'])]:size-6",
 		}
 	}
-
-	fn attr(&self) -> &'static str {
-		match self {
-			EmptyMediaVariant::Default => "default",
-			EmptyMediaVariant::Icon => "icon",
-		}
-	}
 }
 
 #[component]
@@ -52,7 +46,7 @@ pub fn EmptyMedia(#[props(default)] variant: EmptyMediaVariant, #[props(default)
 		div {
 			class: cls,
 			"data-slot": "empty-icon",
-			"data-variant": variant.attr(),
+			"data-variant": "{variant}",
 			{children}
 		}
 	}

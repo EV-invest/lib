@@ -27,7 +27,8 @@ pub fn ItemSeparator(#[props(default)] class: String) -> Element {
 	}
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum ItemVariant {
 	#[default]
 	Default,
@@ -43,17 +44,10 @@ impl ItemVariant {
 			ItemVariant::Muted => "bg-muted/50",
 		}
 	}
-
-	fn attr(&self) -> &'static str {
-		match self {
-			ItemVariant::Default => "default",
-			ItemVariant::Outline => "outline",
-			ItemVariant::Muted => "muted",
-		}
-	}
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum ItemSize {
 	#[default]
 	Md,
@@ -67,13 +61,6 @@ impl ItemSize {
 			ItemSize::Sm => "py-3 px-4 gap-2.5",
 		}
 	}
-
-	fn attr(&self) -> &'static str {
-		match self {
-			ItemSize::Md => "md",
-			ItemSize::Sm => "sm",
-		}
-	}
 }
 
 #[component]
@@ -83,14 +70,15 @@ pub fn Item(#[props(default)] variant: ItemVariant, #[props(default)] size: Item
 		div {
 			class: cls,
 			"data-slot": "item",
-			"data-variant": variant.attr(),
-			"data-size": size.attr(),
+			"data-variant": "{variant}",
+			"data-size": "{size}",
 			{children}
 		}
 	}
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum ItemMediaVariant {
 	#[default]
 	Default,
@@ -106,14 +94,6 @@ impl ItemMediaVariant {
 			ItemMediaVariant::Image => "size-10 rounded-sm overflow-hidden [&_img]:size-full [&_img]:object-cover",
 		}
 	}
-
-	fn attr(&self) -> &'static str {
-		match self {
-			ItemMediaVariant::Default => "default",
-			ItemMediaVariant::Icon => "icon",
-			ItemMediaVariant::Image => "image",
-		}
-	}
 }
 
 #[component]
@@ -123,7 +103,7 @@ pub fn ItemMedia(#[props(default)] variant: ItemMediaVariant, #[props(default)] 
 		div {
 			class: cls,
 			"data-slot": "item-media",
-			"data-variant": variant.attr(),
+			"data-variant": "{variant}",
 			{children}
 		}
 	}

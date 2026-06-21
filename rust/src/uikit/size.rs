@@ -1,4 +1,5 @@
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Copy, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum Size {
 	Sm,
 	#[default]

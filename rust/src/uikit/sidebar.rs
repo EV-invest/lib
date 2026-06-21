@@ -69,23 +69,16 @@ pub fn SidebarProvider(
 	}
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum SidebarSide {
 	#[default]
 	Left,
 	Right,
 }
 
-impl SidebarSide {
-	fn attr(&self) -> &'static str {
-		match self {
-			SidebarSide::Left => "left",
-			SidebarSide::Right => "right",
-		}
-	}
-}
-
-#[derive(Clone, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum SidebarVariant {
 	#[default]
 	Sidebar,
@@ -93,32 +86,13 @@ pub enum SidebarVariant {
 	Inset,
 }
 
-impl SidebarVariant {
-	fn attr(&self) -> &'static str {
-		match self {
-			SidebarVariant::Sidebar => "sidebar",
-			SidebarVariant::Floating => "floating",
-			SidebarVariant::Inset => "inset",
-		}
-	}
-}
-
-#[derive(Clone, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum SidebarCollapsible {
 	#[default]
 	Offcanvas,
 	Icon,
 	None,
-}
-
-impl SidebarCollapsible {
-	fn attr(&self) -> &'static str {
-		match self {
-			SidebarCollapsible::Offcanvas => "offcanvas",
-			SidebarCollapsible::Icon => "icon",
-			SidebarCollapsible::None => "none",
-		}
-	}
 }
 
 #[component]
@@ -139,7 +113,7 @@ pub fn Sidebar(
 	}
 
 	let state = ctx.state();
-	let data_collapsible = if state == "collapsed" { collapsible.attr() } else { "" };
+	let data_collapsible = if state == "collapsed" { collapsible.to_string() } else { String::new() };
 	let inner = cn!(
 		"bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm",
 		class
@@ -149,8 +123,8 @@ pub fn Sidebar(
 			class: "group peer text-sidebar-foreground hidden md:block",
 			"data-state": state,
 			"data-collapsible": data_collapsible,
-			"data-variant": variant.attr(),
-			"data-side": side.attr(),
+			"data-variant": "{variant}",
+			"data-side": "{side}",
 			"data-slot": "sidebar",
 			div { class: inner, "data-slot": "sidebar-inner", {children} }
 		}
@@ -299,7 +273,8 @@ impl SidebarMenuButtonVariant {
 	}
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum SidebarMenuButtonSize {
 	#[default]
 	Default,
@@ -313,14 +288,6 @@ impl SidebarMenuButtonSize {
 			SidebarMenuButtonSize::Default => "h-8 text-sm",
 			SidebarMenuButtonSize::Sm => "h-7 text-xs",
 			SidebarMenuButtonSize::Lg => "h-12 text-sm group-data-[collapsible=icon]:p-0!",
-		}
-	}
-
-	fn attr(&self) -> &'static str {
-		match self {
-			SidebarMenuButtonSize::Default => "default",
-			SidebarMenuButtonSize::Sm => "sm",
-			SidebarMenuButtonSize::Lg => "lg",
 		}
 	}
 }
@@ -339,7 +306,7 @@ pub fn SidebarMenuButton(
 			r#type: "button",
 			"data-slot": "sidebar-menu-button",
 			"data-sidebar": "menu-button",
-			"data-size": size.attr(),
+			"data-size": "{size}",
 			"data-active": is_active,
 			class: cls,
 			{children}

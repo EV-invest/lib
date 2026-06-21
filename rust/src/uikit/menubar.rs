@@ -42,20 +42,12 @@ const SUB_CONTENT: &str = "bg-popover text-popover-foreground data-[state=open]:
                            border p-1 shadow-lg";
 
 /// Item visual tone — the canonical superset mirrors the TS `variant` prop.
-#[derive(Clone, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum MenubarItemVariant {
 	#[default]
 	Default,
 	Destructive,
-}
-
-impl MenubarItemVariant {
-	fn as_str(&self) -> &'static str {
-		match self {
-			MenubarItemVariant::Default => "default",
-			MenubarItemVariant::Destructive => "destructive",
-		}
-	}
 }
 
 #[component]
@@ -140,7 +132,7 @@ pub fn MenubarItem(
 			class: cls,
 			"data-slot": "menubar-item",
 			"data-inset": inset,
-			"data-variant": variant.as_str(),
+			"data-variant": "{variant}",
 			role: "menuitem",
 			onclick: move |e| { if let Some(h) = onclick { h.call(e); } },
 			{children}

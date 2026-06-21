@@ -21,7 +21,8 @@ pub fn ScrollArea(#[props(default)] class: String, children: Element) -> Element
 	}
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(derive_more::Display, Clone, Default, PartialEq)]
+#[display(rename_all = "kebab-case")]
 pub enum ScrollBarOrientation {
 	#[default]
 	Vertical,
@@ -35,13 +36,6 @@ impl ScrollBarOrientation {
 			ScrollBarOrientation::Horizontal => "h-2.5 flex-col border-t border-t-transparent",
 		}
 	}
-
-	fn attr(&self) -> &'static str {
-		match self {
-			ScrollBarOrientation::Vertical => "vertical",
-			ScrollBarOrientation::Horizontal => "horizontal",
-		}
-	}
 }
 
 #[component]
@@ -50,7 +44,7 @@ pub fn ScrollBar(#[props(default)] orientation: ScrollBarOrientation, #[props(de
 	rsx! {
 		div {
 			"data-slot": "scroll-area-scrollbar",
-			"data-orientation": orientation.attr(),
+			"data-orientation": "{orientation}",
 			class: cls,
 			div { "data-slot": "scroll-area-thumb", class: "bg-border relative flex-1 rounded-full" }
 		}
