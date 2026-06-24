@@ -76,15 +76,23 @@ pub fn launch_into(el: web_sys::Element, root: fn() -> Element) {
 /// invocation per crate (it owns the single `wasm-bindgen(start)`).
 #[macro_export]
 macro_rules! mfe {
-	(service: $service:literal, name: $name:literal, kind: $kind:ident, root: $root:path, stylesheet: $stylesheet:literal $(,)?) => {
+	(service: $service:literal,name: $name:literal,kind: $kind:ident,root: $root:path,stylesheet: $stylesheet:literal $(,)?) => {
 		const __EV_TAG: &str = concat!("mfe-", $service, "-", $name);
 
 		/// The `{name, tag, kind}` registry contract, emitted by the build as
 		/// `mfe.json`. Single source of truth for the host registry entry.
 		pub const MFE_MANIFEST: &str = concat!(
-			"{\"name\":\"", $service, ".", $name,
-			"\",\"tag\":\"mfe-", $service, "-", $name,
-			"\",\"kind\":\"", stringify!($kind), "\"}"
+			"{\"name\":\"",
+			$service,
+			".",
+			$name,
+			"\",\"tag\":\"mfe-",
+			$service,
+			"-",
+			$name,
+			"\",\"kind\":\"",
+			stringify!($kind),
+			"\"}"
 		);
 
 		fn __ev_root() -> ::dioxus::prelude::Element {
@@ -100,10 +108,6 @@ macro_rules! mfe {
 		}
 
 		fn __ev_mount(el: ::web_sys::Element) {
-			// Server fns POST to the bundle's own origin, not the host's — cross-origin,
-			// so the producer must answer with CORS. `&'static` via one-time leak: the
-			// origin is fixed for the page's life.
-			::dioxus::fullstack::set_server_url(::std::boxed::Box::leak($crate::mfe::bundle_origin().into_boxed_str()));
 			$crate::mfe::launch_into(el, __ev_root);
 		}
 
