@@ -23,3 +23,10 @@ strum = { version = "0.27", features = ["derive"] }
 tailwind_fuse = "0.3"
 tokio = "1"
 uuid = "1"
+
+# smaller target/: trim debuginfo (deps need none), keep line tables for backtraces
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false

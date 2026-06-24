@@ -91,6 +91,7 @@
               nodejs
               rust
               playwright-driver.browsers
+              sccache
             ]
             ++ lib.optionals stdenv.isLinux [ mold ]
             ++ pre-commit-check.enabledPackages
@@ -106,6 +107,10 @@
             env.PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
             env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
             env.PLAYWRIGHT_HOST_PLATFORM_OVERRIDE = "nixos";
+
+            # Shared compile cache across builds; incremental off (sccache can't cache incremental).
+            env.RUSTC_WRAPPER = "sccache";
+            env.CARGO_INCREMENTAL = "0";
           };
       }
     );
