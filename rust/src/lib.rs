@@ -1,3 +1,4 @@
+#![allow(unused_features)]
 #![feature(default_field_values)]
 //! EV-invest's shared Rust libraries, one per Cargo feature.
 //!
