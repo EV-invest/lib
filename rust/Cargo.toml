@@ -58,6 +58,12 @@ error_monitoring = [
 # sink, so it never imports `analytics` (no cross-library coupling).
 experiments = ["dep:dioxus", "dep:js-sys", "dep:web-sys", "dep:wasm-bindgen"]
 
+# Producer SDK for landing-host microfrontends (see `mfe.rs` + the `mfe!` macro).
+# wasm-only: the module is gated to `target_arch = "wasm32"`, so this is inert on
+# native. A producer crate enables it; landing never compiles ev_lib at all.
+# `wasm` pulls `dioxus?/web` + `web-sys`; `document` is for the bundle's `<link>`.
+mfe = ["dep:dioxus", "dep:wasm-bindgen", "dep:js-sys", "dioxus?/document", "wasm"]
+
 # One opt-in switch that layers wasm/browser backends onto whatever other
 # features are enabled — each feature contributes its own wasm needs here with
 # the `pkg?/feature` syntax (no-op when that feature is off). Enable it
