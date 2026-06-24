@@ -5,6 +5,11 @@ edition = "2024"
 publish = false
 description = "Dioxus web viewer for ev_lib::uikit — the mirror of ts/uikit/example."
 
+# Dev-only wasm app: cargo-release must not version/tag/commit it (publish=false
+# alone only suppresses the crates.io upload, not the bump + git tag).
+[package.metadata.release]
+release = false
+
 # wasm-only: the gallery and its renderer pull in only for the browser target, so
 # a native `cargo build`/workspace check sees just the stub `main` (no dioxus-web,
 # no `ev_lib` wasm backend). Serve it with `dx serve` (see README).
