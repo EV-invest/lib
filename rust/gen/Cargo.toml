@@ -1,6 +1,6 @@
 [package]
 name = "ev_lib_gen"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2024"
 description = "Generates the TS uikit class tables from ev_lib_classes (Rust is the source of truth)."
 license = "BlueOak-1.0.0"

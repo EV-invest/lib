@@ -1,6 +1,6 @@
 [package]
 name = "ev_lib_classes"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2024"
 description = "Pure styling data (Tailwind class tables) shared by the Dioxus uikit and the TS codegen — no Dioxus."
 license = "BlueOak-1.0.0"
