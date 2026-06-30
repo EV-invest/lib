@@ -17,6 +17,7 @@ architecture = ["dep:async-trait", "dep:serde", "dep:uuid", "dep:jiff"]
 # `asset!` and injects their `@font-face` through `document::Style`.
 uikit = [
     "dep:dioxus",
+    "dep:ev_lib_classes",
     "dep:tailwind_fuse",
     "tailwind_fuse?/variant",
     "dep:strum",
@@ -74,6 +75,7 @@ wasm = ["uuid?/js", "dioxus?/web", "dep:web-sys"]
 [dependencies]
 async-trait = { workspace = true, optional = true }
 dioxus = { workspace = true, features = ["macro", "html", "signals", "hooks"], optional = true }
+ev_lib_classes = { workspace = true, optional = true }
 jiff = { workspace = true, features = ["serde"], optional = true }
 serde = { workspace = true, features = ["derive"], optional = true }
 serde_json = { workspace = true, optional = true }

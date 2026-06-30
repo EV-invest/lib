@@ -3,8 +3,8 @@ use dioxus::prelude::*;
 use crate::{
 	cn,
 	uikit::{
-		Size,
-		button::{Button, ButtonVariant},
+		ButtonVariant, Size,
+		button::Button,
 		primitives::{Controllable, use_controllable},
 	},
 };

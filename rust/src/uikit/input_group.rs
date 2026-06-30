@@ -3,7 +3,7 @@ use tailwind_fuse::{AsTailwindClass, TwVariant};
 
 use crate::{
 	cn,
-	uikit::button::{Button, ButtonVariant},
+	uikit::{ButtonVariant, button::Button},
 };
 
 const INPUT_CONTROL_BASE: &str = "file:text-foreground placeholder:text-muted-foreground selection:bg-primary \

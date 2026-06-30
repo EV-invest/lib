@@ -1,13 +1,16 @@
-/// Fuses any number of class fragments into a single `String` with real
-/// Tailwind conflict resolution: like `clsx` it drops empty fragments and joins
-/// the rest, and like `tailwind-merge` it resolves conflicting utilities so the
-/// rightmost class wins (`cn!("p-4", "p-2")` → `"p-2"`). A caller's `class`
-/// override, passed last, therefore beats the base classes instead of relying
-/// on CSS source order.
-///
-/// Each fragment may be a `&str`, `String`, or `Option<_>` thereof — anything
-/// `tailwind_fuse::tw_merge!` accepts. The TypeScript mirror is `cn` in
-/// `@evinvest/uikit` (`clsx` + `tailwind-merge`).
+//! Pure styling data for the uikit: Tailwind class tables, variant/size enums and
+//! the `cn!` fuse macro. Carries no Dioxus — it's the single source of truth that
+//! both the Rust components (`ev_lib`) and the TS codegen (`ev_lib_gen`) read from.
+
+mod button;
+mod size;
+
+pub use button::{BUTTON_BASE, ButtonVariant, button_size_class};
+pub use size::Size;
+
+/// Fuses any number of class fragments into a single `String` with real Tailwind
+/// conflict resolution (like `clsx` + `tailwind-merge`): empty fragments drop, the
+/// rightmost conflicting utility wins. The TS mirror is `cn` in `@evinvest/uikit`.
 #[macro_export]
 macro_rules! cn {
 	($($frag:expr),* $(,)?) => {

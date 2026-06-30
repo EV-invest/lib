@@ -14,7 +14,8 @@ describe("Button", () => {
 
   it("applies the icon-sm size (canon parity with Rust)", () => {
     const { getByText } = render(<Button size="icon-sm">x</Button>);
-    expect(getByText("x")).toHaveClass("size-8");
+    expect(getByText("x")).toHaveClass("h-8");
+    expect(getByText("x")).toHaveClass("aspect-square");
   });
 
   it("renders as child when asChild", () => {

@@ -1,0 +1,12 @@
+[package]
+name = "ev_lib_gen"
+version = "0.1.0"
+edition = "2024"
+description = "Generates the TS uikit class tables from ev_lib_classes (Rust is the source of truth)."
+license = "BlueOak-1.0.0"
+repository = "https://github.com/EV-invest/lib"
+
+[dependencies]
+ev_lib_classes.workspace = true
+strum.workspace = true
+tailwind_fuse = { workspace = true, features = ["variant"] }

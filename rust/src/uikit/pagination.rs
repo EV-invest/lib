@@ -2,10 +2,7 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::{
-		Size,
-		button::{ButtonVariant, button_classes},
-	},
+	uikit::{ButtonVariant, Size, button::button_classes},
 };
 
 #[component]

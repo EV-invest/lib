@@ -2,11 +2,7 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::{
-		Size,
-		button::{ButtonVariant, button_classes},
-		primitives::use_controllable,
-	},
+	uikit::{ButtonVariant, Size, button::button_classes, primitives::use_controllable},
 };
 
 const MONTHS: [&str; 12] = [

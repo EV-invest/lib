@@ -33,6 +33,11 @@ pub mod architecture;
 #[cfg(feature = "uikit")]
 pub mod uikit;
 
+// The `cn!` fuse macro and styling data live in the Dioxus-free `ev_lib_classes`
+// crate; re-export so the in-crate `crate::cn` path keeps resolving.
+#[cfg(feature = "uikit")]
+pub use ev_lib_classes::cn;
+
 #[cfg(feature = "analytics")]
 pub mod analytics;
 

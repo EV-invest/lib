@@ -16,10 +16,13 @@
 //! ```
 
 pub mod primitives;
-pub mod utils;
 
 #[cfg(test)]
 mod test_util;
+
+// Styling data (class tables, `Size`, `ButtonVariant`) lives in the Dioxus-free
+// `ev_lib_classes` crate, the single source of truth the TS codegen reads too.
+pub use ev_lib_classes::{BUTTON_BASE, ButtonVariant, Size, button_size_class};
 
 mod accordion;
 mod alert;
@@ -48,7 +51,6 @@ mod radio_group;
 mod scroll_area;
 mod separator;
 mod sidebar;
-mod size;
 mod skeleton;
 mod slider;
 mod spinner;
@@ -64,7 +66,7 @@ pub use alert::{Alert, AlertDescription, AlertTitle, AlertVariant};
 pub use avatar::{Avatar, AvatarFallback, AvatarImage};
 pub use badge::{Badge, BadgeVariant};
 pub use breadcrumb::{Breadcrumb, BreadcrumbEllipsis, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator};
-pub use button::{Button, ButtonVariant, button_classes};
+pub use button::{Button, button_classes};
 pub use button_group::{ButtonGroup, ButtonGroupOrientation, ButtonGroupSeparator, ButtonGroupText};
 pub use card::{Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle};
 pub use carousel::{Carousel, CarouselContent, CarouselEdgeFade, CarouselItem, CarouselNext, CarouselOrientation, CarouselPrevious};
@@ -93,7 +95,6 @@ pub use sidebar::{
 	SidebarMenuButton, SidebarMenuButtonSize, SidebarMenuButtonVariant, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarSeparator, SidebarSide, SidebarTrigger, SidebarVariant,
 	use_sidebar,
 };
-pub use size::Size;
 pub use skeleton::Skeleton;
 pub use slider::{Slider, SliderOrientation};
 pub use spinner::Spinner;
