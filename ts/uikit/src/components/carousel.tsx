@@ -156,6 +156,40 @@ export function CarouselItem({
   );
 }
 
+/**
+ * Netflix-style edge scrims that dissolve the current slide into the surface
+ * colour, signalling adjacent slides without revealing them. Each side shows
+ * only when there is somewhere to scroll. Drop inside a <Carousel>.
+ */
+export function CarouselEdgeFade({
+  className,
+}: {
+  className?: string;
+}) {
+  const { canScrollPrev, canScrollNext } = useCarousel();
+
+  return (
+    <>
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-background via-background/60 to-transparent transition-opacity duration-300",
+          canScrollPrev ? "opacity-100" : "opacity-0",
+          className,
+        )}
+      />
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-background via-background/60 to-transparent transition-opacity duration-300",
+          canScrollNext ? "opacity-100" : "opacity-0",
+          className,
+        )}
+      />
+    </>
+  );
+}
+
 export function CarouselPrevious({
   className,
   variant = "outline",

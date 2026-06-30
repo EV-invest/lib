@@ -151,6 +151,27 @@ pub fn CarouselNext(#[props(default)] class: String) -> Element {
 		}
 	}
 }
+/// Netflix-style edge scrims that dissolve the current slide into the surface
+/// colour, signalling adjacent slides without revealing them. Each side shows
+/// only when there is somewhere to scroll. Drop inside a [`Carousel`].
+#[component]
+pub fn CarouselEdgeFade(#[props(default)] class: String) -> Element {
+	let ctx = use_context::<CarouselContext>();
+	let prev = cn!(
+		"pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-background via-background/60 to-transparent transition-opacity duration-300",
+		if ctx.can_scroll_prev() { "opacity-100" } else { "opacity-0" },
+		class.clone()
+	);
+	let next = cn!(
+		"pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-background via-background/60 to-transparent transition-opacity duration-300",
+		if ctx.can_scroll_next() { "opacity-100" } else { "opacity-0" },
+		class
+	);
+	rsx! {
+		div { class: prev, "aria-hidden": "true" }
+		div { class: next, "aria-hidden": "true" }
+	}
+}
 #[derive(Clone, Copy)]
 struct CarouselContext {
 	orientation: CarouselOrientation,
