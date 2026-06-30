@@ -1,10 +1,13 @@
 use dioxus::prelude::*;
 
-use crate::cn;
+use crate::{
+	cn,
+	uikit::{PROGRESS_INDICATOR, PROGRESS_TRACK},
+};
 
 #[component]
 pub fn Progress(#[props(default)] value: f64, #[props(default)] class: String) -> Element {
-	let cls = cn!("bg-primary/20 relative h-2 w-full overflow-hidden rounded-full", class);
+	let cls = cn!(PROGRESS_TRACK, class);
 	let style = format!("transform: translateX(-{}%)", 100.0 - value);
 	rsx! {
 		div {
@@ -15,7 +18,7 @@ pub fn Progress(#[props(default)] value: f64, #[props(default)] class: String) -
 			"aria-valuemin": 0,
 			"aria-valuemax": 100,
 			div {
-				class: "bg-primary h-full w-full flex-1 transition-all",
+				class: PROGRESS_INDICATOR,
 				"data-slot": "progress-indicator",
 				style,
 			}

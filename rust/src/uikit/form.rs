@@ -13,7 +13,10 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use dioxus::prelude::*;
 
-use crate::{cn, uikit::label::Label};
+use crate::{
+	cn,
+	uikit::{FORM_DESCRIPTION, FORM_ITEM, FORM_LABEL, FORM_MESSAGE, label::Label},
+};
 
 /// The shared id minted by [`FormItem`], plus the derived ids the control,
 /// description and message hang off of so `aria-describedby`/`id` align.
@@ -49,7 +52,7 @@ pub fn Form(#[props(default)] class: String, children: Element) -> Element {
 pub fn FormItem(#[props(default)] class: String, children: Element) -> Element {
 	let id = use_hook(|| format!("form-item-{}", NEXT_ID.fetch_add(1, Ordering::Relaxed)));
 	use_context_provider(|| FormItemContext { id });
-	let cls = cn!("grid gap-2", class);
+	let cls = cn!(FORM_ITEM, class);
 	rsx! {
 		div { class: cls, "data-slot": "form-item", {children} }
 	}
@@ -61,7 +64,7 @@ pub fn FormItem(#[props(default)] class: String, children: Element) -> Element {
 #[component]
 pub fn FormLabel(#[props(default)] error: bool, #[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<FormItemContext>();
-	let cls = cn!(if error { "text-destructive" } else { "" }, class);
+	let cls = cn!(if error { FORM_LABEL } else { "" }, class);
 	rsx! {
 		Label { class: cls, r#for: ctx.form_item_id(), {children} }
 	}
@@ -92,7 +95,7 @@ pub fn FormControl(#[props(default)] error: bool, children: Element) -> Element 
 #[component]
 pub fn FormDescription(#[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<FormItemContext>();
-	let cls = cn!("text-muted-foreground text-sm", class);
+	let cls = cn!(FORM_DESCRIPTION, class);
 	rsx! {
 		p { class: cls, "data-slot": "form-description", id: ctx.form_description_id(), {children} }
 	}
@@ -101,7 +104,7 @@ pub fn FormDescription(#[props(default)] class: String, children: Element) -> El
 #[component]
 pub fn FormMessage(#[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<FormItemContext>();
-	let cls = cn!("text-destructive text-sm", class);
+	let cls = cn!(FORM_MESSAGE, class);
 	rsx! {
 		p { class: cls, "data-slot": "form-message", id: ctx.form_message_id(), {children} }
 	}

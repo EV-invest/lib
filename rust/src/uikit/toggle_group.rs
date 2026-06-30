@@ -2,11 +2,7 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::{
-		Size,
-		primitives::use_controllable,
-		toggle::{ToggleVariant, toggle_classes},
-	},
+	uikit::{Size, ToggleVariant, primitives::use_controllable, toggle::toggle_classes},
 };
 
 /// Grouped container. Unlike the TS port it does not own selection or use a

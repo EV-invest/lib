@@ -1,17 +1,9 @@
 use dioxus::prelude::*;
 
-use crate::{cn, uikit::primitives::use_controllable};
-
-const ROOT_BASE: &str = "relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 \
-                         data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 \
-                         data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col";
-const TRACK_BASE: &str = "bg-muted relative grow overflow-hidden rounded-full \
-                          data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full \
-                          data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5";
-const RANGE_BASE: &str = "bg-primary absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full";
-const THUMB_BASE: &str = "border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-white shadow-sm \
-                          transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden \
-                          disabled:pointer-events-none disabled:opacity-50";
+use crate::{
+	cn,
+	uikit::{SLIDER_RANGE, SLIDER_ROOT, SLIDER_THUMB, SLIDER_TRACK, primitives::use_controllable},
+};
 
 /// Orientation of a [`Slider`]; rendered as `data-orientation` so the landing
 /// class selectors lay the track out horizontally or vertically.
@@ -85,7 +77,7 @@ pub fn Slider(
 	// track (absolute), so grabbing it must still start a drag.
 	rsx! {
 		span {
-			class: cn!(ROOT_BASE, class),
+			class: cn!(SLIDER_ROOT, class),
 			"data-slot": "slider",
 			"data-orientation": ori,
 			"data-disabled": disabled.then_some(true),
@@ -122,19 +114,19 @@ pub fn Slider(
 			},
 			onpointerup: move |_| dragging.set(false),
 			span {
-				class: TRACK_BASE,
+				class: SLIDER_TRACK,
 				"data-slot": "slider-track",
 				"data-orientation": ori,
 				onmounted: move |e: MountedEvent| track.set(Some(e.data())),
 				span {
-					class: RANGE_BASE,
+					class: SLIDER_RANGE,
 					"data-slot": "slider-range",
 					"data-orientation": ori,
 					style: range_style,
 				}
 			}
 			span {
-				class: THUMB_BASE,
+				class: SLIDER_THUMB,
 				"data-slot": "slider-thumb",
 				"data-orientation": ori,
 				style: thumb_style,

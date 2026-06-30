@@ -1,6 +1,21 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { buttonVariants } from "./button";
+import {
+  CALENDAR_CAPTION,
+  CALENDAR_DAY,
+  CALENDAR_DAY_CELL,
+  CALENDAR_DAY_EMPTY,
+  CALENDAR_DAY_SELECTED,
+  CALENDAR_DAY_TODAY,
+  CALENDAR_GRID,
+  CALENDAR_NAV,
+  CALENDAR_NAV_BUTTON,
+  CALENDAR_ROOT,
+  CALENDAR_WEEK,
+  CALENDAR_WEEKDAY,
+  CALENDAR_WEEKDAY_ROW,
+} from "../generated/calendar";
 
 const MONTHS = [
   "January",
@@ -126,16 +141,16 @@ export function Calendar({
   const navClass = buttonVariants({
     variant: "ghost",
     size: "icon",
-    className: "size-8 p-0 select-none",
+    className: CALENDAR_NAV_BUTTON,
   });
 
   return (
     <div
       data-slot="calendar"
       role="application"
-      className={cn("bg-background p-3 w-fit", className)}
+      className={cn(CALENDAR_ROOT, className)}
     >
-      <div className="flex items-center justify-between gap-1 w-full px-1">
+      <div className={CALENDAR_NAV}>
         <button
           type="button"
           className={navClass}
@@ -144,7 +159,7 @@ export function Calendar({
         >
           <Chevron d={CHEVRON_LEFT} />
         </button>
-        <div className="text-sm font-medium select-none">{caption}</div>
+        <div className={CALENDAR_CAPTION}>{caption}</div>
         <button
           type="button"
           className={navClass}
@@ -154,14 +169,14 @@ export function Calendar({
           <Chevron d={CHEVRON_RIGHT} />
         </button>
       </div>
-      <table className="w-full border-collapse mt-4" role="grid">
+      <table className={CALENDAR_GRID} role="grid">
         <thead>
-          <tr className="flex">
+          <tr className={CALENDAR_WEEKDAY_ROW}>
             {WEEKDAYS.map(wd => (
               <th
                 key={wd}
                 scope="col"
-                className="text-muted-foreground rounded-md flex-1 font-normal text-[0.8rem] select-none"
+                className={CALENDAR_WEEKDAY}
               >
                 {wd}
               </th>
@@ -170,13 +185,13 @@ export function Calendar({
         </thead>
         <tbody>
           {weeks.map((week, wi) => (
-            <tr key={wi} className="flex w-full mt-2">
+            <tr key={wi} className={CALENDAR_WEEK}>
               {week.map((cell, ci) => {
                 if (cell === null) {
                   return (
                     <td
                       key={ci}
-                      className="relative w-full h-full p-0 aspect-square select-none"
+                      className={CALENDAR_DAY_EMPTY}
                     />
                   );
                 }
@@ -188,7 +203,7 @@ export function Calendar({
                     key={ci}
                     role="gridcell"
                     aria-selected={isSelected}
-                    className="relative w-full h-full p-0 text-center aspect-square select-none"
+                    className={CALENDAR_DAY_CELL}
                   >
                     <button
                       type="button"
@@ -200,13 +215,12 @@ export function Calendar({
                         buttonVariants({
                           variant: "ghost",
                           size: "icon",
-                          className:
-                            "size-auto w-full aspect-square font-normal leading-none",
+                          className: CALENDAR_DAY,
                         }),
                         isSelected
-                          ? "bg-primary text-primary-foreground"
+                          ? CALENDAR_DAY_SELECTED
                           : isToday
-                            ? "bg-accent text-accent-foreground rounded-md"
+                            ? CALENDAR_DAY_TODAY
                             : undefined,
                       )}
                     >

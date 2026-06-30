@@ -1,16 +1,21 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
+import {
+  EMPTY,
+  EMPTY_CONTENT,
+  EMPTY_DESCRIPTION,
+  EMPTY_HEADER,
+  EMPTY_MEDIA_BASE,
+  EMPTY_TITLE,
+  emptyMediaVariants,
+  type EmptyMediaVariant,
+} from "../generated/empty";
+
+export type { EmptyMediaVariant };
 
 export function Empty({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <div
-      data-slot="empty"
-      className={cn(
-        "flex min-w-0 flex-1 flex-col items-center justify-center gap-6 rounded-lg border-dashed p-6 text-center text-balance md:p-12",
-        className,
-      )}
-      {...props}
-    />
+    <div data-slot="empty" className={cn(EMPTY, className)} {...props} />
   );
 }
 
@@ -21,24 +26,11 @@ export function EmptyHeader({
   return (
     <div
       data-slot="empty-header"
-      className={cn(
-        "flex max-w-sm flex-col items-center gap-2 text-center",
-        className,
-      )}
+      className={cn(EMPTY_HEADER, className)}
       {...props}
     />
   );
 }
-
-const EMPTY_MEDIA_BASE =
-  "flex shrink-0 items-center justify-center mb-2 [&_svg]:pointer-events-none [&_svg]:shrink-0";
-
-const emptyMediaVariants = {
-  default: "bg-transparent",
-  icon: "bg-muted text-foreground flex size-10 shrink-0 items-center justify-center rounded-lg [&_svg:not([class*='size-'])]:size-6",
-} as const;
-
-export type EmptyMediaVariant = keyof typeof emptyMediaVariants;
 
 export interface EmptyMediaProps extends React.ComponentProps<"div"> {
   variant?: EmptyMediaVariant;
@@ -66,7 +58,7 @@ export function EmptyTitle({
   return (
     <div
       data-slot="empty-title"
-      className={cn("text-lg font-medium tracking-tight", className)}
+      className={cn(EMPTY_TITLE, className)}
       {...props}
     />
   );
@@ -79,10 +71,7 @@ export function EmptyDescription({
   return (
     <div
       data-slot="empty-description"
-      className={cn(
-        "text-muted-foreground [&>a:hover]:text-primary text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4",
-        className,
-      )}
+      className={cn(EMPTY_DESCRIPTION, className)}
       {...props}
     />
   );
@@ -95,10 +84,7 @@ export function EmptyContent({
   return (
     <div
       data-slot="empty-content"
-      className={cn(
-        "flex w-full max-w-sm min-w-0 flex-col items-center gap-4 text-sm text-balance",
-        className,
-      )}
+      className={cn(EMPTY_CONTENT, className)}
       {...props}
     />
   );

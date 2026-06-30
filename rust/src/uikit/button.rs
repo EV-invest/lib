@@ -1,42 +1,15 @@
 use dioxus::prelude::*;
-use tailwind_fuse::{AsTailwindClass, TwVariant};
 
-use crate::{cn, uikit::Size};
-
-/// Canonical superset of the cabinet and landing variants. The base rides on the
-/// enum via `#[tw(class)]`, so `as_class()` already yields base + variant.
-#[derive(PartialEq, TwVariant)]
-#[tw(class = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm \
-              font-medium transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-50 \
-              [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 \
-              outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] \
-              aria-invalid:ring-destructive/20 aria-invalid:border-destructive")]
-pub enum ButtonVariant {
-	#[tw(default, class = "bg-primary text-primary-foreground hover:bg-primary/90")]
-	Default,
-	#[tw(class = "bg-secondary text-secondary-foreground hover:bg-secondary/80")]
-	Secondary,
-	#[tw(class = "border bg-transparent shadow-xs hover:bg-accent hover:text-accent-foreground")]
-	Outline,
-	#[tw(class = "hover:bg-accent hover:text-accent-foreground")]
-	Ghost,
-	#[tw(class = "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20")]
-	Destructive,
-	#[tw(class = "text-primary underline-offset-4 hover:underline")]
-	Link,
-}
+use crate::{
+	cn,
+	uikit::{BUTTON_BASE, ButtonVariant, Size, button_size_class},
+};
 
 /// Fuses the base, variant and size classes with a caller override, last wins.
 /// Mirrors the TS `buttonVariants` helper so consumers (e.g. pagination) can
-/// reuse the same canonical class string without rendering a `Button`. An
-/// `icon` button is a square (`h-N aspect-square`); otherwise height + per-size padding.
+/// reuse the same canonical class string without rendering a `Button`.
 pub fn button_classes(variant: &ButtonVariant, size: Size, icon: bool, class: &str) -> String {
-	let dims = if icon {
-		format!("h-{} aspect-square px-0", size.scale())
-	} else {
-		format!("h-{} {}", size.scale(), text_padding(size))
-	};
-	cn!(variant.as_class(), &dims, class)
+	cn!(BUTTON_BASE, variant.as_class(), button_size_class(size, icon), class)
 }
 #[component]
 pub fn Button(
@@ -57,14 +30,6 @@ pub fn Button(
 			onclick: move |e| { if let Some(h) = onclick { h.call(e); } },
 			{children}
 		}
-	}
-}
-/// Per-size padding for text buttons; the height comes from [`Size::scale`].
-fn text_padding(size: Size) -> &'static str {
-	match size {
-		Size::Sm => "rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-		Size::Md => "px-4 py-2 has-[>svg]:px-3",
-		Size::Lg => "rounded-md px-6 has-[>svg]:px-4",
 	}
 }
 

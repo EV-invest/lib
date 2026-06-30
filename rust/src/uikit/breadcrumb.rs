@@ -1,6 +1,9 @@
 use dioxus::prelude::*;
 
-use crate::cn;
+use crate::{
+	cn,
+	uikit::{BREADCRUMB_ELLIPSIS, BREADCRUMB_ITEM, BREADCRUMB_LINK, BREADCRUMB_LIST, BREADCRUMB_PAGE, BREADCRUMB_SEPARATOR},
+};
 
 #[component]
 pub fn Breadcrumb(#[props(default)] class: String, children: Element) -> Element {
@@ -16,7 +19,7 @@ pub fn Breadcrumb(#[props(default)] class: String, children: Element) -> Element
 
 #[component]
 pub fn BreadcrumbList(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm break-words sm:gap-2.5", class);
+	let cls = cn!(BREADCRUMB_LIST, class);
 	rsx! {
 		ol { class: cls, "data-slot": "breadcrumb-list", {children} }
 	}
@@ -24,7 +27,7 @@ pub fn BreadcrumbList(#[props(default)] class: String, children: Element) -> Ele
 
 #[component]
 pub fn BreadcrumbItem(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("inline-flex items-center gap-1.5", class);
+	let cls = cn!(BREADCRUMB_ITEM, class);
 	rsx! {
 		li { class: cls, "data-slot": "breadcrumb-item", {children} }
 	}
@@ -32,7 +35,7 @@ pub fn BreadcrumbItem(#[props(default)] class: String, children: Element) -> Ele
 
 #[component]
 pub fn BreadcrumbLink(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("hover:text-foreground transition-colors", class);
+	let cls = cn!(BREADCRUMB_LINK, class);
 	rsx! {
 		a { class: cls, "data-slot": "breadcrumb-link", {children} }
 	}
@@ -40,7 +43,7 @@ pub fn BreadcrumbLink(#[props(default)] class: String, children: Element) -> Ele
 
 #[component]
 pub fn BreadcrumbPage(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("text-foreground font-normal", class);
+	let cls = cn!(BREADCRUMB_PAGE, class);
 	rsx! {
 		span {
 			class: cls,
@@ -55,7 +58,7 @@ pub fn BreadcrumbPage(#[props(default)] class: String, children: Element) -> Ele
 
 #[component]
 pub fn BreadcrumbSeparator(#[props(default)] class: String, children: Option<Element>) -> Element {
-	let cls = cn!("[&>svg]:size-3.5", class);
+	let cls = cn!(BREADCRUMB_SEPARATOR, class);
 	rsx! {
 		li {
 			class: cls,
@@ -79,7 +82,7 @@ pub fn BreadcrumbSeparator(#[props(default)] class: String, children: Option<Ele
 
 #[component]
 pub fn BreadcrumbEllipsis(#[props(default)] class: String) -> Element {
-	let cls = cn!("flex size-9 items-center justify-center", class);
+	let cls = cn!(BREADCRUMB_ELLIPSIS, class);
 	rsx! {
 		span {
 			class: cls,

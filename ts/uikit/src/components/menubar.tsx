@@ -7,20 +7,20 @@ import { useDismissableLayer } from "../primitives/dismissable-layer";
 import { usePresence } from "../primitives/presence";
 import { useRovingFocus } from "../primitives/use-roving-focus";
 import { mergeRefs } from "../primitives/merge-refs";
-
-const CONTENT =
-  "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:fade-out-0 " +
-  "data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 " +
-  "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 " +
-  "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[12rem] " +
-  "overflow-hidden rounded-md border p-1 shadow-md";
-
-const SUB_CONTENT =
-  "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out " +
-  "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 " +
-  "data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 " +
-  "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] " +
-  "overflow-hidden rounded-md border p-1 shadow-lg";
+import {
+  MENUBAR_CHECKBOX_ITEM,
+  MENUBAR_CONTENT,
+  MENUBAR_ITEM,
+  MENUBAR_ITEM_INDICATOR,
+  MENUBAR_LABEL,
+  MENUBAR_RADIO_ITEM,
+  MENUBAR_ROOT,
+  MENUBAR_SEPARATOR,
+  MENUBAR_SHORTCUT,
+  MENUBAR_SUB_CONTENT,
+  MENUBAR_SUB_TRIGGER,
+  MENUBAR_TRIGGER,
+} from "../generated/menubar";
 
 interface MenuCtx {
   open: boolean;
@@ -44,10 +44,7 @@ export function Menubar({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="menubar"
       role="menubar"
-      className={cn(
-        "bg-background flex h-9 items-center gap-1 rounded-md border p-1 shadow-xs",
-        className,
-      )}
+      className={cn(MENUBAR_ROOT, className)}
       {...props}
     />
   );
@@ -84,10 +81,7 @@ export function MenubarTrigger({ className, onClick, ...props }: React.Component
       type="button"
       data-slot="menubar-trigger"
       data-state={open ? "open" : "closed"}
-      className={cn(
-        "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex items-center rounded-sm px-2 py-1 text-sm font-medium outline-hidden select-none",
-        className,
-      )}
+      className={cn(MENUBAR_TRIGGER, className)}
       onClick={(e) => {
         onClick?.(e);
         setOpen(!open);
@@ -131,7 +125,7 @@ export function MenubarContent({
         data-side={side}
         role="menu"
         style={style}
-        className={cn(CONTENT, className)}
+        className={cn(MENUBAR_CONTENT, className)}
         onKeyDown={onKeyDown}
         {...props}
       >
@@ -161,10 +155,7 @@ export function MenubarItem({
       data-variant={variant}
       role="menuitem"
       tabIndex={-1}
-      className={cn(
-        "focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        className,
-      )}
+      className={cn(MENUBAR_ITEM, className)}
       {...props}
     />
   );
@@ -182,13 +173,10 @@ export function MenubarCheckboxItem({
       role="menuitemcheckbox"
       aria-checked={checked}
       tabIndex={-1}
-      className={cn(
-        "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        className,
-      )}
+      className={cn(MENUBAR_CHECKBOX_ITEM, className)}
       {...props}
     >
-      <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+      <span className={MENUBAR_ITEM_INDICATOR}>
         {checked && (
           <svg
             className="size-4"
@@ -251,14 +239,11 @@ export function MenubarRadioItem({
       role="menuitemradio"
       aria-checked={checked}
       tabIndex={-1}
-      className={cn(
-        "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        className,
-      )}
+      className={cn(MENUBAR_RADIO_ITEM, className)}
       onClick={() => ctx?.onValueChange(value)}
       {...props}
     >
-      <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+      <span className={MENUBAR_ITEM_INDICATOR}>
         {checked && (
           <svg className="size-2 fill-current" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="10" />
@@ -279,7 +264,7 @@ export function MenubarLabel({
     <div
       data-slot="menubar-label"
       data-inset={inset}
-      className={cn("px-2 py-1.5 text-sm font-medium data-[inset]:pl-8", className)}
+      className={cn(MENUBAR_LABEL, className)}
       {...props}
     />
   );
@@ -290,7 +275,7 @@ export function MenubarSeparator({ className, ...props }: React.ComponentProps<"
     <div
       data-slot="menubar-separator"
       role="separator"
-      className={cn("bg-border -mx-1 my-1 h-px", className)}
+      className={cn(MENUBAR_SEPARATOR, className)}
       {...props}
     />
   );
@@ -300,7 +285,7 @@ export function MenubarShortcut({ className, ...props }: React.ComponentProps<"s
   return (
     <span
       data-slot="menubar-shortcut"
-      className={cn("text-muted-foreground ml-auto text-xs tracking-widest", className)}
+      className={cn(MENUBAR_SHORTCUT, className)}
       {...props}
     />
   );
@@ -354,10 +339,7 @@ export function MenubarSubTrigger({
       data-state={open ? "open" : "closed"}
       role="menuitem"
       tabIndex={-1}
-      className={cn(
-        "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-none select-none data-[inset]:pl-8",
-        className,
-      )}
+      className={cn(MENUBAR_SUB_TRIGGER, className)}
       onClick={(e) => {
         onClick?.(e);
         setOpen(!open);
@@ -390,7 +372,7 @@ export function MenubarSubContent({ className, children, ...props }: React.Compo
       data-slot="menubar-sub-content"
       data-state={open ? "open" : "closed"}
       role="menu"
-      className={cn(SUB_CONTENT, className)}
+      className={cn(MENUBAR_SUB_CONTENT, className)}
       {...props}
     >
       {children}

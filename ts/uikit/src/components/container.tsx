@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
+import { CONTAINER_BASE } from "../generated/container";
 
 export type ContainerProps = React.ComponentProps<"div">;
 
@@ -13,10 +14,7 @@ export function Container({ className, ...props }: ContainerProps) {
   return (
     <div
       data-slot="container"
-      className={cn(
-        "mx-auto w-full max-w-[var(--page-max,90rem)] px-[var(--page-px,1rem)]",
-        className,
-      )}
+      className={cn(CONTAINER_BASE, className)}
       {...props}
     />
   );

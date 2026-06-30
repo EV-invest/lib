@@ -1,10 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::cn;
-
-const LABEL_BASE: &str = "flex items-center gap-2 text-sm leading-none font-medium select-none \
-                          group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 \
-                          peer-disabled:cursor-not-allowed peer-disabled:opacity-50";
+use crate::{cn, uikit::LABEL_BASE};
 
 #[component]
 pub fn Label(#[props(default)] class: String, #[props(default)] r#for: String, children: Element) -> Element {

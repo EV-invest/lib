@@ -1,25 +1,12 @@
 use dioxus::prelude::*;
-use tailwind_fuse::{AsTailwindClass, TwVariant};
 
-use crate::{cn, uikit::label::Label};
-
-#[derive(strum::AsRefStr, PartialEq, TwVariant)]
-#[strum(serialize_all = "kebab-case")]
-#[tw(class = "group/field flex w-full gap-3 data-[invalid=true]:text-destructive")]
-pub enum FieldOrientation {
-	#[tw(default, class = "flex-col [&>*]:w-full [&>.sr-only]:w-auto")]
-	Vertical,
-	#[tw(class = "flex-row items-center [&>[data-slot=field-label]]:flex-auto \
-	              has-[>[data-slot=field-content]]:items-start \
-	              has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px")]
-	Horizontal,
-	#[tw(class = "flex-col [&>*]:w-full [&>.sr-only]:w-auto @md/field-group:flex-row \
-	              @md/field-group:items-center @md/field-group:[&>*]:w-auto \
-	              @md/field-group:[&>[data-slot=field-label]]:flex-auto \
-	              @md/field-group:has-[>[data-slot=field-content]]:items-start \
-	              @md/field-group:has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px")]
-	Responsive,
-}
+use crate::{
+	cn,
+	uikit::{
+		FIELD_BASE, FIELD_CONTENT, FIELD_DESCRIPTION, FIELD_ERROR, FIELD_GROUP, FIELD_LABEL, FIELD_LEGEND, FIELD_SEPARATOR, FIELD_SEPARATOR_CONTENT, FIELD_SEPARATOR_LINE, FIELD_SET,
+		FIELD_TITLE, FieldOrientation, label::Label,
+	},
+};
 
 #[derive(strum::AsRefStr, Clone, Default, PartialEq)]
 #[strum(serialize_all = "kebab-case")]
@@ -31,7 +18,7 @@ pub enum FieldLegendVariant {
 
 #[component]
 pub fn FieldSet(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex flex-col gap-6 has-[>[data-slot=checkbox-group]]:gap-3 has-[>[data-slot=radio-group]]:gap-3", class);
+	let cls = cn!(FIELD_SET, class);
 	rsx! {
 		fieldset { class: cls, "data-slot": "field-set", {children} }
 	}
@@ -39,7 +26,7 @@ pub fn FieldSet(#[props(default)] class: String, children: Element) -> Element {
 
 #[component]
 pub fn FieldLegend(#[props(default)] variant: FieldLegendVariant, #[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("mb-3 font-medium data-[variant=legend]:text-base data-[variant=label]:text-sm", class);
+	let cls = cn!(FIELD_LEGEND, class);
 	rsx! {
 		legend { class: cls, "data-slot": "field-legend", "data-variant": variant.as_ref(), {children} }
 	}
@@ -47,11 +34,7 @@ pub fn FieldLegend(#[props(default)] variant: FieldLegendVariant, #[props(defaul
 
 #[component]
 pub fn FieldGroup(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(
-		"group/field-group @container/field-group flex w-full flex-col gap-7 \
-         data-[slot=checkbox-group]:gap-3 [&>[data-slot=field-group]]:gap-4",
-		class
-	);
+	let cls = cn!(FIELD_GROUP, class);
 	rsx! {
 		div { class: cls, "data-slot": "field-group", {children} }
 	}
@@ -59,7 +42,7 @@ pub fn FieldGroup(#[props(default)] class: String, children: Element) -> Element
 
 #[component]
 pub fn Field(#[props(default)] orientation: FieldOrientation, #[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(orientation.as_class(), class);
+	let cls = cn!(FIELD_BASE, orientation.as_class(), class);
 	rsx! {
 		div {
 			role: "group",
@@ -73,7 +56,7 @@ pub fn Field(#[props(default)] orientation: FieldOrientation, #[props(default)] 
 
 #[component]
 pub fn FieldContent(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("group/field-content flex flex-1 flex-col gap-1.5 leading-snug", class);
+	let cls = cn!(FIELD_CONTENT, class);
 	rsx! {
 		div { class: cls, "data-slot": "field-content", {children} }
 	}
@@ -81,13 +64,7 @@ pub fn FieldContent(#[props(default)] class: String, children: Element) -> Eleme
 
 #[component]
 pub fn FieldLabel(#[props(default)] class: String, #[props(default)] r#for: String, children: Element) -> Element {
-	let cls = cn!(
-		"group/field-label peer/field-label flex w-fit gap-2 leading-snug \
-         group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:w-full \
-         has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border \
-         [&>*]:data-[slot=field]:p-4 has-data-[state=checked]:bg-primary/5 has-data-[state=checked]:border-primary",
-		class
-	);
+	let cls = cn!(FIELD_LABEL, class);
 	rsx! {
 		Label { class: cls, r#for, {children} }
 	}
@@ -95,11 +72,7 @@ pub fn FieldLabel(#[props(default)] class: String, #[props(default)] r#for: Stri
 
 #[component]
 pub fn FieldTitle(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(
-		"flex w-fit items-center gap-2 text-sm leading-snug font-medium \
-         group-data-[disabled=true]/field:opacity-50",
-		class
-	);
+	let cls = cn!(FIELD_TITLE, class);
 	rsx! {
 		div { class: cls, "data-slot": "field-label", {children} }
 	}
@@ -107,12 +80,7 @@ pub fn FieldTitle(#[props(default)] class: String, children: Element) -> Element
 
 #[component]
 pub fn FieldDescription(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(
-		"text-muted-foreground text-sm leading-normal font-normal \
-         group-has-[[data-orientation=horizontal]]/field:text-balance last:mt-0 nth-last-2:-mt-1 \
-         [[data-variant=legend]+&]:-mt-1.5 [&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
-		class
-	);
+	let cls = cn!(FIELD_DESCRIPTION, class);
 	rsx! {
 		p { class: cls, "data-slot": "field-description", {children} }
 	}
@@ -120,12 +88,12 @@ pub fn FieldDescription(#[props(default)] class: String, children: Element) -> E
 
 #[component]
 pub fn FieldSeparator(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2", class);
+	let cls = cn!(FIELD_SEPARATOR, class);
 	rsx! {
 		div { class: cls, "data-slot": "field-separator", "data-content": "true",
-			div { role: "separator", class: "absolute inset-0 top-1/2 shrink-0 bg-border h-px w-full" }
+			div { role: "separator", class: FIELD_SEPARATOR_LINE }
 			span {
-				class: "bg-background text-muted-foreground relative mx-auto block w-fit px-2",
+				class: FIELD_SEPARATOR_CONTENT,
 				"data-slot": "field-separator-content",
 				{children}
 			}
@@ -135,7 +103,7 @@ pub fn FieldSeparator(#[props(default)] class: String, children: Element) -> Ele
 
 #[component]
 pub fn FieldError(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("text-destructive text-sm font-normal", class);
+	let cls = cn!(FIELD_ERROR, class);
 	rsx! {
 		div { role: "alert", class: cls, "data-slot": "field-error", {children} }
 	}

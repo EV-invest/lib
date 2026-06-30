@@ -2,6 +2,7 @@ import * as React from "react";
 import { cn } from "../lib/cn";
 import { Label } from "./label";
 import { Slot } from "../primitives/slot";
+import { FORM_DESCRIPTION, FORM_ITEM, FORM_MESSAGE } from "../generated/form";
 
 /**
  * Dep-light, presentational form primitives. We keep the ARIA id-wiring of
@@ -45,7 +46,7 @@ export function FormItem({ className, ...props }: React.ComponentProps<"div">) {
 
   return (
     <FormItemContext.Provider value={value}>
-      <div data-slot="form-item" className={cn("grid gap-2", className)} {...props} />
+      <div data-slot="form-item" className={cn(FORM_ITEM, className)} {...props} />
     </FormItemContext.Provider>
   );
 }
@@ -94,7 +95,7 @@ export function FormDescription({ className, ...props }: React.ComponentProps<"p
     <p
       data-slot="form-description"
       id={formDescriptionId}
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn(FORM_DESCRIPTION, className)}
       {...props}
     />
   );
@@ -111,7 +112,7 @@ export function FormMessage({ className, children, ...props }: React.ComponentPr
     <p
       data-slot="form-message"
       id={formMessageId}
-      className={cn("text-destructive text-sm", className)}
+      className={cn(FORM_MESSAGE, className)}
       {...props}
     >
       {children}

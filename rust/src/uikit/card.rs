@@ -1,10 +1,13 @@
 use dioxus::prelude::*;
 
-use crate::cn;
+use crate::{
+	cn,
+	uikit::{CARD, CARD_ACTION, CARD_CONTENT, CARD_DESCRIPTION, CARD_FOOTER, CARD_HEADER, CARD_TITLE},
+};
 
 #[component]
 pub fn Card(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm", class);
+	let cls = cn!(CARD, class);
 	rsx! {
 		div { class: cls, "data-slot": "card", {children} }
 	}
@@ -12,11 +15,7 @@ pub fn Card(#[props(default)] class: String, children: Element) -> Element {
 
 #[component]
 pub fn CardHeader(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(
-		"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-2 px-6 \
-         has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6",
-		class
-	);
+	let cls = cn!(CARD_HEADER, class);
 	rsx! {
 		div { class: cls, "data-slot": "card-header", {children} }
 	}
@@ -24,7 +23,7 @@ pub fn CardHeader(#[props(default)] class: String, children: Element) -> Element
 
 #[component]
 pub fn CardTitle(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("leading-none font-semibold", class);
+	let cls = cn!(CARD_TITLE, class);
 	rsx! {
 		div { class: cls, "data-slot": "card-title", {children} }
 	}
@@ -32,7 +31,7 @@ pub fn CardTitle(#[props(default)] class: String, children: Element) -> Element 
 
 #[component]
 pub fn CardDescription(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("text-muted-foreground text-sm", class);
+	let cls = cn!(CARD_DESCRIPTION, class);
 	rsx! {
 		div { class: cls, "data-slot": "card-description", {children} }
 	}
@@ -40,7 +39,7 @@ pub fn CardDescription(#[props(default)] class: String, children: Element) -> El
 
 #[component]
 pub fn CardAction(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("col-start-2 row-span-2 row-start-1 self-start justify-self-end", class);
+	let cls = cn!(CARD_ACTION, class);
 	rsx! {
 		div { class: cls, "data-slot": "card-action", {children} }
 	}
@@ -48,7 +47,7 @@ pub fn CardAction(#[props(default)] class: String, children: Element) -> Element
 
 #[component]
 pub fn CardContent(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("px-6", class);
+	let cls = cn!(CARD_CONTENT, class);
 	rsx! {
 		div { class: cls, "data-slot": "card-content", {children} }
 	}
@@ -56,7 +55,7 @@ pub fn CardContent(#[props(default)] class: String, children: Element) -> Elemen
 
 #[component]
 pub fn CardFooter(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex items-center px-6 [.border-t]:pt-6", class);
+	let cls = cn!(CARD_FOOTER, class);
 	rsx! {
 		div { class: cls, "data-slot": "card-footer", {children} }
 	}

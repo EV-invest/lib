@@ -1,13 +1,12 @@
 use dioxus::prelude::*;
-use tailwind_fuse::{AsTailwindClass, TwVariant};
 
-use crate::cn;
+use crate::{
+	cn,
+	uikit::{EMPTY, EMPTY_CONTENT, EMPTY_DESCRIPTION, EMPTY_HEADER, EMPTY_MEDIA_BASE, EMPTY_TITLE, EmptyMediaVariant},
+};
 #[component]
 pub fn Empty(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(
-		"flex min-w-0 flex-1 flex-col items-center justify-center gap-6 rounded-lg border-dashed p-6 text-center text-balance md:p-12",
-		class
-	);
+	let cls = cn!(EMPTY, class);
 	rsx! {
 		div { class: cls, "data-slot": "empty", {children} }
 	}
@@ -15,25 +14,15 @@ pub fn Empty(#[props(default)] class: String, children: Element) -> Element {
 
 #[component]
 pub fn EmptyHeader(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex max-w-sm flex-col items-center gap-2 text-center", class);
+	let cls = cn!(EMPTY_HEADER, class);
 	rsx! {
 		div { class: cls, "data-slot": "empty-header", {children} }
 	}
 }
 
-#[derive(strum::AsRefStr, PartialEq, TwVariant)]
-#[strum(serialize_all = "kebab-case")]
-#[tw(class = "flex shrink-0 items-center justify-center mb-2 [&_svg]:pointer-events-none [&_svg]:shrink-0")]
-pub enum EmptyMediaVariant {
-	#[tw(default, class = "bg-transparent")]
-	Default,
-	#[tw(class = "bg-muted text-foreground flex size-10 shrink-0 items-center justify-center rounded-lg [&_svg:not([class*='size-'])]:size-6")]
-	Icon,
-}
-
 #[component]
 pub fn EmptyMedia(#[props(default)] variant: EmptyMediaVariant, #[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(variant.as_class(), class);
+	let cls = cn!(EMPTY_MEDIA_BASE, variant.as_class(), class);
 	rsx! {
 		div {
 			class: cls,
@@ -46,7 +35,7 @@ pub fn EmptyMedia(#[props(default)] variant: EmptyMediaVariant, #[props(default)
 
 #[component]
 pub fn EmptyTitle(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("text-lg font-medium tracking-tight", class);
+	let cls = cn!(EMPTY_TITLE, class);
 	rsx! {
 		div { class: cls, "data-slot": "empty-title", {children} }
 	}
@@ -54,7 +43,7 @@ pub fn EmptyTitle(#[props(default)] class: String, children: Element) -> Element
 
 #[component]
 pub fn EmptyDescription(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("text-muted-foreground [&>a:hover]:text-primary text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4", class);
+	let cls = cn!(EMPTY_DESCRIPTION, class);
 	rsx! {
 		div { class: cls, "data-slot": "empty-description", {children} }
 	}
@@ -62,7 +51,7 @@ pub fn EmptyDescription(#[props(default)] class: String, children: Element) -> E
 
 #[component]
 pub fn EmptyContent(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex w-full max-w-sm min-w-0 flex-col items-center gap-4 text-sm text-balance", class);
+	let cls = cn!(EMPTY_CONTENT, class);
 	rsx! {
 		div { class: cls, "data-slot": "empty-content", {children} }
 	}

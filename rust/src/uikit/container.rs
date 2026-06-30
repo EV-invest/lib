@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::cn;
+use crate::{cn, uikit::CONTAINER_BASE};
 
 /// Page-width wrapper: centres content, caps it at `--page-max` and applies the
 /// responsive `--page-px` gutter (tighter on mobile, roomier ≥ sm). Standardises
@@ -8,7 +8,7 @@ use crate::cn;
 /// max width live in one token-driven place.
 #[component]
 pub fn Container(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("mx-auto w-full max-w-[var(--page-max,90rem)] px-[var(--page-px,1rem)]", class);
+	let cls = cn!(CONTAINER_BASE, class);
 	rsx! {
 		div { class: cls, "data-slot": "container", {children} }
 	}

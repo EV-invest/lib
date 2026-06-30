@@ -1,9 +1,12 @@
 use dioxus::prelude::*;
-use tailwind_fuse::{AsTailwindClass, TwVariant};
 
 use crate::{
 	cn,
-	uikit::primitives::{Controllable, use_controllable},
+	uikit::{
+		SIDEBAR_CONTENT, SIDEBAR_FLAT, SIDEBAR_FOOTER, SIDEBAR_GROUP, SIDEBAR_GROUP_CONTENT, SIDEBAR_GROUP_LABEL, SIDEBAR_HEADER, SIDEBAR_INNER, SIDEBAR_INSET, SIDEBAR_MENU,
+		SIDEBAR_MENU_BUTTON_BASE, SIDEBAR_MENU_ITEM, SIDEBAR_RAIL, SIDEBAR_SEPARATOR, SIDEBAR_TRIGGER, SIDEBAR_WRAPPER, SidebarMenuButtonSize, SidebarMenuButtonVariant,
+		primitives::{Controllable, use_controllable},
+	},
 };
 
 // omitted: mobile sheet, cookie, kbd shortcut — see README Limitations
@@ -11,15 +14,6 @@ use crate::{
 const SIDEBAR_WIDTH: &str = "16rem";
 const SIDEBAR_WIDTH_ICON: &str = "3rem";
 
-const SIDEBAR_MENU_BUTTON_BASE: &str = "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm \
-                                        outline-hidden ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent \
-                                        hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent \
-                                        active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 \
-                                        group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none \
-                                        aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium \
-                                        data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent \
-                                        data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! \
-                                        group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0";
 /// Shared sidebar state, provided by [`SidebarProvider`] and read by the parts.
 /// Wraps the `Copy` [`Controllable<bool>`] so the whole context is `Copy`.
 #[derive(Clone, Copy)]
@@ -59,7 +53,7 @@ pub fn SidebarProvider(
 ) -> Element {
 	let open = use_controllable(open, default_open, on_open_change);
 	use_context_provider(|| SidebarContext { open });
-	let cls = cn!("group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full", class);
+	let cls = cn!(SIDEBAR_WRAPPER, class);
 	rsx! {
 		div {
 			"data-slot": "sidebar-wrapper",
@@ -107,7 +101,7 @@ pub fn Sidebar(
 	let ctx = use_sidebar();
 
 	if collapsible == SidebarCollapsible::None {
-		let cls = cn!("bg-sidebar text-sidebar-foreground flex h-full w-(--sidebar-width) flex-col", class);
+		let cls = cn!(SIDEBAR_FLAT, class);
 		return rsx! {
 			div { class: cls, "data-slot": "sidebar", {children} }
 		};
@@ -115,10 +109,7 @@ pub fn Sidebar(
 
 	let state = ctx.state();
 	let data_collapsible = if state == "collapsed" { collapsible.as_ref() } else { "" };
-	let inner = cn!(
-		"bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm",
-		class
-	);
+	let inner = cn!(SIDEBAR_INNER, class);
 	rsx! {
 		div {
 			class: "group peer text-sidebar-foreground hidden md:block",
@@ -135,7 +126,7 @@ pub fn Sidebar(
 #[component]
 pub fn SidebarTrigger(#[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_sidebar();
-	let cls = cn!("inline-flex size-7 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground", class);
+	let cls = cn!(SIDEBAR_TRIGGER, class);
 	rsx! {
 		button {
 			r#type: "button",
@@ -153,10 +144,7 @@ pub fn SidebarTrigger(#[props(default)] class: String, children: Element) -> Ele
 #[component]
 pub fn SidebarRail(#[props(default)] class: String) -> Element {
 	let ctx = use_sidebar();
-	let cls = cn!(
-		"hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] sm:flex",
-		class
-	);
+	let cls = cn!(SIDEBAR_RAIL, class);
 	rsx! {
 		button {
 			r#type: "button",
@@ -173,10 +161,7 @@ pub fn SidebarRail(#[props(default)] class: String) -> Element {
 
 #[component]
 pub fn SidebarInset(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(
-		"bg-background relative flex w-full flex-1 flex-col md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2",
-		class
-	);
+	let cls = cn!(SIDEBAR_INSET, class);
 	rsx! {
 		main { class: cls, "data-slot": "sidebar-inset", {children} }
 	}
@@ -184,7 +169,7 @@ pub fn SidebarInset(#[props(default)] class: String, children: Element) -> Eleme
 
 #[component]
 pub fn SidebarHeader(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex flex-col gap-2 p-2", class);
+	let cls = cn!(SIDEBAR_HEADER, class);
 	rsx! {
 		div { class: cls, "data-slot": "sidebar-header", "data-sidebar": "header", {children} }
 	}
@@ -192,7 +177,7 @@ pub fn SidebarHeader(#[props(default)] class: String, children: Element) -> Elem
 
 #[component]
 pub fn SidebarFooter(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex flex-col gap-2 p-2", class);
+	let cls = cn!(SIDEBAR_FOOTER, class);
 	rsx! {
 		div { class: cls, "data-slot": "sidebar-footer", "data-sidebar": "footer", {children} }
 	}
@@ -200,7 +185,7 @@ pub fn SidebarFooter(#[props(default)] class: String, children: Element) -> Elem
 
 #[component]
 pub fn SidebarSeparator(#[props(default)] class: String) -> Element {
-	let cls = cn!("bg-sidebar-border mx-2 h-px w-auto shrink-0", class);
+	let cls = cn!(SIDEBAR_SEPARATOR, class);
 	rsx! {
 		div { role: "separator", class: cls, "data-slot": "sidebar-separator", "data-sidebar": "separator" }
 	}
@@ -208,7 +193,7 @@ pub fn SidebarSeparator(#[props(default)] class: String) -> Element {
 
 #[component]
 pub fn SidebarContent(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden", class);
+	let cls = cn!(SIDEBAR_CONTENT, class);
 	rsx! {
 		div { class: cls, "data-slot": "sidebar-content", "data-sidebar": "content", {children} }
 	}
@@ -216,7 +201,7 @@ pub fn SidebarContent(#[props(default)] class: String, children: Element) -> Ele
 
 #[component]
 pub fn SidebarGroup(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("relative flex w-full min-w-0 flex-col p-2", class);
+	let cls = cn!(SIDEBAR_GROUP, class);
 	rsx! {
 		div { class: cls, "data-slot": "sidebar-group", "data-sidebar": "group", {children} }
 	}
@@ -224,10 +209,7 @@ pub fn SidebarGroup(#[props(default)] class: String, children: Element) -> Eleme
 
 #[component]
 pub fn SidebarGroupLabel(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(
-		"text-sidebar-foreground/70 ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
-		class
-	);
+	let cls = cn!(SIDEBAR_GROUP_LABEL, class);
 	rsx! {
 		div { class: cls, "data-slot": "sidebar-group-label", "data-sidebar": "group-label", {children} }
 	}
@@ -235,7 +217,7 @@ pub fn SidebarGroupLabel(#[props(default)] class: String, children: Element) -> 
 
 #[component]
 pub fn SidebarGroupContent(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("w-full text-sm", class);
+	let cls = cn!(SIDEBAR_GROUP_CONTENT, class);
 	rsx! {
 		div { class: cls, "data-slot": "sidebar-group-content", "data-sidebar": "group-content", {children} }
 	}
@@ -243,7 +225,7 @@ pub fn SidebarGroupContent(#[props(default)] class: String, children: Element) -
 
 #[component]
 pub fn SidebarMenu(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex w-full min-w-0 flex-col gap-1", class);
+	let cls = cn!(SIDEBAR_MENU, class);
 	rsx! {
 		ul { class: cls, "data-slot": "sidebar-menu", "data-sidebar": "menu", {children} }
 	}
@@ -251,31 +233,10 @@ pub fn SidebarMenu(#[props(default)] class: String, children: Element) -> Elemen
 
 #[component]
 pub fn SidebarMenuItem(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("group/menu-item relative", class);
+	let cls = cn!(SIDEBAR_MENU_ITEM, class);
 	rsx! {
 		li { class: cls, "data-slot": "sidebar-menu-item", "data-sidebar": "menu-item", {children} }
 	}
-}
-
-#[derive(PartialEq, TwVariant)]
-pub enum SidebarMenuButtonVariant {
-	#[tw(default, class = "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground")]
-	Default,
-	#[tw(
-		class = "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]"
-	)]
-	Outline,
-}
-
-#[derive(strum::AsRefStr, PartialEq, TwVariant)]
-#[strum(serialize_all = "kebab-case")]
-pub enum SidebarMenuButtonSize {
-	#[tw(default, class = "h-8 text-sm")]
-	Default,
-	#[tw(class = "h-7 text-xs")]
-	Sm,
-	#[tw(class = "h-12 text-sm group-data-[collapsible=icon]:p-0!")]
-	Lg,
 }
 
 #[component]

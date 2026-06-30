@@ -1,6 +1,14 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { Slot } from "../primitives/slot";
+import {
+  BREADCRUMB_ELLIPSIS,
+  BREADCRUMB_ITEM,
+  BREADCRUMB_LINK,
+  BREADCRUMB_LIST,
+  BREADCRUMB_PAGE,
+  BREADCRUMB_SEPARATOR,
+} from "../generated/breadcrumb";
 
 export function Breadcrumb({ ...props }: React.ComponentProps<"nav">) {
   return <nav aria-label="breadcrumb" data-slot="breadcrumb" {...props} />;
@@ -13,10 +21,7 @@ export function BreadcrumbList({
   return (
     <ol
       data-slot="breadcrumb-list"
-      className={cn(
-        "text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm break-words sm:gap-2.5",
-        className,
-      )}
+      className={cn(BREADCRUMB_LIST, className)}
       {...props}
     />
   );
@@ -29,7 +34,7 @@ export function BreadcrumbItem({
   return (
     <li
       data-slot="breadcrumb-item"
-      className={cn("inline-flex items-center gap-1.5", className)}
+      className={cn(BREADCRUMB_ITEM, className)}
       {...props}
     />
   );
@@ -48,7 +53,7 @@ export function BreadcrumbLink({
   return (
     <Comp
       data-slot="breadcrumb-link"
-      className={cn("hover:text-foreground transition-colors", className)}
+      className={cn(BREADCRUMB_LINK, className)}
       {...(props as Record<string, unknown>)}
     />
   );
@@ -64,7 +69,7 @@ export function BreadcrumbPage({
       role="link"
       aria-disabled="true"
       aria-current="page"
-      className={cn("text-foreground font-normal", className)}
+      className={cn(BREADCRUMB_PAGE, className)}
       {...props}
     />
   );
@@ -80,7 +85,7 @@ export function BreadcrumbSeparator({
       data-slot="breadcrumb-separator"
       role="presentation"
       aria-hidden="true"
-      className={cn("[&>svg]:size-3.5", className)}
+      className={cn(BREADCRUMB_SEPARATOR, className)}
       {...props}
     >
       {children ?? (
@@ -101,7 +106,7 @@ export function BreadcrumbEllipsis({
       data-slot="breadcrumb-ellipsis"
       role="presentation"
       aria-hidden="true"
-      className={cn("flex size-9 items-center justify-center", className)}
+      className={cn(BREADCRUMB_ELLIPSIS, className)}
       {...props}
     >
       <svg

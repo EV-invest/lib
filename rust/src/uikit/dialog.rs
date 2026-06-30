@@ -2,18 +2,11 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::primitives::{Controllable, use_controllable},
+	uikit::{
+		DIALOG_CLOSE, DIALOG_CONTENT, DIALOG_DESCRIPTION, DIALOG_FOOTER, DIALOG_HEADER, DIALOG_OVERLAY, DIALOG_TITLE,
+		primitives::{Controllable, use_controllable},
+	},
 };
-
-const DIALOG_OVERLAY: &str = "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 \
-                              data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50";
-const DIALOG_CONTENT: &str = "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 \
-                              data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] \
-                              left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg \
-                              border p-6 shadow-lg duration-200 sm:max-w-lg";
-const DIALOG_CLOSE: &str = "ring-offset-background focus:ring-ring absolute top-4 right-4 rounded-xs opacity-70 transition-opacity \
-                            hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none \
-                            [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4";
 
 #[component]
 pub fn Dialog(open: Option<bool>, #[props(default)] default_open: bool, on_open_change: Option<EventHandler<bool>>, children: Element) -> Element {
@@ -109,28 +102,28 @@ pub fn DialogClose(#[props(default)] class: String, children: Element) -> Elemen
 }
 #[component]
 pub fn DialogHeader(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex flex-col gap-2 text-center sm:text-left", class);
+	let cls = cn!(DIALOG_HEADER, class);
 	rsx! {
 		div { class: cls, "data-slot": "dialog-header", {children} }
 	}
 }
 #[component]
 pub fn DialogFooter(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", class);
+	let cls = cn!(DIALOG_FOOTER, class);
 	rsx! {
 		div { class: cls, "data-slot": "dialog-footer", {children} }
 	}
 }
 #[component]
 pub fn DialogTitle(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("text-lg leading-none font-semibold", class);
+	let cls = cn!(DIALOG_TITLE, class);
 	rsx! {
 		h2 { class: cls, "data-slot": "dialog-title", {children} }
 	}
 }
 #[component]
 pub fn DialogDescription(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("text-muted-foreground text-sm", class);
+	let cls = cn!(DIALOG_DESCRIPTION, class);
 	rsx! {
 		p { class: cls, "data-slot": "dialog-description", {children} }
 	}

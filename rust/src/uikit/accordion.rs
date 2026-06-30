@@ -2,13 +2,12 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::primitives::{Controllable, use_controllable},
+	uikit::{
+		ACCORDION_CONTENT, ACCORDION_CONTENT_INNER, ACCORDION_HEADER, ACCORDION_ITEM, ACCORDION_TRIGGER,
+		primitives::{Controllable, use_controllable},
+	},
 };
 
-const ACCORDION_TRIGGER: &str = "focus-visible:border-ring focus-visible:ring-ring/50 flex flex-1 items-start justify-between gap-4 \
-                                 rounded-md py-4 text-left text-sm font-medium transition-all outline-none hover:underline \
-                                 focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180";
-const ACCORDION_CONTENT: &str = "data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden text-sm";
 const CHEVRON: &str = "text-muted-foreground pointer-events-none size-4 shrink-0 translate-y-0.5 transition-transform duration-200";
 
 /// Single keeps at most one item open; Multiple allows several.
@@ -38,7 +37,7 @@ pub fn Accordion(
 #[component]
 pub fn AccordionItem(value: String, #[props(default)] class: String, children: Element) -> Element {
 	use_context_provider(|| ItemCtx { value: value.clone() });
-	let cls = cn!("border-b last:border-b-0", class);
+	let cls = cn!(ACCORDION_ITEM, class);
 	rsx! {
 		div { class: cls, "data-slot": "accordion-item", {children} }
 	}
@@ -53,7 +52,7 @@ pub fn AccordionTrigger(#[props(default)] class: String, children: Element) -> E
 	let aria_expanded = if open { "true" } else { "false" };
 	let cls = cn!(ACCORDION_TRIGGER, class);
 	rsx! {
-		h3 { class: "flex", "data-slot": "accordion-header",
+		h3 { class: ACCORDION_HEADER, "data-slot": "accordion-header",
 			button {
 				r#type: "button",
 				class: cls,
@@ -86,7 +85,7 @@ pub fn AccordionContent(#[props(default)] class: String, children: Element) -> E
 	if !ctx.is_open(&item.value) {
 		return rsx! {};
 	}
-	let inner = cn!("pt-0 pb-4", class);
+	let inner = cn!(ACCORDION_CONTENT_INNER, class);
 	rsx! {
 		div { class: ACCORDION_CONTENT, "data-slot": "accordion-content", "data-state": "open",
 			div { class: inner, {children} }

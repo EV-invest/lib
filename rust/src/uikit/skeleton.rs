@@ -1,8 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::cn;
-
-const SKELETON_BASE: &str = "bg-accent animate-pulse rounded-md";
+use crate::{cn, uikit::SKELETON_BASE};
 
 #[component]
 pub fn Skeleton(#[props(default)] class: String) -> Element {

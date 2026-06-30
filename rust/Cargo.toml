@@ -1,6 +1,6 @@
 [package]
 name = "ev_lib"
-version = "0.3.5"
+version = "0.3.8"
 edition = "2024"
 description = "EV-invest shared Rust libraries, one per feature"
 license = "BlueOak-1.0.0"
@@ -17,6 +17,7 @@ architecture = ["dep:async-trait", "dep:serde", "dep:uuid", "dep:jiff"]
 # `asset!` and injects their `@font-face` through `document::Style`.
 uikit = [
     "dep:dioxus",
+    "dep:ev_lib_classes",
     "dep:tailwind_fuse",
     "tailwind_fuse?/variant",
     "dep:strum",
@@ -74,6 +75,7 @@ wasm = ["uuid?/js", "dioxus?/web", "dep:web-sys"]
 [dependencies]
 async-trait = { workspace = true, optional = true }
 dioxus = { workspace = true, features = ["macro", "html", "signals", "hooks"], optional = true }
+ev_lib_classes = { workspace = true, optional = true }
 jiff = { workspace = true, features = ["serde"], optional = true }
 serde = { workspace = true, features = ["derive"], optional = true }
 serde_json = { workspace = true, optional = true }
@@ -97,12 +99,13 @@ wasm-bindgen-futures = { version = "0.4", optional = true }
 web-sys = { version = "0.3", optional = true, features = ["Document", "Window", "HtmlDocument", "Storage", "Navigator", "Element"] }
 
 [dev-dependencies]
+ev_lib = { path = ".", features = ["architecture", "uikit", "analytics", "error_monitoring", "experiments"] }
+
 async-trait.workspace = true
 axum = { workspace = true, features = ["ws"] }
 dioxus = { workspace = true, features = ["signals", "hooks"] }
 dioxus-liveview = { workspace = true, features = ["axum"] }
 dioxus-ssr.workspace = true
-ev_lib = { workspace = true, features = ["architecture", "uikit", "analytics", "error_monitoring", "experiments"] }
 jiff = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

@@ -1,16 +1,9 @@
 use dioxus::prelude::*;
 
-use crate::cn;
-
-const GROUP_BASE: &str = "flex h-full w-full data-[panel-group-direction=vertical]:flex-col";
-const HANDLE_BASE: &str = "bg-border focus-visible:ring-ring relative flex w-px items-center justify-center after:absolute \
-                           after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2 focus-visible:ring-1 \
-                           focus-visible:ring-offset-1 focus-visible:outline-hidden data-[panel-group-direction=vertical]:h-px \
-                           data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:after:left-0 \
-                           data-[panel-group-direction=vertical]:after:h-1 data-[panel-group-direction=vertical]:after:w-full \
-                           data-[panel-group-direction=vertical]:after:translate-x-0 data-[panel-group-direction=vertical]:after:-translate-y-1/2 \
-                           [&[data-panel-group-direction=vertical]>div]:rotate-90";
-const GRIP_BASE: &str = "bg-border z-10 flex h-4 w-3 items-center justify-center rounded-xs border";
+use crate::{
+	cn,
+	uikit::{RESIZABLE_GROUP, RESIZABLE_HANDLE, RESIZABLE_HANDLE_GRIP, RESIZABLE_PANEL},
+};
 
 /// Layout axis of a [`ResizablePanelGroup`]; rendered as `data-panel-group-direction`
 /// so the canonical class selectors flip the flex axis and the handle geometry.
@@ -29,7 +22,7 @@ pub fn ResizablePanelGroup(#[props(default)] direction: ResizableDirection, #[pr
 		direction,
 		step: keyboard_step,
 	});
-	let cls = cn!(GROUP_BASE, class);
+	let cls = cn!(RESIZABLE_GROUP, class);
 	rsx! {
 		div {
 			class: cls,
@@ -52,7 +45,7 @@ pub fn ResizablePanel(index: usize, #[props(default = 50.0)] default_size: f64, 
 		sizes.set(current);
 	});
 	let basis = ctx.size_at(index);
-	let cls = cn!("relative", class);
+	let cls = cn!(RESIZABLE_PANEL, class);
 	rsx! {
 		div {
 			class: cls,
@@ -78,7 +71,7 @@ pub fn ResizableHandle(index: usize, #[props(default)] with_handle: bool, #[prop
 		ctx.resize(index, delta);
 	};
 
-	let cls = cn!(HANDLE_BASE, class);
+	let cls = cn!(RESIZABLE_HANDLE, class);
 	rsx! {
 		div {
 			class: cls,
@@ -89,7 +82,7 @@ pub fn ResizableHandle(index: usize, #[props(default)] with_handle: bool, #[prop
 			tabindex: "0",
 			onkeydown: on_key,
 			if with_handle {
-				div { class: GRIP_BASE,
+				div { class: RESIZABLE_HANDLE_GRIP,
 					svg {
 						class: "size-2.5",
 						xmlns: "http://www.w3.org/2000/svg",

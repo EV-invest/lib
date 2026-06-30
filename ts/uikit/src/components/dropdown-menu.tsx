@@ -8,6 +8,17 @@ import { useRovingFocus } from "../primitives/use-roving-focus";
 import { mergeRefs } from "../primitives/merge-refs";
 import { Portal } from "../primitives/portal";
 import { Slot } from "../primitives/slot";
+import {
+  DROPDOWN_MENU_CHECK_ITEM,
+  DROPDOWN_MENU_CONTENT,
+  DROPDOWN_MENU_ITEM,
+  DROPDOWN_MENU_ITEM_INDICATOR,
+  DROPDOWN_MENU_LABEL,
+  DROPDOWN_MENU_SEPARATOR,
+  DROPDOWN_MENU_SHORTCUT,
+  DROPDOWN_MENU_SUB_CONTENT,
+  DROPDOWN_MENU_SUB_TRIGGER,
+} from "../generated/dropdown-menu";
 
 interface DropdownMenuContextValue {
   open: boolean;
@@ -131,7 +142,7 @@ export function DropdownMenuContent({
           ref={mergeRefs(floatingRef, dismissRef, presRef, contentRef)}
           style={style}
           className={cn(
-            "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md",
+            DROPDOWN_MENU_CONTENT,
             className,
           )}
           {...(props as Record<string, unknown>)}
@@ -174,7 +185,7 @@ export function DropdownMenuItem({
       role="menuitem"
       tabIndex={disabled ? undefined : -1}
       className={cn(
-        "focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        DROPDOWN_MENU_ITEM,
         className,
       )}
       onClick={(e) => {
@@ -217,7 +228,7 @@ export function DropdownMenuCheckboxItem({
       data-disabled={disabled ? "" : undefined}
       tabIndex={disabled ? undefined : -1}
       className={cn(
-        "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        DROPDOWN_MENU_CHECK_ITEM,
         className,
       )}
       onClick={(e) => {
@@ -227,7 +238,7 @@ export function DropdownMenuCheckboxItem({
       }}
       {...props}
     >
-      <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+      <span className={DROPDOWN_MENU_ITEM_INDICATOR}>
         {checked ? (
           <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M20 6 9 17l-5-5" />
@@ -297,7 +308,7 @@ export function DropdownMenuRadioItem({
       data-disabled={disabled ? "" : undefined}
       tabIndex={disabled ? undefined : -1}
       className={cn(
-        "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        DROPDOWN_MENU_CHECK_ITEM,
         className,
       )}
       onClick={(e) => {
@@ -308,7 +319,7 @@ export function DropdownMenuRadioItem({
       }}
       {...props}
     >
-      <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+      <span className={DROPDOWN_MENU_ITEM_INDICATOR}>
         {checked ? (
           <svg className="size-2 fill-current" viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="12" r="10" />
@@ -329,7 +340,7 @@ export function DropdownMenuLabel({ className, inset, ...props }: DropdownMenuLa
     <div
       data-slot="dropdown-menu-label"
       data-inset={inset ? "" : undefined}
-      className={cn("px-2 py-1.5 text-sm font-medium data-[inset]:pl-8", className)}
+      className={cn(DROPDOWN_MENU_LABEL, className)}
       {...props}
     />
   );
@@ -340,7 +351,7 @@ export function DropdownMenuSeparator({ className, ...props }: React.ComponentPr
     <div
       data-slot="dropdown-menu-separator"
       role="separator"
-      className={cn("bg-border -mx-1 my-1 h-px", className)}
+      className={cn(DROPDOWN_MENU_SEPARATOR, className)}
       {...props}
     />
   );
@@ -350,7 +361,7 @@ export function DropdownMenuShortcut({ className, ...props }: React.ComponentPro
   return (
     <span
       data-slot="dropdown-menu-shortcut"
-      className={cn("text-muted-foreground ml-auto text-xs tracking-widest", className)}
+      className={cn(DROPDOWN_MENU_SHORTCUT, className)}
       {...props}
     />
   );
@@ -402,7 +413,7 @@ export function DropdownMenuSubTrigger({ className, inset, children, onClick, ..
       aria-expanded={ctx?.open}
       tabIndex={-1}
       className={cn(
-        "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        DROPDOWN_MENU_SUB_TRIGGER,
         className,
       )}
       onClick={(e) => {
@@ -428,7 +439,7 @@ export function DropdownMenuSubContent({ className, children, ...props }: React.
       data-state="open"
       role="menu"
       className={cn(
-        "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-md border p-1 shadow-lg",
+        DROPDOWN_MENU_SUB_CONTENT,
         className,
       )}
       {...props}

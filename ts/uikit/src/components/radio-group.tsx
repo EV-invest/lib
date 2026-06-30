@@ -2,13 +2,7 @@ import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
 import { useRovingFocus } from "../primitives/use-roving-focus";
-
-const ROOT_BASE = "grid gap-3";
-const ITEM_BASE =
-  "border-input text-primary focus-visible:border-ring focus-visible:ring-ring/50 " +
-  "aria-invalid:ring-destructive/20 aria-invalid:border-destructive aspect-square size-4 " +
-  "shrink-0 rounded-full border shadow-xs transition-[color,box-shadow] outline-none " +
-  "focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50";
+import { RADIO_GROUP_ITEM, RADIO_GROUP_ROOT } from "../generated/radio-group";
 
 interface RadioGroupContextValue {
   value: string;
@@ -71,7 +65,7 @@ export function RadioGroup({
       <div
         data-slot="radio-group"
         role="radiogroup"
-        className={cn(ROOT_BASE, className)}
+        className={cn(RADIO_GROUP_ROOT, className)}
         onKeyDown={(e) => {
           onKeyDown?.(e);
           rovingKeyDown(e);
@@ -117,7 +111,7 @@ export function RadioGroupItem({
       aria-checked={checked}
       disabled={disabled}
       tabIndex={indexRef.current === ctx.activeIndex ? 0 : -1}
-      className={cn(ITEM_BASE, className)}
+      className={cn(RADIO_GROUP_ITEM, className)}
       onClick={(e) => {
         onClick?.(e);
         ctx.setValue(value);

@@ -73,8 +73,25 @@
         };
 
         combined = v_flakes.utils.combine { inherit rust; modules = [ rs github readme ]; };
+
+        # `nix run .#publish -- <major|minor|patch>`: cargo-release for the crates
+        # plus npm publish for every impacted ts package. See scripts/publish.rs;
+        # this just provisions the toolchain and runs it as a cargo script.
+        publish = pkgs.writeShellApplication {
+          name = "publish";
+          runtimeInputs = [ rust pkgs.cargo-release pkgs.nodejs pkgs.git ];
+          text = ''
+            cd "$(git rev-parse --show-toplevel)"
+            exec cargo -Zscript -q scripts/publish.rs "$@"
+          '';
+        };
       in
       {
+        apps.publish = {
+          type = "app";
+          program = "${publish}/bin/publish";
+        };
+
         devShells.default =
           with pkgs;
           mkShell {

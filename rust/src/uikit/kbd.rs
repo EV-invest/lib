@@ -1,11 +1,9 @@
 use dioxus::prelude::*;
 
-use crate::cn;
-
-const KBD_BASE: &str = "bg-muted text-muted-foreground pointer-events-none inline-flex h-5 w-fit min-w-5 \
-                        items-center justify-center gap-1 rounded-sm px-1 font-sans text-xs font-medium select-none \
-                        [&_svg:not([class*='size-'])]:size-3 \
-                        [[data-slot=tooltip-content]_&]:bg-background/20 [[data-slot=tooltip-content]_&]:text-background";
+use crate::{
+	cn,
+	uikit::{KBD_BASE, KBD_GROUP_BASE},
+};
 
 #[component]
 pub fn Kbd(#[props(default)] class: String, children: Element) -> Element {
@@ -17,7 +15,7 @@ pub fn Kbd(#[props(default)] class: String, children: Element) -> Element {
 
 #[component]
 pub fn KbdGroup(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("inline-flex items-center gap-1", class);
+	let cls = cn!(KBD_GROUP_BASE, class);
 	rsx! {
 		kbd { class: cls, "data-slot": "kbd-group", {children} }
 	}

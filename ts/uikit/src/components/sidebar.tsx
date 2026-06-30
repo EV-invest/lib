@@ -2,6 +2,30 @@ import * as React from "react";
 import { cn } from "../lib/cn";
 import { Slot } from "../primitives/slot";
 import { useControllableState } from "../primitives/use-controllable-state";
+import {
+  SIDEBAR_MENU_BUTTON_BASE,
+  sidebarMenuButtonVariantClasses,
+  sidebarMenuButtonSizeClasses,
+  SIDEBAR_WRAPPER,
+  SIDEBAR_FLAT,
+  SIDEBAR_INNER,
+  SIDEBAR_TRIGGER,
+  SIDEBAR_RAIL,
+  SIDEBAR_INSET,
+  SIDEBAR_HEADER,
+  SIDEBAR_FOOTER,
+  SIDEBAR_SEPARATOR,
+  SIDEBAR_CONTENT,
+  SIDEBAR_GROUP,
+  SIDEBAR_GROUP_LABEL,
+  SIDEBAR_GROUP_CONTENT,
+  SIDEBAR_MENU,
+  SIDEBAR_MENU_ITEM,
+  type SidebarMenuButtonVariant,
+  type SidebarMenuButtonSize,
+} from "../generated/sidebar";
+
+export type { SidebarMenuButtonVariant, SidebarMenuButtonSize };
 
 // omitted: mobile sheet, cookie, kbd shortcut — see README Limitations
 
@@ -65,10 +89,7 @@ export function SidebarProvider({
             ...style,
           } as React.CSSProperties
         }
-        className={cn(
-          "group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full",
-          className,
-        )}
+        className={cn(SIDEBAR_WRAPPER, className)}
         {...props}
       >
         {children}
@@ -97,10 +118,7 @@ export function Sidebar({
     return (
       <div
         data-slot="sidebar"
-        className={cn(
-          "bg-sidebar text-sidebar-foreground flex h-full w-(--sidebar-width) flex-col",
-          className,
-        )}
+        className={cn(SIDEBAR_FLAT, className)}
         {...props}
       >
         {children}
@@ -119,10 +137,7 @@ export function Sidebar({
     >
       <div
         data-slot="sidebar-inner"
-        className={cn(
-          "bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm",
-          className,
-        )}
+        className={cn(SIDEBAR_INNER, className)}
         {...props}
       >
         {children}
@@ -145,10 +160,7 @@ export function SidebarTrigger({
       data-sidebar="trigger"
       data-slot="sidebar-trigger"
       aria-label="Toggle Sidebar"
-      className={cn(
-        "inline-flex size-7 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground",
-        className,
-      )}
+      className={cn(SIDEBAR_TRIGGER, className)}
       onClick={(event) => {
         onClick?.(event);
         toggleSidebar();
@@ -176,10 +188,7 @@ export function SidebarRail({
       tabIndex={-1}
       onClick={toggleSidebar}
       title="Toggle Sidebar"
-      className={cn(
-        "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] sm:flex",
-        className,
-      )}
+      className={cn(SIDEBAR_RAIL, className)}
       {...props}
     />
   );
@@ -189,11 +198,7 @@ export function SidebarInset({ className, ...props }: React.ComponentProps<"main
   return (
     <main
       data-slot="sidebar-inset"
-      className={cn(
-        "bg-background relative flex w-full flex-1 flex-col",
-        "md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2",
-        className,
-      )}
+      className={cn(SIDEBAR_INSET, className)}
       {...props}
     />
   );
@@ -204,7 +209,7 @@ export function SidebarHeader({ className, ...props }: React.ComponentProps<"div
     <div
       data-slot="sidebar-header"
       data-sidebar="header"
-      className={cn("flex flex-col gap-2 p-2", className)}
+      className={cn(SIDEBAR_HEADER, className)}
       {...props}
     />
   );
@@ -215,7 +220,7 @@ export function SidebarFooter({ className, ...props }: React.ComponentProps<"div
     <div
       data-slot="sidebar-footer"
       data-sidebar="footer"
-      className={cn("flex flex-col gap-2 p-2", className)}
+      className={cn(SIDEBAR_FOOTER, className)}
       {...props}
     />
   );
@@ -230,7 +235,7 @@ export function SidebarSeparator({
       data-slot="sidebar-separator"
       data-sidebar="separator"
       role="separator"
-      className={cn("bg-sidebar-border mx-2 h-px w-auto shrink-0", className)}
+      className={cn(SIDEBAR_SEPARATOR, className)}
       {...props}
     />
   );
@@ -241,10 +246,7 @@ export function SidebarContent({ className, ...props }: React.ComponentProps<"di
     <div
       data-slot="sidebar-content"
       data-sidebar="content"
-      className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
-        className,
-      )}
+      className={cn(SIDEBAR_CONTENT, className)}
       {...props}
     />
   );
@@ -255,7 +257,7 @@ export function SidebarGroup({ className, ...props }: React.ComponentProps<"div"
     <div
       data-slot="sidebar-group"
       data-sidebar="group"
-      className={cn("relative flex w-full min-w-0 flex-col p-2", className)}
+      className={cn(SIDEBAR_GROUP, className)}
       {...props}
     />
   );
@@ -276,11 +278,7 @@ export function SidebarGroupLabel({
     <Comp
       data-slot="sidebar-group-label"
       data-sidebar="group-label"
-      className={cn(
-        "text-sidebar-foreground/70 ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
-        "group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
-        className,
-      )}
+      className={cn(SIDEBAR_GROUP_LABEL, className)}
       {...(props as Record<string, unknown>)}
     />
   );
@@ -294,7 +292,7 @@ export function SidebarGroupContent({
     <div
       data-slot="sidebar-group-content"
       data-sidebar="group-content"
-      className={cn("w-full text-sm", className)}
+      className={cn(SIDEBAR_GROUP_CONTENT, className)}
       {...props}
     />
   );
@@ -305,7 +303,7 @@ export function SidebarMenu({ className, ...props }: React.ComponentProps<"ul">)
     <ul
       data-slot="sidebar-menu"
       data-sidebar="menu"
-      className={cn("flex w-full min-w-0 flex-col gap-1", className)}
+      className={cn(SIDEBAR_MENU, className)}
       {...props}
     />
   );
@@ -316,29 +314,11 @@ export function SidebarMenuItem({ className, ...props }: React.ComponentProps<"l
     <li
       data-slot="sidebar-menu-item"
       data-sidebar="menu-item"
-      className={cn("group/menu-item relative", className)}
+      className={cn(SIDEBAR_MENU_ITEM, className)}
       {...props}
     />
   );
 }
-
-const sidebarMenuButtonBase =
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-hidden ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0";
-
-const sidebarMenuButtonVariantClasses = {
-  default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-  outline:
-    "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
-} as const;
-
-const sidebarMenuButtonSizeClasses = {
-  default: "h-8 text-sm",
-  sm: "h-7 text-xs",
-  lg: "h-12 text-sm group-data-[collapsible=icon]:p-0!",
-} as const;
-
-export type SidebarMenuButtonVariant = keyof typeof sidebarMenuButtonVariantClasses;
-export type SidebarMenuButtonSize = keyof typeof sidebarMenuButtonSizeClasses;
 
 export interface SidebarMenuButtonProps extends React.ComponentProps<"button"> {
   asChild?: boolean;
@@ -364,7 +344,7 @@ export function SidebarMenuButton({
       data-size={size}
       data-active={isActive}
       className={cn(
-        sidebarMenuButtonBase,
+        SIDEBAR_MENU_BUTTON_BASE,
         sidebarMenuButtonVariantClasses[variant],
         sidebarMenuButtonSizeClasses[size],
         className,

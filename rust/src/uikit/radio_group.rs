@@ -2,14 +2,11 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::primitives::{Controllable, use_controllable},
+	uikit::{
+		RADIO_GROUP_ITEM, RADIO_GROUP_ROOT,
+		primitives::{Controllable, use_controllable},
+	},
 };
-
-const ROOT_BASE: &str = "grid gap-3";
-const ITEM_BASE: &str = "border-input text-primary focus-visible:border-ring focus-visible:ring-ring/50 \
-                         aria-invalid:ring-destructive/20 aria-invalid:border-destructive aspect-square size-4 \
-                         shrink-0 rounded-full border shadow-xs transition-[color,box-shadow] outline-none \
-                         focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50";
 
 #[component]
 pub fn RadioGroup(
@@ -21,7 +18,7 @@ pub fn RadioGroup(
 ) -> Element {
 	let state = use_controllable(value, default_value, on_value_change);
 	use_context_provider(|| RadioGroupContext { value: state });
-	let cls = cn!(ROOT_BASE, class);
+	let cls = cn!(RADIO_GROUP_ROOT, class);
 	rsx! {
 		div {
 			class: cls,
@@ -35,7 +32,7 @@ pub fn RadioGroup(
 pub fn RadioGroupItem(value: String, #[props(default)] class: String, #[props(default)] disabled: bool, children: Element) -> Element {
 	let ctx = use_context::<RadioGroupContext>();
 	let checked = ctx.value.get() == value;
-	let cls = cn!(ITEM_BASE, class);
+	let cls = cn!(RADIO_GROUP_ITEM, class);
 	let select_value = value.clone();
 	rsx! {
 		button {

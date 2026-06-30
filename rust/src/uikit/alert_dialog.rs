@@ -3,18 +3,11 @@ use dioxus::prelude::*;
 use crate::{
 	cn,
 	uikit::{
-		Size,
-		button::{ButtonVariant, button_classes},
+		ALERT_DIALOG_CONTENT, ALERT_DIALOG_DESCRIPTION, ALERT_DIALOG_FOOTER, ALERT_DIALOG_HEADER, ALERT_DIALOG_OVERLAY, ALERT_DIALOG_TITLE, ButtonVariant, Size,
+		button::button_classes,
 		primitives::{Controllable, use_controllable},
 	},
 };
-
-const ALERT_OVERLAY: &str = "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 \
-                             data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50";
-const ALERT_CONTENT: &str = "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 \
-                             data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] \
-                             left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg \
-                             border p-6 shadow-lg duration-200 sm:max-w-lg";
 
 #[component]
 pub fn AlertDialog(open: Option<bool>, #[props(default)] default_open: bool, on_open_change: Option<EventHandler<bool>>, children: Element) -> Element {
@@ -44,11 +37,11 @@ pub fn AlertDialogContent(#[props(default)] class: String, children: Element) ->
 	if !ctx.open.get() {
 		return rsx! {};
 	}
-	let cls = cn!(ALERT_CONTENT, class);
+	let cls = cn!(ALERT_DIALOG_CONTENT, class);
 	rsx! {
 		// dep-light: native focus order, no trap/portal — see README Limitations
 		div {
-			class: ALERT_OVERLAY,
+			class: ALERT_DIALOG_OVERLAY,
 			"data-slot": "alert-dialog-overlay",
 			"data-state": "open",
 			onclick: move |_| ctx.open.set(false),
@@ -68,28 +61,28 @@ pub fn AlertDialogContent(#[props(default)] class: String, children: Element) ->
 }
 #[component]
 pub fn AlertDialogHeader(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex flex-col gap-2 text-center sm:text-left", class);
+	let cls = cn!(ALERT_DIALOG_HEADER, class);
 	rsx! {
 		div { class: cls, "data-slot": "alert-dialog-header", {children} }
 	}
 }
 #[component]
 pub fn AlertDialogFooter(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", class);
+	let cls = cn!(ALERT_DIALOG_FOOTER, class);
 	rsx! {
 		div { class: cls, "data-slot": "alert-dialog-footer", {children} }
 	}
 }
 #[component]
 pub fn AlertDialogTitle(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("text-lg font-semibold", class);
+	let cls = cn!(ALERT_DIALOG_TITLE, class);
 	rsx! {
 		h2 { class: cls, "data-slot": "alert-dialog-title", {children} }
 	}
 }
 #[component]
 pub fn AlertDialogDescription(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("text-muted-foreground text-sm", class);
+	let cls = cn!(ALERT_DIALOG_DESCRIPTION, class);
 	rsx! {
 		p { class: cls, "data-slot": "alert-dialog-description", {children} }
 	}

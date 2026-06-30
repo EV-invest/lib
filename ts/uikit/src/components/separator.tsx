@@ -1,16 +1,12 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
+import {
+  SEPARATOR_BASE,
+  separatorOrientations,
+  type SeparatorOrientation,
+} from "../generated/separator";
 
-const SEPARATOR_BASE = "bg-border shrink-0";
-
-const separatorOrientations = {
-  horizontal:
-    "data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full",
-  vertical:
-    "data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px",
-} as const;
-
-export type SeparatorOrientation = keyof typeof separatorOrientations;
+export type { SeparatorOrientation };
 
 export interface SeparatorProps extends React.ComponentProps<"div"> {
   orientation?: SeparatorOrientation;
