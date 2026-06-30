@@ -1,6 +1,6 @@
 [package]
 name = "ev_lib"
-version = "0.3.4"
+version = "0.3.5"
 edition = "2024"
 description = "EV-invest shared Rust libraries, one per feature"
 license = "BlueOak-1.0.0"
