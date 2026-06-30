@@ -2,15 +2,11 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::primitives::{Controllable, use_controllable},
+	uikit::{
+		TABS_CONTENT, TABS_LIST, TABS_ROOT, TABS_TRIGGER,
+		primitives::{Controllable, use_controllable},
+	},
 };
-
-const TABS_LIST: &str = "bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-lg p-[3px]";
-const TABS_TRIGGER: &str = "data-[state=active]:bg-background focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring \
-                            text-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md \
-                            border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] \
-                            focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 \
-                            data-[state=active]:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4";
 
 /// Tab layout axis; also drives the roving-focus arrow keys in the TS mirror.
 #[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
@@ -32,7 +28,7 @@ pub fn Tabs(
 ) -> Element {
 	let state = use_controllable(value, default_value, on_value_change);
 	use_context_provider(|| TabsCtx { value: state, orientation });
-	let cls = cn!("flex flex-col gap-2", class);
+	let cls = cn!(TABS_ROOT, class);
 	rsx! {
 		div { class: cls, "data-slot": "tabs", "data-orientation": orientation.as_ref(), {children} }
 	}
@@ -78,7 +74,7 @@ pub fn TabsContent(value: String, #[props(default)] class: String, children: Ele
 	if ctx.value.get() != value {
 		return rsx! {};
 	}
-	let cls = cn!("flex-1 outline-none", class);
+	let cls = cn!(TABS_CONTENT, class);
 	rsx! {
 		div { role: "tabpanel", class: cls, "data-slot": "tabs-content", "data-state": "active", {children} }
 	}

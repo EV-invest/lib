@@ -1,21 +1,7 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
-
-const ROOT_BASE =
-  "relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 " +
-  "data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 " +
-  "data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col";
-const TRACK_BASE =
-  "bg-muted relative grow overflow-hidden rounded-full " +
-  "data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full " +
-  "data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5";
-const RANGE_BASE =
-  "bg-primary absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full";
-const THUMB_BASE =
-  "border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-white shadow-sm " +
-  "transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden " +
-  "disabled:pointer-events-none disabled:opacity-50";
+import { SLIDER_RANGE, SLIDER_ROOT, SLIDER_THUMB, SLIDER_TRACK } from "../generated/slider";
 
 type Orientation = "horizontal" | "vertical";
 
@@ -132,7 +118,7 @@ export function Slider({
       data-slot="slider"
       data-orientation={orientation}
       data-disabled={disabled || undefined}
-      className={cn(ROOT_BASE, className)}
+      className={cn(SLIDER_ROOT, className)}
       {...props}
       // Pointer handling lives on the root, not the track: the thumb sits above
       // the track (absolute), so grabbing it must still start a drag.
@@ -144,19 +130,19 @@ export function Slider({
         ref={trackRef}
         data-slot="slider-track"
         data-orientation={orientation}
-        className={TRACK_BASE}
+        className={SLIDER_TRACK}
       >
         <span
           data-slot="slider-range"
           data-orientation={orientation}
-          className={RANGE_BASE}
+          className={SLIDER_RANGE}
           style={rangeStyle}
         />
       </span>
       <span
         data-slot="slider-thumb"
         data-orientation={orientation}
-        className={THUMB_BASE}
+        className={SLIDER_THUMB}
         style={thumbStyle}
         role="slider"
         tabIndex={disabled ? -1 : 0}

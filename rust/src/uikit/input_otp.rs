@@ -2,7 +2,10 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::primitives::{Controllable, use_controllable},
+	uikit::{
+		INPUT_OTP_CONTAINER, INPUT_OTP_GROUP, INPUT_OTP_INPUT, INPUT_OTP_SLOT, INPUT_OTP_SLOT_CARET, INPUT_OTP_SLOT_CARET_WRAPPER,
+		primitives::{Controllable, use_controllable},
+	},
 };
 
 #[component]
@@ -21,8 +24,8 @@ pub fn InputOTP(
 	use_context_provider(|| InputOtpContext { value, active_index });
 
 	let current = value.get();
-	let container_cls = cn!("relative flex items-center gap-2 has-disabled:opacity-50", container_class);
-	let input_cls = cn!("absolute inset-0 h-full w-full opacity-0 disabled:cursor-not-allowed", class);
+	let container_cls = cn!(INPUT_OTP_CONTAINER, container_class);
+	let input_cls = cn!(INPUT_OTP_INPUT, class);
 	rsx! {
 		div { class: container_cls, "data-slot": "input-otp",
 			{children}
@@ -52,7 +55,7 @@ pub fn InputOTP(
 }
 #[component]
 pub fn InputOTPGroup(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex items-center", class);
+	let cls = cn!(INPUT_OTP_GROUP, class);
 	rsx! {
 		div { class: cls, "data-slot": "input-otp-group", {children} }
 	}
@@ -65,13 +68,7 @@ pub fn InputOTPSlot(index: usize, #[props(default)] class: String) -> Element {
 	let is_active = (ctx.active_index)() == Some(index);
 	let has_fake_caret = is_active && char.is_none();
 
-	let cls = cn!(
-		"data-[active=true]:border-ring data-[active=true]:ring-ring/50 data-[active=true]:aria-invalid:ring-destructive/20 \
-		 aria-invalid:border-destructive data-[active=true]:aria-invalid:border-destructive border-input relative flex h-9 \
-		 w-9 items-center justify-center border-y border-r text-sm shadow-xs transition-all outline-none first:rounded-l-md \
-		 first:border-l last:rounded-r-md data-[active=true]:z-10 data-[active=true]:ring-[3px]",
-		class
-	);
+	let cls = cn!(INPUT_OTP_SLOT, class);
 	rsx! {
 		div {
 			class: cls,
@@ -79,8 +76,8 @@ pub fn InputOTPSlot(index: usize, #[props(default)] class: String) -> Element {
 			"data-active": is_active,
 			{char.map(|c| c.to_string())}
 			if has_fake_caret {
-				div { class: "pointer-events-none absolute inset-0 flex items-center justify-center",
-					div { class: "animate-caret-blink bg-foreground h-4 w-px duration-1000" }
+				div { class: INPUT_OTP_SLOT_CARET_WRAPPER,
+					div { class: INPUT_OTP_SLOT_CARET }
 				}
 			}
 		}

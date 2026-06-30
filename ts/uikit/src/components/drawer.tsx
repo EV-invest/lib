@@ -5,10 +5,21 @@ import { useFocusScope } from "../primitives/focus-scope";
 import { mergeRefs } from "../primitives/merge-refs";
 import { Portal } from "../primitives/portal";
 import { Slot } from "../primitives/slot";
+import {
+  DRAWER_CONTENT_BASE,
+  DRAWER_DESCRIPTION,
+  DRAWER_FOOTER,
+  DRAWER_HANDLE,
+  DRAWER_HEADER,
+  DRAWER_OVERLAY,
+  DRAWER_TITLE,
+  drawerDirectionClasses,
+  type DrawerDirection,
+} from "../generated/drawer";
+
+export type { DrawerDirection };
 
 // drag-to-dismiss: omitted vs vaul — see README Limitations
-
-type DrawerDirection = "top" | "bottom" | "left" | "right";
 
 interface DrawerContextValue {
   open: boolean;
@@ -23,13 +34,6 @@ function useDrawer(): DrawerContextValue {
   if (!ctx) throw new Error("Drawer parts must be used within <Drawer>");
   return ctx;
 }
-
-const directionClasses: Record<DrawerDirection, string> = {
-  bottom: "inset-x-0 bottom-0 mt-24 max-h-[80vh] flex-col rounded-t-lg border-b-0",
-  top: "inset-x-0 top-0 mb-24 max-h-[80vh] flex-col rounded-b-lg border-t-0",
-  left: "inset-y-0 left-0 w-3/4 flex-row border-r sm:max-w-sm",
-  right: "inset-y-0 right-0 w-3/4 flex-row border-l sm:max-w-sm",
-};
 
 export interface DrawerProps {
   open?: boolean;
@@ -104,7 +108,7 @@ export function DrawerOverlay({ className, ...props }: React.ComponentProps<"div
       data-slot="drawer-overlay"
       data-state="open"
       onClick={() => setOpen(false)}
-      className={cn("fixed inset-0 z-50 bg-black/50", className)}
+      className={cn(DRAWER_OVERLAY, className)}
       {...props}
     />
   );
@@ -118,7 +122,7 @@ export function DrawerContent({ className, children, ...props }: React.Component
     <Portal>
       <div
         data-slot="drawer-overlay"
-        className="fixed inset-0 z-50 bg-black/50"
+        className={DRAWER_OVERLAY}
         onClick={() => setOpen(false)}
       />
       <div
@@ -131,17 +135,13 @@ export function DrawerContent({ className, children, ...props }: React.Component
         onKeyDown={(e) => {
           if (e.key === "Escape") setOpen(false);
         }}
-        className={cn(
-          "bg-background fixed z-50 flex h-auto border",
-          directionClasses[direction],
-          className,
-        )}
+        className={cn(DRAWER_CONTENT_BASE, drawerDirectionClasses[direction], className)}
         {...(props as Record<string, unknown>)}
       >
         {direction === "bottom" ? (
           <div
             data-slot="drawer-handle"
-            className="bg-muted mx-auto mt-4 hidden h-2 w-[100px] shrink-0 rounded-full"
+            className={DRAWER_HANDLE}
           />
         ) : null}
         {children}
@@ -154,7 +154,7 @@ export function DrawerHeader({ className, ...props }: React.ComponentProps<"div"
   return (
     <div
       data-slot="drawer-header"
-      className={cn("flex flex-col gap-0.5 p-4 text-center sm:gap-1.5 sm:text-left", className)}
+      className={cn(DRAWER_HEADER, className)}
       {...props}
     />
   );
@@ -164,7 +164,7 @@ export function DrawerFooter({ className, ...props }: React.ComponentProps<"div"
   return (
     <div
       data-slot="drawer-footer"
-      className={cn("mt-auto flex flex-col gap-2 p-4", className)}
+      className={cn(DRAWER_FOOTER, className)}
       {...props}
     />
   );
@@ -174,7 +174,7 @@ export function DrawerTitle({ className, ...props }: React.ComponentProps<"div">
   return (
     <div
       data-slot="drawer-title"
-      className={cn("text-foreground font-semibold", className)}
+      className={cn(DRAWER_TITLE, className)}
       {...props}
     />
   );
@@ -184,7 +184,7 @@ export function DrawerDescription({ className, ...props }: React.ComponentProps<
   return (
     <div
       data-slot="drawer-description"
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn(DRAWER_DESCRIPTION, className)}
       {...props}
     />
   );

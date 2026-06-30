@@ -12,6 +12,7 @@
 
 import * as React from "react";
 import { cn } from "../lib/cn";
+import { CHART_CONTAINER, CHART_LEGEND, CHART_TOOLTIP } from "../generated/chart";
 
 export type ChartConfig = {
   [k in string]: {
@@ -53,10 +54,7 @@ function ChartContainer({
       <div
         data-slot="chart"
         data-chart={chartId}
-        className={cn(
-          "flex aspect-video justify-center text-xs [&_.recharts-layer]:outline-hidden [&_.recharts-surface]:outline-hidden [&_svg]:outline-hidden",
-          className,
-        )}
+        className={cn(CHART_CONTAINER, className)}
         {...props}
       >
         <ChartStyle id={chartId} config={config} />
@@ -120,10 +118,7 @@ function ChartTooltipContent({
   return (
     <div
       data-slot="chart-tooltip"
-      className={cn(
-        "border-border/50 bg-background grid min-w-[8rem] items-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl",
-        className,
-      )}
+      className={cn(CHART_TOOLTIP, className)}
     >
       {!hideLabel && label ? (
         <div className={cn("font-medium", labelClassName)}>{label}</div>
@@ -190,7 +185,7 @@ function ChartLegendContent({
   return (
     <div
       data-slot="chart-legend"
-      className={cn("flex items-center justify-center gap-4", className)}
+      className={cn(CHART_LEGEND, className)}
     >
       {rows.map((item, index) => (
         <div

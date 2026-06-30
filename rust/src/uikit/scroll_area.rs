@@ -1,7 +1,9 @@
 use dioxus::prelude::*;
-use tailwind_fuse::{AsTailwindClass, TwVariant};
 
-use crate::cn;
+use crate::{
+	cn,
+	uikit::{SCROLL_AREA_THUMB, SCROLL_AREA_VIEWPORT, SCROLLBAR_BASE, ScrollBarOrientation},
+};
 
 // Dep-light scroll area: a viewport `div` with native `overflow` scrolling.
 // Custom scrollbar thumb tracking is omitted — native overflow does the work;
@@ -14,7 +16,7 @@ pub fn ScrollArea(#[props(default)] class: String, children: Element) -> Element
 		div { class: cls, "data-slot": "scroll-area",
 			div {
 				"data-slot": "scroll-area-viewport",
-				class: "focus-visible:ring-ring/50 size-full rounded-[inherit] overflow-auto transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1",
+				class: SCROLL_AREA_VIEWPORT,
 				{children}
 			}
 			ScrollBar {}
@@ -22,25 +24,15 @@ pub fn ScrollArea(#[props(default)] class: String, children: Element) -> Element
 	}
 }
 
-#[derive(strum::AsRefStr, PartialEq, TwVariant)]
-#[strum(serialize_all = "kebab-case")]
-#[tw(class = "flex touch-none p-px transition-colors select-none")]
-pub enum ScrollBarOrientation {
-	#[tw(default, class = "h-full w-2.5 border-l border-l-transparent")]
-	Vertical,
-	#[tw(class = "h-2.5 flex-col border-t border-t-transparent")]
-	Horizontal,
-}
-
 #[component]
 pub fn ScrollBar(#[props(default)] orientation: ScrollBarOrientation, #[props(default)] class: String) -> Element {
-	let cls = cn!(orientation.as_class(), class);
+	let cls = cn!(SCROLLBAR_BASE, orientation.as_class(), class);
 	rsx! {
 		div {
 			"data-slot": "scroll-area-scrollbar",
 			"data-orientation": orientation.as_ref(),
 			class: cls,
-			div { "data-slot": "scroll-area-thumb", class: "bg-border relative flex-1 rounded-full" }
+			div { "data-slot": "scroll-area-thumb", class: SCROLL_AREA_THUMB }
 		}
 	}
 }

@@ -1,7 +1,18 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
+import {
+  TOAST_BASE,
+  TOAST_CLOSE,
+  TOAST_CONTENT,
+  TOAST_TITLE,
+  TOASTER_BASE,
+  positionClasses,
+  toastVariantClasses,
+  type ToastPosition,
+  type ToastVariant,
+} from "../generated/sonner";
 
-export type ToastVariant = "default" | "success" | "error" | "info" | "warning";
+export type { ToastPosition, ToastVariant };
 
 /**
  * Lifecycle phase of a toast. It is added `"open"` (plays the enter keyframe);
@@ -10,14 +21,6 @@ export type ToastVariant = "default" | "success" | "error" | "info" | "warning";
  * `ToastState` enum and the `data-state` the shared `tokens.css` keys on.
  */
 export type ToastState = "open" | "closing";
-
-export type ToastPosition =
-  | "top-left"
-  | "top-center"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-center"
-  | "bottom-right";
 
 export interface ToastOptions {
   description?: React.ReactNode;
@@ -135,25 +138,6 @@ export const toast: ToastFn = Object.assign(
     dismiss: (id: number) => store.dismiss(id),
   },
 );
-
-const toastVariantClasses: Record<ToastVariant, string> = {
-  default: "bg-popover text-popover-foreground border-border",
-  success: "bg-popover text-popover-foreground border-main-accent-t2/40",
-  error: "bg-popover text-popover-foreground border-destructive/50",
-  info: "bg-popover text-popover-foreground border-border",
-  warning: "bg-popover text-popover-foreground border-border",
-};
-
-// The toaster carries the viewport inset itself (no padding) so the absolutely
-// positioned toasts size to its box and don't spill past the edge.
-const positionClasses: Record<ToastPosition, string> = {
-  "top-left": "top-4 left-4",
-  "top-center": "top-4 left-1/2 -translate-x-1/2",
-  "top-right": "top-4 right-4",
-  "bottom-left": "bottom-4 left-4",
-  "bottom-center": "bottom-4 left-1/2 -translate-x-1/2",
-  "bottom-right": "bottom-4 right-4",
-};
 
 // Sonner-style stacking: only the front VISIBLE_TOASTS show collapsed; GAP is
 // the px between them once expanded.
@@ -328,12 +312,13 @@ function ToastItem({
         } as React.CSSProperties
       }
       className={cn(
-        "pointer-events-auto flex w-full touch-pan-y items-start gap-3 rounded-md border p-4 text-sm shadow-lg select-none",
+        TOAST_BASE,
+        "touch-pan-y select-none",
         toastVariantClasses[t.variant],
       )}
     >
-      <div className="flex-1 space-y-1">
-        <div className="font-medium">{t.message}</div>
+      <div className={TOAST_CONTENT}>
+        <div className={TOAST_TITLE}>{t.message}</div>
         {t.description ? (
           <div className="text-muted-foreground text-sm">{t.description}</div>
         ) : null}
@@ -343,7 +328,7 @@ function ToastItem({
         aria-label="Close"
         data-slot="toast-close"
         onClick={() => store.dismiss(t.id)}
-        className="text-foreground/50 hover:text-foreground shrink-0 transition-colors"
+        className={TOAST_CLOSE}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -450,7 +435,7 @@ export function Toaster({
         } as React.CSSProperties
       }
       className={cn(
-        "pointer-events-none fixed z-100 w-[calc(100%-2rem)] max-w-sm",
+        TOASTER_BASE,
         positionClasses[position],
         className,
       )}

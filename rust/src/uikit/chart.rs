@@ -11,13 +11,10 @@
 
 use dioxus::prelude::*;
 
-use crate::cn;
-
-const CONTAINER_BASE: &str = "flex aspect-video justify-center text-xs [&_.recharts-layer]:outline-hidden \
-                              [&_.recharts-surface]:outline-hidden [&_svg]:outline-hidden";
-const TOOLTIP_BASE: &str = "border-border/50 bg-background grid min-w-[8rem] items-start gap-1.5 rounded-lg \
-                            border px-2.5 py-1.5 text-xs shadow-xl";
-const LEGEND_BASE: &str = "flex items-center justify-center gap-4";
+use crate::{
+	cn,
+	uikit::{CHART_CONTAINER, CHART_LEGEND, CHART_TOOLTIP},
+};
 
 /// Maps a series key to its presentation. The Rust mirror of the TS
 /// `ChartConfig`; provided via context so tooltip/legend can read labels.
@@ -46,7 +43,7 @@ pub struct ChartItem {
 pub fn ChartContainer(id: String, #[props(default)] class: String, config: ChartConfig, children: Element) -> Element {
 	let chart_id = format!("chart-{id}");
 	use_context_provider(|| ChartCtx { config: config.clone() });
-	let cls = cn!(CONTAINER_BASE, class);
+	let cls = cn!(CHART_CONTAINER, class);
 	rsx! {
 		div { class: cls, "data-slot": "chart", "data-chart": chart_id.clone(),
 			ChartStyle { id: chart_id.clone(), config }
@@ -82,7 +79,7 @@ pub fn ChartTooltipContent(
 	items: Vec<ChartItem>,
 ) -> Element {
 	let _ = use_context::<ChartCtx>();
-	let cls = cn!(TOOLTIP_BASE, class);
+	let cls = cn!(CHART_TOOLTIP, class);
 	rsx! {
 		div { class: cls,
 			if !hide_label && !label.is_empty() {
@@ -129,7 +126,7 @@ pub fn ChartLegendContent(#[props(default)] class: String, #[props(default)] ite
 	} else {
 		items
 	};
-	let cls = cn!(LEGEND_BASE, class);
+	let cls = cn!(CHART_LEGEND, class);
 	rsx! {
 		div { class: cls, "data-slot": "chart-legend",
 			for item in rows {

@@ -2,7 +2,11 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::primitives::{Controllable, use_controllable},
+	uikit::{
+		COMMAND_DIALOG_COMMAND, COMMAND_DIALOG_CONTENT, COMMAND_DIALOG_OVERLAY, COMMAND_EMPTY, COMMAND_GROUP, COMMAND_INPUT, COMMAND_INPUT_WRAPPER, COMMAND_ITEM, COMMAND_LIST, COMMAND_ROOT,
+		COMMAND_SEPARATOR, COMMAND_SHORTCUT,
+		primitives::{Controllable, use_controllable},
+	},
 };
 
 // dep-light: inline positioning + backdrop; no portal/floating/drag — see README Limitations
@@ -17,7 +21,7 @@ pub fn Command(
 ) -> Element {
 	let search = use_controllable(search, default_search, on_search_change);
 	use_context_provider(|| CommandCtx { search });
-	let cls = cn!("bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-md", class);
+	let cls = cn!(COMMAND_ROOT, class);
 	rsx! {
 		div { class: cls, "data-slot": "command", {children} }
 	}
@@ -30,19 +34,19 @@ pub fn CommandDialog(open: Option<bool>, #[props(default)] default_open: bool, o
 	}
 	rsx! {
 		div {
-			class: "fixed inset-0 z-50 bg-black/50",
+			class: COMMAND_DIALOG_OVERLAY,
 			onclick: move |_| open.set(false),
 		}
 		div {
 			role: "dialog",
-			class: "fixed top-1/2 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-lg border p-0 shadow-lg",
+			class: COMMAND_DIALOG_CONTENT,
 			"data-slot": "command-dialog",
 			onkeydown: move |e| {
 				if e.key() == Key::Escape {
 					open.set(false);
 				}
 			},
-			Command { class: "[&_[data-slot=command-input-wrapper]]:h-12 [&_[data-slot=command-input]]:h-12",
+			Command { class: COMMAND_DIALOG_COMMAND,
 				{children}
 			}
 		}
@@ -52,13 +56,10 @@ pub fn CommandDialog(open: Option<bool>, #[props(default)] default_open: bool, o
 pub fn CommandInput(#[props(default)] placeholder: String, #[props(default)] class: String) -> Element {
 	let ctx = use_context::<CommandCtx>();
 	let value = ctx.search.get();
-	let cls = cn!(
-		"placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
-		class
-	);
+	let cls = cn!(COMMAND_INPUT, class);
 	rsx! {
 		div {
-			class: "flex h-9 items-center gap-2 border-b px-3",
+			class: COMMAND_INPUT_WRAPPER,
 			"data-slot": "command-input-wrapper",
 			svg {
 				xmlns: "http://www.w3.org/2000/svg",
@@ -88,24 +89,21 @@ pub fn CommandInput(#[props(default)] placeholder: String, #[props(default)] cla
 }
 #[component]
 pub fn CommandList(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto", class);
+	let cls = cn!(COMMAND_LIST, class);
 	rsx! {
 		div { role: "listbox", class: cls, "data-slot": "command-list", {children} }
 	}
 }
 #[component]
 pub fn CommandEmpty(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("py-6 text-center text-sm", class);
+	let cls = cn!(COMMAND_EMPTY, class);
 	rsx! {
 		div { class: cls, "data-slot": "command-empty", {children} }
 	}
 }
 #[component]
 pub fn CommandGroup(#[props(default)] heading: String, #[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(
-		"text-foreground [&_[data-slot=command-group-heading]]:text-muted-foreground overflow-hidden p-1 [&_[data-slot=command-group-heading]]:px-2 [&_[data-slot=command-group-heading]]:py-1.5 [&_[data-slot=command-group-heading]]:text-xs [&_[data-slot=command-group-heading]]:font-medium",
-		class
-	);
+	let cls = cn!(COMMAND_GROUP, class);
 	rsx! {
 		div { role: "group", class: cls, "data-slot": "command-group",
 			if !heading.is_empty() {
@@ -124,10 +122,7 @@ pub fn CommandItem(value: String, #[props(default)] disabled: bool, on_select: O
 	if !search.is_empty() && !value.to_lowercase().contains(&search) {
 		return rsx! {};
 	}
-	let cls = cn!(
-		"data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-		class
-	);
+	let cls = cn!(COMMAND_ITEM, class);
 	let select = {
 		let value = value.clone();
 		move |_| {
@@ -150,14 +145,14 @@ pub fn CommandItem(value: String, #[props(default)] disabled: bool, on_select: O
 }
 #[component]
 pub fn CommandSeparator(#[props(default)] class: String) -> Element {
-	let cls = cn!("bg-border -mx-1 h-px", class);
+	let cls = cn!(COMMAND_SEPARATOR, class);
 	rsx! {
 		div { class: cls, "data-slot": "command-separator" }
 	}
 }
 #[component]
 pub fn CommandShortcut(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("text-muted-foreground ml-auto text-xs tracking-widest", class);
+	let cls = cn!(COMMAND_SHORTCUT, class);
 	rsx! {
 		span { class: cls, "data-slot": "command-shortcut", {children} }
 	}

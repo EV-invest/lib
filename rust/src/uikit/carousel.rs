@@ -3,7 +3,9 @@ use dioxus::prelude::*;
 use crate::{
 	cn,
 	uikit::{
-		ButtonVariant, Size,
+		ButtonVariant, CAROUSEL_CONTENT_TRACK, CAROUSEL_CONTENT_TRACK_HORIZONTAL, CAROUSEL_CONTENT_TRACK_VERTICAL, CAROUSEL_CONTENT_VIEWPORT, CAROUSEL_EDGE_FADE_NEXT,
+		CAROUSEL_EDGE_FADE_PREV, CAROUSEL_ITEM, CAROUSEL_ITEM_HORIZONTAL, CAROUSEL_ITEM_VERTICAL, CAROUSEL_NAV, CAROUSEL_NEXT_HORIZONTAL, CAROUSEL_NEXT_VERTICAL,
+		CAROUSEL_PREVIOUS_HORIZONTAL, CAROUSEL_PREVIOUS_VERTICAL, Size,
 		button::Button,
 		primitives::{Controllable, use_controllable},
 	},
@@ -61,12 +63,12 @@ pub fn CarouselContent(#[props(default)] class: String, children: Element) -> El
 		CarouselOrientation::Vertical => format!("translate3d(0, -{}%, 0)", index * 100),
 	};
 	let track = match ctx.orientation {
-		CarouselOrientation::Horizontal => "-ml-4",
-		CarouselOrientation::Vertical => "-mt-4 flex-col",
+		CarouselOrientation::Horizontal => CAROUSEL_CONTENT_TRACK_HORIZONTAL,
+		CarouselOrientation::Vertical => CAROUSEL_CONTENT_TRACK_VERTICAL,
 	};
-	let cls = cn!("flex transition-transform", track, class);
+	let cls = cn!(CAROUSEL_CONTENT_TRACK, track, class);
 	rsx! {
-		div { class: "overflow-hidden", "data-slot": "carousel-content",
+		div { class: CAROUSEL_CONTENT_VIEWPORT, "data-slot": "carousel-content",
 			div { class: cls, style: "transform: {transform}", {children} }
 		}
 	}
@@ -75,10 +77,10 @@ pub fn CarouselContent(#[props(default)] class: String, children: Element) -> El
 pub fn CarouselItem(#[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<CarouselContext>();
 	let pad = match ctx.orientation {
-		CarouselOrientation::Horizontal => "pl-4",
-		CarouselOrientation::Vertical => "pt-4",
+		CarouselOrientation::Horizontal => CAROUSEL_ITEM_HORIZONTAL,
+		CarouselOrientation::Vertical => CAROUSEL_ITEM_VERTICAL,
 	};
-	let cls = cn!("min-w-0 shrink-0 grow-0 basis-full", pad, class);
+	let cls = cn!(CAROUSEL_ITEM, pad, class);
 	rsx! {
 		div {
 			role: "group",
@@ -93,10 +95,10 @@ pub fn CarouselItem(#[props(default)] class: String, children: Element) -> Eleme
 pub fn CarouselPrevious(#[props(default)] class: String) -> Element {
 	let ctx = use_context::<CarouselContext>();
 	let pos = match ctx.orientation {
-		CarouselOrientation::Horizontal => "top-1/2 -left-12 -translate-y-1/2",
-		CarouselOrientation::Vertical => "-top-12 left-1/2 -translate-x-1/2 rotate-90",
+		CarouselOrientation::Horizontal => CAROUSEL_PREVIOUS_HORIZONTAL,
+		CarouselOrientation::Vertical => CAROUSEL_PREVIOUS_VERTICAL,
 	};
-	let cls = cn!("absolute size-8 rounded-full", pos, class);
+	let cls = cn!(CAROUSEL_NAV, pos, class);
 	rsx! {
 		Button {
 			variant: ButtonVariant::Outline,
@@ -124,10 +126,10 @@ pub fn CarouselPrevious(#[props(default)] class: String) -> Element {
 pub fn CarouselNext(#[props(default)] class: String) -> Element {
 	let ctx = use_context::<CarouselContext>();
 	let pos = match ctx.orientation {
-		CarouselOrientation::Horizontal => "top-1/2 -right-12 -translate-y-1/2",
-		CarouselOrientation::Vertical => "-bottom-12 left-1/2 -translate-x-1/2 rotate-90",
+		CarouselOrientation::Horizontal => CAROUSEL_NEXT_HORIZONTAL,
+		CarouselOrientation::Vertical => CAROUSEL_NEXT_VERTICAL,
 	};
-	let cls = cn!("absolute size-8 rounded-full", pos, class);
+	let cls = cn!(CAROUSEL_NAV, pos, class);
 	rsx! {
 		Button {
 			variant: ButtonVariant::Outline,
@@ -157,16 +159,8 @@ pub fn CarouselNext(#[props(default)] class: String) -> Element {
 #[component]
 pub fn CarouselEdgeFade(#[props(default)] class: String) -> Element {
 	let ctx = use_context::<CarouselContext>();
-	let prev = cn!(
-		"pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-background via-background/60 to-transparent transition-opacity duration-300",
-		if ctx.can_scroll_prev() { "opacity-100" } else { "opacity-0" },
-		class.clone()
-	);
-	let next = cn!(
-		"pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-background via-background/60 to-transparent transition-opacity duration-300",
-		if ctx.can_scroll_next() { "opacity-100" } else { "opacity-0" },
-		class
-	);
+	let prev = cn!(CAROUSEL_EDGE_FADE_PREV, if ctx.can_scroll_prev() { "opacity-100" } else { "opacity-0" }, class.clone());
+	let next = cn!(CAROUSEL_EDGE_FADE_NEXT, if ctx.can_scroll_next() { "opacity-100" } else { "opacity-0" }, class);
 	rsx! {
 		div { class: prev, "aria-hidden": "true" }
 		div { class: next, "aria-hidden": "true" }

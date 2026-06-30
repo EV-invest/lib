@@ -2,13 +2,33 @@ import * as React from "react";
 import { cn } from "../lib/cn";
 import { Slot } from "../primitives/slot";
 import { Separator } from "./separator";
+import {
+  ITEM_ACTIONS,
+  ITEM_BASE,
+  ITEM_CONTENT,
+  ITEM_DESCRIPTION,
+  ITEM_FOOTER,
+  ITEM_GROUP,
+  ITEM_HEADER,
+  ITEM_MEDIA_BASE,
+  ITEM_SEPARATOR,
+  ITEM_TITLE,
+  itemMediaVariants,
+  itemSizes,
+  itemVariants,
+  type ItemMediaVariant,
+  type ItemSize,
+  type ItemVariant,
+} from "../generated/item";
+
+export type { ItemMediaVariant, ItemSize, ItemVariant };
 
 export function ItemGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       role="list"
       data-slot="item-group"
-      className={cn("group/item-group flex flex-col", className)}
+      className={cn(ITEM_GROUP, className)}
       {...props}
     />
   );
@@ -22,30 +42,11 @@ export function ItemSeparator({
     <Separator
       data-slot="item-separator"
       orientation="horizontal"
-      className={cn("my-0", className)}
+      className={cn(ITEM_SEPARATOR, className)}
       {...props}
     />
   );
 }
-
-const ITEM_BASE =
-  "group/item flex items-center border border-transparent text-sm rounded-md transition-colors " +
-  "[a]:hover:bg-accent/50 [a]:transition-colors duration-100 flex-wrap outline-none " +
-  "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]";
-
-const itemVariants = {
-  default: "bg-transparent",
-  outline: "border-border",
-  muted: "bg-muted/50",
-} as const;
-
-const itemSizes = {
-  default: "p-4 gap-4 ",
-  sm: "py-3 px-4 gap-2.5",
-} as const;
-
-export type ItemVariant = keyof typeof itemVariants;
-export type ItemSize = keyof typeof itemSizes;
 
 export interface ItemProps extends React.ComponentProps<"div"> {
   variant?: ItemVariant;
@@ -71,20 +72,6 @@ export function Item({
     />
   );
 }
-
-const ITEM_MEDIA_BASE =
-  "flex shrink-0 items-center justify-center gap-2 " +
-  "group-has-[[data-slot=item-description]]/item:self-start [&_svg]:pointer-events-none " +
-  "group-has-[[data-slot=item-description]]/item:translate-y-0.5";
-
-const itemMediaVariants = {
-  default: "bg-transparent",
-  icon: "size-8 border rounded-sm bg-muted [&_svg:not([class*='size-'])]:size-4",
-  image:
-    "size-10 rounded-sm overflow-hidden [&_img]:size-full [&_img]:object-cover",
-} as const;
-
-export type ItemMediaVariant = keyof typeof itemMediaVariants;
 
 export interface ItemMediaProps extends React.ComponentProps<"div"> {
   variant?: ItemMediaVariant;
@@ -112,10 +99,7 @@ export function ItemContent({
   return (
     <div
       data-slot="item-content"
-      className={cn(
-        "flex flex-1 flex-col gap-1 [&+[data-slot=item-content]]:flex-none",
-        className,
-      )}
+      className={cn(ITEM_CONTENT, className)}
       {...props}
     />
   );
@@ -125,10 +109,7 @@ export function ItemTitle({ className, ...props }: React.ComponentProps<"div">) 
   return (
     <div
       data-slot="item-title"
-      className={cn(
-        "flex w-fit items-center gap-2 text-sm leading-snug font-medium",
-        className,
-      )}
+      className={cn(ITEM_TITLE, className)}
       {...props}
     />
   );
@@ -141,11 +122,7 @@ export function ItemDescription({
   return (
     <p
       data-slot="item-description"
-      className={cn(
-        "text-muted-foreground line-clamp-2 text-sm leading-normal font-normal text-balance " +
-          "[&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
-        className,
-      )}
+      className={cn(ITEM_DESCRIPTION, className)}
       {...props}
     />
   );
@@ -158,7 +135,7 @@ export function ItemActions({
   return (
     <div
       data-slot="item-actions"
-      className={cn("flex items-center gap-2", className)}
+      className={cn(ITEM_ACTIONS, className)}
       {...props}
     />
   );
@@ -171,10 +148,7 @@ export function ItemHeader({
   return (
     <div
       data-slot="item-header"
-      className={cn(
-        "flex basis-full items-center justify-between gap-2",
-        className,
-      )}
+      className={cn(ITEM_HEADER, className)}
       {...props}
     />
   );
@@ -187,10 +161,7 @@ export function ItemFooter({
   return (
     <div
       data-slot="item-footer"
-      className={cn(
-        "flex basis-full items-center justify-between gap-2",
-        className,
-      )}
+      className={cn(ITEM_FOOTER, className)}
       {...props}
     />
   );

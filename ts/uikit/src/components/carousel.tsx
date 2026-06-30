@@ -2,6 +2,22 @@ import * as React from "react";
 import { cn } from "../lib/cn";
 import { Button, type ButtonProps } from "./button";
 import { useControllableState } from "../primitives/use-controllable-state";
+import {
+  CAROUSEL_CONTENT_TRACK,
+  CAROUSEL_CONTENT_TRACK_HORIZONTAL,
+  CAROUSEL_CONTENT_TRACK_VERTICAL,
+  CAROUSEL_CONTENT_VIEWPORT,
+  CAROUSEL_EDGE_FADE_NEXT,
+  CAROUSEL_EDGE_FADE_PREV,
+  CAROUSEL_ITEM,
+  CAROUSEL_ITEM_HORIZONTAL,
+  CAROUSEL_ITEM_VERTICAL,
+  CAROUSEL_NAV,
+  CAROUSEL_NEXT_HORIZONTAL,
+  CAROUSEL_NEXT_VERTICAL,
+  CAROUSEL_PREVIOUS_HORIZONTAL,
+  CAROUSEL_PREVIOUS_VERTICAL,
+} from "../generated/carousel";
 
 type CarouselOrientation = "horizontal" | "vertical";
 
@@ -119,11 +135,13 @@ export function CarouselContent({
       : `translate3d(0, -${index * 100}%, 0)`;
 
   return (
-    <div className="overflow-hidden" data-slot="carousel-content">
+    <div className={CAROUSEL_CONTENT_VIEWPORT} data-slot="carousel-content">
       <div
         className={cn(
-          "flex transition-transform",
-          orientation === "horizontal" ? "-ml-4" : "-mt-4 flex-col",
+          CAROUSEL_CONTENT_TRACK,
+          orientation === "horizontal"
+            ? CAROUSEL_CONTENT_TRACK_HORIZONTAL
+            : CAROUSEL_CONTENT_TRACK_VERTICAL,
           className,
         )}
         style={{ transform }}
@@ -147,8 +165,8 @@ export function CarouselItem({
       aria-roledescription="slide"
       data-slot="carousel-item"
       className={cn(
-        "min-w-0 shrink-0 grow-0 basis-full",
-        orientation === "horizontal" ? "pl-4" : "pt-4",
+        CAROUSEL_ITEM,
+        orientation === "horizontal" ? CAROUSEL_ITEM_HORIZONTAL : CAROUSEL_ITEM_VERTICAL,
         className,
       )}
       {...props}
@@ -173,7 +191,7 @@ export function CarouselEdgeFade({
       <div
         aria-hidden
         className={cn(
-          "pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-background via-background/60 to-transparent transition-opacity duration-300",
+          CAROUSEL_EDGE_FADE_PREV,
           canScrollPrev ? "opacity-100" : "opacity-0",
           className,
         )}
@@ -181,7 +199,7 @@ export function CarouselEdgeFade({
       <div
         aria-hidden
         className={cn(
-          "pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-background via-background/60 to-transparent transition-opacity duration-300",
+          CAROUSEL_EDGE_FADE_NEXT,
           canScrollNext ? "opacity-100" : "opacity-0",
           className,
         )}
@@ -204,10 +222,10 @@ export function CarouselPrevious({
       variant={variant}
       size={size}
       className={cn(
-        "absolute size-8 rounded-full",
+        CAROUSEL_NAV,
         orientation === "horizontal"
-          ? "top-1/2 -left-12 -translate-y-1/2"
-          : "-top-12 left-1/2 -translate-x-1/2 rotate-90",
+          ? CAROUSEL_PREVIOUS_HORIZONTAL
+          : CAROUSEL_PREVIOUS_VERTICAL,
         className,
       )}
       disabled={!canScrollPrev}
@@ -245,10 +263,10 @@ export function CarouselNext({
       variant={variant}
       size={size}
       className={cn(
-        "absolute size-8 rounded-full",
+        CAROUSEL_NAV,
         orientation === "horizontal"
-          ? "top-1/2 -right-12 -translate-y-1/2"
-          : "-bottom-12 left-1/2 -translate-x-1/2 rotate-90",
+          ? CAROUSEL_NEXT_HORIZONTAL
+          : CAROUSEL_NEXT_VERTICAL,
         className,
       )}
       disabled={!canScrollNext}

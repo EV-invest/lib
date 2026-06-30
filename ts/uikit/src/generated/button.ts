@@ -10,6 +10,7 @@ export const buttonVariantClasses = {
   "destructive": "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20",
   "link": "text-primary underline-offset-4 hover:underline",
 } as const;
+export type ButtonVariant = keyof typeof buttonVariantClasses;
 
 export const buttonSizeClasses = {
   "default": "h-9 px-4 py-2 has-[>svg]:px-3",
@@ -19,6 +20,4 @@ export const buttonSizeClasses = {
   "icon-sm": "h-8 aspect-square px-0",
   "icon-lg": "h-10 aspect-square px-0",
 } as const;
-
-export type ButtonVariant = keyof typeof buttonVariantClasses;
 export type ButtonSize = keyof typeof buttonSizeClasses;

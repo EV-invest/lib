@@ -1,28 +1,15 @@
 use dioxus::prelude::*;
-use tailwind_fuse::{AsTailwindClass, TwVariant};
 
 use crate::{
 	cn,
-	uikit::primitives::{Controllable, use_controllable},
+	uikit::{
+		DRAWER_CONTENT_BASE, DRAWER_DESCRIPTION, DRAWER_FOOTER, DRAWER_HANDLE, DRAWER_HEADER, DRAWER_OVERLAY, DRAWER_TITLE, DrawerDirection,
+		primitives::{Controllable, use_controllable},
+	},
 };
 
 // dep-light: inline positioning + backdrop; no portal/floating/drag — see README Limitations
 // drag-to-dismiss: omitted vs vaul — see README Limitations
-
-/// Edge the drawer slides in from. The shared content base rides on the enum.
-#[derive(strum::AsRefStr, PartialEq, TwVariant)]
-#[strum(serialize_all = "kebab-case")]
-#[tw(class = "bg-background fixed z-50 flex h-auto border")]
-pub enum DrawerDirection {
-	#[tw(default, class = "inset-x-0 bottom-0 mt-24 max-h-[80vh] flex-col rounded-t-lg border-b-0")]
-	Bottom,
-	#[tw(class = "inset-x-0 top-0 mb-24 max-h-[80vh] flex-col rounded-b-lg border-t-0")]
-	Top,
-	#[tw(class = "inset-y-0 left-0 w-3/4 flex-row border-r sm:max-w-sm")]
-	Left,
-	#[tw(class = "inset-y-0 right-0 w-3/4 flex-row border-l sm:max-w-sm")]
-	Right,
-}
 
 #[component]
 pub fn Drawer(
@@ -57,7 +44,7 @@ pub fn DrawerOverlay(#[props(default)] class: String) -> Element {
 	if !ctx.open.get() {
 		return rsx! {};
 	}
-	let cls = cn!("fixed inset-0 z-50 bg-black/50", class);
+	let cls = cn!(DRAWER_OVERLAY, class);
 	rsx! {
 		div {
 			class: cls,
@@ -74,10 +61,10 @@ pub fn DrawerContent(#[props(default)] class: String, children: Element) -> Elem
 		return rsx! {};
 	}
 	let direction = ctx.direction;
-	let cls = cn!(direction.as_class(), class);
+	let cls = cn!(DRAWER_CONTENT_BASE, direction.as_class(), class);
 	rsx! {
 		div {
-			class: "fixed inset-0 z-50 bg-black/50",
+			class: DRAWER_OVERLAY,
 			"data-slot": "drawer-overlay",
 			onclick: move |_| ctx.open.set(false),
 		}
@@ -93,7 +80,7 @@ pub fn DrawerContent(#[props(default)] class: String, children: Element) -> Elem
 				}
 			},
 			if direction == DrawerDirection::Bottom {
-				div { class: "bg-muted mx-auto mt-4 hidden h-2 w-[100px] shrink-0 rounded-full", "data-slot": "drawer-handle" }
+				div { class: DRAWER_HANDLE, "data-slot": "drawer-handle" }
 			}
 			{children}
 		}
@@ -114,28 +101,28 @@ pub fn DrawerClose(#[props(default)] class: String, children: Element) -> Elemen
 }
 #[component]
 pub fn DrawerHeader(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex flex-col gap-0.5 p-4 text-center sm:gap-1.5 sm:text-left", class);
+	let cls = cn!(DRAWER_HEADER, class);
 	rsx! {
 		div { class: cls, "data-slot": "drawer-header", {children} }
 	}
 }
 #[component]
 pub fn DrawerFooter(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("mt-auto flex flex-col gap-2 p-4", class);
+	let cls = cn!(DRAWER_FOOTER, class);
 	rsx! {
 		div { class: cls, "data-slot": "drawer-footer", {children} }
 	}
 }
 #[component]
 pub fn DrawerTitle(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("text-foreground font-semibold", class);
+	let cls = cn!(DRAWER_TITLE, class);
 	rsx! {
 		div { class: cls, "data-slot": "drawer-title", {children} }
 	}
 }
 #[component]
 pub fn DrawerDescription(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("text-muted-foreground text-sm", class);
+	let cls = cn!(DRAWER_DESCRIPTION, class);
 	rsx! {
 		div { class: cls, "data-slot": "drawer-description", {children} }
 	}

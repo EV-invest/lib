@@ -1,6 +1,14 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
+import {
+  INPUT_OTP_CONTAINER,
+  INPUT_OTP_GROUP,
+  INPUT_OTP_INPUT,
+  INPUT_OTP_SLOT,
+  INPUT_OTP_SLOT_CARET,
+  INPUT_OTP_SLOT_CARET_WRAPPER,
+} from "../generated/input-otp";
 
 type InputOTPContextValue = {
   value: string;
@@ -52,10 +60,7 @@ export function InputOTP({
     <InputOTPContext.Provider value={{ value, maxLength, activeIndex }}>
       <div
         data-slot="input-otp"
-        className={cn(
-          "relative flex items-center gap-2 has-disabled:opacity-50",
-          containerClassName,
-        )}
+        className={cn(INPUT_OTP_CONTAINER, containerClassName)}
       >
         {children}
         <input
@@ -68,10 +73,7 @@ export function InputOTP({
           onChange={(e) => setValue(e.target.value.slice(0, maxLength))}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          className={cn(
-            "absolute inset-0 h-full w-full opacity-0 disabled:cursor-not-allowed",
-            className,
-          )}
+          className={cn(INPUT_OTP_INPUT, className)}
           {...props}
         />
       </div>
@@ -86,7 +88,7 @@ export function InputOTPGroup({
   return (
     <div
       data-slot="input-otp-group"
-      className={cn("flex items-center", className)}
+      className={cn(INPUT_OTP_GROUP, className)}
       {...props}
     />
   );
@@ -106,16 +108,13 @@ export function InputOTPSlot({ index, className, ...props }: InputOTPSlotProps) 
     <div
       data-slot="input-otp-slot"
       data-active={isActive}
-      className={cn(
-        "data-[active=true]:border-ring data-[active=true]:ring-ring/50 data-[active=true]:aria-invalid:ring-destructive/20 aria-invalid:border-destructive data-[active=true]:aria-invalid:border-destructive border-input relative flex h-9 w-9 items-center justify-center border-y border-r text-sm shadow-xs transition-all outline-none first:rounded-l-md first:border-l last:rounded-r-md data-[active=true]:z-10 data-[active=true]:ring-[3px]",
-        className,
-      )}
+      className={cn(INPUT_OTP_SLOT, className)}
       {...props}
     >
       {char}
       {hasFakeCaret && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="animate-caret-blink bg-foreground h-4 w-px duration-1000" />
+        <div className={INPUT_OTP_SLOT_CARET_WRAPPER}>
+          <div className={INPUT_OTP_SLOT_CARET} />
         </div>
       )}
     </div>

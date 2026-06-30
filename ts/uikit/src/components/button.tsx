@@ -7,7 +7,7 @@ import {
   buttonVariantClasses,
   type ButtonSize,
   type ButtonVariant,
-} from "../generated/variants";
+} from "../generated/button";
 
 export type { ButtonSize, ButtonVariant };
 

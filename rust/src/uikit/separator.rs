@@ -1,21 +1,13 @@
 use dioxus::prelude::*;
-use tailwind_fuse::{AsTailwindClass, TwVariant};
 
-use crate::cn;
-
-#[derive(strum::AsRefStr, PartialEq, TwVariant)]
-#[strum(serialize_all = "kebab-case")]
-#[tw(class = "bg-border shrink-0")]
-pub enum Orientation {
-	#[tw(default, class = "data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full")]
-	Horizontal,
-	#[tw(class = "data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px")]
-	Vertical,
-}
+use crate::{
+	cn,
+	uikit::{Orientation, SEPARATOR_BASE},
+};
 
 #[component]
 pub fn Separator(#[props(default)] orientation: Orientation, #[props(default)] class: String) -> Element {
-	let cls = cn!(orientation.as_class(), class);
+	let cls = cn!(SEPARATOR_BASE, orientation.as_class(), class);
 	rsx! {
 		div {
 			role: "separator",

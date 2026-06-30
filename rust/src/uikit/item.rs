@@ -1,13 +1,15 @@
 use dioxus::prelude::*;
-use tailwind_fuse::{AsTailwindClass, IntoBuilder, IntoTailwindClass, TailwindFuse, TailwindMerge, TwClass, TwVariant};
 
 use crate::{
 	cn,
-	uikit::separator::{Orientation, Separator},
+	uikit::{
+		ITEM_ACTIONS, ITEM_BASE, ITEM_CONTENT, ITEM_DESCRIPTION, ITEM_FOOTER, ITEM_GROUP, ITEM_HEADER, ITEM_MEDIA_BASE, ITEM_SEPARATOR, ITEM_TITLE, ItemMediaVariant, ItemSize, ItemVariant,
+		Orientation, separator::Separator,
+	},
 };
 #[component]
 pub fn ItemGroup(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("group/item-group flex flex-col", class);
+	let cls = cn!(ITEM_GROUP, class);
 	rsx! {
 		div { role: "list", class: cls, "data-slot": "item-group", {children} }
 	}
@@ -15,33 +17,15 @@ pub fn ItemGroup(#[props(default)] class: String, children: Element) -> Element 
 
 #[component]
 pub fn ItemSeparator(#[props(default)] class: String) -> Element {
-	let cls = cn!("my-0", class);
+	let cls = cn!(ITEM_SEPARATOR, class);
 	rsx! {
 		Separator { orientation: Orientation::Horizontal, class: cls }
 	}
 }
 
-#[derive(strum::AsRefStr, PartialEq, TwVariant)]
-#[strum(serialize_all = "kebab-case")]
-pub enum ItemVariant {
-	#[tw(default, class = "bg-transparent")]
-	Default,
-	#[tw(class = "border-border")]
-	Outline,
-	#[tw(class = "bg-muted/50")]
-	Muted,
-}
-#[derive(strum::AsRefStr, PartialEq, TwVariant)]
-#[strum(serialize_all = "kebab-case")]
-pub enum ItemSize {
-	#[tw(default, class = "p-4 gap-4")]
-	Md,
-	#[tw(class = "py-3 px-4 gap-2.5")]
-	Sm,
-}
 #[component]
 pub fn Item(#[props(default)] variant: ItemVariant, #[props(default)] size: ItemSize, #[props(default)] class: String, children: Element) -> Element {
-	let cls = ItemClass { variant, size }.with_class(&class);
+	let cls = cn!(ITEM_BASE, variant.as_class(), size.as_class(), class);
 	rsx! {
 		div {
 			class: cls,
@@ -52,22 +36,9 @@ pub fn Item(#[props(default)] variant: ItemVariant, #[props(default)] size: Item
 		}
 	}
 }
-#[derive(strum::AsRefStr, PartialEq, TwVariant)]
-#[strum(serialize_all = "kebab-case")]
-#[tw(class = "flex shrink-0 items-center justify-center gap-2 \
-              group-has-[[data-slot=item-description]]/item:self-start [&_svg]:pointer-events-none \
-              group-has-[[data-slot=item-description]]/item:translate-y-0.5")]
-pub enum ItemMediaVariant {
-	#[tw(default, class = "bg-transparent")]
-	Default,
-	#[tw(class = "size-8 border rounded-sm bg-muted [&_svg:not([class*='size-'])]:size-4")]
-	Icon,
-	#[tw(class = "size-10 rounded-sm overflow-hidden [&_img]:size-full [&_img]:object-cover")]
-	Image,
-}
 #[component]
 pub fn ItemMedia(#[props(default)] variant: ItemMediaVariant, #[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(variant.as_class(), class);
+	let cls = cn!(ITEM_MEDIA_BASE, variant.as_class(), class);
 	rsx! {
 		div {
 			class: cls,
@@ -79,60 +50,46 @@ pub fn ItemMedia(#[props(default)] variant: ItemMediaVariant, #[props(default)] 
 }
 #[component]
 pub fn ItemContent(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex flex-1 flex-col gap-1 [&+[data-slot=item-content]]:flex-none", class);
+	let cls = cn!(ITEM_CONTENT, class);
 	rsx! {
 		div { class: cls, "data-slot": "item-content", {children} }
 	}
 }
 #[component]
 pub fn ItemTitle(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex w-fit items-center gap-2 text-sm leading-snug font-medium", class);
+	let cls = cn!(ITEM_TITLE, class);
 	rsx! {
 		div { class: cls, "data-slot": "item-title", {children} }
 	}
 }
 #[component]
 pub fn ItemDescription(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(
-		"text-muted-foreground line-clamp-2 text-sm leading-normal font-normal text-balance \
-         [&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
-		class
-	);
+	let cls = cn!(ITEM_DESCRIPTION, class);
 	rsx! {
 		p { class: cls, "data-slot": "item-description", {children} }
 	}
 }
 #[component]
 pub fn ItemActions(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex items-center gap-2", class);
+	let cls = cn!(ITEM_ACTIONS, class);
 	rsx! {
 		div { class: cls, "data-slot": "item-actions", {children} }
 	}
 }
 #[component]
 pub fn ItemHeader(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex basis-full items-center justify-between gap-2", class);
+	let cls = cn!(ITEM_HEADER, class);
 	rsx! {
 		div { class: cls, "data-slot": "item-header", {children} }
 	}
 }
 #[component]
 pub fn ItemFooter(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("flex basis-full items-center justify-between gap-2", class);
+	let cls = cn!(ITEM_FOOTER, class);
 	rsx! {
 		div { class: cls, "data-slot": "item-footer", {children} }
 	}
 }
-/// Two-axis composition (variant × size) over the shared item base.
-#[derive(TwClass)]
-#[tw(class = "group/item flex items-center border border-transparent text-sm rounded-md transition-colors \
-              [a]:hover:bg-accent/50 [a]:transition-colors duration-100 flex-wrap outline-none \
-              focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]")]
-struct ItemClass {
-	variant: ItemVariant,
-	size: ItemSize,
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;

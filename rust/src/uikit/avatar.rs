@@ -1,10 +1,13 @@
 use dioxus::prelude::*;
 
-use crate::cn;
+use crate::{
+	cn,
+	uikit::{AVATAR, AVATAR_FALLBACK, AVATAR_IMAGE},
+};
 
 #[component]
 pub fn Avatar(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("relative flex size-8 shrink-0 overflow-hidden rounded-full", class);
+	let cls = cn!(AVATAR, class);
 	rsx! {
 		div { class: cls, "data-slot": "avatar", {children} }
 	}
@@ -16,7 +19,7 @@ pub fn AvatarImage(#[props(default)] class: String, #[props(default)] src: Strin
 	if errored() {
 		return rsx! {};
 	}
-	let cls = cn!("aspect-square size-full", class);
+	let cls = cn!(AVATAR_IMAGE, class);
 	rsx! {
 		img {
 			class: cls,
@@ -30,7 +33,7 @@ pub fn AvatarImage(#[props(default)] class: String, #[props(default)] src: Strin
 
 #[component]
 pub fn AvatarFallback(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("bg-muted flex size-full items-center justify-center rounded-full", class);
+	let cls = cn!(AVATAR_FALLBACK, class);
 	rsx! {
 		div { class: cls, "data-slot": "avatar-fallback", {children} }
 	}

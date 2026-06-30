@@ -1,14 +1,12 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
+import { AVATAR, AVATAR_IMAGE, AVATAR_FALLBACK } from "../generated/avatar";
 
 export function Avatar({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="avatar"
-      className={cn(
-        "relative flex size-8 shrink-0 overflow-hidden rounded-full",
-        className,
-      )}
+      className={cn(AVATAR, className)}
       {...props}
     />
   );
@@ -24,7 +22,7 @@ export function AvatarImage({
   return (
     <img
       data-slot="avatar-image"
-      className={cn("aspect-square size-full", className)}
+      className={cn(AVATAR_IMAGE, className)}
       onError={(e) => {
         onError?.(e);
         setErrored(true);
@@ -41,10 +39,7 @@ export function AvatarFallback({
   return (
     <div
       data-slot="avatar-fallback"
-      className={cn(
-        "bg-muted flex size-full items-center justify-center rounded-full",
-        className,
-      )}
+      className={cn(AVATAR_FALLBACK, className)}
       {...props}
     />
   );

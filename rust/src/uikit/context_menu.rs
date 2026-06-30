@@ -2,35 +2,12 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::primitives::{Controllable, use_controllable},
+	uikit::{
+		CONTEXT_MENU_CHECK_ITEM, CONTEXT_MENU_CONTENT, CONTEXT_MENU_ITEM, CONTEXT_MENU_LABEL, CONTEXT_MENU_SEPARATOR, CONTEXT_MENU_SHORTCUT, CONTEXT_MENU_SUB_CONTENT,
+		CONTEXT_MENU_SUB_TRIGGER,
+		primitives::{Controllable, use_controllable},
+	},
 };
-
-// Canonical menu-surface and item classes, the context-menu twins of the
-// dropdown set (same shape, `--radix-context-menu-*` transform origin).
-const CONTENT: &str = "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out \
-                       data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 \
-                       data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 \
-                       data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] \
-                       origin-(--radix-context-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md \
-                       border p-1 shadow-md";
-const SUB_CONTENT: &str = "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out \
-                           data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 \
-                           data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 \
-                           data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] \
-                           origin-(--radix-context-menu-content-transform-origin) overflow-hidden rounded-md border p-1 shadow-lg";
-const ITEM: &str = "focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive \
-                    data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:focus:text-destructive \
-                    data-[variant=destructive]:*:[svg]:!text-destructive [&_svg:not([class*='text-'])]:text-muted-foreground \
-                    relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none \
-                    data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none \
-                    [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4";
-const CHECK_ITEM: &str = "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm \
-                          py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none \
-                          data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4";
-const SUB_TRIGGER: &str = "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent \
-                           data-[state=open]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground flex \
-                           cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-hidden select-none \
-                           data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4";
 
 /// Default vs destructive item styling; mirrors the TS `variant` union.
 #[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
@@ -76,7 +53,7 @@ pub fn ContextMenuContent(#[props(default)] class: String, children: Element) ->
 		return rsx! {};
 	}
 	let (x, y) = *ctx.point.read();
-	let cls = cn!(CONTENT, class);
+	let cls = cn!(CONTEXT_MENU_CONTENT, class);
 	rsx! {
 		div {
 			class: "fixed inset-0 z-40",
@@ -115,7 +92,7 @@ pub fn ContextMenuItem(
 	children: Element,
 ) -> Element {
 	let ctx = use_context::<ContextMenuCtx>();
-	let cls = cn!(ITEM, class);
+	let cls = cn!(CONTEXT_MENU_ITEM, class);
 	rsx! {
 		div {
 			class: cls,
@@ -147,7 +124,7 @@ pub fn ContextMenuCheckboxItem(
 	children: Element,
 ) -> Element {
 	let ctx = use_context::<ContextMenuCtx>();
-	let cls = cn!(CHECK_ITEM, class);
+	let cls = cn!(CONTEXT_MENU_CHECK_ITEM, class);
 	rsx! {
 		div {
 			class: cls,
@@ -204,7 +181,7 @@ pub fn ContextMenuRadioItem(value: String, #[props(default)] disabled: bool, #[p
 	let menu = use_context::<ContextMenuCtx>();
 	let radio = use_context::<ContextMenuRadioCtx>();
 	let checked = radio.value.get() == value;
-	let cls = cn!(CHECK_ITEM, class);
+	let cls = cn!(CONTEXT_MENU_CHECK_ITEM, class);
 	rsx! {
 		div {
 			class: cls,
@@ -234,21 +211,21 @@ pub fn ContextMenuRadioItem(value: String, #[props(default)] disabled: bool, #[p
 }
 #[component]
 pub fn ContextMenuLabel(#[props(default)] inset: bool, #[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("text-foreground px-2 py-1.5 text-sm font-medium data-[inset]:pl-8", class);
+	let cls = cn!(CONTEXT_MENU_LABEL, class);
 	rsx! {
 		div { class: cls, "data-slot": "context-menu-label", "data-inset": inset, {children} }
 	}
 }
 #[component]
 pub fn ContextMenuSeparator(#[props(default)] class: String) -> Element {
-	let cls = cn!("bg-border -mx-1 my-1 h-px", class);
+	let cls = cn!(CONTEXT_MENU_SEPARATOR, class);
 	rsx! {
 		div { class: cls, role: "separator", "data-slot": "context-menu-separator" }
 	}
 }
 #[component]
 pub fn ContextMenuShortcut(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("text-muted-foreground ml-auto text-xs tracking-widest", class);
+	let cls = cn!(CONTEXT_MENU_SHORTCUT, class);
 	rsx! {
 		span { class: cls, "data-slot": "context-menu-shortcut", {children} }
 	}
@@ -268,7 +245,7 @@ pub fn ContextMenuSub(open: Option<bool>, #[props(default)] default_open: bool, 
 pub fn ContextMenuSubTrigger(#[props(default)] inset: bool, #[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<ContextMenuSubCtx>();
 	let open = ctx.open.get();
-	let cls = cn!(SUB_TRIGGER, class);
+	let cls = cn!(CONTEXT_MENU_SUB_TRIGGER, class);
 	rsx! {
 		div {
 			class: cls,
@@ -301,7 +278,7 @@ pub fn ContextMenuSubContent(#[props(default)] class: String, children: Element)
 	if !ctx.open.get() {
 		return rsx! {};
 	}
-	let cls = cn!(SUB_CONTENT, class);
+	let cls = cn!(CONTEXT_MENU_SUB_CONTENT, class);
 	rsx! {
 		div { class: cls, role: "menu", "data-slot": "context-menu-sub-content", "data-state": "open", {children} }
 	}

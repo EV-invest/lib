@@ -2,7 +2,10 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::{ButtonVariant, Size, button::button_classes, primitives::use_controllable},
+	uikit::{
+		ButtonVariant, CALENDAR_CAPTION, CALENDAR_DAY, CALENDAR_DAY_CELL, CALENDAR_DAY_EMPTY, CALENDAR_DAY_SELECTED, CALENDAR_DAY_TODAY, CALENDAR_GRID, CALENDAR_NAV, CALENDAR_NAV_BUTTON,
+		CALENDAR_ROOT, CALENDAR_WEEK, CALENDAR_WEEKDAY, CALENDAR_WEEKDAY_ROW, Size, button::button_classes, primitives::use_controllable,
+	},
 };
 
 const MONTHS: [&str; 12] = [
@@ -98,7 +101,7 @@ pub fn Calendar(
 		view.set(current.add_months(delta));
 	};
 
-	let nav_class = button_classes(&ButtonVariant::Ghost, Size::Md, true, "size-8 p-0 select-none");
+	let nav_class = button_classes(&ButtonVariant::Ghost, Size::Md, true, CALENDAR_NAV_BUTTON);
 	let caption = format!("{} {}", MONTHS[(current.month - 1) as usize], current.year);
 
 	let lead = CalendarDate::first_weekday_monday0(current.year, current.month);
@@ -111,11 +114,11 @@ pub fn Calendar(
 	}
 	let weeks: Vec<Vec<Option<u32>>> = cells.chunks(7).map(<[Option<u32>]>::to_vec).collect();
 
-	let root = cn!("bg-background p-3 w-fit", class);
+	let root = cn!(CALENDAR_ROOT, class);
 
 	rsx! {
 		div { class: root, "data-slot": "calendar", role: "application",
-			div { class: "flex items-center justify-between gap-1 w-full px-1",
+			div { class: CALENDAR_NAV,
 				button {
 					r#type: "button",
 					class: nav_class.clone(),
@@ -123,7 +126,7 @@ pub fn Calendar(
 					onclick: move |_| go(-1),
 					Chevron { d: CHEVRON_LEFT }
 				}
-				div { class: "text-sm font-medium select-none", {caption} }
+				div { class: CALENDAR_CAPTION, {caption} }
 				button {
 					r#type: "button",
 					class: nav_class.clone(),
@@ -132,12 +135,12 @@ pub fn Calendar(
 					Chevron { d: CHEVRON_RIGHT }
 				}
 			}
-			table { class: "w-full border-collapse mt-4", role: "grid",
+			table { class: CALENDAR_GRID, role: "grid",
 				thead {
-					tr { class: "flex",
+					tr { class: CALENDAR_WEEKDAY_ROW,
 						for wd in WEEKDAYS {
 							th {
-								class: "text-muted-foreground rounded-md flex-1 font-normal text-[0.8rem] select-none",
+								class: CALENDAR_WEEKDAY,
 								scope: "col",
 								{wd}
 							}
@@ -146,7 +149,7 @@ pub fn Calendar(
 				}
 				tbody {
 					for week in weeks {
-						tr { class: "flex w-full mt-2",
+						tr { class: CALENDAR_WEEK,
 							for cell in week {
 								DayCell {
 									cell,
@@ -168,7 +171,7 @@ pub fn Calendar(
 fn DayCell(cell: Option<u32>, date: CalendarDate, selected: Option<CalendarDate>, today: Option<CalendarDate>, on_select: Option<EventHandler<CalendarDate>>) -> Element {
 	let Some(day) = cell else {
 		return rsx! {
-			td { class: "relative w-full h-full p-0 aspect-square select-none" }
+			td { class: CALENDAR_DAY_EMPTY }
 		};
 	};
 
@@ -177,16 +180,16 @@ fn DayCell(cell: Option<u32>, date: CalendarDate, selected: Option<CalendarDate>
 	let is_today = today == Some(this);
 	let aria_selected = if is_selected { "true" } else { "false" };
 
-	let mut day_class = button_classes(&ButtonVariant::Ghost, Size::Md, true, "size-auto w-full aspect-square font-normal leading-none");
+	let mut day_class = button_classes(&ButtonVariant::Ghost, Size::Md, true, CALENDAR_DAY);
 	if is_selected {
-		day_class = cn!(day_class, "bg-primary text-primary-foreground");
+		day_class = cn!(day_class, CALENDAR_DAY_SELECTED);
 	} else if is_today {
-		day_class = cn!(day_class, "bg-accent text-accent-foreground rounded-md");
+		day_class = cn!(day_class, CALENDAR_DAY_TODAY);
 	}
 
 	rsx! {
 		td {
-			class: "relative w-full h-full p-0 text-center aspect-square select-none",
+			class: CALENDAR_DAY_CELL,
 			role: "gridcell",
 			"aria-selected": aria_selected,
 			button {

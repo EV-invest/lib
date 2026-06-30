@@ -34,11 +34,12 @@
 //! "Limitations".
 
 use dioxus::prelude::*;
-use tailwind_fuse::{AsTailwindClass, TwVariant};
 
-use crate::cn;
+use crate::{
+	cn,
+	uikit::{TOAST_BASE, TOAST_CLOSE, TOAST_CONTENT, TOAST_TITLE, TOASTER_BASE, ToastPosition, ToastVariant},
+};
 
-const TOAST_CLOSE: &str = "text-foreground/50 hover:text-foreground shrink-0 transition-colors";
 /// Only the front three toasts show while the stack is collapsed.
 const VISIBLE_TOASTS: usize = 3;
 /// Gap (px) between toasts once the stack is expanded.
@@ -50,41 +51,6 @@ const GAP: u32 = 14;
 const TOAST_HEIGHT_EST: u32 = 56;
 /// Default auto-dismiss lifetime (ms). Mirrors the TS `DEFAULT_DURATION`.
 const DEFAULT_DURATION_MS: u32 = 4000;
-#[derive(strum::AsRefStr, PartialEq, TwVariant)]
-#[strum(serialize_all = "kebab-case")]
-#[tw(class = "pointer-events-auto flex w-full items-start gap-3 rounded-md border p-4 text-sm shadow-lg")]
-pub enum ToastVariant {
-	#[tw(default, class = "bg-popover text-popover-foreground border-border")]
-	Default,
-	#[tw(class = "bg-popover text-popover-foreground border-main-accent-t2/40")]
-	Success,
-	#[tw(class = "bg-popover text-popover-foreground border-destructive/50")]
-	Error,
-	#[tw(class = "bg-popover text-popover-foreground border-border")]
-	Info,
-	#[tw(class = "bg-popover text-popover-foreground border-border")]
-	Warning,
-}
-
-/// Where the stack is pinned. Mirrors the TS `position` prop; default
-/// bottom-right. The shared stack base rides on the enum.
-#[derive(strum::AsRefStr, PartialEq, TwVariant)]
-#[strum(serialize_all = "kebab-case")]
-#[tw(class = "pointer-events-none fixed z-100 w-[calc(100%-2rem)] max-w-sm")]
-pub enum ToastPosition {
-	#[tw(class = "top-4 left-4")]
-	TopLeft,
-	#[tw(class = "top-4 left-1/2 -translate-x-1/2")]
-	TopCenter,
-	#[tw(class = "top-4 right-4")]
-	TopRight,
-	#[tw(class = "bottom-4 left-4")]
-	BottomLeft,
-	#[tw(class = "bottom-4 left-1/2 -translate-x-1/2")]
-	BottomCenter,
-	#[tw(default, class = "bottom-4 right-4")]
-	BottomRight,
-}
 
 /// Lifecycle phase of a single toast. A toast mounts `Open` (plays the enter
 /// keyframe); [`ToasterHandle::dismiss`] flips it to `Closing` (plays the exit
@@ -229,7 +195,7 @@ pub fn Toaster(#[props(default)] position: ToastPosition, #[props(default)] clas
 		ToastPosition::TopLeft | ToastPosition::TopCenter | ToastPosition::TopRight => "top",
 		_ => "bottom",
 	};
-	let cls = cn!(position.as_class(), class);
+	let cls = cn!(TOASTER_BASE, position.as_class(), class);
 	let items = toasts.items.read();
 	let total = items.len();
 	rsx! {
@@ -288,9 +254,9 @@ fn ToastItem(toast: Toast, index: usize, total: usize) -> Element {
 					handle.remove(id);
 				}
 			},
-			class: toast.variant.as_class(),
-			div { class: "flex-1 space-y-1",
-				div { class: "font-medium", "{toast.message}" }
+			class: cn!(TOAST_BASE, toast.variant.as_class()),
+			div { class: TOAST_CONTENT,
+				div { class: TOAST_TITLE, "{toast.message}" }
 			}
 			button {
 				r#type: "button",

@@ -2,44 +2,12 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::primitives::{Controllable, use_controllable},
+	uikit::{
+		MENUBAR_CHECKBOX_ITEM, MENUBAR_CONTENT, MENUBAR_ITEM, MENUBAR_ITEM_INDICATOR, MENUBAR_LABEL, MENUBAR_RADIO_ITEM, MENUBAR_ROOT, MENUBAR_SEPARATOR, MENUBAR_SHORTCUT,
+		MENUBAR_SUB_CONTENT, MENUBAR_SUB_TRIGGER, MENUBAR_TRIGGER,
+		primitives::{Controllable, use_controllable},
+	},
 };
-
-const MENUBAR: &str = "bg-background flex h-9 items-center gap-1 rounded-md border p-1 shadow-xs";
-const TRIGGER: &str = "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent \
-                       data-[state=open]:text-accent-foreground flex items-center rounded-sm px-2 py-1 text-sm \
-                       font-medium outline-hidden select-none";
-const CONTENT: &str = "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:fade-out-0 \
-                       data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 \
-                       data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 \
-                       data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 absolute z-50 \
-                       min-w-[12rem] overflow-hidden rounded-md border p-1 shadow-md";
-const ITEM: &str = "focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive \
-                    data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:focus:text-destructive \
-                    data-[variant=destructive]:*:[svg]:!text-destructive [&_svg:not([class*='text-'])]:text-muted-foreground \
-                    relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden \
-                    select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 \
-                    [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4";
-const CHECKBOX_ITEM: &str = "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 \
-                             rounded-xs py-1.5 pr-2 pl-8 text-sm outline-hidden select-none \
-                             data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none \
-                             [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4";
-const RADIO_ITEM: &str = "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 \
-                          rounded-xs py-1.5 pr-2 pl-8 text-sm outline-hidden select-none \
-                          data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none \
-                          [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4";
-const LABEL: &str = "px-2 py-1.5 text-sm font-medium data-[inset]:pl-8";
-const SEPARATOR: &str = "bg-border -mx-1 my-1 h-px";
-const SHORTCUT: &str = "text-muted-foreground ml-auto text-xs tracking-widest";
-const SUB_TRIGGER: &str = "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent \
-                           data-[state=open]:text-accent-foreground flex cursor-default items-center rounded-sm px-2 py-1.5 \
-                           text-sm outline-none select-none data-[inset]:pl-8";
-const SUB_CONTENT: &str = "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out \
-                           data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 \
-                           data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 \
-                           data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 \
-                           data-[side=top]:slide-in-from-bottom-2 absolute z-50 min-w-[8rem] overflow-hidden rounded-md \
-                           border p-1 shadow-lg";
 
 /// Item visual tone — the canonical superset mirrors the TS `variant` prop.
 #[derive(strum::AsRefStr, Clone, Default, PartialEq)]
@@ -52,7 +20,7 @@ pub enum MenubarItemVariant {
 
 #[component]
 pub fn Menubar(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(MENUBAR, class);
+	let cls = cn!(MENUBAR_ROOT, class);
 	rsx! {
 		div { class: cls, "data-slot": "menubar", role: "menubar", {children} }
 	}
@@ -74,7 +42,7 @@ pub fn MenubarMenu(open: Option<bool>, #[props(default)] default_open: bool, on_
 pub fn MenubarTrigger(#[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<MenubarMenuCtx>();
 	let open = ctx.open.get();
-	let cls = cn!(TRIGGER, class);
+	let cls = cn!(MENUBAR_TRIGGER, class);
 	rsx! {
 		button {
 			r#type: "button",
@@ -93,7 +61,7 @@ pub fn MenubarContent(#[props(default)] class: String, children: Element) -> Ele
 	if !ctx.open.get() {
 		return rsx! {};
 	}
-	let cls = cn!(CONTENT, class);
+	let cls = cn!(MENUBAR_CONTENT, class);
 	// dep-light: inline positioning + backdrop; no portal/floating — see README Limitations
 	rsx! {
 		div {
@@ -126,7 +94,7 @@ pub fn MenubarItem(
 	onclick: Option<EventHandler<MouseEvent>>,
 	children: Element,
 ) -> Element {
-	let cls = cn!(ITEM, class);
+	let cls = cn!(MENUBAR_ITEM, class);
 	rsx! {
 		div {
 			class: cls,
@@ -142,14 +110,14 @@ pub fn MenubarItem(
 
 #[component]
 pub fn MenubarCheckboxItem(#[props(default)] checked: bool, #[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(CHECKBOX_ITEM, class);
+	let cls = cn!(MENUBAR_CHECKBOX_ITEM, class);
 	rsx! {
 		div {
 			class: cls,
 			"data-slot": "menubar-checkbox-item",
 			role: "menuitemcheckbox",
 			"aria-checked": checked,
-			span { class: "pointer-events-none absolute left-2 flex size-3.5 items-center justify-center",
+			span { class: MENUBAR_ITEM_INDICATOR,
 				if checked {
 					svg {
 						class: "size-4",
@@ -189,7 +157,7 @@ pub fn MenubarRadioGroup(
 pub fn MenubarRadioItem(value: String, #[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<MenubarRadioCtx>();
 	let checked = ctx.value.get() == value;
-	let cls = cn!(RADIO_ITEM, class);
+	let cls = cn!(MENUBAR_RADIO_ITEM, class);
 	let select_value = value.clone();
 	rsx! {
 		div {
@@ -198,7 +166,7 @@ pub fn MenubarRadioItem(value: String, #[props(default)] class: String, children
 			role: "menuitemradio",
 			"aria-checked": checked,
 			onclick: move |_| ctx.value.set(select_value.clone()),
-			span { class: "pointer-events-none absolute left-2 flex size-3.5 items-center justify-center",
+			span { class: MENUBAR_ITEM_INDICATOR,
 				if checked {
 					svg {
 						class: "size-2 fill-current",
@@ -214,7 +182,7 @@ pub fn MenubarRadioItem(value: String, #[props(default)] class: String, children
 
 #[component]
 pub fn MenubarLabel(#[props(default)] inset: bool, #[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(LABEL, class);
+	let cls = cn!(MENUBAR_LABEL, class);
 	rsx! {
 		div { class: cls, "data-slot": "menubar-label", "data-inset": inset, {children} }
 	}
@@ -222,7 +190,7 @@ pub fn MenubarLabel(#[props(default)] inset: bool, #[props(default)] class: Stri
 
 #[component]
 pub fn MenubarSeparator(#[props(default)] class: String) -> Element {
-	let cls = cn!(SEPARATOR, class);
+	let cls = cn!(MENUBAR_SEPARATOR, class);
 	rsx! {
 		div { class: cls, "data-slot": "menubar-separator", role: "separator" }
 	}
@@ -230,7 +198,7 @@ pub fn MenubarSeparator(#[props(default)] class: String) -> Element {
 
 #[component]
 pub fn MenubarShortcut(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!(SHORTCUT, class);
+	let cls = cn!(MENUBAR_SHORTCUT, class);
 	rsx! {
 		span { class: cls, "data-slot": "menubar-shortcut", {children} }
 	}
@@ -252,7 +220,7 @@ pub fn MenubarSub(open: Option<bool>, #[props(default)] default_open: bool, on_o
 pub fn MenubarSubTrigger(#[props(default)] inset: bool, #[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<MenubarSubCtx>();
 	let open = ctx.open.get();
-	let cls = cn!(SUB_TRIGGER, class);
+	let cls = cn!(MENUBAR_SUB_TRIGGER, class);
 	rsx! {
 		div {
 			class: cls,
@@ -282,7 +250,7 @@ pub fn MenubarSubContent(#[props(default)] class: String, children: Element) -> 
 	if !ctx.open.get() {
 		return rsx! {};
 	}
-	let cls = cn!(SUB_CONTENT, class);
+	let cls = cn!(MENUBAR_SUB_CONTENT, class);
 	// dep-light: inline positioning + backdrop; no portal/floating — see README Limitations
 	rsx! {
 		div {
