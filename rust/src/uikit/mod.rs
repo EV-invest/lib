@@ -23,7 +23,6 @@ mod test_util;
 
 mod accordion;
 mod alert;
-mod aspect_ratio;
 mod avatar;
 mod badge;
 mod breadcrumb;
@@ -62,7 +61,6 @@ mod toggle_group;
 
 pub use accordion::{Accordion, AccordionContent, AccordionItem, AccordionTrigger, AccordionType};
 pub use alert::{Alert, AlertDescription, AlertTitle, AlertVariant};
-pub use aspect_ratio::AspectRatio;
 pub use avatar::{Avatar, AvatarFallback, AvatarImage};
 pub use badge::{Badge, BadgeVariant};
 pub use breadcrumb::{Breadcrumb, BreadcrumbEllipsis, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator};

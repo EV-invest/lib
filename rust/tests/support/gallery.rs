@@ -21,7 +21,7 @@ const DIST: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/visual/dist");
 const GALLERY: &[(&str, fn() -> Element)] = &[
 	("Button", d_button), ("Badge", d_badge), ("Label", d_label), ("Kbd", d_kbd),
 	("Avatar", d_avatar), ("Separator", d_separator), ("Skeleton", d_skeleton),
-	("Spinner", d_spinner), ("AspectRatio", d_aspect_ratio), ("Progress", d_progress),
+	("Spinner", d_spinner), ("Progress", d_progress),
 	("Alert", d_alert), ("Card", d_card), ("Table", d_table), ("Breadcrumb", d_breadcrumb),
 	("Pagination", d_pagination), ("Empty", d_empty), ("Item", d_item), ("Field", d_field),
 	("ButtonGroup", d_button_group),
@@ -42,8 +42,6 @@ fn render_fragment(app: fn() -> Element) -> String {
 	dom.rebuild_in_place();
 	dioxus_ssr::render(&dom)
 }
-
-
 
 fn head(title: &str) -> String {
 	// ponytail: Tailwind browser CDN, pinned to the repo's tailwind version.
@@ -198,16 +196,6 @@ fn d_skeleton() -> Element {
 
 fn d_spinner() -> Element {
 	rsx! { Spinner {} }
-}
-
-fn d_aspect_ratio() -> Element {
-	rsx! {
-		div { class: "w-64",
-			AspectRatio { ratio: 16.0 / 9.0,
-				div { class: "flex h-full w-full items-center justify-center rounded-md bg-muted", "16 / 9" }
-			}
-		}
-	}
 }
 
 fn d_progress() -> Element {
@@ -839,4 +827,3 @@ fn d_container() -> Element {
 		}
 	}
 }
-

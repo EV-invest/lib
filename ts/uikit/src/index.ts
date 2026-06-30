@@ -28,9 +28,6 @@ export { mergeRefs } from "./primitives/merge-refs";
 export { Alert, AlertTitle, AlertDescription } from "./components/alert";
 export type { AlertProps, AlertVariant } from "./components/alert";
 
-export { AspectRatio } from "./components/aspect-ratio";
-export type { AspectRatioProps } from "./components/aspect-ratio";
-
 export { Avatar, AvatarImage, AvatarFallback } from "./components/avatar";
 
 export { Badge } from "./components/badge";
