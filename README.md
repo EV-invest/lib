@@ -12,6 +12,16 @@
 EV-invest's shared libraries — a polyglot monorepo. Each library is opt-in, so a
 consumer pulls in only what it asks for: a Cargo feature on the Rust side, a
 package under `ts/` on the TypeScript side.
+<!-- markdownlint-disable -->
+<details>
+<summary>
+<h2>Installation</h2>
+</summary>
+
+TODO
+
+</details>
+<!-- markdownlint-restore -->
 
 ## Usage
 ### Layout

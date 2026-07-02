@@ -1,31 +1,22 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    rust-overlay.url = "github:oxalica/rust-overlay";
-    rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
     pre-commit-hooks.url = "github:cachix/git-hooks.nix";
     pre-commit-hooks.inputs.nixpkgs.follows = "nixpkgs";
     v_flakes.url = "github:valeratrades/v_flakes?ref=v1.6";
     v_flakes.inputs.nixpkgs.follows = "nixpkgs";
-    v_flakes.inputs.rust-overlay.follows = "rust-overlay";
   };
 
-  outputs = { self, nixpkgs, rust-overlay, flake-utils, pre-commit-hooks, v_flakes }:
+  outputs = { self, nixpkgs, flake-utils, pre-commit-hooks, v_flakes }:
     flake-utils.lib.eachDefaultSystem (
       system:
       let
-        overlays = [ (import rust-overlay) ];
-        pkgs = import nixpkgs { inherit system overlays; };
+        pkgs = import nixpkgs { inherit system; };
 
-        # Nightly toolchain: the org `rustfmt.toml` uses unstable features and the
-        # generated cargo config enables the cranelift backend — both nightly-only.
-        # `wasm32` is included because the `architecture` crate is I/O-free and
-        # wasm-safe (`cargo check --target wasm32-unknown-unknown`).
-        rust = pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default.override {
-          extensions = [ "rust-src" "rust-analyzer" "rust-docs" "rustc-codegen-cranelift-preview" ];
-          targets = [ "wasm32-unknown-unknown" ];
-        });
+        # Canonical toolchain pinned in v_flakes — byte-identical across repos, so
+        # the nix store dedups it and sccache cross-references compilations.
+        rust = v_flakes.rs.default_nightly system;
 
         pname = "ev";
 
