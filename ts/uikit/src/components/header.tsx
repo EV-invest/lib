@@ -21,6 +21,8 @@ export interface HeaderProps {
   nav: readonly HeaderNavItem[];
   /** Right-side call-to-action slot; also re-rendered at the mobile menu's bottom. */
   cta?: React.ReactNode;
+  /** Overlay-specific CTA (e.g. full-width variant); falls back to `cta`. */
+  mobileCta?: React.ReactNode;
   tagline?: string;
   homeHref?: string;
   className?: string;
@@ -30,6 +32,7 @@ export interface HeaderProps {
 export function Header({
   nav,
   cta,
+  mobileCta,
   tagline = "Quy Nhon Fund",
   homeHref = "/",
   className,
@@ -86,7 +89,7 @@ export function Header({
 
         <div className="flex items-center gap-3">
           {cta}
-          <MobileMenu nav={nav} cta={cta} linkComponent={L} />
+          <MobileMenu nav={nav} cta={mobileCta ?? cta} linkComponent={L} />
         </div>
       </Container>
     </header>

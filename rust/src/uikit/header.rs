@@ -45,6 +45,8 @@ pub struct HeaderNavItem {
 pub fn Header(
 	nav: Vec<HeaderNavItem>,
 	cta: Option<Element>,
+	/// Overlay-specific CTA (e.g. full-width variant); falls back to `cta`.
+	mobile_cta: Option<Element>,
 	#[props(default = "Quy Nhon Fund".to_string())] tagline: String,
 	#[props(default = "/".to_string())] home_href: String,
 	#[props(default)] class: String,
@@ -157,8 +159,8 @@ pub fn Header(
 						}
 					}
 				}
-				if cta.is_some() {
-					div { class: "mt-8 w-full block", {cta.clone()} }
+				if mobile_cta.is_some() || cta.is_some() {
+					div { class: "mt-8 w-full block", {mobile_cta.clone().or_else(|| cta.clone())} }
 				}
 			}
 		}

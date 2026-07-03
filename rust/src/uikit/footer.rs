@@ -4,6 +4,8 @@ use crate::uikit::{Container, Logo};
 
 const HEADING: &str = "font-mono-tech text-xs text-white uppercase tracking-widest mb-6";
 
+const DEFAULT_DESCRIPTION: &str =
+	"EV Investment is a registered real estate advisory and investment management fund specializing in premium coastal developments in Quy Nhon, Binh Dinh province, Vietnam.";
 /// A footer sitemap link.
 #[derive(Clone, Debug, PartialEq)]
 pub struct FooterLink {
@@ -23,35 +25,6 @@ pub struct FooterLinkGroup {
 pub struct FooterOffice {
 	pub name: String,
 	pub address: String,
-}
-
-const DEFAULT_DESCRIPTION: &str =
-	"EV Investment is a registered real estate advisory and investment management fund specializing in premium coastal developments in Quy Nhon, Binh Dinh province, Vietnam.";
-
-fn default_offices() -> Vec<FooterOffice> {
-	vec![
-		FooterOffice {
-			name: "Quy Nhon Head Office".to_string(),
-			address: "102 An Duong Vuong St, Nguyen Van Cu Ward, Quy Nhon City, Vietnam".to_string(),
-		},
-		FooterOffice {
-			name: "Ho Chi Minh Representative".to_string(),
-			address: "Deutsches Haus, 33 Le Duan Blvd, District 1, Ho Chi Minh City, Vietnam".to_string(),
-		},
-	]
-}
-
-fn default_legal_links() -> Vec<FooterLink> {
-	vec![
-		FooterLink {
-			label: "Privacy Policy".to_string(),
-			href: "#hero".to_string(),
-		},
-		FooterLink {
-			label: "Terms of Service".to_string(),
-			href: "#hero".to_string(),
-		},
-	]
 }
 
 /// The EV brand chrome footer, ported from site_conductor: a 12-col grid —
@@ -154,6 +127,31 @@ pub fn Footer(
 			}
 		}
 	}
+}
+fn default_offices() -> Vec<FooterOffice> {
+	vec![
+		FooterOffice {
+			name: "Quy Nhon Head Office".to_string(),
+			address: "102 An Duong Vuong St, Nguyen Van Cu Ward, Quy Nhon City, Vietnam".to_string(),
+		},
+		FooterOffice {
+			name: "Ho Chi Minh Representative".to_string(),
+			address: "Deutsches Haus, 33 Le Duan Blvd, District 1, Ho Chi Minh City, Vietnam".to_string(),
+		},
+	]
+}
+
+fn default_legal_links() -> Vec<FooterLink> {
+	vec![
+		FooterLink {
+			label: "Privacy Policy".to_string(),
+			href: "#hero".to_string(),
+		},
+		FooterLink {
+			label: "Terms of Service".to_string(),
+			href: "#hero".to_string(),
+		},
+	]
 }
 
 #[cfg(test)]
