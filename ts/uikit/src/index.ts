@@ -97,6 +97,17 @@ export {
 } from "./components/field";
 export type { FieldOrientation } from "./components/field";
 
+export { Footer } from "./components/footer";
+export type {
+  FooterProps,
+  FooterLink,
+  FooterLinkGroup,
+  FooterOffice,
+} from "./components/footer";
+
+export { Header } from "./components/header";
+export type { HeaderProps, HeaderNavItem } from "./components/header";
+
 export { Input } from "./components/input";
 export { Textarea } from "./components/textarea";
 export { Label } from "./components/label";
@@ -137,6 +148,9 @@ export type {
 } from "./components/item";
 
 export { Kbd, KbdGroup } from "./components/kbd";
+
+export { Logo } from "./components/logo";
+export type { LogoProps } from "./components/logo";
 
 export {
   Pagination,
