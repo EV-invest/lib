@@ -75,6 +75,11 @@
   --color-main-accent-t2: #2e9e5b;
   --color-main-accent-t3: #f2c94c;
   --color-main-accent-t4: #e58aae;
+  --color-main-accent-trace: #2a9d8f;
+  --color-main-accent-debug: #2e9e5b;
+  --color-main-accent-info: #e58aae;
+  --color-main-accent-warn: #f2c94c;
+  --color-main-accent-error: #da251d;
 }
 
 :root {
@@ -97,7 +102,7 @@
   --destructive-foreground: #e6e1d3;
   --border: color-mix(in srgb, #e6e1d3 10%, transparent);
   --input: color-mix(in srgb, #e6e1d3 20%, transparent);
-  --ring: #2a9d8f;
+  --ring: var(accent-t1);
   --radius: 0.375rem; /* 6px on mobile; bumped to 8px ≥ sm (see @media below) */
 
   /* ── sidebar (PC nav) ───────────────────────────────────────── */
@@ -108,7 +113,7 @@
   --sidebar-accent: color-mix(in srgb, #e6e1d3 8%, transparent);
   --sidebar-accent-foreground: white;
   --sidebar-border: color-mix(in srgb, #e6e1d3 10%, transparent);
-  --sidebar-ring: #2a9d8f;
+  --sidebar-ring: var(accent-t1);
   --sidebar-width: 14rem;
 
   /* ── page container — responsive gutter + max width (uikit <Container>) ─ */

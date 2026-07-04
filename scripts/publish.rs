@@ -1,19 +1,5 @@
-#!/usr/bin/env nix
+#!/usr/bin/env -S cargo -Zscript
 ---cargo
-#! nix shell --impure --expr ``
-#! nix let rust_flake = builtins.getFlake ''github:oxalica/rust-overlay'';
-#! nix     nixpkgs_flake = builtins.getFlake ''nixpkgs'';
-#! nix     pkgs = import nixpkgs_flake {
-#! nix       system = builtins.currentSystem;
-#! nix       overlays = [rust_flake.overlays.default];
-#! nix     };
-#! nix     toolchain = pkgs.rust-bin.selectLatestNightlyWith (t: t.default);
-#! nix in pkgs.mkShell {
-#! nix   buildInputs = [ toolchain pkgs.nix pkgs.git pkgs.nodejs pkgs.cargo-release ];
-#! nix }
-#! nix ``
-#! nix --command sh -c ``cargo -Zscript -q "$0" "$@"``
-
 [package]
 edition = "2024"
 
