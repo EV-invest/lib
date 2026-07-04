@@ -178,3 +178,12 @@ pub use chart::*;
 pub use form::*;
 pub use resizable::*;
 pub use sonner::*;
+
+// Brand chrome — the EV site shell (Header/Footer/Logo), shared across surfaces.
+mod footer;
+mod header;
+mod logo;
+
+pub use footer::{Footer, FooterLink, FooterLinkGroup, FooterOffice};
+pub use header::{Header, HeaderNavItem};
+pub use logo::Logo;

@@ -11,8 +11,8 @@ Rust crate and its TypeScript mirror at once.
 
 | Package                            | Source                 | Version |
 | ---------------------------------- | ---------------------- | ------- |
-| `ev_lib` (Rust crate, `use ev::…`) | `rust/`                | 0.3.0   |
-| `@evinvest/uikit`                  | `ts/uikit/`            | 0.3.0   |
+| `ev_lib` (Rust crate, `use ev::…`) | `rust/`                | 0.4.0   |
+| `@evinvest/uikit`                  | `ts/uikit/`            | 0.4.0   |
 | `@evinvest/analytics`              | `ts/analytics/`        | 0.1.2   |
 | `@evinvest/architecture`           | `ts/architecture/`     | 0.1.0   |
 | `@evinvest/error-monitoring`       | `ts/error-monitoring/` | 0.1.0   |
@@ -22,6 +22,23 @@ Rust crate and its TypeScript mirror at once.
 
 _Nothing yet._
 
+## 2026-07-04 — uikit 0.4.0
+
+Rust `ev_lib` 0.4.0 · `@evinvest/uikit` 0.4.0. The EV brand chrome, mirrored
+across both ports, so every surface (site_conductor, cabinet, REA) renders one
+identical shell (EV-invest/site_conductor#55).
+
+### Added
+
+- **Brand chrome — `Header` / `Footer` / `Logo`** (Rust + TS): the site shell
+  ported from site_conductor's `application/layout`. Scroll-aware fixed header
+  with brand lockup, desktop nav and a built-in full-screen mobile menu; the
+  12-col footer (sitemap groups, offices, optional newsletter slot, build-version
+  line); the mark as a self-contained data-URI CSS mask (no asset pipeline).
+  Nav items and CTAs stay app-side — the kit owns only the chrome.
+    - TS: `linkComponent` prop lets Next hosts pass `next/link`; default `<a>`.
+    - Dioxus: web behaviors (scroll state, body-scroll lock, Escape,
+      close-on-navigate delegation) via `document::eval`, SSR-safe no-op.
 ## 2026-06-22 — uikit 0.3.0
 
 Rust `ev_lib` 0.3.0 · `@evinvest/uikit` 0.3.0. The toast (`sonner`) animation
