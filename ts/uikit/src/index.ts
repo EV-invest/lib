@@ -173,6 +173,21 @@ export { Skeleton } from "./components/skeleton";
 export { Spinner } from "./components/spinner";
 
 export {
+  StatusScreen,
+  statusButtonClass,
+  NotFound,
+  Forbidden,
+  ServerError,
+} from "./components/status-screen";
+export type {
+  StatusAccent,
+  StatusLinkData,
+  StatusScreenProps,
+  StatusPageProps,
+  ServerErrorProps,
+} from "./components/status-screen";
+
+export {
   Table,
   TableHeader,
   TableBody,

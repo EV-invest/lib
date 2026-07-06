@@ -54,4 +54,23 @@ describe("Header", () => {
     fireEvent.keyDown(window, { key: "Escape" });
     expect(queryByLabelText("Close menu")).toBeNull();
   });
+
+  it("compact variant is a fixed opaque bar that ignores scroll", () => {
+    const { container } = render(<Header nav={NAV} variant="compact" />);
+    const header = container.querySelector('[data-slot="header"]')!;
+    expect(header).toHaveAttribute("data-variant", "compact");
+    expect(header).toHaveClass("h-16", "bg-main-black/90");
+    // No scroll-driven growth: it stays opaque and never turns transparent.
+    Object.defineProperty(window, "scrollY", { value: 0, configurable: true });
+    fireEvent.scroll(window);
+    expect(header).not.toHaveClass("bg-transparent");
+  });
+
+  it("hideNav drops the desktop nav and the mobile menu trigger", () => {
+    const { queryByText, queryByLabelText } = render(
+      <Header nav={NAV} hideNav />,
+    );
+    expect(queryByText("Portfolio")).toBeNull();
+    expect(queryByLabelText("Open menu")).toBeNull();
+  });
 });

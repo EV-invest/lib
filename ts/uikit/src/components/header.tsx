@@ -17,6 +17,9 @@ export interface HeaderNavItem {
   href: string;
 }
 
+/** Chrome density preset — see the `variant` prop on {@link HeaderProps}. */
+export type HeaderVariant = "marketing" | "compact";
+
 export interface HeaderProps {
   nav: readonly HeaderNavItem[];
   /** Right-side call-to-action slot; also re-rendered at the mobile menu's bottom. */
@@ -27,6 +30,18 @@ export interface HeaderProps {
   homeHref?: string;
   className?: string;
   linkComponent?: React.ElementType;
+  /**
+   * Chrome density, per host surface.
+   * - `"marketing"` (default): the scroll-aware bar — tall and transparent over a
+   *   hero, condensing to an opaque blurred bar past 50px.
+   * - `"compact"`: a fixed short, opaque bar for app surfaces (e.g. the cabinet)
+   *   whose content sits directly beneath it — no scroll growth, so a sticky
+   *   sidebar can butt flush against a known 4rem height.
+   */
+  variant?: HeaderVariant;
+  /** Drop the primary nav — the desktop row and the mobile menu — keeping only the
+   *  lockup and CTA. The lockup still links home. */
+  hideNav?: boolean;
 }
 
 export function Header({
@@ -37,28 +52,41 @@ export function Header({
   homeHref = "/",
   className,
   linkComponent,
+  variant = "marketing",
+  hideNav = false,
 }: HeaderProps) {
   const L = linkComponent ?? "a";
+  const compact = variant === "compact";
   const [hasScrolled, setHasScrolled] = React.useState(false);
 
   React.useEffect(() => {
+    // Compact keeps a fixed height, so it never needs the scroll position.
+    if (compact) return;
     const handleScroll = () => setHasScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [compact]);
 
   return (
     <header
       data-slot="header"
+      data-variant={variant}
       className={cn(
-        "fixed top-0 left-0 w-full z-[60] transition-all duration-500 border-b",
-        hasScrolled
-          ? "bg-main-black/90 backdrop-blur-md border-main-mist/10 py-4"
-          : "bg-transparent border-transparent py-6",
+        "fixed top-0 left-0 w-full z-[60] border-b",
+        compact
+          ? // Fixed 4rem bar (py-3 + the 40px lockup): opaque by default so app
+            // content beneath it never bleeds through.
+            "h-16 bg-main-black/90 backdrop-blur-md border-main-mist/10"
+          : cn(
+              "transition-all duration-500",
+              hasScrolled
+                ? "bg-main-black/90 backdrop-blur-md border-main-mist/10 py-4"
+                : "bg-transparent border-transparent py-6",
+            ),
         className,
       )}
     >
-      <Container className="flex items-center justify-between gap-4">
+      <Container className="flex h-full items-center justify-between gap-4">
         <L
           href={homeHref}
           className="flex items-center gap-3"
@@ -75,21 +103,25 @@ export function Header({
           </div>
         </L>
 
-        <nav className="hidden lg:flex items-center gap-6 font-mono-tech text-xs tracking-widest uppercase">
-          {nav.map((item) => (
-            <L
-              key={item.href}
-              href={item.href}
-              className="text-main-mist/80 hover:text-main-accent-t1 transition-colors"
-            >
-              {item.label}
-            </L>
-          ))}
-        </nav>
+        {!hideNav && (
+          <nav className="hidden lg:flex items-center gap-6 font-mono-tech text-xs tracking-widest uppercase">
+            {nav.map((item) => (
+              <L
+                key={item.href}
+                href={item.href}
+                className="text-main-mist/80 hover:text-main-accent-t1 transition-colors"
+              >
+                {item.label}
+              </L>
+            ))}
+          </nav>
+        )}
 
         <div className="flex items-center gap-3">
           {cta}
-          <MobileMenu nav={nav} cta={mobileCta ?? cta} linkComponent={L} />
+          {!hideNav && (
+            <MobileMenu nav={nav} cta={mobileCta ?? cta} linkComponent={L} />
+          )}
         </div>
       </Container>
     </header>
