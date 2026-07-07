@@ -18,6 +18,7 @@ const TOKENS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/uiki
 const DIST: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/visual/dist");
 /// The board. One line per primitive — the only place to edit when adding one.
 #[rustfmt::skip]
+#[allow(clippy::type_complexity)] // a `(label, demo fn)` table reads fine as-is
 const GALLERY: &[(&str, fn() -> Element)] = &[
 	("Button", d_button), ("Badge", d_badge), ("Label", d_label), ("Kbd", d_kbd),
 	("Avatar", d_avatar), ("Separator", d_separator), ("Skeleton", d_skeleton),
