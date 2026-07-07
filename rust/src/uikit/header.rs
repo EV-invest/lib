@@ -5,9 +5,16 @@ use crate::{
 	uikit::{Container, Logo},
 };
 
-const HEADER_BASE: &str = "fixed top-0 left-0 w-full z-[60] transition-all duration-500 border-b";
+const HEADER_BASE: &str = "fixed top-0 left-0 w-full z-[60] border-b";
+// Marketing chrome: the scroll-aware transition, layered over the top/scrolled
+// state. Compact omits it — a fixed-height bar has nothing to animate.
+const HEADER_MARKETING: &str = "transition-all duration-500";
 const HEADER_SCROLLED: &str = "bg-main-black/90 backdrop-blur-md border-main-mist/10 py-4";
 const HEADER_TOP: &str = "bg-transparent border-transparent py-6";
+// Compact chrome: a fixed 4rem opaque bar for app surfaces (e.g. the cabinet)
+// whose content sits directly beneath it — opaque by default so nothing bleeds
+// through, and a known height a sticky sidebar can butt flush against.
+const HEADER_COMPACT: &str = "h-16 bg-main-black/90 backdrop-blur-md border-main-mist/10";
 
 /// Mirrors the landing's `window.scrollY > 50` listener; only flips are sent so
 /// scrolling doesn't flood a liveview channel. On renderers without a document
@@ -36,11 +43,31 @@ pub struct HeaderNavItem {
 	pub href: String,
 }
 
+/// Chrome density preset — see the `variant` prop on [`Header`].
+///
+/// - [`Marketing`](HeaderVariant::Marketing) (default): the scroll-aware bar,
+///   tall and transparent over a hero, condensing to an opaque blurred bar past
+///   50px.
+/// - [`Compact`](HeaderVariant::Compact): a fixed short opaque bar for app
+///   surfaces whose content sits directly beneath it — no scroll growth, so a
+///   sticky sidebar can butt flush against a known 4rem height.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub enum HeaderVariant {
+	#[default]
+	Marketing,
+	Compact,
+}
+
 /// The EV brand chrome header, ported from site_conductor: a fixed, scroll-aware
 /// bar (transparent over the hero, blurred dark once scrolled past 50px) with the
 /// brand lockup, a desktop nav and a built-in below-`lg` full-screen menu. The
 /// `cta` slot renders at the right of the bar and again at the mobile menu's
 /// bottom; the consumer styles it.
+///
+/// `variant` picks the chrome density ([`HeaderVariant`]): `Marketing` (default)
+/// is the scroll-aware bar; `Compact` is a fixed short opaque bar for app
+/// surfaces. `hide_nav` drops the nav — the desktop row and the mobile menu —
+/// keeping only the lockup and CTA (the lockup still links home).
 #[component]
 pub fn Header(
 	nav: Vec<HeaderNavItem>,
@@ -50,11 +77,25 @@ pub fn Header(
 	#[props(default = "Quy Nhon Fund".to_string())] tagline: String,
 	#[props(default = "/".to_string())] home_href: String,
 	#[props(default)] class: String,
+	/// Chrome density, per host surface. See [`HeaderVariant`]. A per-surface
+	/// preset — fixed for the Header's lifetime: the scroll wiring is decided once
+	/// at mount, so (unlike the TS port's `[compact]` effect) it is not
+	/// re-subscribed if `variant` flips at runtime.
+	#[props(default)]
+	variant: HeaderVariant,
+	/// Drop the primary nav (desktop row + mobile menu), keeping the lockup + CTA.
+	#[props(default)]
+	hide_nav: bool,
 ) -> Element {
 	let mut scrolled = use_signal(|| false);
 	let mut menu_open = use_signal(|| false);
+	let compact = variant == HeaderVariant::Compact;
 
 	use_future(move || async move {
+		// Compact keeps a fixed height, so it never needs the scroll position.
+		if compact {
+			return;
+		}
 		let mut scroll_flips = document::eval(SCROLL_JS);
 		while let Ok(s) = scroll_flips.recv::<bool>().await {
 			scrolled.set(s);
@@ -75,11 +116,28 @@ pub fn Header(
 		}
 	});
 
+	// TS restores the body-scroll lock in its effect cleanup; mirror that on
+	// unmount so a Header torn down while the overlay is open can't leave the page
+	// unscrollable. Escape / delegated-click still unwind through OVERLAY_JS's
+	// `done`; this only guards the unmount-while-open path (SSR: eval is a no-op).
+	use_drop(move || {
+		let _ = document::eval("document.body.style.overflow = '';");
+	});
+
 	rsx! {
 		header {
-			class: cn!(HEADER_BASE, if scrolled() { HEADER_SCROLLED } else { HEADER_TOP }, class),
+			class: cn!(
+				HEADER_BASE,
+				if compact {
+					HEADER_COMPACT.to_string()
+				} else {
+					cn!(HEADER_MARKETING, if scrolled() { HEADER_SCROLLED } else { HEADER_TOP })
+				},
+				class
+			),
 			"data-slot": "header",
-			Container { class: "flex items-center justify-between gap-4",
+			"data-variant": if compact { "compact" } else { "marketing" },
+			Container { class: "flex h-full items-center justify-between gap-4",
 				a { href: home_href, class: "flex items-center gap-3", aria_label: "EV Investment — home",
 					Logo { class: "w-10 h-10 text-white" }
 					div { class: "flex flex-col",
@@ -87,36 +145,40 @@ pub fn Header(
 						span { class: "text-[9px] font-mono-tech tracking-[0.3em] text-main-accent-t1 uppercase", {tagline} }
 					}
 				}
-				nav { class: "hidden lg:flex items-center gap-6 font-mono-tech text-xs tracking-widest uppercase",
-					for item in nav.iter() {
-						a {
-							key: "{item.href}",
-							href: item.href.clone(),
-							class: "text-main-mist/80 hover:text-main-accent-t1 transition-colors",
-							{item.label.clone()}
+				if !hide_nav {
+					nav { class: "hidden lg:flex items-center gap-6 font-mono-tech text-xs tracking-widest uppercase",
+						for item in nav.iter() {
+							a {
+								key: "{item.href}",
+								href: item.href.clone(),
+								class: "text-main-mist/80 hover:text-main-accent-t1 transition-colors",
+								{item.label.clone()}
+							}
 						}
 					}
 				}
 				div { class: "flex items-center gap-3",
 					{cta.clone()}
-					div { class: "lg:hidden",
-						button {
-							r#type: "button",
-							aria_label: "Open menu",
-							"aria-expanded": if menu_open() { "true" } else { "false" },
-							"aria-haspopup": "menu",
-							class: "flex size-10 items-center justify-center text-white",
-							onclick: move |_| menu_open.set(true),
-							svg {
-								xmlns: "http://www.w3.org/2000/svg",
-								class: "size-6",
-								view_box: "0 0 24 24",
-								fill: "none",
-								stroke: "currentColor",
-								stroke_width: "2",
-								stroke_linecap: "round",
-								stroke_linejoin: "round",
-								path { d: "M4 6h16M4 12h16M4 18h16" }
+					if !hide_nav {
+						div { class: "lg:hidden",
+							button {
+								r#type: "button",
+								aria_label: "Open menu",
+								"aria-expanded": if menu_open() { "true" } else { "false" },
+								"aria-haspopup": "menu",
+								class: "flex size-10 items-center justify-center text-white",
+								onclick: move |_| menu_open.set(true),
+								svg {
+									xmlns: "http://www.w3.org/2000/svg",
+									class: "size-6",
+									view_box: "0 0 24 24",
+									fill: "none",
+									stroke: "currentColor",
+									stroke_width: "2",
+									stroke_linecap: "round",
+									stroke_linejoin: "round",
+									path { d: "M4 6h16M4 12h16M4 18h16" }
+								}
 							}
 						}
 					}
@@ -217,5 +279,32 @@ mod tests {
 		assert!(html.contains("Custom Fund"), "{html}");
 		assert!(!html.contains("Quy Nhon Fund"), "{html}");
 		assert!(html.contains("href=\"/home\""), "{html}");
+	}
+
+	#[test]
+	fn compact_variant_is_fixed_opaque_bar() {
+		fn app() -> Element {
+			rsx! {
+				Header { nav: nav(), variant: HeaderVariant::Compact }
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("data-variant=\"compact\""), "{html}");
+		assert!(html.contains("h-16"), "fixed 4rem bar: {html}");
+		assert!(html.contains("bg-main-black/90"), "opaque by default: {html}");
+		assert!(!html.contains("bg-transparent"), "compact never goes transparent: {html}");
+	}
+
+	#[test]
+	fn hide_nav_drops_nav_and_menu_trigger() {
+		fn app() -> Element {
+			rsx! {
+				Header { nav: nav(), hide_nav: true }
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("EV INVESTMENT"), "lockup stays: {html}");
+		assert!(!html.contains("href=\"/team\""), "desktop nav dropped: {html}");
+		assert!(!html.contains("aria-label=\"Open menu\""), "mobile trigger dropped: {html}");
 	}
 }

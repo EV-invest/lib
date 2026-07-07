@@ -11,8 +11,8 @@ Rust crate and its TypeScript mirror at once.
 
 | Package                            | Source                 | Version |
 | ---------------------------------- | ---------------------- | ------- |
-| `ev_lib` (Rust crate, `use ev::…`) | `rust/`                | 0.4.0   |
-| `@evinvest/uikit`                  | `ts/uikit/`            | 0.4.0   |
+| `ev_lib` (Rust crate, `use ev::…`) | `rust/`                | 0.5.0   |
+| `@evinvest/uikit`                  | `ts/uikit/`            | 0.6.0   |
 | `@evinvest/analytics`              | `ts/analytics/`        | 0.1.2   |
 | `@evinvest/architecture`           | `ts/architecture/`     | 0.1.0   |
 | `@evinvest/error-monitoring`       | `ts/error-monitoring/` | 0.1.0   |
@@ -21,6 +21,33 @@ Rust crate and its TypeScript mirror at once.
 ## [Unreleased]
 
 _Nothing yet._
+
+## 2026-07-07 — uikit 0.6.0 · Rust brand-chrome catch-up
+
+Rust `ev_lib` 0.5.0 · `@evinvest/uikit` 0.6.0. The Dioxus port catches up to two
+TypeScript uikit releases — uikit 0.5.0 (Header density variants) and 0.6.0 (the
+shared status pages), both 2026-07-06 — so both ports render one identical shell
+again. Those two TS releases are folded into this single wave; the crate ships as
+one versioned unit, so `ev_lib` 0.5.0 covers both.
+
+### Added
+
+- **Status pages — `StatusScreen` + `NotFound` / `Forbidden` / `ServerError`**
+  (Rust; TS since uikit 0.6.0, 2026-07-06): the shared 404 / 403 / 500 surface
+  ported from site_conductor — a centred hero (skyline-crown mark, mono eyebrow,
+  Playfair code, italic-accent headline, CTAs) with a per-status accent
+  (`StatusAccent`: teal / gold / red / blue). The ready-made pages bake in their
+  copy; a host passes only hrefs. `ServerError`'s retry runs a host `reset` or
+  reloads. `status_button_class` is exposed for bespoke CTAs.
+    - TS: `linkComponent` routes CTAs through `next/link` for soft nav.
+    - Dioxus: renders plain `<a>` (a full document load, as an error page wants —
+      no `linkComponent` equivalent) and reloads via `document::eval`.
+- **`Header` — `compact` variant + `hideNav`** (Rust; TS since uikit 0.5.0,
+  2026-07-06): `variant="compact"` (Rust `HeaderVariant::Compact`) is a fixed
+  short opaque bar for app surfaces — no scroll growth, a known 4rem height a
+  sticky sidebar can butt flush against; `marketing` (default) keeps the
+  scroll-aware bar. `hideNav` (`hide_nav`) drops the nav — desktop row + mobile
+  menu — keeping just the lockup and CTA.
 
 ## 2026-07-04 — uikit 0.4.0
 

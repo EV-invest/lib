@@ -96,10 +96,10 @@ element across the two ports.
 | overlay placement | inline `position:fixed` + `data-side` | `Portal` + `useFloating` |
 | dismiss / focus trap | full-screen backdrop / native order | `useDismissableLayer` / `useFocusScope` |
 
-### Component inventory (all 63 bricks)
+### Component inventory (all 60 bricks)
 
 - **Tier A — static (22):** badge, button, button-group, card, input, textarea,
-  label, field, separator, skeleton, spinner, kbd, table, aspect-ratio, alert,
+  label, field, separator, skeleton, spinner, kbd, table, container, alert,
   breadcrumb, empty, item, input-group, avatar, progress, pagination.
 - **Tier B — interactive (13):** accordion, collapsible, tabs, toggle,
   toggle-group, switch, checkbox, radio-group, slider, sidebar, scroll-area,
@@ -108,6 +108,9 @@ element across the two ports.
   context-menu, menubar, navigation-menu, dialog, alert-dialog, sheet, drawer,
   select, command.
 - **Tier D — engines (5):** chart, calendar, sonner (toaster), form, resizable.
+- **Brand chrome — site shell (7):** header (marketing / compact density, plus
+  `hideNav`), footer, logo, and the shared status pages — `StatusScreen` with the
+  `NotFound` / `Forbidden` / `ServerError` presets (404 / 403 / 500).
 
 The canonical variant set is the **superset** of the original cabinet (Rust) and
 landing (TS) sources — e.g. `Badge` keeps cabinet's `success` variant, `Button`
@@ -153,6 +156,11 @@ measuring needs host-only `web-sys`). Known gaps:
   drawer). Embla momentum / vaul drag-to-dismiss are not reproduced.
 - **sidebar:** the mobile-sheet integration, cookie persistence, and keyboard
   shortcut are omitted.
+- **brand chrome (header / footer / status pages):** TS routes links through an
+  optional `linkComponent` (e.g. `next/link`) for soft navigation; Rust renders
+  plain `<a>` (a full document load). The Dioxus header drives its scroll state,
+  body-scroll lock, and overlay dismissal via `document::eval` (SSR-safe no-op);
+  `ServerError`'s retry runs a host `reset` or reloads the page.
 
 ## Develop
 
