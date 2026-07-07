@@ -50,7 +50,7 @@ fn app() -> Element {
 		div { class: "grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3",
 			for (name, render) in GALLERY.iter().copied() {
 				section { class: "stage flex flex-col gap-3 rounded-lg border border-border bg-card/30 p-5",
-					h3 { class: "text-xs font-medium uppercase tracking-wide text-muted-foreground", "{name}" }
+					h3 { class: "text-xs font-medium uppercase tracking-wide text-muted-foreground", {name} }
 					div { class: "flex flex-1 flex-wrap items-center gap-3", {render()} }
 				}
 			}

@@ -5,6 +5,7 @@
 //!   - `&` escaped as `&#38;` (dioxus) vs `&amp;` (DOM serializer)
 //!   - numeric attrs unquoted (`aria-valuenow=420000`) — valid HTML, DOM quotes
 //!   - attribute order: dioxus emits `class` first, the DOM keeps source order
+//!
 //! Everything else must match byte-for-byte, which is what `EXPECTED` encodes.
 #![cfg(feature = "uikit")]
 
