@@ -6,7 +6,7 @@
 //! renders those with its own hrefs. Links render as a plain `<a>` (a full
 //! document load, which is what you want off an error page); the TS port's
 //! `linkComponent` soft-nav affordance has no Dioxus equivalent (see the package
-//! README's Rust↔TS notes), matching how [`Header`](crate::uikit::Header) and
+//! README's Rust↔TS notes), matching how site_conductor's `Header` and
 //! [`Footer`](crate::uikit::Footer) render their links.
 
 use dioxus::prelude::*;
