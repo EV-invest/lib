@@ -114,6 +114,11 @@
   /* ── page container — responsive gutter + max width (uikit <Container>) ─ */
   --page-max: 90rem; /* 1440px */
   --page-px: 1rem; /* 16px — mobile gutter, scales up below */
+
+  /* ── shell offset — viewport space reserved by whatever shell hosts the app.
+     Standalone apps get 0; a hosting shell overrides on :root. Size
+     viewport-bound surfaces with calc(100dvh - var(--ev-shell-offset, 0px)). */
+  --ev-shell-offset: 0px;
 }
 
 /* Mobile-first scale-ups: roomier gutters + slightly larger radii on bigger
