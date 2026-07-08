@@ -179,14 +179,13 @@ pub use form::*;
 pub use resizable::*;
 pub use sonner::*;
 
-// Brand chrome — the EV site shell (Header/Footer/Logo) and the shared status
-// pages (404/403/500), shared across surfaces.
+// Brand chrome — the EV site shell (Footer/Logo) and the shared status
+// pages (404/403/500), shared across surfaces. The brand Header lives in
+// site_conductor: with zones chromeless, the conductor is its only consumer.
 mod footer;
-mod header;
 mod logo;
 mod status_screen;
 
 pub use footer::{Footer, FooterLink, FooterLinkGroup, FooterOffice};
-pub use header::{Header, HeaderNavItem, HeaderVariant};
 pub use logo::Logo;
 pub use status_screen::{Forbidden, NotFound, ServerError, StatusAccent, StatusButtonVariant, StatusLinkData, StatusScreen, status_button_class};

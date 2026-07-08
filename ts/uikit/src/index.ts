@@ -105,9 +105,6 @@ export type {
   FooterOffice,
 } from "./components/footer";
 
-export { Header } from "./components/header";
-export type { HeaderProps, HeaderNavItem } from "./components/header";
-
 export { Input } from "./components/input";
 export { Textarea } from "./components/textarea";
 export { Label } from "./components/label";
