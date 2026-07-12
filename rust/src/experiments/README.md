@@ -61,7 +61,7 @@ use ev_lib::experiments::{ExperimentTracker, ExposureSink, use_experiment_event}
 #[component]
 fn Hero(variant: String, on_event: ExposureSink) -> Element {
     rsx! {
-        // fires `hero_exposed` once on mount through on_event
+        // fires `hero_exposed` on mount (and again on variant change) through on_event
         ExperimentTracker { experiment: "hero".to_string(), variant, on_event,
             Cta {}
         }
