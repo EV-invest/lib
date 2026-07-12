@@ -66,9 +66,10 @@ let variant = resolve_variant(&hero, None); // "a"
 ## Wrap a section in `ExperimentTracker`
 
 [`ExperimentTracker`] is the A/B boundary: it provides the experiment context to
-descendants and fires `<experiment>_exposed` **once on mount** through
-`on_event`. Resolve the `variant` first (browser cookie or control), then wrap
-the variant content:
+descendants and fires `<experiment>_exposed` through `on_event` **on mount and
+again whenever the tracked experiment or variant changes** (or a sink first
+appears — the mirror of the TS exposure-effect deps). Resolve the `variant`
+first (browser cookie or control), then wrap the variant content:
 
 ```rust
 use dioxus::prelude::*;
@@ -176,7 +177,8 @@ let on_event: ExposureSink = use_callback(|tracked: TrackedEvent| {
 
 ## The event taxonomy
 
-- **Exposure:** `<experiment>_exposed`, fired once on mount.
+- **Exposure:** `<experiment>_exposed`, fired on mount and again when the
+  tracked experiment or variant changes.
 - **Action:** `<experiment>_<action>` (e.g. `hero_cta_clicked`).
 - **`variant` is merged into every event** by the tracker — don't add it
   yourself.
@@ -217,8 +219,9 @@ context (see the tests in `ui.rs`). To assert emitted events, pass an
 - **Resolve the variant before mounting the tracker.** `ExperimentTracker` does
   not assign — pass it a variant from `assign_variant` (browser) or the control
   (SSR).
-- **Exposure fires once per tracker instance.** Conditionally rendering and
-  re-mounting the tracker re-fires it — keep one stable boundary per section.
+- **Exposure fires per tracked `(experiment, variant)`, not once ever.**
+  Re-mounting the tracker or updating its `experiment`/`variant` props re-fires
+  it (mirroring the TS effect deps) — keep one stable boundary per section.
 - **`use_experiment` / `use_experiment_event` panic outside a tracker.** They
   read context; mount the tracker above any component that calls them.
 - **Stickiness is the cookie, not the rng.** Seeding `rng` only makes a single
