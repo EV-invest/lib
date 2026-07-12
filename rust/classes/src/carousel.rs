@@ -22,8 +22,10 @@ pub const CAROUSEL_NEXT_HORIZONTAL: &str = "top-1/2 -right-12 -translate-y-1/2";
 
 pub const CAROUSEL_NEXT_VERTICAL: &str = "-bottom-12 left-1/2 -translate-x-1/2 rotate-90";
 
-pub const CAROUSEL_EDGE_FADE_PREV: &str =
-	"pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-background via-background/60 to-transparent transition-opacity duration-300";
+// Peak capped well below solid and spread over a wider band: a fully-opaque
+// edge reads as a hard wall rather than a "more to come" hint. No opacity
+// transition — cross-fading prev/next visibility left both edges tinted at
+// once mid-swipe, which read as side shadows on every switch.
+pub const CAROUSEL_EDGE_FADE_PREV: &str = "pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-background/45 via-background/20 to-transparent";
 
-pub const CAROUSEL_EDGE_FADE_NEXT: &str =
-	"pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-background via-background/60 to-transparent transition-opacity duration-300";
+pub const CAROUSEL_EDGE_FADE_NEXT: &str = "pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-background/45 via-background/20 to-transparent";

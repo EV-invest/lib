@@ -24,6 +24,6 @@ export const CAROUSEL_NEXT_HORIZONTAL = "top-1/2 -right-12 -translate-y-1/2";
 
 export const CAROUSEL_NEXT_VERTICAL = "-bottom-12 left-1/2 -translate-x-1/2 rotate-90";
 
-export const CAROUSEL_EDGE_FADE_PREV = "pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-background via-background/60 to-transparent transition-opacity duration-300";
+export const CAROUSEL_EDGE_FADE_PREV = "pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-background/45 via-background/20 to-transparent";
 
-export const CAROUSEL_EDGE_FADE_NEXT = "pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-background via-background/60 to-transparent transition-opacity duration-300";
+export const CAROUSEL_EDGE_FADE_NEXT = "pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-background/45 via-background/20 to-transparent";
