@@ -36,6 +36,7 @@ SDK), so a browser bundle may carry the DSN.
 | --- | --- | --- |
 | `SENTRY_DSN` | native | DSN, or unset → Sentry disabled (no-op). |
 | `APP_ENV` | native | Environment tag (`production`, `staging`, …). |
+| `SENTRY_RELEASE` | native | Release fallback the SDK reads when `Config.release` is `None`. |
 
 On native, the sampling policy mirrors the site: `Config::traces_sample_rate_for`
 returns `0.1` in production and `1.0` everywhere else.
@@ -49,7 +50,7 @@ before the async runtime starts, so do not use `#[tokio::main]` — build the
 runtime by hand and keep the guard alive for the whole process:
 
 ```rust
-use ev_lib::error_monitoring::{Config, init, tracing_layer};
+use ev_lib::error_monitoring::{Config, init, release_name, tracing_layer};
 
 fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
@@ -59,6 +60,8 @@ fn main() -> anyhow::Result<()> {
         dsn: std::env::var("SENTRY_DSN").ok(),
         traces_sample_rate: Config::traces_sample_rate_for(&env),
         environment: env,
+        // expands in *this* crate, so events are attributed to your app's release
+        release: release_name!().map(|r| r.into_owned()),
     };
     // Dropping this guard flushes queued events — bind it for the life of main.
     let _sentry_guard = init(&config);

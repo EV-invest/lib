@@ -34,7 +34,7 @@ ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, f
 ### Native (Axum / any server)
 
 ```rust
-use ev_lib::error_monitoring::{Config, NewSentryLayer, SentryHttpLayer, init, report, tracing_layer};
+use ev_lib::error_monitoring::{Config, NewSentryLayer, SentryHttpLayer, init, release_name, report, tracing_layer};
 
 // 1. Init *before* the async runtime; hold the guard for the life of the process.
 fn main() -> anyhow::Result<()> {
@@ -43,6 +43,8 @@ fn main() -> anyhow::Result<()> {
         dsn: std::env::var("SENTRY_DSN").ok(),
         traces_sample_rate: Config::traces_sample_rate_for(&env),
         environment: env,
+        // expands in *this* crate, so events are attributed to your app's release
+        release: release_name!().map(|r| r.into_owned()),
     };
     let _guard = init(&config); // None when no DSN — binding is simply inert
     // … build the tracing subscriber + runtime, then serve …
@@ -102,6 +104,7 @@ Sentry JS SDKs. Parity is by behaviour.
 | --- | --- | --- |
 | server init | `init(&Config) -> Option<ClientInitGuard>` | `initServer(opts)` (`./node`) |
 | sample rate policy | `Config::traces_sample_rate_for(env)` (0.1 prod / 1.0 else) | `defaultTracesSampleRate` (0.1 / 1.0) |
+| release attribution | `Config.release`; `None` → SDK `SENTRY_RELEASE` detection (fill via `release_name!()` in the app crate) | SDK env detection (`SENTRY_RELEASE`) |
 | report a 5xx error | `report(&dyn Error)` | `sink.reportError(err, ctx)` (`.` core) |
 | HTTP capture | tower `NewSentryLayer` + `SentryHttpLayer` | Next request hooks (`./next`) |
 | tracing breadcrumbs | `tracing_layer()` in the subscriber | (SDK integrations) |

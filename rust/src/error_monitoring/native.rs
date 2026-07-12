@@ -20,6 +20,11 @@ pub use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 /// so error/warn events become Sentry breadcrumbs and events (mirrors the site's
 /// `init_tracing`).
 pub use sentry::integrations::tracing::layer as tracing_layer;
+/// Builds `"<name>@<version>"` from the crate the macro is *invoked in* — call it
+/// in your application crate and pass the result through [`Config::release`]
+/// (e.g. `release: release_name!().map(|r| r.into_owned())`). Invoked anywhere
+/// else it names that crate instead, which is why [`init`] cannot do this for you.
+pub use sentry::release_name;
 
 /// Backend Sentry configuration. Read `dsn`/`environment` from the environment in
 /// your app; `dsn` `None` disables Sentry (a silent no-op).
@@ -31,6 +36,11 @@ pub struct Config {
 	pub environment: String,
 	/// Transaction trace sampling rate; see [`Config::traces_sample_rate_for`].
 	pub traces_sample_rate: f32,
+	/// Release the app's events are attributed to (e.g. `"site-backend@2.3.1"`,
+	/// from [`release_name!`] in the app crate or your CI). `None` defers to the
+	/// SDK's `SENTRY_RELEASE` env detection — the same default as the TS port —
+	/// and events stay unattributed when that is unset too.
+	pub release: Option<String>,
 }
 
 impl Config {
@@ -48,7 +58,7 @@ pub fn init(config: &Config) -> Option<sentry::ClientInitGuard> {
 	Some(sentry::init((
 		dsn,
 		sentry::ClientOptions {
-			release: sentry::release_name!(),
+			release: config.release.clone().map(Into::into),
 			environment: Some(config.environment.clone().into()),
 			traces_sample_rate: config.traces_sample_rate,
 			..Default::default()
@@ -85,6 +95,7 @@ mod tests {
 			dsn: None,
 			environment: "test".to_string(),
 			traces_sample_rate: 1.0,
+			release: None,
 		};
 		assert!(init(&config).is_none());
 	}
@@ -95,12 +106,47 @@ mod tests {
 			dsn: Some("https://abc@example.com/1".to_string()),
 			environment: "test".to_string(),
 			traces_sample_rate: 1.0,
+			release: None,
 		};
 		let guard = init(&config);
 		assert!(guard.is_some(), "a syntactically valid DSN should yield a guard");
 		// Drop the guard explicitly; it must not block on a network flush
 		// (default transport with an unreachable host would, hence the short
 		// shutdown — but dropping the guard here is enough for the assertion).
+		drop(guard);
+	}
+
+	// The guard derefs to the client, so these assert on the options this client
+	// resolved — no global-hub reads that could race other tests.
+	#[test]
+	fn init_uses_the_configured_release() {
+		let config = Config {
+			dsn: Some("https://abc@example.com/1".to_string()),
+			environment: "test".to_string(),
+			traces_sample_rate: 1.0,
+			release: Some("site-backend@2.3.1".to_string()),
+		};
+		let guard = init(&config).expect("valid DSN yields a guard");
+		assert_eq!(guard.options().release.as_deref(), Some("site-backend@2.3.1"));
+		drop(guard);
+	}
+
+	#[test]
+	fn init_never_pins_its_own_release() {
+		let config = Config {
+			dsn: Some("https://abc@example.com/1".to_string()),
+			environment: "test".to_string(),
+			traces_sample_rate: 1.0,
+			release: None,
+		};
+		let guard = init(&config).expect("valid DSN yields a guard");
+		// With `release: None` the SDK still env-detects SENTRY_RELEASE, so pin
+		// the actual invariant: events are never attributed to this library.
+		let own_release = concat!(env!("CARGO_PKG_NAME"), "@", env!("CARGO_PKG_VERSION"));
+		assert_ne!(guard.options().release.as_deref(), Some(own_release), "the wrapper must not pin its own release");
+		if std::env::var("SENTRY_RELEASE").is_err() {
+			assert_eq!(guard.options().release, None, "no release without Config.release or SENTRY_RELEASE");
+		}
 		drop(guard);
 	}
 
