@@ -1,7 +1,12 @@
 use dioxus::prelude::*;
 
-use crate::{cn, uikit::INPUT_BASE};
+use crate::{
+	cn,
+	uikit::{INPUT_BASE, form::FormControlContext},
+};
 
+/// Picks up the id and `aria-*` of an enclosing
+/// [`FormControl`](crate::uikit::FormControl); outside one, all three are absent.
 #[component]
 pub fn Input(
 	#[props(default)] class: String,
@@ -13,12 +18,16 @@ pub fn Input(
 ) -> Element {
 	let cls = cn!(INPUT_BASE, class);
 	let input_type = if r#type.is_empty() { "text".to_string() } else { r#type };
+	let form = try_consume_context::<Signal<FormControlContext>>().map(|ctx| ctx.read().clone());
 
 	rsx! {
 		input {
 			r#type: input_type,
 			class: cls,
 			"data-slot": "input",
+			id: form.as_ref().map(|f| f.id.clone()),
+			"aria-describedby": form.as_ref().map(|f| f.described_by.clone()),
+			"aria-invalid": form.as_ref().map(|f| f.invalid.to_string()),
 			placeholder,
 			disabled,
 			value,
