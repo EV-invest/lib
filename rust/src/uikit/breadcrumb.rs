@@ -33,11 +33,20 @@ pub fn BreadcrumbItem(#[props(default)] class: String, children: Element) -> Ele
 	}
 }
 
+/// `href` is optional but wanted: an `<a>` without one is neither focusable nor
+/// announced as a link, so a crumb given no target stays inert decoration —
+/// which is what [`BreadcrumbPage`] is for.
 #[component]
-pub fn BreadcrumbLink(#[props(default)] class: String, children: Element) -> Element {
+pub fn BreadcrumbLink(#[props(default)] class: String, href: Option<String>, onclick: Option<EventHandler<MouseEvent>>, children: Element) -> Element {
 	let cls = cn!(BREADCRUMB_LINK, class);
 	rsx! {
-		a { class: cls, "data-slot": "breadcrumb-link", {children} }
+		a {
+			class: cls,
+			"data-slot": "breadcrumb-link",
+			href,
+			onclick: move |e| { if let Some(h) = onclick { h.call(e); } },
+			{children}
+		}
 	}
 }
 
@@ -135,6 +144,28 @@ mod tests {
 		assert!(html.contains("data-slot=\"breadcrumb-item\""), "{html}");
 		assert!(html.contains("data-slot=\"breadcrumb-link\""), "{html}");
 		assert!(html.contains("hover:text-foreground"), "{html}");
+	}
+
+	#[test]
+	fn link_href_reaches_the_anchor() {
+		fn app() -> Element {
+			rsx! {
+				BreadcrumbLink { href: "/", "home" }
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("href=\"/\""), "{html}");
+	}
+
+	#[test]
+	fn link_without_href_emits_no_empty_href() {
+		fn app() -> Element {
+			rsx! {
+				BreadcrumbLink { "home" }
+			}
+		}
+		let html = render(app);
+		assert!(!html.contains("href"), "an empty href would point the crumb at the current page: {html}");
 	}
 
 	#[test]
