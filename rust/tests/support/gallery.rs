@@ -289,19 +289,19 @@ fn d_pagination() -> Element {
 		Pagination {
 			PaginationContent {
 				PaginationItem {
-					PaginationPrevious {}
+					PaginationPrevious { href: "?page=1" }
 				}
 				PaginationItem {
-					PaginationLink { "1" }
+					PaginationLink { href: "?page=1", is_active: true, "1" }
 				}
 				PaginationItem {
-					PaginationLink { "2" }
+					PaginationLink { href: "?page=2", "2" }
 				}
 				PaginationItem {
 					PaginationEllipsis {}
 				}
 				PaginationItem {
-					PaginationNext {}
+					PaginationNext { href: "?page=2" }
 				}
 			}
 		}
