@@ -26,6 +26,13 @@ Rust crate and its TypeScript mirror at once.
   disables reporting instead of panicking at boot, matching the wasm and TS
   ports' documented no-op contract — a monitoring typo no longer crash-loops
   the service.
+- `uikit` (**both ports**): `CommandEmpty` renders only when a query matched
+  nothing. It gated on "is there a query", so "No results found." showed next to
+  matching items; items now register their value through the Command context, so
+  the empty state can tell "nothing matched" from "nothing is here". The query is
+  trimmed once and shared by the item filter and the empty-state gate, so blank
+  input is uniformly not a search (it previously hid every item **and** the empty
+  state, leaving a blank palette).
 
 ## 2026-07-07 — uikit 0.6.0 · Rust brand-chrome catch-up
 

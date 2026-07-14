@@ -1,3 +1,8 @@
+use std::{
+	collections::BTreeMap,
+	sync::atomic::{AtomicUsize, Ordering},
+};
+
 use dioxus::prelude::*;
 
 use crate::{
@@ -20,7 +25,8 @@ pub fn Command(
 	children: Element,
 ) -> Element {
 	let search = use_controllable(search, default_search, on_search_change);
-	use_context_provider(|| CommandCtx { search });
+	let items = use_signal(BTreeMap::new);
+	use_context_provider(|| CommandCtx { search, items });
 	let cls = cn!(COMMAND_ROOT, class);
 	rsx! {
 		div { class: cls, "data-slot": "command", {children} }
@@ -94,12 +100,12 @@ pub fn CommandList(#[props(default)] class: String, children: Element) -> Elemen
 		div { role: "listbox", class: cls, "data-slot": "command-list", {children} }
 	}
 }
-/// Renders nothing until the parent `Command` has a non-blank search query, so
-/// the empty-state cannot sit next to the unfiltered list.
+/// Renders only when a search is under way and no item matched it — never next
+/// to results, and never before the user has typed.
 #[component]
 pub fn CommandEmpty(#[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<CommandCtx>();
-	if ctx.search.get().trim().is_empty() {
+	if ctx.query().is_empty() || ctx.has_matches() {
 		return rsx! {};
 	}
 	let cls = cn!(COMMAND_EMPTY, class);
@@ -124,8 +130,20 @@ pub fn CommandGroup(#[props(default)] heading: String, #[props(default)] class: 
 #[component]
 pub fn CommandItem(value: String, #[props(default)] disabled: bool, on_select: Option<EventHandler<String>>, #[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<CommandCtx>();
-	let search = ctx.search.get().to_lowercase();
-	if !search.is_empty() && !value.to_lowercase().contains(&search) {
+	let id = use_hook(|| NEXT_ITEM_ID.fetch_add(1, Ordering::Relaxed));
+	// Registered whether or not this item survives the filter below, so
+	// `CommandEmpty` gates on the search, not on who happens to be mounted.
+	// `use_reactive` re-runs it if the value prop changes.
+	use_effect(use_reactive!(|value| {
+		let mut items = ctx.items;
+		items.write().insert(id, value);
+	}));
+	use_drop(move || {
+		let mut items = ctx.items;
+		items.write().remove(&id);
+	});
+
+	if !ctx.matches(&value) {
 		return rsx! {};
 	}
 	let cls = cn!(COMMAND_ITEM, class);
@@ -163,15 +181,40 @@ pub fn CommandShortcut(#[props(default)] class: String, children: Element) -> El
 		span { class: cls, "data-slot": "command-shortcut", {children} }
 	}
 }
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 struct CommandCtx {
 	search: Controllable<String>,
+	/// Every mounted [`CommandItem`]'s value, by id — including the ones filtering
+	/// themselves out, so [`CommandEmpty`] can tell "nothing matched" from
+	/// "nothing is here". Items register through an effect, so this is populated
+	/// one render after mount.
+	items: Signal<BTreeMap<usize, String>>,
 }
+
+impl CommandCtx {
+	/// The active query: trimmed, so blank input is not a search, and lowercased
+	/// for the case-insensitive compare. Shared by the item filter and the
+	/// empty-state gate so the two can never disagree.
+	fn query(&self) -> String {
+		self.search.get().trim().to_lowercase()
+	}
+
+	fn matches(&self, value: &str) -> bool {
+		let query = self.query();
+		query.is_empty() || value.to_lowercase().contains(&query)
+	}
+
+	fn has_matches(&self) -> bool {
+		self.items.read().values().any(|value| self.matches(value))
+	}
+}
+
+static NEXT_ITEM_ID: AtomicUsize = AtomicUsize::new(0);
 
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::uikit::test_util::render;
+	use crate::uikit::test_util::{render, render_with_effects};
 
 	#[test]
 	fn renders_all_items_when_empty_search() {
@@ -221,11 +264,11 @@ mod tests {
 				}
 			}
 		}
-		let html = render(no_query);
+		let html = render_with_effects(no_query);
 		assert!(!html.contains("command-empty"), "empty-state must not show next to the unfiltered list: {html}");
 		assert!(html.contains("Apple"), "{html}");
 
-		// Blank input is not a query (mirrors the TS port's `search.trim() !== ""`).
+		// Blank input is not a query (mirrors the TS port's `search.trim()`).
 		fn blank_query() -> Element {
 			rsx! {
 				Command { default_search: "   ".to_string(),
@@ -235,21 +278,78 @@ mod tests {
 				}
 			}
 		}
-		assert!(!render(blank_query).contains("command-empty"), "{}", render(blank_query));
+		let html = render_with_effects(blank_query);
+		assert!(!html.contains("command-empty"), "{html}");
+	}
 
-		fn with_query() -> Element {
+	#[test]
+	fn empty_state_shows_only_when_the_query_matches_nothing() {
+		// The bug: "ban" matches Banana, yet the empty-state rendered anyway.
+		fn matching_query() -> Element {
+			rsx! {
+				Command { default_search: "ban".to_string(),
+					CommandList {
+						CommandEmpty { "No results found." }
+						CommandItem { value: "Apple", "Apple" }
+						CommandItem { value: "Banana", "Banana" }
+					}
+				}
+			}
+		}
+		let html = render_with_effects(matching_query);
+		assert!(html.contains("Banana"), "the match still renders: {html}");
+		assert!(!html.contains("command-empty"), "the empty-state must not sit next to a match: {html}");
+
+		fn unmatched_query() -> Element {
 			rsx! {
 				Command { default_search: "zzz".to_string(),
 					CommandList {
 						CommandEmpty { "No results found." }
 						CommandItem { value: "Apple", "Apple" }
+						CommandItem { value: "Banana", "Banana" }
 					}
 				}
 			}
 		}
-		let html = render(with_query);
-		assert!(html.contains("command-empty"), "a query with no match should show the empty-state: {html}");
-		assert!(html.contains("No results found."), "{html}");
+		let html = render_with_effects(unmatched_query);
+		assert!(html.contains("No results found."), "nothing matched, so the empty-state shows: {html}");
+		assert!(!html.contains(">Apple<"), "{html}");
+	}
+
+	#[test]
+	fn empty_state_shows_when_a_query_has_no_items_at_all() {
+		fn app() -> Element {
+			rsx! {
+				Command { default_search: "zzz".to_string(),
+					CommandList {
+						CommandEmpty { "No results found." }
+					}
+				}
+			}
+		}
+		let html = render_with_effects(app);
+		assert!(html.contains("No results found."), "an itemless list is still 'no results': {html}");
+	}
+
+	#[test]
+	fn a_match_inside_a_group_also_suppresses_the_empty_state() {
+		// Items register through context, so nesting must not hide them from
+		// `CommandEmpty` the way a sibling-only check would.
+		fn app() -> Element {
+			rsx! {
+				Command { default_search: "set".to_string(),
+					CommandList {
+						CommandEmpty { "No results found." }
+						CommandGroup { heading: "Pages",
+							CommandItem { value: "settings", "Settings" }
+						}
+					}
+				}
+			}
+		}
+		let html = render_with_effects(app);
+		assert!(html.contains("Settings"), "{html}");
+		assert!(!html.contains("command-empty"), "a match nested in a group still counts: {html}");
 	}
 
 	#[test]
