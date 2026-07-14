@@ -92,7 +92,7 @@ element across the two ports.
 | variants | `enum` + `fn class()` match | `as const` map keyed by variant |
 | `asChild` | n/a (uses `children`) | `Slot` primitive |
 | controlled state | `use_controllable` | `useControllableState` |
-| keyboard nav | per-component signals | `useRovingFocus` |
+| keyboard nav | `use_roving_focus` | `useRovingFocus` |
 | overlay placement | inline `position:fixed` + `data-side` | `Portal` + `useFloating` |
 | dismiss / focus trap | full-screen backdrop / native order | `useDismissableLayer` / `useFocusScope` |
 
