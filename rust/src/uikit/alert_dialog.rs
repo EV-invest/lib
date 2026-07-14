@@ -87,8 +87,10 @@ pub fn AlertDialogDescription(#[props(default)] class: String, children: Element
 		p { class: cls, "data-slot": "alert-dialog-description", {children} }
 	}
 }
+/// The confirm button: runs `onclick` — the consumer's destructive action —
+/// then closes the dialog.
 #[component]
-pub fn AlertDialogAction(#[props(default)] class: String, children: Element) -> Element {
+pub fn AlertDialogAction(onclick: Option<EventHandler<MouseEvent>>, #[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<AlertDialogCtx>();
 	let cls = button_classes(&ButtonVariant::Default, Size::Md, false, &class);
 	rsx! {
@@ -96,13 +98,19 @@ pub fn AlertDialogAction(#[props(default)] class: String, children: Element) -> 
 			r#type: "button",
 			class: cls,
 			"data-slot": "alert-dialog-action",
-			onclick: move |_| ctx.open.set(false),
+			onclick: move |e| {
+				if let Some(h) = onclick {
+					h.call(e);
+				}
+				ctx.open.set(false);
+			},
 			{children}
 		}
 	}
 }
+/// The dismiss button: runs `onclick`, then closes the dialog.
 #[component]
-pub fn AlertDialogCancel(#[props(default)] class: String, children: Element) -> Element {
+pub fn AlertDialogCancel(onclick: Option<EventHandler<MouseEvent>>, #[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<AlertDialogCtx>();
 	let cls = button_classes(&ButtonVariant::Outline, Size::Md, false, &class);
 	rsx! {
@@ -110,7 +118,12 @@ pub fn AlertDialogCancel(#[props(default)] class: String, children: Element) -> 
 			r#type: "button",
 			class: cls,
 			"data-slot": "alert-dialog-cancel",
-			onclick: move |_| ctx.open.set(false),
+			onclick: move |e| {
+				if let Some(h) = onclick {
+					h.call(e);
+				}
+				ctx.open.set(false);
+			},
 			{children}
 		}
 	}
@@ -122,8 +135,10 @@ struct AlertDialogCtx {
 
 #[cfg(test)]
 mod tests {
+	use std::sync::atomic::{AtomicUsize, Ordering};
+
 	use super::*;
-	use crate::uikit::test_util::render;
+	use crate::uikit::test_util::{click_every_element, render};
 
 	#[test]
 	fn closed_by_default_hides_content() {
@@ -166,6 +181,38 @@ mod tests {
 		assert!(html.contains("Title"), "{html}");
 		assert!(html.contains("Body"), "{html}");
 		assert!(!html.contains("data-slot=\"alert-dialog-close\""), "no close X: {html}");
+	}
+
+	#[test]
+	fn action_and_cancel_run_the_consumer_handler() {
+		static CONFIRMED: AtomicUsize = AtomicUsize::new(0);
+		static CANCELLED: AtomicUsize = AtomicUsize::new(0);
+
+		fn app() -> Element {
+			rsx! {
+				AlertDialog { default_open: true,
+					AlertDialogContent {
+						AlertDialogFooter {
+							AlertDialogCancel {
+								onclick: move |_| {
+									CANCELLED.fetch_add(1, Ordering::SeqCst);
+								},
+								"Cancel"
+							}
+							AlertDialogAction {
+								onclick: move |_| {
+									CONFIRMED.fetch_add(1, Ordering::SeqCst);
+								},
+								"Delete"
+							}
+						}
+					}
+				}
+			}
+		}
+		click_every_element(app);
+		assert_eq!(CONFIRMED.load(Ordering::SeqCst), 1, "the confirm handler must run when the action button is clicked");
+		assert_eq!(CANCELLED.load(Ordering::SeqCst), 1, "the cancel handler must run when the cancel button is clicked");
 	}
 
 	#[test]
