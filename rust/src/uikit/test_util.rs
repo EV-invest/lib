@@ -1,6 +1,12 @@
 use std::rc::Rc;
 
-use dioxus::{html::PlatformEventData, prelude::*};
+use dioxus::{
+	html::{
+		PlatformEventData,
+		input_data::keyboard_types::{Code, Location, Modifiers},
+	},
+	prelude::*,
+};
 
 /// Upper bound for the event sweeps — larger than any component tree the uikit
 /// tests build.
@@ -40,6 +46,26 @@ pub fn click_every_element(app: fn() -> Element) {
 pub fn render_focused(app: fn() -> Element) -> String {
 	let mut dom = mount(app);
 	sweep(&mut dom, "focus", || Box::new(dioxus::html::SerializedFocusData::default()));
+	dom.render_immediate(&mut dioxus::dioxus_core::NoOpMutations);
+	dioxus_ssr::render(&dom)
+}
+
+/// Fires a `keydown` for `key` at every mounted element, then renders — so a
+/// test can assert what a component's key handling actually did, rather than
+/// re-asserting the markup around it. Only elements listening for `keydown`
+/// react; the event does not bubble, so a handler sees exactly one press.
+pub fn render_after_keydown(app: fn() -> Element, key: Key) -> String {
+	let mut dom = mount(app);
+	sweep(&mut dom, "keydown", || {
+		Box::new(dioxus::html::SerializedKeyboardData::new(
+			key.clone(),
+			Code::Unidentified,
+			Location::Standard,
+			false,
+			Modifiers::empty(),
+			false,
+		))
+	});
 	dom.render_immediate(&mut dioxus::dioxus_core::NoOpMutations);
 	dioxus_ssr::render(&dom)
 }
