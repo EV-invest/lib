@@ -239,11 +239,17 @@ pub fn SidebarMenuItem(#[props(default)] class: String, children: Element) -> El
 	}
 }
 
+/// A menu entry: runs `onclick` — the consumer's navigation or action.
+///
+/// The TS port reaches an `<a>` through `asChild`; this port has no `Slot`, so
+/// route from the handler (`navigator().push(..)`) rather than nesting a `Link`,
+/// which would put an `<a>` inside this `<button>`.
 #[component]
 pub fn SidebarMenuButton(
 	#[props(default)] variant: SidebarMenuButtonVariant,
 	#[props(default)] size: SidebarMenuButtonSize,
 	#[props(default)] is_active: bool,
+	onclick: Option<EventHandler<MouseEvent>>,
 	#[props(default)] class: String,
 	children: Element,
 ) -> Element {
@@ -256,6 +262,11 @@ pub fn SidebarMenuButton(
 			"data-size": size.as_ref(),
 			"data-active": is_active,
 			class: cls,
+			onclick: move |e| {
+				if let Some(h) = onclick {
+					h.call(e);
+				}
+			},
 			{children}
 		}
 	}
@@ -263,8 +274,10 @@ pub fn SidebarMenuButton(
 
 #[cfg(test)]
 mod tests {
+	use std::sync::atomic::{AtomicUsize, Ordering};
+
 	use super::*;
-	use crate::uikit::test_util::render;
+	use crate::uikit::test_util::{click_every_element, render};
 
 	#[test]
 	fn provider_seeds_expanded_state_and_width_vars() {
@@ -324,6 +337,30 @@ mod tests {
 		assert!(html.contains("data-size=\"lg\""), "{html}");
 		assert!(html.contains("data-active=true"), "{html}");
 		assert!(html.contains("h-12"), "{html}");
+	}
+
+	#[test]
+	fn menu_button_runs_the_consumer_handler() {
+		static CLICKED: AtomicUsize = AtomicUsize::new(0);
+
+		fn app() -> Element {
+			rsx! {
+				SidebarProvider {
+					SidebarMenu {
+						SidebarMenuItem {
+							SidebarMenuButton {
+								onclick: move |_| {
+									CLICKED.fetch_add(1, Ordering::SeqCst);
+								},
+								"Portfolio"
+							}
+						}
+					}
+				}
+			}
+		}
+		click_every_element(app);
+		assert_eq!(CLICKED.load(Ordering::SeqCst), 1, "the handler must run when the menu button is clicked");
 	}
 
 	#[test]
