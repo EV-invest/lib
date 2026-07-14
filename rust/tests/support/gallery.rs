@@ -269,11 +269,11 @@ fn d_breadcrumb() -> Element {
 		Breadcrumb {
 			BreadcrumbList {
 				BreadcrumbItem {
-					BreadcrumbLink { "Home" }
+					BreadcrumbLink { href: "/", "Home" }
 				}
 				BreadcrumbSeparator {}
 				BreadcrumbItem {
-					BreadcrumbLink { "Funds" }
+					BreadcrumbLink { href: "/funds", "Funds" }
 				}
 				BreadcrumbSeparator {}
 				BreadcrumbItem {
