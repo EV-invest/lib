@@ -94,8 +94,14 @@ pub fn CommandList(#[props(default)] class: String, children: Element) -> Elemen
 		div { role: "listbox", class: cls, "data-slot": "command-list", {children} }
 	}
 }
+/// Renders nothing until the parent `Command` has a non-blank search query, so
+/// the empty-state cannot sit next to the unfiltered list.
 #[component]
 pub fn CommandEmpty(#[props(default)] class: String, children: Element) -> Element {
+	let ctx = use_context::<CommandCtx>();
+	if ctx.search.get().trim().is_empty() {
+		return rsx! {};
+	}
 	let cls = cn!(COMMAND_EMPTY, class);
 	rsx! {
 		div { class: cls, "data-slot": "command-empty", {children} }
@@ -201,6 +207,49 @@ mod tests {
 		let html = render(app);
 		assert!(html.contains("Banana"), "match shown: {html}");
 		assert!(!html.contains("Apple"), "non-match hidden: {html}");
+	}
+
+	#[test]
+	fn empty_state_hidden_until_a_query_is_typed() {
+		fn no_query() -> Element {
+			rsx! {
+				Command {
+					CommandList {
+						CommandEmpty { "No results found." }
+						CommandItem { value: "Apple", "Apple" }
+					}
+				}
+			}
+		}
+		let html = render(no_query);
+		assert!(!html.contains("command-empty"), "empty-state must not show next to the unfiltered list: {html}");
+		assert!(html.contains("Apple"), "{html}");
+
+		// Blank input is not a query (mirrors the TS port's `search.trim() !== ""`).
+		fn blank_query() -> Element {
+			rsx! {
+				Command { default_search: "   ".to_string(),
+					CommandList {
+						CommandEmpty { "No results found." }
+					}
+				}
+			}
+		}
+		assert!(!render(blank_query).contains("command-empty"), "{}", render(blank_query));
+
+		fn with_query() -> Element {
+			rsx! {
+				Command { default_search: "zzz".to_string(),
+					CommandList {
+						CommandEmpty { "No results found." }
+						CommandItem { value: "Apple", "Apple" }
+					}
+				}
+			}
+		}
+		let html = render(with_query);
+		assert!(html.contains("command-empty"), "a query with no match should show the empty-state: {html}");
+		assert!(html.contains("No results found."), "{html}");
 	}
 
 	#[test]
