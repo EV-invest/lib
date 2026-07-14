@@ -18,6 +18,10 @@ pub fn Button(
 	#[props(default)] icon: bool,
 	#[props(default)] class: String,
 	#[props(default)] disabled: bool,
+	/// Left unset the HTML default applies (`submit` inside a `Form`), mirroring
+	/// the TS port where `type` is just another forwarded button prop. Callers
+	/// that must not submit — addons, toolbars — pass `"button"`.
+	r#type: Option<String>,
 	onclick: Option<EventHandler<MouseEvent>>,
 	children: Element,
 ) -> Element {
@@ -26,6 +30,7 @@ pub fn Button(
 		button {
 			class: cls,
 			"data-slot": "button",
+			r#type,
 			disabled,
 			onclick: move |e| { if let Some(h) = onclick { h.call(e); } },
 			{children}
@@ -71,6 +76,26 @@ mod tests {
 		let html = render(app);
 		assert!(html.contains("h-10 aspect-square"), "{html}");
 		assert!(!html.contains("px-6"), "icon button must not carry text padding: {html}");
+	}
+
+	#[test]
+	fn type_is_absent_unless_asked_for() {
+		fn app() -> Element {
+			rsx! { Button { "go" } }
+		}
+		let html = render(app);
+		assert!(!html.contains("type="), "bare Button mirrors TS and emits no type: {html}");
+	}
+
+	#[test]
+	fn type_prop_reaches_the_element() {
+		fn app() -> Element {
+			rsx! {
+				Button { r#type: "button", "go" }
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("type=\"button\""), "{html}");
 	}
 
 	#[test]

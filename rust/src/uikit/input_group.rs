@@ -30,12 +30,26 @@ pub fn InputGroupAddon(#[props(default)] align: InputGroupAddonAlign, #[props(de
 	}
 }
 
+/// Defaults to `type="button"` like the TS mirror: an addon action sits inside
+/// the consumer's `Form`, and the HTML default (`submit`) would navigate away
+/// instead of running its handler.
 #[component]
-pub fn InputGroupButton(#[props(default)] size: InputGroupButtonSize, #[props(default)] icon: bool, #[props(default)] class: String, children: Element) -> Element {
+pub fn InputGroupButton(
+	#[props(default)] size: InputGroupButtonSize,
+	#[props(default)] icon: bool,
+	#[props(default)] class: String,
+	#[props(default)] disabled: bool,
+	#[props(default = "button".to_string())] r#type: String,
+	onclick: Option<EventHandler<MouseEvent>>,
+	children: Element,
+) -> Element {
 	let cls = cn!(INPUT_GROUP_BUTTON_BASE, input_group_button_size_class(size, icon), class);
 	rsx! {
 		Button {
 			variant: ButtonVariant::Ghost,
+			r#type,
+			disabled,
+			onclick: move |e| { if let Some(h) = onclick { h.call(e); } },
 			class: cls,
 			{children}
 		}
@@ -160,6 +174,39 @@ mod tests {
 		assert!(html.contains("data-slot=\"button\""), "{html}");
 		assert!(html.contains("hover:bg-accent"), "ghost variant: {html}");
 		assert!(html.contains("h-6"), "xs size class: {html}");
+	}
+
+	#[test]
+	fn button_defaults_to_type_button_so_it_never_submits() {
+		fn app() -> Element {
+			rsx! {
+				InputGroupButton { "b" }
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("type=\"button\""), "addon button must not default to submit: {html}");
+	}
+
+	#[test]
+	fn button_type_override_reaches_the_element() {
+		fn app() -> Element {
+			rsx! {
+				InputGroupButton { r#type: "submit", "b" }
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("type=\"submit\""), "{html}");
+	}
+
+	#[test]
+	fn button_forwards_disabled() {
+		fn app() -> Element {
+			rsx! {
+				InputGroupButton { disabled: true, "b" }
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("disabled"), "{html}");
 	}
 
 	#[test]
