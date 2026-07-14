@@ -34,8 +34,18 @@ pub fn PaginationItem(children: Element) -> Element {
 	}
 }
 
+/// `href` is optional but wanted: an `<a>` without one is neither focusable nor
+/// announced as a link, so a link given neither `href` nor `onclick` is inert.
 #[component]
-pub fn PaginationLink(#[props(default)] is_active: bool, #[props(default)] size: Size, #[props(default = true)] icon: bool, #[props(default)] class: String, children: Element) -> Element {
+pub fn PaginationLink(
+	#[props(default)] is_active: bool,
+	#[props(default)] size: Size,
+	#[props(default = true)] icon: bool,
+	#[props(default)] class: String,
+	href: Option<String>,
+	onclick: Option<EventHandler<MouseEvent>>,
+	children: Element,
+) -> Element {
 	let variant = if is_active { ButtonVariant::Outline } else { ButtonVariant::Ghost };
 	let cls = button_classes(&variant, size, icon, &class);
 	rsx! {
@@ -44,19 +54,23 @@ pub fn PaginationLink(#[props(default)] is_active: bool, #[props(default)] size:
 			"data-slot": "pagination-link",
 			"data-active": is_active,
 			class: cls,
+			href,
+			onclick: move |e| { if let Some(h) = onclick { h.call(e); } },
 			{children}
 		}
 	}
 }
 
 #[component]
-pub fn PaginationPrevious(#[props(default)] class: String) -> Element {
+pub fn PaginationPrevious(#[props(default)] class: String, href: Option<String>, onclick: Option<EventHandler<MouseEvent>>) -> Element {
 	let cls = cn!("gap-1 px-2.5 sm:pl-2.5", class);
 	rsx! {
 		PaginationLink {
 			is_active: false,
 			icon: false,
 			class: cls,
+			href,
+			onclick: move |e| { if let Some(h) = onclick { h.call(e); } },
 			svg {
 				view_box: "0 0 24 24",
 				fill: "none",
@@ -70,13 +84,15 @@ pub fn PaginationPrevious(#[props(default)] class: String) -> Element {
 }
 
 #[component]
-pub fn PaginationNext(#[props(default)] class: String) -> Element {
+pub fn PaginationNext(#[props(default)] class: String, href: Option<String>, onclick: Option<EventHandler<MouseEvent>>) -> Element {
 	let cls = cn!("gap-1 px-2.5 sm:pr-2.5", class);
 	rsx! {
 		PaginationLink {
 			is_active: false,
 			icon: false,
 			class: cls,
+			href,
+			onclick: move |e| { if let Some(h) = onclick { h.call(e); } },
 			span { class: "hidden sm:block", "Next" }
 			svg {
 				view_box: "0 0 24 24",
@@ -155,6 +171,41 @@ mod tests {
 		let html = render(app);
 		assert!(html.contains("m15 18-6-6 6-6"), "{html}");
 		assert!(html.contains("Previous"));
+	}
+
+	#[test]
+	fn link_href_reaches_the_anchor() {
+		fn app() -> Element {
+			rsx! {
+				PaginationLink { href: "?page=2", "2" }
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("href=\"?page=2\""), "{html}");
+	}
+
+	#[test]
+	fn previous_and_next_forward_href() {
+		fn app() -> Element {
+			rsx! {
+				PaginationPrevious { href: "?page=1" }
+				PaginationNext { href: "?page=3" }
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("href=\"?page=1\""), "{html}");
+		assert!(html.contains("href=\"?page=3\""), "{html}");
+	}
+
+	#[test]
+	fn link_without_href_emits_no_empty_href() {
+		fn app() -> Element {
+			rsx! {
+				PaginationLink { "2" }
+			}
+		}
+		let html = render(app);
+		assert!(!html.contains("href"), "an empty href would point the link at the current page: {html}");
 	}
 
 	#[test]
