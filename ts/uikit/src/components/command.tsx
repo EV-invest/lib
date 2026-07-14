@@ -21,6 +21,16 @@ import {
 interface CommandContextValue {
   search: string;
   setSearch: (next: string) => void;
+  /// Registers a `CommandItem`'s value so `CommandEmpty` can tell "nothing
+  /// matched" from "nothing is here". Items register even while filtered out.
+  registerItem: (id: string, value: string) => void;
+  unregisterItem: (id: string) => void;
+  /// The active query: trimmed, so blank input is not a search, and lowercased.
+  /// Shared by the item filter and the empty-state gate so the two can never
+  /// disagree.
+  query: string;
+  matches: (value: string) => boolean;
+  hasMatches: boolean;
 }
 
 const CommandContext = React.createContext<CommandContextValue | null>(null);
@@ -50,8 +60,49 @@ export function Command({
     defaultValue: defaultSearch,
     ...(onSearchChange ? { onChange: onSearchChange } : {}),
   });
+
+  const [items, setItems] = React.useState<ReadonlyMap<string, string>>(
+    () => new Map(),
+  );
+  const registerItem = React.useCallback((id: string, value: string) => {
+    setItems((prev) => {
+      if (prev.get(id) === value) return prev;
+      const next = new Map(prev);
+      next.set(id, value);
+      return next;
+    });
+  }, []);
+  const unregisterItem = React.useCallback((id: string) => {
+    setItems((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Map(prev);
+      next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const query = currentSearch.trim().toLowerCase();
+  const matches = React.useCallback(
+    (value: string) => query === "" || value.toLowerCase().includes(query),
+    [query],
+  );
+  const hasMatches = React.useMemo(
+    () => [...items.values()].some(matches),
+    [items, matches],
+  );
+
   return (
-    <CommandContext.Provider value={{ search: currentSearch, setSearch }}>
+    <CommandContext.Provider
+      value={{
+        search: currentSearch,
+        setSearch,
+        registerItem,
+        unregisterItem,
+        query,
+        matches,
+        hasMatches,
+      }}
+    >
       <div
         data-slot="command"
         className={cn(COMMAND_ROOT, className)}
@@ -157,10 +208,11 @@ export function CommandList({ className, ...props }: React.ComponentProps<"div">
   );
 }
 
+/// Renders only when a search is under way and no item matched it — never next
+/// to results, and never before the user has typed.
 export function CommandEmpty({ className, children, ...props }: React.ComponentProps<"div">) {
-  const { search } = useCommand();
-  const hasQuery = search.trim() !== "";
-  if (!hasQuery) return null;
+  const { query, hasMatches } = useCommand();
+  if (query === "" || hasMatches) return null;
   return (
     <div
       data-slot="command-empty"
@@ -205,9 +257,16 @@ export function CommandItem({
   children,
   ...props
 }: CommandItemProps) {
-  const { search } = useCommand();
-  const query = search.toLowerCase();
-  if (query !== "" && !value.toLowerCase().includes(query)) return null;
+  const { registerItem, unregisterItem, matches } = useCommand();
+  const id = React.useId();
+  // Registered whether or not this item survives the filter below, so
+  // `CommandEmpty` gates on the search, not on who happens to be mounted.
+  React.useEffect(() => {
+    registerItem(id, value);
+    return () => unregisterItem(id);
+  }, [id, value, registerItem, unregisterItem]);
+
+  if (!matches(value)) return null;
   return (
     <div
       role="option"

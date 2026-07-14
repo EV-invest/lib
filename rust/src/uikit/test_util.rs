@@ -13,6 +13,20 @@ pub fn render(app: fn() -> Element) -> String {
 	dioxus_ssr::render(&dom)
 }
 
+/// Renders once effects have run. `rebuild_in_place` leaves them queued, so a
+/// component that registers itself through `use_effect` is invisible to plain
+/// [`render`]; `render_immediate` runs them and re-renders whoever they dirtied.
+pub fn render_with_effects(app: fn() -> Element) -> String {
+	let mut dom = VirtualDom::new(app);
+	dom.rebuild_in_place();
+	// Twice: the first pass runs the effects, the second lets whatever they
+	// dirtied settle.
+	for _ in 0..2 {
+		dom.render_immediate(&mut dioxus::dioxus_core::NoOpMutations);
+	}
+	dioxus_ssr::render(&dom)
+}
+
 /// Fires a `click` at every mounted element, so a test can assert that a
 /// handler ran without hardcoding a brittle `ElementId`. The component's own
 /// handlers record the hits.

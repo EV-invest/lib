@@ -52,10 +52,65 @@ describe("Command", () => {
         </CommandList>
       </Command>,
     );
+    const input = screen.getByRole("combobox");
     expect(screen.queryByText("No results.")).toBeNull();
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "zzz" } });
+
+    // A query that matches must not raise the empty state next to its result.
+    fireEvent.change(input, { target: { value: "app" } });
+    expect(screen.getByText("Apple")).toBeInTheDocument();
+    expect(screen.queryByText("No results.")).toBeNull();
+
+    fireEvent.change(input, { target: { value: "zzz" } });
     expect(screen.getByText("No results.")).toBeInTheDocument();
     expect(screen.queryByText("Apple")).toBeNull();
+
+    // Clearing the query puts the list back and hides the empty state again.
+    fireEvent.change(input, { target: { value: "" } });
+    expect(screen.getByText("Apple")).toBeInTheDocument();
+    expect(screen.queryByText("No results.")).toBeNull();
+  });
+
+  it("counts a match nested in a group", () => {
+    render(
+      <Command>
+        <CommandInput placeholder="Search" />
+        <CommandList>
+          <CommandEmpty>No results.</CommandEmpty>
+          <CommandGroup heading="Pages">
+            <CommandItem value="settings">Settings</CommandItem>
+          </CommandGroup>
+        </CommandList>
+      </Command>,
+    );
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "set" } });
+    expect(screen.getByText("Settings")).toBeInTheDocument();
+    expect(screen.queryByText("No results.")).toBeNull();
+  });
+
+  it("shows the empty state for a query with no items at all", () => {
+    render(
+      <Command defaultSearch="zzz">
+        <CommandList>
+          <CommandEmpty>No results.</CommandEmpty>
+        </CommandList>
+      </Command>,
+    );
+    expect(screen.getByText("No results.")).toBeInTheDocument();
+  });
+
+  it("treats blank input as no query", () => {
+    render(
+      <Command>
+        <CommandInput placeholder="Search" />
+        <CommandList>
+          <CommandEmpty>No results.</CommandEmpty>
+          <CommandItem value="Apple">Apple</CommandItem>
+        </CommandList>
+      </Command>,
+    );
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "   " } });
+    expect(screen.getByText("Apple")).toBeInTheDocument();
+    expect(screen.queryByText("No results.")).toBeNull();
   });
 
   it("calls onSelect with the item value on click", () => {
