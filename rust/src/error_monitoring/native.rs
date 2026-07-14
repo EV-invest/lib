@@ -5,6 +5,7 @@
 
 use std::error::Error as StdError;
 
+use sentry::IntoDsn;
 /// Re-exported tower layers (require the consumer's `ServiceBuilder`). Apply in
 /// this order on the Axum router:
 ///
@@ -30,7 +31,8 @@ pub use sentry::release_name;
 /// your app; `dsn` `None` disables Sentry (a silent no-op).
 #[derive(Clone, Debug)]
 pub struct Config {
-	/// The Sentry DSN, or `None` to disable reporting.
+	/// The Sentry DSN, or `None` to disable reporting. An empty or malformed DSN
+	/// disables it too, rather than failing the process.
 	pub dsn: Option<String>,
 	/// Deployment environment tag (e.g. `"production"`, `"staging"`).
 	pub environment: String,
@@ -51,19 +53,21 @@ impl Config {
 }
 
 /// Initializes Sentry, returning the guard that must be held for the lifetime of
-/// the process (bind it in `main`). Returns `None` when no DSN is configured, so
-/// the caller's binding is simply inert. Mirrors the site's `sentry::init` block.
+/// the process (bind it in `main`). Returns `None` when the DSN is absent, empty
+/// or malformed, so the caller's binding is simply inert — a monitoring
+/// misconfiguration never takes the process down. Mirrors the site's
+/// `sentry::init` block, and the wasm/TS ports' no-op on an unusable DSN.
 pub fn init(config: &Config) -> Option<sentry::ClientInitGuard> {
-	let dsn = config.dsn.as_deref()?;
-	Some(sentry::init((
-		dsn,
-		sentry::ClientOptions {
-			release: config.release.clone().map(Into::into),
-			environment: Some(config.environment.clone().into()),
-			traces_sample_rate: config.traces_sample_rate,
-			..Default::default()
-		},
-	)))
+	// Parse before handing the DSN over: `sentry::init((dsn, options))` would
+	// `expect` on it and panic at boot.
+	let dsn = config.dsn.as_deref().into_dsn().ok().flatten()?;
+	Some(sentry::init(sentry::ClientOptions {
+		dsn: Some(dsn),
+		release: config.release.clone().map(Into::into),
+		environment: Some(config.environment.clone().into()),
+		traces_sample_rate: config.traces_sample_rate,
+		..Default::default()
+	}))
 }
 
 /// Reports an unexpected error to Sentry. Call only for genuinely unexpected
@@ -98,6 +102,21 @@ mod tests {
 			release: None,
 		};
 		assert!(init(&config).is_none());
+	}
+
+	#[test]
+	fn init_is_noop_with_an_unusable_dsn() {
+		// A monitoring misconfiguration must degrade to disabled reporting, not
+		// panic the process at boot (mirrors the wasm and TS ports).
+		for dsn in ["https://sentry.io/42", "not a dsn", "ftp://public@example.com/1", "", "  "] {
+			let config = Config {
+				dsn: Some(dsn.to_string()),
+				environment: "test".to_string(),
+				traces_sample_rate: 1.0,
+				release: None,
+			};
+			assert!(init(&config).is_none(), "an unusable DSN should disable reporting, got a guard for {dsn:?}");
+		}
 	}
 
 	#[test]

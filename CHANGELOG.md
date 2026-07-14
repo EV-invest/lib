@@ -20,7 +20,12 @@ Rust crate and its TypeScript mirror at once.
 
 ## [Unreleased]
 
-_Nothing yet._
+### Fixed
+
+- `error_monitoring` (Rust, native): a malformed or empty `Config.dsn` now
+  disables reporting instead of panicking at boot, matching the wasm and TS
+  ports' documented no-op contract — a monitoring typo no longer crash-loops
+  the service.
 
 ## 2026-07-07 — uikit 0.6.0 · Rust brand-chrome catch-up
 

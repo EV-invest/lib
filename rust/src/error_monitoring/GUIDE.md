@@ -34,7 +34,7 @@ SDK), so a browser bundle may carry the DSN.
 
 | Var | Side | Meaning |
 | --- | --- | --- |
-| `SENTRY_DSN` | native | DSN, or unset → Sentry disabled (no-op). |
+| `SENTRY_DSN` | native | DSN, or unset/empty/malformed → Sentry disabled (no-op). |
 | `APP_ENV` | native | Environment tag (`production`, `staging`, …). |
 | `SENTRY_RELEASE` | native | Release fallback the SDK reads when `Config.release` is `None`. |
 
@@ -205,8 +205,8 @@ assert_eq!(body.split('\n').count(), 3); // envelope header / item header / even
 - **The wire core is pure** — assert DSN parsing, the ingest URL, the auth
   header, and the three-line envelope directly (see the tests in `wire.rs`). No
   network, runs on native.
-- **Native `init` no-ops without a DSN** and the sample-rate policy is a pure
-  function:
+- **Native `init` no-ops without a usable DSN** (absent, empty or malformed) and
+  the sample-rate policy is a pure function:
 
   ```rust
   # use ev_lib::error_monitoring::Config;
