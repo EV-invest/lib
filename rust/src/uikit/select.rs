@@ -93,8 +93,8 @@ pub fn SelectContent(#[props(default)] class: String, children: Element) -> Elem
 		return rsx! {};
 	}
 	let cls = cn!(
-		"bg-popover text-popover-foreground relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] \
-		 origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border shadow-md",
+		"bg-popover text-popover-foreground absolute top-full left-0 z-50 mt-1 max-h-96 min-w-[8rem] \
+		 overflow-x-hidden overflow-y-auto rounded-md border shadow-md",
 		class
 	);
 	rsx! {
@@ -233,6 +233,26 @@ mod tests {
 		assert!(html.contains("role=\"listbox\""), "{html}");
 		assert!(html.contains("role=\"option\""), "{html}");
 		assert!(html.contains("Apple"), "{html}");
+	}
+
+	#[test]
+	fn open_content_overlays_and_caps_height() {
+		fn app() -> Element {
+			rsx! {
+				Select { default_open: true,
+					SelectTrigger {
+						SelectValue { placeholder: "Pick".to_string() }
+					}
+					SelectContent {
+						SelectItem { value: "a", "Apple" }
+					}
+				}
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("absolute"), "content floats out of flow: {html}");
+		assert!(html.contains("max-h-96"), "height capped so overflow-y-auto engages: {html}");
+		assert!(!html.contains("--radix-"), "no dead Radix vars: {html}");
 	}
 
 	#[test]
