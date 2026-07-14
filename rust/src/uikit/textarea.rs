@@ -1,7 +1,12 @@
 use dioxus::prelude::*;
 
-use crate::{cn, uikit::TEXTAREA_BASE};
+use crate::{
+	cn,
+	uikit::{TEXTAREA_BASE, form::FormControlContext},
+};
 
+/// Picks up the id and `aria-*` of an enclosing
+/// [`FormControl`](crate::uikit::FormControl); outside one, all three are absent.
 #[component]
 pub fn Textarea(
 	#[props(default)] class: String,
@@ -11,11 +16,15 @@ pub fn Textarea(
 	oninput: Option<EventHandler<FormEvent>>,
 ) -> Element {
 	let cls = cn!(TEXTAREA_BASE, class);
+	let form = try_consume_context::<Signal<FormControlContext>>().map(|ctx| ctx.read().clone());
 
 	rsx! {
 		textarea {
 			class: cls,
 			"data-slot": "textarea",
+			id: form.as_ref().map(|f| f.id.clone()),
+			"aria-describedby": form.as_ref().map(|f| f.described_by.clone()),
+			"aria-invalid": form.as_ref().map(|f| f.invalid.to_string()),
 			placeholder,
 			disabled,
 			value,

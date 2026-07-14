@@ -150,7 +150,9 @@ measuring needs host-only `web-sys`). Known gaps:
   or a fast flick) is TS-only pointer physics.
 - **form:** react-hook-form is dropped — these are presentational + ARIA-id
   wiring; consumers own validation/state. Rust `FormControl` can't inject ids
-  onto an arbitrary child (no `Slot`), so the consumer wires them.
+  onto an arbitrary child (no `Slot`), so it publishes them as a
+  `FormControlContext` that `Input`/`Textarea` consume; wrap a bare element and
+  you wire them yourself.
 - **resizable / carousel / drawer:** pointer-drag physics are TS-only (keyboard
   in Rust for resizable; prev/next + keyboard for carousel; click-to-dismiss for
   drawer). Embla momentum / vaul drag-to-dismiss are not reproduced.
