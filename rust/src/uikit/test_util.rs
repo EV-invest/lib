@@ -1,5 +1,8 @@
 use dioxus::prelude::*;
 
+/// Upper bound for [`click_every_element`]'s sweep — larger than any component
+/// tree the uikit tests build.
+const MAX_ELEMENTS: usize = 32;
 /// Renders a component to a static HTML string via `dioxus-ssr`, so tests can
 /// assert on the emitted classes and structure without a browser.
 pub fn render(app: fn() -> Element) -> String {
@@ -26,7 +29,3 @@ pub fn click_every_element(app: fn() -> Element) {
 		runtime.handle_event("click", Event::new(event, false), dioxus::dioxus_core::ElementId(id));
 	}
 }
-
-/// Upper bound for [`click_every_element`]'s sweep — larger than any component
-/// tree the uikit tests build.
-const MAX_ELEMENTS: usize = 32;
