@@ -46,7 +46,7 @@ fn main() -> anyhow::Result<()> {
         // expands in *this* crate, so events are attributed to your app's release
         release: release_name!().map(|r| r.into_owned()),
     };
-    let _guard = init(&config); // None when no DSN — binding is simply inert
+    let _guard = init(&config); // None when the DSN is absent/unusable — binding is simply inert
     // … build the tracing subscriber + runtime, then serve …
     Ok(())
 }
@@ -111,6 +111,7 @@ Sentry JS SDKs. Parity is by behaviour.
 | browser init | `init(dsn, environment)` (wasm) | `ErrorMonitoringProvider` (`./react`) |
 | browser report | `report_error(&str)` (wasm) | `ErrorBoundary` / `reportError` |
 | no-DSN behaviour | silent no-op | silent no-op |
+| malformed-DSN behaviour | silent no-op (reporting disabled) | silent no-op (reporting disabled) |
 
 ## Limitations
 
@@ -124,7 +125,9 @@ Sentry JS SDKs. Parity is by behaviour.
   before the fire-and-forget POST completes — the same trade-off the JS SDK
   panic hook makes.
 - **No-DSN → no-op** on both sides. Native `init` returns `None`; wasm `init`
-  disables reporting. Local dev needs no configuration.
+  disables reporting. Local dev needs no configuration. An empty or malformed
+  DSN degrades the same way rather than failing the process, so a monitoring
+  misconfiguration can never crash-loop the service.
 - **Guard lifetime is load-bearing (native).** The `ClientInitGuard` flushes on
   drop — bind it in `main` and keep it alive, or events are lost on exit.
 
