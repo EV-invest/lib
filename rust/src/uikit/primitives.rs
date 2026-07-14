@@ -86,15 +86,6 @@ pub enum RovingOrientation {
 	Both,
 }
 
-static NEXT_ROVING_ITEM_ID: AtomicUsize = AtomicUsize::new(0);
-
-struct RovingItem {
-	key: String,
-	/// Set on mount, so it stays `None` under SSR and on non-web renderers —
-	/// only [`RovingFocus::focus`] needs it, never the rendered markup.
-	el: Option<Rc<MountedData>>,
-}
-
 /// Arrow-key roving focus over a group of items — the mirror of the TS
 /// `useRovingFocus`, and what earns a group the right to take its items out of
 /// the tab order: the group is one tab stop, and the arrows move within it.
@@ -112,7 +103,6 @@ pub struct RovingFocus {
 	items: Signal<BTreeMap<usize, RovingItem>>,
 	orientation: RovingOrientation,
 }
-
 impl RovingFocus {
 	/// The key the arrow/`Home`/`End` in `e` walks to, starting from the item
 	/// keyed `from`; `None` when `e` isn't a navigation key for this
@@ -183,7 +173,6 @@ pub fn use_roving_focus(orientation: RovingOrientation) -> RovingFocus {
 		orientation,
 	}
 }
-
 /// Registers the calling item with its group's [`RovingFocus`] under `key`,
 /// returning the id to hand back to [`RovingFocus::attach`] on mount.
 ///
@@ -213,6 +202,14 @@ pub fn use_roving_item(roving: RovingFocus, key: String) -> usize {
 		items.write().remove(&id);
 	});
 	id
+}
+static NEXT_ROVING_ITEM_ID: AtomicUsize = AtomicUsize::new(0);
+
+struct RovingItem {
+	key: String,
+	/// Set on mount, so it stays `None` under SSR and on non-web renderers —
+	/// only [`RovingFocus::focus`] needs it, never the rendered markup.
+	el: Option<Rc<MountedData>>,
 }
 
 #[cfg(test)]
