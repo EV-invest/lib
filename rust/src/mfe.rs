@@ -23,11 +23,23 @@ use wasm_bindgen::prelude::*;
 // The only JavaScript in the whole stack — the two things Rust can't express:
 // subclassing `HTMLElement` (custom elements must extend it), and reading
 // `import.meta.url` (a module-syntax form, not a value any Rust binding sees).
+//
+// `connectedCallback` fires on every (re)attachment, so it is guarded to mount
+// once per element instance: a host router that detaches and re-inserts the node
+// would otherwise stack a second live app on the first one's DOM. There is no
+// paired `disconnectedCallback` because dioxus-web 0.7 exposes no teardown handle
+// (`run() -> !` inside a bare `spawn_local`); the app therefore stays alive across
+// a detach and is reused — with its DOM and its delegated listeners intact — when
+// the element is re-inserted.
 #[wasm_bindgen(inline_js = r#"
 export function __ev_register(tag, mount){
   if (customElements.get(tag)) return;
   customElements.define(tag, class extends HTMLElement {
-    connectedCallback(){ mount(this); }
+    connectedCallback(){
+      if (this.__evMounted) return;
+      this.__evMounted = true;
+      mount(this);
+    }
   });
 }
 export function __ev_origin(){ return new URL(import.meta.url).origin; }
@@ -46,9 +58,12 @@ pub fn bundle_origin() -> String {
 	js_origin()
 }
 
-/// Define `tag` as a custom element that calls `mount(element)` on connect.
-/// Idempotent (no-op if `tag` is already registered). The `mount` closure must
-/// outlive the page — the caller `forget`s it.
+/// Define `tag` as a custom element that calls `mount(element)` on its first
+/// connect. Idempotent twice over: a no-op if `tag` is already registered, and
+/// `mount` runs at most once per element instance, so re-attaching an element
+/// (as an SPA host router does on navigate-back) reuses the running app instead
+/// of stacking a second one. The `mount` closure must outlive the page — the
+/// caller `forget`s it.
 pub fn register(tag: &str, mount: &Closure<dyn Fn(web_sys::Element)>) {
 	js_register(tag, mount.as_ref().unchecked_ref());
 }
