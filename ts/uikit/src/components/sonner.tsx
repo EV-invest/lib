@@ -16,8 +16,8 @@ export type { ToastPosition, ToastVariant };
 
 /**
  * Lifecycle phase of a toast. It is added `"open"` (plays the enter keyframe);
- * {@link ToastFn.dismiss} flips it to `"closing"` (plays the exit keyframe) and
- * the live node is dropped once the exit `animationend` fires. Mirrors Rust's
+ * {@link ToastFn.dismiss} flips it to `"closing"` (slides it out) and the live
+ * node is dropped once the exit `transitionend` fires. Mirrors Rust's
  * `ToastState` enum and the `data-state` the shared `tokens.css` keys on.
  */
 export type ToastState = "open" | "closing";
@@ -83,7 +83,9 @@ const store = (() => {
 
   // Begins the exit animation: flip the toast to `closing` (`data-state=closed`)
   // and keep it mounted so the exit keyframe can play. The live node is dropped
-  // by `remove`, wired to the exit `animationend` — no timer matched to the CSS.
+  // by `remove`, wired to the exit `transitionend` — no timer matched to the CSS.
+  // A toast dismissed before it has ever painted mounts closed and so never
+  // transitions; `ToastItem` drops that one on mount instead.
   const dismiss = (toastId: number) => {
     toasts = toasts.map((t) =>
       t.id === toastId ? { ...t, state: "closing" as const } : t,
@@ -91,9 +93,9 @@ const store = (() => {
     emit();
   };
 
-  // Drops a toast outright. Wired to the exit `animationend`; the guard that it
-  // is actually `closing` (the enter `animationend` fires too) lives at the call
-  // site in {@link ToastItem}.
+  // Drops a toast outright. Wired to the exit `transitionend`; the guard that it
+  // is actually `closing` (a restack transition fires too) lives at the call
+  // site in {@link ToastItem}, alongside the mount-closed path.
   const remove = (toastId: number) => {
     toasts = toasts.filter((t) => t.id !== toastId);
     emit();
@@ -192,6 +194,16 @@ function ToastItem({
   }, [t.id, t.message, t.description, reportHeight]);
 
   React.useEffect(() => () => removeHeight(t.id), [t.id, removeHeight]);
+
+  // Dismissed before its first paint (added and dismissed in one batch), so it
+  // mounts already `closing`: its computed style never changes, no transition
+  // runs, and `onTransitionEnd` below would never fire — stranding it in the
+  // store forever. Nothing was painted, so there is nothing to animate: drop it
+  // once mounted. Mirrors the Dioxus port's mount effect.
+  const mountedClosing = React.useRef(t.state === "closing");
+  React.useEffect(() => {
+    if (mountedClosing.current) store.remove(t.id);
+  }, [t.id]);
 
   // Auto-dismiss, pausable on hover. While `paused` (or closing, or a persistent
   // `duration: Infinity`) no timer runs; the cleanup banks the elapsed time so a
