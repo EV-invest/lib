@@ -54,9 +54,9 @@ const TOAST_HEIGHT_EST: u32 = 56;
 const DEFAULT_DURATION_MS: u32 = 4000;
 
 /// Lifecycle phase of a single toast. A toast mounts `Open` (plays the enter
-/// keyframe); [`ToasterHandle::dismiss`] flips it to `Closing` (plays the exit
-/// keyframe), and it is dropped from the list once the exit `animationend`
-/// fires. Mirrors the TS `data-state` of `"open"` / `"closed"`.
+/// keyframe); [`ToasterHandle::dismiss`] flips it to `Closing` (slides it out),
+/// and it is dropped from the list once the exit `transitionend` fires. Mirrors
+/// the TS `data-state` of `"open"` / `"closed"`.
 #[derive(Clone, Copy, Default, PartialEq)]
 pub enum ToastState {
 	#[default]
@@ -144,9 +144,11 @@ impl ToasterHandle {
 	}
 
 	/// Begins the exit animation: the toast flips to [`ToastState::Closing`]
-	/// (`data-state="closed"`) and stays mounted so the exit keyframe can play.
-	/// The live node is removed by [`ToasterHandle::remove`] when its
-	/// `animationend` fires — there is no host timer.
+	/// (`data-state="closed"`) and stays mounted so the exit transition can play.
+	/// The live node is removed by [`ToasterHandle::remove`] when that transition's
+	/// `transitionend` fires — there is no host timer. A toast dismissed before it
+	/// has ever painted mounts closed and so never transitions; [`ToastItem`] drops
+	/// that one on mount instead.
 	pub fn dismiss(&self, id: u64) {
 		let mut items = self.toasts.items;
 		if let Some(toast) = items.write().iter_mut().find(|t| t.id == id) {
@@ -239,13 +241,25 @@ fn is_transform_transition(_: &Event<TransitionData>) -> bool {
 /// keyframe (plays on insertion), `data-state="closed"` slides it out, and the
 /// live node is dropped on the exit transform's `transitionend` (guarded to the
 /// closing state and to the transform property, so neither an open-state restack
-/// nor a child's own transition removes it). Layout vars come from the constant
-/// height — no measuring.
+/// nor a child's own transition removes it) — or straight away on mount, for a
+/// toast dismissed before its first paint, which never transitions at all.
+/// Layout vars come from the constant height — no measuring.
 #[component]
 fn ToastItem(toast: Toast, index: usize, total: usize) -> Element {
 	let handle = use_toaster();
 	let id = toast.id;
 	let state = toast.state;
+	// Dismissed before its first paint (pushed and dismissed in one handler), so it
+	// mounts already closed: its computed style never changes, no transition runs,
+	// and the `ontransitionend` exit path below would never fire — stranding it in
+	// the list forever. Nothing was painted, so there is nothing to animate: drop it
+	// once mounted. The effect never runs under SSR, which has no lifecycle to miss.
+	let mounted_closing = use_hook(|| state == ToastState::Closing);
+	use_effect(move || {
+		if mounted_closing {
+			handle.remove(id);
+		}
+	});
 	let front = index == 0;
 	let visible = index < VISIBLE_TOASTS;
 	let offset = index as u32 * (TOAST_HEIGHT_EST + GAP);
@@ -399,11 +413,40 @@ mod tests {
 			rsx! {}
 		}
 		// Dismiss animates out rather than removing: the toast stays mounted in
-		// the closing state (the live node is dropped on `animationend`, which
+		// the closing state (the live node is dropped on `transitionend`, which
 		// the static SSR render cannot fire).
 		let html = render(app);
 		assert!(html.contains("keep"), "closing toast still mounted: {html}");
 		assert!(html.contains("data-state=\"closed\""), "{html}");
+	}
+
+	#[test]
+	fn a_toast_dismissed_before_first_paint_is_dropped_on_mount() {
+		fn app() -> Element {
+			rsx! {
+				ToasterProvider {
+					Seed {}
+					Toaster {}
+				}
+			}
+		}
+		#[component]
+		fn Seed() -> Element {
+			let toaster = use_toaster();
+			use_hook(move || {
+				let id = toaster.info("cancelled");
+				toaster.dismiss(id);
+			});
+			rsx! {}
+		}
+		// Mounted closed, it never transitions, so `ontransitionend` can't drop it —
+		// the mount effect must, or it is stranded in the list forever. SSR runs no
+		// effects, so drive it through a live VirtualDom.
+		let mut dom = VirtualDom::new(app);
+		dom.rebuild_in_place();
+		dom.render_immediate(&mut dioxus_core::NoOpMutations);
+		let html = dioxus_ssr::render(&dom);
+		assert!(!html.contains("cancelled"), "ghost toast left mounted: {html}");
 	}
 
 	#[test]

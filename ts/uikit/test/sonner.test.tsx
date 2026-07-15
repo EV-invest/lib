@@ -100,6 +100,17 @@ describe("Toaster", () => {
     expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(0);
   });
 
+  it("drops a toast dismissed before its first paint", () => {
+    const { container } = render(<Toaster />);
+    // pushed and dismissed in one batch: it mounts already closed, so no
+    // transition — and so no transitionend — ever runs to drop it
+    act(() => {
+      const id = toast("Cancelled", { duration: Infinity });
+      toast.dismiss(id);
+    });
+    expect(container.querySelectorAll('[data-slot="toast"]')).toHaveLength(0);
+  });
+
   it("a reposition transitionend does not remove an open toast", () => {
     const { container, getByText } = render(<Toaster />);
     act(() => {
