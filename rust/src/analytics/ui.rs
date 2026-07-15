@@ -48,11 +48,19 @@ impl AnalyticsHandle {
 /// no key, captures are silent no-ops.
 #[component]
 pub fn AnalyticsProvider(api_key: Option<String>, host: Option<String>, children: Element) -> Element {
-	let config = use_signal(|| AnalyticsConfig {
+	let next = AnalyticsConfig {
 		api_key,
 		host: host.unwrap_or_else(|| DEFAULT_HOST.to_string()),
-	});
-	use_context_provider(|| AnalyticsHandle { config });
+	};
+	let seed = next.clone();
+	// Dioxus context is immutable once provided, so the provider provides a handle
+	// and keeps its config tracking prop updates (the `use_controllable` idiom) —
+	// the mirror of the TS provider resolving key/host every render, so a key that
+	// arrives after mount enables capture instead of leaving it a permanent no-op.
+	let mut config = use_context_provider(move || AnalyticsHandle { config: Signal::new(seed) }).config;
+	if *config.peek() != next {
+		config.set(next);
+	}
 	rsx! {
 		{children}
 	}
@@ -100,6 +108,8 @@ fn distinct_id() -> String {
 
 #[cfg(test)]
 mod tests {
+	use std::cell::RefCell;
+
 	use super::*;
 	use crate::analytics::test_util::render;
 
@@ -125,6 +135,64 @@ mod tests {
 		}
 		assert!(render(with_key).contains("on"));
 		assert!(render(without_key).contains("off"));
+	}
+
+	#[test]
+	fn provider_tracks_prop_updates() {
+		// A key (or host) arriving after mount — the "fetch config, then pass it
+		// down" pattern — must enable capture, not stay frozen at the mount-time
+		// props. Mirrors the TS provider re-resolving key/host every render.
+		#[component]
+		fn Probe() -> Element {
+			let analytics = use_analytics();
+			let label = if analytics.is_enabled() { "on" } else { "off" };
+			let host = analytics.config.read().host.clone();
+			rsx! {
+				span { {label} }
+				span { {host} }
+			}
+		}
+		#[derive(Clone, Default, PartialEq)]
+		struct Props {
+			api_key: Option<String>,
+			host: Option<String>,
+		}
+		thread_local! {
+			static PROPS: RefCell<Option<Signal<Props>>> = const { RefCell::new(None) };
+		}
+		fn app() -> Element {
+			// Both props arrive after mount, as from an async config fetch.
+			let props = use_signal(Props::default);
+			use_hook(|| PROPS.with(|slot| *slot.borrow_mut() = Some(props)));
+			let Props { api_key, host } = props();
+			rsx! {
+				AnalyticsProvider { api_key, host, Probe {} }
+			}
+		}
+		// Each render_immediate flushes the scopes the write dirtied — a few passes
+		// reach quiescence with no timing dependence (no async executor needed).
+		fn settle(dom: &mut VirtualDom) {
+			for _ in 0..8 {
+				dom.render_immediate(&mut dioxus::core::NoOpMutations);
+			}
+		}
+		let mut dom = VirtualDom::new(app);
+		dom.rebuild_in_place();
+		let before = dioxus_ssr::render(&dom);
+		assert!(before.contains("off"), "{before}");
+		assert!(before.contains(DEFAULT_HOST), "{before}");
+
+		let mut props = PROPS.with(|slot| slot.borrow().expect("app captured its props signal"));
+		dom.in_runtime(|| {
+			props.set(Props {
+				api_key: Some("phc_late".to_string()),
+				host: Some("https://eu.i.posthog.com".to_string()),
+			});
+		});
+		settle(&mut dom);
+		let after = dioxus_ssr::render(&dom);
+		assert!(after.contains("on"), "late key enables capture: {after}");
+		assert!(after.contains("https://eu.i.posthog.com"), "late host is picked up: {after}");
 	}
 
 	#[test]
