@@ -44,9 +44,10 @@ let nav = Experiment::uniform(["a", "b"]);                    // equal weights
 
 ## Assign a variant in the browser
 
-On the browser, assign once per device. [`assign_variant`] reads `ab_<key>`,
-returns the existing variant if it's still valid, otherwise draws a weighted
-variant (via `js_sys::Math::random`) and writes the sticky cookie:
+On the browser, assign once per device. [`assign_variant`] reads `ab_<key>`; if
+the cookie is set it resolves it (unknown values fall back to the control) and
+leaves it alone, otherwise it draws a weighted variant (via `js_sys::Math::random`)
+and writes the sticky cookie:
 
 ```rust
 use ev_lib::experiments::{assign_variant, current_variant};
