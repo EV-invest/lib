@@ -22,7 +22,8 @@
 //! drive one), [`ToasterHandle::dismiss`] (and the close button) flip
 //! [`ToastState`] to `Closing`/`data-state="closed"` to slide it out, and the
 //! live node is dropped on the exit transform's `transitionend`
-//! (`ontransitionend`, guarded to the closing state) rather than a `setTimeout`.
+//! (`ontransitionend`, guarded to the closing state and the transform property)
+//! rather than a `setTimeout`.
 //! A `prefers-reduced-motion` block reduces the motion.
 //!
 //! Auto-dismiss is also host-timer-free: a no-op CSS `ev-toast-life` animation of
@@ -214,11 +215,32 @@ pub fn Toaster(#[props(default)] position: ToastPosition, #[props(default)] clas
 	}
 }
 
+/// Whether a `transitionend` is the toast's own exit transform finishing.
+///
+/// `transitionend` bubbles, so a closing toast also sees its descendants' — the
+/// close button's 150ms `transition-colors`, a collapsed child's 300ms opacity
+/// fade — and removing on those cuts the 350ms slide-out short. Mirrors the TS
+/// guard (`e.propertyName === "transform"`).
+///
+/// Dioxus 0.7's `TransitionData` exposes no `property_name` accessor, so the name
+/// is read off the concrete web event. Web-only: another renderer can't report it
+/// and falls through to accepting the event, which is at worst the unguarded
+/// behaviour — never a toast stranded on screen.
+#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+fn is_transform_transition(e: &Event<TransitionData>) -> bool {
+	e.downcast::<web_sys::TransitionEvent>().is_none_or(|t| t.property_name() == "transform")
+}
+#[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
+fn is_transform_transition(_: &Event<TransitionData>) -> bool {
+	true
+}
+
 /// One toast in the stack. Mirrors the TS `ToastItem`: the enter is a CSS
 /// keyframe (plays on insertion), `data-state="closed"` slides it out, and the
 /// live node is dropped on the exit transform's `transitionend` (guarded to the
-/// closing state so an open-state restack never removes it). Layout vars come
-/// from the constant height — no measuring.
+/// closing state and to the transform property, so neither an open-state restack
+/// nor a child's own transition removes it). Layout vars come from the constant
+/// height — no measuring.
 #[component]
 fn ToastItem(toast: Toast, index: usize, total: usize) -> Element {
 	let handle = use_toaster();
@@ -249,8 +271,8 @@ fn ToastItem(toast: Toast, index: usize, total: usize) -> Element {
 					handle.dismiss(id);
 				}
 			},
-			ontransitionend: move |_| {
-				if state == ToastState::Closing {
+			ontransitionend: move |e| {
+				if state == ToastState::Closing && is_transform_transition(&e) {
 					handle.remove(id);
 				}
 			},

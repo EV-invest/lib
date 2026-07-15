@@ -96,7 +96,7 @@ js-sys = { version = "0.3", optional = true }
 reqwest = { version = "0.13", optional = true, default-features = false, features = ["json"] }
 wasm-bindgen = { version = "0.2", optional = true }
 wasm-bindgen-futures = { version = "0.4", optional = true }
-web-sys = { version = "0.3", optional = true, features = ["Document", "Window", "HtmlDocument", "Storage", "Navigator", "Element"] }
+web-sys = { version = "0.3", optional = true, features = ["Document", "Window", "HtmlDocument", "Storage", "Navigator", "Element", "TransitionEvent"] }
 
 [dev-dependencies]
 ev_lib = { path = ".", features = ["architecture", "uikit", "analytics", "error_monitoring", "experiments"] }
