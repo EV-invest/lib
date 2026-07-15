@@ -15,17 +15,17 @@ backends (Axum), and Dioxus bindings that POST the same payload via pure-Rust
 
 ```toml
 # backend (native)
-ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["analytics"] }
+ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["analytics"] }
 ```
 
 ```toml
 # Dioxus frontend — enable the wasm backend per-target so native builds never
 # link the browser stack:
 [dependencies]
-ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["analytics"] }
+ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["analytics"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["analytics", "wasm"] }
+ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["analytics", "wasm"] }
 ```
 
 ## Usage

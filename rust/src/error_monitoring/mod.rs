@@ -14,10 +14,10 @@
 //!
 //! ```toml
 //! # backend
-//! ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["error_monitoring"] }
+//! ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["error_monitoring"] }
 //! # Dioxus frontend (per-target)
 //! [target.'cfg(target_arch = "wasm32")'.dependencies]
-//! ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["error_monitoring", "wasm"] }
+//! ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["error_monitoring", "wasm"] }
 //! ```
 
 pub mod wire;

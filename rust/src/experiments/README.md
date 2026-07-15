@@ -18,10 +18,10 @@ the cookie helpers and assignment run in the browser.
 ```toml
 # Dioxus frontend — enable the wasm backend per-target for the cookie helpers:
 [dependencies]
-ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["experiments"] }
+ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["experiments"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["experiments", "wasm"] }
+ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["experiments", "wasm"] }
 ```
 
 The pure core ([`Experiment`], [`pick_variant`], …) compiles natively too, so it

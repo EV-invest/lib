@@ -12,7 +12,7 @@
 //!
 //! ```toml
 //! [target.'cfg(target_arch = "wasm32")'.dependencies]
-//! ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["uikit", "wasm"] }
+//! ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["uikit", "wasm"] }
 //! ```
 
 pub mod primitives;

@@ -17,16 +17,16 @@ the Dioxus/wasm side is a pure-Rust envelope POST plus a panic hook — no JS SD
 
 ```toml
 # backend (native) — the sentry crate + its tower/tracing integrations
-ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["error_monitoring"] }
+ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["error_monitoring"] }
 ```
 
 ```toml
 # Dioxus frontend — enable the wasm backend per-target (pure-Rust envelope POST):
 [dependencies]
-ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["error_monitoring"] }
+ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["error_monitoring"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["error_monitoring", "wasm"] }
+ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["error_monitoring", "wasm"] }
 ```
 
 ## Usage
