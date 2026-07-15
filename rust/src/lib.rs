@@ -6,7 +6,7 @@
 //! consumer pulls in only what it asks for and nothing else is compiled:
 //!
 //! ```toml
-//! ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["architecture"] }
+//! ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["architecture"] }
 //! ```
 //!
 //! # Available features

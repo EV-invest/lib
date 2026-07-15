@@ -35,7 +35,7 @@ of the subdirectory.
 
 ```toml
 # native
-ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["architecture"] }
+ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["architecture"] }
 ```
 
 ## The `architecture` kernel

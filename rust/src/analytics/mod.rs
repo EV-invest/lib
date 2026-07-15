@@ -13,10 +13,10 @@
 //!
 //! ```toml
 //! # backend
-//! ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["analytics"] }
+//! ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["analytics"] }
 //! # Dioxus frontend (per-target)
 //! [target.'cfg(target_arch = "wasm32")'.dependencies]
-//! ev = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["analytics", "wasm"] }
+//! ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["analytics", "wasm"] }
 //! ```
 
 pub mod event;
