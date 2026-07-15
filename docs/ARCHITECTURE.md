@@ -73,7 +73,7 @@ outbox **inside the same `UnitOfWork`** as the state change — which is why
 ## The `uikit` library
 
 A **dep-light** UI kit — 63 shadcn-semantics components — shipped as the Rust
-feature `uikit` (`ev::uikit`, Dioxus) and the TS package `@evinvest/uikit` (React). It
+feature `uikit` (`ev_lib::uikit`, Dioxus) and the TS package `@evinvest/uikit` (React). It
 is the kit consolidated out of the EV-invest apps (`cabinet`'s Dioxus components
 and `landing`'s React bricks), so both apps depend on one versioned source.
 

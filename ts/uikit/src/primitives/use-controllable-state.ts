@@ -6,7 +6,7 @@ import * as React from "react";
  * (the hook returns it and routes writes through `onChange`); otherwise it owns
  * an internal `useState` seeded from `defaultValue`.
  *
- * The Rust mirror is `use_controllable_signal` in `ev::uikit`.
+ * The Rust mirror is `use_controllable_signal` in `ev_lib::uikit`.
  */
 export function useControllableState<T>(opts: {
   value?: T | undefined;

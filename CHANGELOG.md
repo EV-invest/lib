@@ -4,14 +4,14 @@ All notable changes to this repo are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the packages follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-This is a monorepo. The Rust crate (`ev_lib`, imported as `ev`) is versioned as a
-single unit; each TypeScript package under `ts/` is versioned independently.
+This is a monorepo. The Rust crate (`ev_lib`) is versioned as a single unit; each
+TypeScript package under `ts/` is versioned independently.
 Entries are grouped into dated release waves, since most changes land across the
 Rust crate and its TypeScript mirror at once.
 
 | Package                            | Source                 | Version |
 | ---------------------------------- | ---------------------- | ------- |
-| `ev_lib` (Rust crate, `use ev::…`) | `rust/`                | 0.5.0   |
+| `ev_lib` (Rust crate)              | `rust/`                | 0.5.0   |
 | `@evinvest/uikit`                  | `ts/uikit/`            | 0.6.0   |
 | `@evinvest/analytics`              | `ts/analytics/`        | 0.1.2   |
 | `@evinvest/architecture`           | `ts/architecture/`     | 0.1.0   |
