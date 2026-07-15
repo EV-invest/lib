@@ -1,7 +1,7 @@
 {
   "name": "@evinvest/analytics",
   "version": "0.1.2",
-  "description": "Vendor-neutral, dep-light product analytics: an injectable event sink with a PostHog factory, a React provider, and a posthog-node server sink — mirroring the ev::analytics Rust feature.",
+  "description": "Vendor-neutral, dep-light product analytics: an injectable event sink with a PostHog factory, a React provider, and a posthog-node server sink — mirroring the ev_lib::analytics Rust feature.",
   "license": "BlueOak-1.0.0",
   "publishConfig": {
     "access": "public"

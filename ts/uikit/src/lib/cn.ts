@@ -7,7 +7,7 @@ import { twMerge } from "tailwind-merge";
  * conflicting utilities so the rightmost wins (`cn("p-4", "p-2") === "p-2"`). A
  * caller's `className` override, passed last, therefore beats the base classes.
  *
- * The Rust mirror is the `cn!` macro in `ev::uikit` (`tailwind_fuse::tw_merge!`).
+ * The Rust mirror is the `cn!` macro in `ev_lib::uikit` (`tailwind_fuse::tw_merge!`).
  */
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));

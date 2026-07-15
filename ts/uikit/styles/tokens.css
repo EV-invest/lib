@@ -137,7 +137,7 @@
 }
 
 /* ── Toast stacking (Sonner-style), shared by both ports via data-stack ──────
-   Both `ev::uikit` (Dioxus) and `@evinvest/uikit` (React) set data-stack on the
+   Both `ev_lib::uikit` (Dioxus) and `@evinvest/uikit` (React) set data-stack on the
    toaster and drive the same machine: toasts are absolutely stacked at the
    pinned edge, pile up collapsed (front three peeking, each lifted + scaled by
    --index and clamped to --front-height), and spread to --offset on hover /

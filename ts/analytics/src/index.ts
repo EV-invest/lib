@@ -9,7 +9,7 @@
  * SDKs on top of this core.
  *
  * @remarks
- * Mirrors the `analytics` Cargo feature in `ev` (`ev::analytics`). The Rust
+ * Mirrors the `analytics` Cargo feature in `ev_lib` (`ev_lib::analytics`). The Rust
  * crate is the source of truth; this package preserves its *semantics*.
  */
 

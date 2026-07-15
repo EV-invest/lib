@@ -1,7 +1,7 @@
 {
   "name": "@evinvest/uikit",
   "version": "0.7.1",
-  "description": "Dep-light React UI kit: shadcn-semantics components with zero @radix-ui / cva, mirroring the ev::uikit Rust feature. Ships the shared design tokens.",
+  "description": "Dep-light React UI kit: shadcn-semantics components with zero @radix-ui / cva, mirroring the ev_lib::uikit Rust feature. Ships the shared design tokens.",
   "license": "BlueOak-1.0.0",
   "publishConfig": {
     "access": "public"

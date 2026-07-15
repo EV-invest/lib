@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
  * `react-dom`'s `createPortal` — the dep-light stand-in for
  * `@radix-ui/react-portal`. SSR-safe: renders nothing until mounted.
  *
- * Rust has no portal counterpart (see the README "Limitations"): `ev::uikit`
+ * Rust has no portal counterpart (see the README "Limitations"): `ev_lib::uikit`
  * overlays render inline with fixed positioning instead.
  */
 export interface PortalProps {
