@@ -108,8 +108,13 @@ pub fn MenubarItem(
 	}
 }
 
+/// `checked` is controlled: pair it with `onclick` to flip your own state. Like
+/// [`MenubarItem`] — and unlike the dropdown/context checkbox items, whose TS
+/// mirrors close on select — activating this does not close the menu, so a run of
+/// toggles stays open. That matches the TS menubar, which spreads `onClick` onto a
+/// plain div with no close context.
 #[component]
-pub fn MenubarCheckboxItem(#[props(default)] checked: bool, #[props(default)] class: String, children: Element) -> Element {
+pub fn MenubarCheckboxItem(#[props(default)] checked: bool, #[props(default)] class: String, onclick: Option<EventHandler<MouseEvent>>, children: Element) -> Element {
 	let cls = cn!(MENUBAR_CHECKBOX_ITEM, class);
 	rsx! {
 		div {
@@ -117,6 +122,7 @@ pub fn MenubarCheckboxItem(#[props(default)] checked: bool, #[props(default)] cl
 			"data-slot": "menubar-checkbox-item",
 			role: "menuitemcheckbox",
 			"aria-checked": checked,
+			onclick: move |e| { if let Some(h) = onclick { h.call(e); } },
 			span { class: MENUBAR_ITEM_INDICATOR,
 				if checked {
 					svg {
@@ -279,8 +285,10 @@ struct MenubarSubCtx {
 
 #[cfg(test)]
 mod tests {
+	use std::sync::atomic::{AtomicUsize, Ordering};
+
 	use super::*;
-	use crate::uikit::test_util::render;
+	use crate::uikit::test_util::{click_every_element, render};
 
 	#[test]
 	fn bar_renders_role_and_slot() {
@@ -360,6 +368,33 @@ mod tests {
 		assert!(html.contains("data-slot=\"menubar-checkbox-item\""), "{html}");
 		assert!(html.contains("aria-checked=true"), "{html}");
 		assert!(html.contains("M20 6 9 17l-5-5"), "check icon: {html}");
+	}
+
+	#[test]
+	fn checkbox_item_click_reaches_the_handler() {
+		static TOGGLED: AtomicUsize = AtomicUsize::new(0);
+		fn app() -> Element {
+			rsx! {
+				Menubar {
+					MenubarMenu { default_open: true,
+						MenubarTrigger { "View" }
+						MenubarContent {
+							MenubarCheckboxItem {
+								checked: false,
+								onclick: move |_| {
+									TOGGLED.fetch_add(1, Ordering::SeqCst);
+								},
+								"Show grid"
+							}
+						}
+					}
+				}
+			}
+		}
+		// `checked` is the consumer's to drive, so a click that never reaches
+		// `onclick` leaves the item frozen at its rendered state forever.
+		click_every_element(app);
+		assert_eq!(TOGGLED.load(Ordering::SeqCst), 1, "the click must reach the handler");
 	}
 
 	#[test]
