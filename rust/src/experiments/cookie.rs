@@ -32,12 +32,13 @@ pub fn current_variant(exp: &Experiment, key: &str) -> String {
 	resolve_variant(exp, read_cookie(&cookie_name(key)).as_deref())
 }
 /// Returns the sticky variant for `key`, assigning (weighted random) and writing
-/// the cookie on first visit. Mirrors the TS proxy's per-device bucketing.
+/// the cookie on first visit. Mirrors the TS proxy's per-device bucketing: an
+/// existing `ab_<key>` cookie is never re-drawn or rewritten, and a value that is
+/// no longer in `exp.variants` resolves to the control — so a visitor whose
+/// variant was dropped from the config stays pinned rather than being re-bucketed.
 pub fn assign_variant(exp: &Experiment, key: &str) -> String {
-	if let Some(existing) = read_cookie(&cookie_name(key))
-		&& exp.variants.iter().any(|v| *v == existing)
-	{
-		return existing;
+	if let Some(existing) = read_cookie(&cookie_name(key)) {
+		return resolve_variant(exp, Some(&existing));
 	}
 	let variant = pick_variant(exp, js_sys::Math::random);
 	write_variant(key, &variant);
