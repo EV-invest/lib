@@ -62,8 +62,10 @@ experiments = ["dep:dioxus", "dep:js-sys", "dep:web-sys", "dep:wasm-bindgen"]
 # Producer SDK for landing-host microfrontends (see `mfe.rs` + the `mfe!` macro).
 # wasm-only: the module is gated to `target_arch = "wasm32"`, so this is inert on
 # native. A producer crate enables it; landing never compiles ev_lib at all.
-# `wasm` pulls `dioxus?/web` + `web-sys`; `document` is for the bundle's `<link>`.
-mfe = ["dep:dioxus", "dep:wasm-bindgen", "dep:js-sys", "dioxus?/document", "wasm"]
+# `wasm` pulls `dioxus?/web` + `web-sys`; `document` is for the bundle's `<link>`;
+# `launch` is the `LaunchBuilder` behind `launch_into`, which a producer crate
+# would otherwise have to enable itself for this feature to compile.
+mfe = ["dep:dioxus", "dep:wasm-bindgen", "dep:js-sys", "dioxus?/document", "dioxus?/launch", "wasm"]
 
 # One opt-in switch that layers wasm/browser backends onto whatever other
 # features are enabled — each feature contributes its own wasm needs here with
@@ -91,12 +93,20 @@ sentry = { version = "0.48.2", optional = true, features = ["tower-axum-matched-
 
 # Browser backends for the I/O libraries. Enabled per-target on the consumer side
 # (see the `wasm` feature); never linked into native builds.
+#
+# `Location` is not ours: dioxus-web 0.7.9's `history.rs` calls `window.location()`
+# unconditionally but only declares `web-sys/Location` under its `devtools` feature,
+# and `dioxus` depends on it with `default-features = false` — so a plain
+# `dioxus/web` build fails to compile upstream. `dx build`/`dx serve` hide it by
+# enabling `dioxus/devtools`; a bare `cargo check --target wasm32-unknown-unknown`
+# does not. web-sys features unify across the graph, so declaring it here supplies
+# the binding. Drop this once dioxus-web declares its own.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 js-sys = { version = "0.3", optional = true }
 reqwest = { version = "0.13", optional = true, default-features = false, features = ["json"] }
 wasm-bindgen = { version = "0.2", optional = true }
 wasm-bindgen-futures = { version = "0.4", optional = true }
-web-sys = { version = "0.3", optional = true, features = ["Document", "Window", "HtmlDocument", "Storage", "Navigator", "Element", "TransitionEvent"] }
+web-sys = { version = "0.3", optional = true, features = ["Document", "Window", "HtmlDocument", "Storage", "Navigator", "Element", "TransitionEvent", "Location"] }
 
 [dev-dependencies]
 ev_lib = { path = ".", features = ["architecture", "uikit", "analytics", "error_monitoring", "experiments"] }
