@@ -44,6 +44,9 @@ pub mod analytics;
 #[cfg(feature = "error_monitoring")]
 pub mod error_monitoring;
 
+#[cfg(feature = "otel")]
+pub mod otel;
+
 #[cfg(feature = "experiments")]
 pub mod experiments;
 
