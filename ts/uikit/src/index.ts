@@ -23,6 +23,8 @@ export type { Side, Align, FloatingResult } from "./primitives/use-floating";
 export { useFocusScope } from "./primitives/focus-scope";
 export { usePresence } from "./primitives/presence";
 export { useRovingFocus } from "./primitives/use-roving-focus";
+export { useHoverIntent } from "./primitives/use-hover-intent";
+export type { HoverIntentHandlers } from "./primitives/use-hover-intent";
 export { mergeRefs } from "./primitives/merge-refs";
 
 export { Alert, AlertTitle, AlertDescription } from "./components/alert";
@@ -96,6 +98,9 @@ export {
   FieldError,
 } from "./components/field";
 export type { FieldOrientation } from "./components/field";
+
+export { SectionDescriptor } from "./components/section-descriptor";
+export type { SectionDescriptorProps } from "./components/section-descriptor";
 
 export { Footer } from "./components/footer";
 export type {
@@ -214,6 +219,7 @@ export * from "./components/input-otp";
 // Tier C — overlay/portal components.
 export * from "./components/tooltip";
 export * from "./components/popover";
+export * from "./components/info-tip";
 export * from "./components/hover-card";
 export * from "./components/dropdown-menu";
 export * from "./components/context-menu";
