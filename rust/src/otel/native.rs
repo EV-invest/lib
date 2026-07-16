@@ -1,4 +1,7 @@
-//! Native OpenTelemetry: OTLP/gRPC logs + traces, wired into `tracing`.
+//! Native OpenTelemetry: OTLP/HTTP logs + traces, wired into `tracing`. The
+//! export is HTTP (reqwest-blocking) with thread-based batching so it builds
+//! before the tokio runtime exists; the tonic bits below are only the W3C
+//! trace-context propagation across the money-flow gRPC services.
 
 use opentelemetry::trace::TracerProvider as _;
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
@@ -64,7 +67,7 @@ where
 	// `Resource::builder` runs the env detector: OTEL_SERVICE_NAME + OTEL_RESOURCE_ATTRIBUTES.
 	let resource = Resource::builder().build();
 
-	let log_exporter = match opentelemetry_otlp::LogExporter::builder().with_tonic().build() {
+	let log_exporter = match opentelemetry_otlp::LogExporter::builder().with_http().build() {
 		Ok(exporter) => exporter,
 		Err(e) => {
 			tracing::warn!(error = %e, "otel log exporter build failed; telemetry disabled");
@@ -73,7 +76,7 @@ where
 	};
 	let logger_provider = SdkLoggerProvider::builder().with_resource(resource.clone()).with_batch_exporter(log_exporter).build();
 
-	let span_exporter = match opentelemetry_otlp::SpanExporter::builder().with_tonic().build() {
+	let span_exporter = match opentelemetry_otlp::SpanExporter::builder().with_http().build() {
 		Ok(exporter) => exporter,
 		Err(e) => {
 			tracing::warn!(error = %e, "otel span exporter build failed; telemetry disabled");
@@ -138,5 +141,3 @@ impl opentelemetry::propagation::Extractor for MetadataExtractor<'_> {
 			.collect()
 	}
 }
-
-
