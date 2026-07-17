@@ -28,6 +28,9 @@
 //!   `settings!` macro reads env vars into a validated struct with aggregate
 //!   error reporting and secret redaction. Zero deps; sops stays at the shell/CI
 //!   boundary. See [`settings`](mod@settings).
+//! - **`otel`** — OpenTelemetry logs + traces over OTLP (native backends only;
+//!   inert on wasm): two `tracing` layers + a flush guard, and tonic
+//!   interceptors for W3C trace propagation. See [`otel`].
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
@@ -47,6 +50,9 @@ pub mod analytics;
 
 #[cfg(feature = "error_monitoring")]
 pub mod error_monitoring;
+
+#[cfg(feature = "otel")]
+pub mod otel;
 
 #[cfg(feature = "experiments")]
 pub mod experiments;

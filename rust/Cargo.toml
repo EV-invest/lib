@@ -54,6 +54,21 @@ error_monitoring = [
     "dep:wasm-bindgen-futures",
 ]
 
+# OpenTelemetry logs + traces over OTLP/gRPC (native backends only; the browser
+# never links an OTLP stack). Two `tracing` layers + a flush guard, plus tonic
+# interceptors for W3C trace propagation across the money-flow services.
+otel = [
+    "dep:opentelemetry",
+    "dep:opentelemetry_sdk",
+    "dep:opentelemetry-otlp",
+    "dep:opentelemetry-appender-tracing",
+    "dep:opentelemetry-semantic-conventions",
+    "dep:tracing-opentelemetry",
+    "dep:tracing",
+    "dep:tracing-subscriber",
+    "dep:tonic",
+]
+
 # Frontend-only A/B testing (mirrors `@evinvest/experiments`). Cookie-bucketed
 # weighted variant assignment for Dioxus; exposure is reported through an injected
 # sink, so it never imports `analytics` (no cross-library coupling).
@@ -95,8 +110,22 @@ uuid = { workspace = true, features = ["serde", "v4"], optional = true }
 # Native (non-wasm) backends for the I/O libraries. Kept out of wasm builds so the
 # browser target never links a native TLS stack or the `sentry` crate.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+
+# OpenTelemetry (the `otel` feature). Native-only, pinned to a mutually-consistent
+# 0.31-era set; `tracing-opentelemetry` tracks one minor ahead of the core crates.
+opentelemetry = { version = "0.31", optional = true, features = ["trace", "logs"] }
+opentelemetry-appender-tracing = { version = "0.31", optional = true }
+opentelemetry-otlp = { version = "0.31", optional = true, default-features = false, features = ["trace", "logs", "http-proto", "reqwest-blocking-client"] }
+opentelemetry-semantic-conventions = { version = "0.31", optional = true }
+# No rt-tokio: the batch processors run on their own threads, so telemetry() can
+# build before the tokio runtime exists (backends init tracing pre-runtime for Sentry).
+opentelemetry_sdk = { version = "0.31", optional = true, features = ["trace", "logs"] }
 reqwest = { version = "0.13", optional = true, default-features = false, features = ["rustls", "json"] }
 sentry = { version = "0.48.2", optional = true, features = ["tower-axum-matched-path", "tracing"] }
+tonic = { version = "0.13", optional = true, default-features = false }
+tracing = { version = "0.1", optional = true }
+tracing-opentelemetry = { version = "0.32", optional = true }
+tracing-subscriber = { version = "0.3", optional = true, default-features = false, features = ["registry", "std"] }
 
 # Browser backends for the I/O libraries. Enabled per-target on the consumer side
 # (see the `wasm` feature); never linked into native builds.
