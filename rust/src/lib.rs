@@ -24,6 +24,10 @@
 //! - **`experiments`** — frontend-only A/B testing (mirrors `@evinvest/experiments`):
 //!   cookie-bucketed variant assignment; exposure is reported through an injected
 //!   sink, so it never imports `analytics`. See [`experiments`].
+//! - **`settings`** — typed env settings (mirrors `@evinvest/settings`): the
+//!   `settings!` macro reads env vars into a validated struct with aggregate
+//!   error reporting and secret redaction. Zero deps; sops stays at the shell/CI
+//!   boundary. See [`settings`](mod@settings).
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
@@ -46,6 +50,9 @@ pub mod error_monitoring;
 
 #[cfg(feature = "experiments")]
 pub mod experiments;
+
+#[cfg(feature = "settings")]
+pub mod settings;
 
 // wasm-only: the module links wasm-bindgen/web-sys, which aren't deps on native.
 // The `mfe!` macro is `#[macro_export]`ed from inside, so it too is wasm-only —
