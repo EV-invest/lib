@@ -12,7 +12,7 @@ lib/                 (repo: EV-invest/lib)
 ├── Cargo.toml       thin virtual workspace — anchors the crate at the repo root
 ├── rust/            the crate (sources); one library per Cargo feature
 │   ├── Cargo.toml
-│   ├── src/{lib.rs, architecture/, uikit/, analytics/, error_monitoring/, experiments/, settings/}
+│   ├── src/{lib.rs, architecture/, uikit/, analytics/, error_monitoring/, experiments/, settings/, otel/}
 │   └── tests/
 ├── ts/              TypeScript packages, one directory per library
 │   ├── architecture/

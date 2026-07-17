@@ -14,7 +14,8 @@ rust/
 │   ├── analytics/         the `analytics` feature (PostHog product analytics)
 │   ├── error_monitoring/  the `error_monitoring` feature (Sentry error monitoring)
 │   ├── experiments/       the `experiments` feature (frontend-only A/B testing)
-│   └── settings/          the `settings` feature (typed env settings)
+│   ├── settings/          the `settings` feature (typed env settings)
+│   └── otel/              the `otel` feature (OpenTelemetry logs + traces, native-only)
 └── tests/              integration tests
 ```
 
