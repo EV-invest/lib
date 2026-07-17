@@ -9,7 +9,8 @@ ts/
 ├── uikit/             port of the `uikit` Cargo feature (dep-light React UI kit)
 ├── analytics/         port of the `analytics` Cargo feature (PostHog product analytics)
 ├── error-monitoring/  port of the `error_monitoring` Cargo feature (Sentry error monitoring)
-└── experiments/       port of the `experiments` Cargo feature (frontend-only A/B testing)
+├── experiments/       port of the `experiments` Cargo feature (frontend-only A/B testing)
+└── settings/          port of the `settings` Cargo feature (typed env settings)
 ```
 
 Each package mirrors the _semantics_ of its Rust counterpart in

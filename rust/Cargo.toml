@@ -59,6 +59,13 @@ error_monitoring = [
 # sink, so it never imports `analytics` (no cross-library coupling).
 experiments = ["dep:dioxus", "dep:js-sys", "dep:web-sys", "dep:wasm-bindgen"]
 
+# Typed env settings (mirrors `@evinvest/settings`). The `settings!` macro reads
+# env vars into a validated struct: aggregate error reporting, `= "literal"`
+# defaults, `Option` = optional, `#[secret]` redaction. Env-only by design — no
+# config files, no hot reload; sops/age decrypt at the shell/CI boundary and this
+# library only reads the already-injected environment. Zero runtime deps.
+settings = []
+
 # Producer SDK for landing-host microfrontends (see `mfe.rs` + the `mfe!` macro).
 # wasm-only: the module is gated to `target_arch = "wasm32"`, so this is inert on
 # native. A producer crate enables it; landing never compiles ev_lib at all.
@@ -109,7 +116,7 @@ wasm-bindgen-futures = { version = "0.4", optional = true }
 web-sys = { version = "0.3", optional = true, features = ["Document", "Window", "HtmlDocument", "Storage", "Navigator", "Element", "TransitionEvent", "Location"] }
 
 [dev-dependencies]
-ev_lib = { path = ".", features = ["architecture", "uikit", "analytics", "error_monitoring", "experiments"] }
+ev_lib = { path = ".", features = ["architecture", "uikit", "analytics", "error_monitoring", "experiments", "settings"] }
 
 async-trait.workspace = true
 axum = { workspace = true, features = ["ws"] }

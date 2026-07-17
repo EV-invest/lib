@@ -23,6 +23,7 @@ it enables.
 | `analytics` | PostHog product analytics (mirrors `@evinvest/analytics`): does network I/O, gated per-target — `reqwest` + `serde`/`serde_json` native, pure-Rust HTTP on wasm |
 | `error_monitoring` | Sentry error monitoring (mirrors `@evinvest/error-monitoring`): does network I/O; the native `sentry` crate is native-only, wasm reports over pure-Rust HTTP |
 | `experiments` | frontend-only A/B testing (mirrors `@evinvest/experiments`): reports exposure through an injected sink, never imports `analytics` |
+| `settings` | typed env settings (mirrors `@evinvest/settings`): the `settings!` macro reads env vars into a validated struct — aggregate errors, defaults, secret redaction; zero deps, env-only (sops/age decrypt at the shell/CI boundary) |
 | `wasm` | opt-in switch layering browser/js backends onto whatever features are enabled |
 
 ### Consume it
@@ -56,7 +57,8 @@ TS packages live under [`ts/`](ts/), one directory per library, each with its ow
 `package.json`: [`ts/architecture/`](ts/architecture/) (the DDD kernel),
 [`ts/uikit/`](ts/uikit/) (the dep-light React UI kit mirroring the Rust `uikit`),
 [`ts/analytics/`](ts/analytics/) (PostHog), [`ts/error-monitoring/`](ts/error-monitoring/)
-(Sentry), and [`ts/experiments/`](ts/experiments/) (A/B testing).
+(Sentry), [`ts/experiments/`](ts/experiments/) (A/B testing), and
+[`ts/settings/`](ts/settings/) (typed env settings).
 
 ## Dev shell
 
