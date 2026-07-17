@@ -12,14 +12,15 @@ lib/                 (repo: EV-invest/lib)
 ├── Cargo.toml       thin virtual workspace — anchors the crate at the repo root
 ├── rust/            the crate (sources); one library per Cargo feature
 │   ├── Cargo.toml
-│   ├── src/{lib.rs, architecture/, uikit/, analytics/, error_monitoring/, experiments/}
+│   ├── src/{lib.rs, architecture/, uikit/, analytics/, error_monitoring/, experiments/, settings/}
 │   └── tests/
 ├── ts/              TypeScript packages, one directory per library
 │   ├── architecture/
 │   ├── uikit/
 │   ├── analytics/
 │   ├── error-monitoring/
-│   └── experiments/
+│   ├── experiments/
+│   └── settings/
 ├── docs/
 │   ├── ARCHITECTURE.md          (this file)
 │   └── .readme_assets/          README fragments (README.md is generated)
@@ -136,6 +137,26 @@ The TS packages expose backends through subpath exports — analytics
 `.`/`./react`/`./node`; error-monitoring `.`/`./react`/`./node`/`./next`;
 experiments `.`/`./react`/`./next` — with the vendor SDKs as optional
 `peerDependencies`.
+
+## The `settings` library
+
+Typed env settings — the `settings` Cargo feature (`ev_lib::settings`, a
+`settings!` macro) and `@evinvest/settings` (`createSettings`). Zero runtime
+deps on both sides, like the kernel — but not I/O-free: reading the process
+environment is its purpose (no files, no network). Env-only by design: no
+config-file layer, no hot reload (a process's environment is fixed at `exec`).
+The shared semantics — SCREAMING_SNAKE naming, required-by-default,
+empty-string-is-unset, the bool/list parsing rules, aggregate error reporting,
+secret redaction — are pinned by mirrored contract-test vectors in both suites.
+`presets` fixes the org-canonical shared names (`POSTHOG_KEY`, `SENTRY_DSN`,
+`APP_ENV`) once, on both sides.
+
+Secrets deliberately live **outside** the library: sops-encrypted env files
+(age keys) are committed to each consuming repo and decrypted only at the
+boundary — direnv/`sops exec-env` in dev shells, `SOPS_AGE_KEY` in CI — so
+apps stay sops-unaware and the library never links a decryption stack. The
+workflow is documented in
+[`rust/src/settings/GUIDE.md`](../rust/src/settings/GUIDE.md#secrets-the-sops-boundary).
 
 ## Cross-language parity
 
