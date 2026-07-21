@@ -9,14 +9,14 @@ TypeScript package under `ts/` is versioned independently.
 Entries are grouped into dated release waves, since most changes land across the
 Rust crate and its TypeScript mirror at once.
 
-| Package                            | Source                 | Version |
-| ---------------------------------- | ---------------------- | ------- |
-| `ev_lib` (Rust crate)              | `rust/`                | 0.5.0   |
-| `@evinvest/uikit`                  | `ts/uikit/`            | 0.6.0   |
-| `@evinvest/analytics`              | `ts/analytics/`        | 0.1.2   |
-| `@evinvest/architecture`           | `ts/architecture/`     | 0.1.0   |
-| `@evinvest/error-monitoring`       | `ts/error-monitoring/` | 0.1.0   |
-| `@evinvest/experiments`            | `ts/experiments/`      | 0.1.0   |
+| Package                      | Source                 | Version |
+| ---------------------------- | ---------------------- | ------- |
+| `ev_lib` (Rust crate)        | `rust/`                | 0.5.0   |
+| `@evinvest/uikit`            | `ts/uikit/`            | 0.6.3   |
+| `@evinvest/analytics`        | `ts/analytics/`        | 0.1.2   |
+| `@evinvest/architecture`     | `ts/architecture/`     | 0.1.0   |
+| `@evinvest/error-monitoring` | `ts/error-monitoring/` | 0.1.0   |
+| `@evinvest/experiments`      | `ts/experiments/`      | 0.1.0   |
 
 ## [Unreleased]
 
@@ -78,6 +78,7 @@ identical shell (EV-invest/site_conductor#55).
     - TS: `linkComponent` prop lets Next hosts pass `next/link`; default `<a>`.
     - Dioxus: web behaviors (scroll state, body-scroll lock, Escape,
       close-on-navigate delegation) via `document::eval`, SSR-safe no-op.
+
 ## 2026-06-22 — uikit 0.3.0
 
 Rust `ev_lib` 0.3.0 · `@evinvest/uikit` 0.3.0. The toast (`sonner`) animation
