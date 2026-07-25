@@ -6,6 +6,7 @@ own `package.json`, built ESM-only with `tsup` and tested with `vitest`.
 ```
 ts/
 ├── architecture/      port of the `architecture` Cargo feature (DDD kernel)
+├── types/             shared domain TypeObjects (PhoneNumber, Email, …) with validation
 ├── uikit/             port of the `uikit` Cargo feature (dep-light React UI kit)
 ├── analytics/         port of the `analytics` Cargo feature (PostHog product analytics)
 ├── error-monitoring/  port of the `error_monitoring` Cargo feature (Sentry error monitoring)
