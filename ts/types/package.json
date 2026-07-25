@@ -1,6 +1,6 @@
 {
   "name": "@evinvest/types",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Shared domain types with validation — PhoneNumber, Email, and other TypeObjects. Zero runtime deps for the core; optional React subpath for input bindings.",
   "license": "BlueOak-1.0.0",
   "publishConfig": {
