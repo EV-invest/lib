@@ -21,7 +21,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PhoneNumber, type PhoneNumberError, type PhoneNumberValidation } from '../phone-number';
+import { PhoneNumber, type PhoneNumberError, type PhoneNumberValidation } from '@evinvest/types';
 
 // ── usePhoneNumber ────────────────────────────────────────────────────────────
 

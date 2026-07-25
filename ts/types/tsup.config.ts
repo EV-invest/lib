@@ -23,7 +23,7 @@ export default defineConfig([
     clean: false,
     sourcemap: true,
     target: 'es2022',
-    external: ['react', 'react-dom', 'react/jsx-runtime'],
+    external: ['react', 'react-dom', 'react/jsx-runtime', '@evinvest/types'],
     banner: { js: '"use client";' },
   },
 ]);
