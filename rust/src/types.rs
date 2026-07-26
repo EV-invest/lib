@@ -9,8 +9,12 @@
 //!   known country-code prefix (ITU-T zones 1–9). Construct with
 //!   [`PhoneNumber::from`] (validating), [`PhoneNumber::from_unchecked`] (trusted
 //!   source), or [`PhoneNumber::parse_input`] (forgiving user input).
-//! - [`Branded`] — the generic newtype pattern reusable for future types (Email,
-//!   Currency, …).
+//! - [`Email`] — RFC 5321 email address: `local@domain`, case-insensitive,
+//!   normalised to lowercase. Construct with [`Email::from`] (validating),
+//!   [`Email::from_unchecked`] (trusted source), or [`Email::parse_input`]
+//!   (forgiving user input).
+//! - [`Branded`] — the generic newtype pattern reusable for future types
+//!   (Currency, …).
 
 use core::fmt;
 
@@ -287,6 +291,205 @@ impl fmt::Display for PhoneNumber {
 	}
 }
 
+// ── Email ──────────────────────────────────────────────────────────────────────
+
+/// Brand tag for [`Email`].
+pub struct EmailTag;
+
+/// An RFC 5321 email address, validated and normalised to lowercase.
+///
+/// Canonical form: `local@domain.tld`. The address is always stored in
+/// lowercase; construction through [`Email::from`] or [`Email::parse_input`]
+/// normalises case automatically.
+pub type Email = Branded<String, EmailTag>;
+
+/// Validation error returned by [`Email::validate`] and [`Email::from`].
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum EmailError {
+	/// Input was empty.
+	Empty,
+	/// Missing `@` sign.
+	NoAt,
+	/// Local part (before `@`) is empty.
+	EmptyLocal,
+	/// Domain part (after `@`) is empty.
+	EmptyDomain,
+	/// Local part exceeds 64 octets (RFC 5321).
+	LocalTooLong { actual: usize },
+	/// Domain part exceeds 255 octets (RFC 1035).
+	DomainTooLong { actual: usize },
+	/// Full address exceeds 254 octets (RFC 5321).
+	TooLong { actual: usize },
+	/// Domain lacks a TLD (no `.` in domain part).
+	NoTld,
+	/// Contains whitespace or other invalid characters.
+	InvalidChar,
+}
+
+impl EmailError {
+	/// Machine-readable code — stable across versions.
+	pub fn code(&self) -> &'static str {
+		match self {
+			Self::Empty => "empty",
+			Self::NoAt => "no_at",
+			Self::EmptyLocal => "empty_local",
+			Self::EmptyDomain => "empty_domain",
+			Self::LocalTooLong { .. } => "local_too_long",
+			Self::DomainTooLong { .. } => "domain_too_long",
+			Self::TooLong { .. } => "too_long",
+			Self::NoTld => "no_tld",
+			Self::InvalidChar => "invalid_char",
+		}
+	}
+}
+
+impl fmt::Display for EmailError {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		match self {
+			Self::Empty => f.write_str("Email must not be empty"),
+			Self::NoAt => f.write_str("Email must contain an @"),
+			Self::EmptyLocal => f.write_str("Email local part must not be empty"),
+			Self::EmptyDomain => f.write_str("Email domain must not be empty"),
+			Self::LocalTooLong { actual } => write!(f, "Email local part must be at most 64 characters (has {actual})"),
+			Self::DomainTooLong { actual } => write!(f, "Email domain must be at most 255 characters (has {actual})"),
+			Self::TooLong { actual } => write!(f, "Email must be at most 254 characters (has {actual})"),
+			Self::NoTld => f.write_str("Email domain must have a TLD (e.g. .com)"),
+			Self::InvalidChar => f.write_str("Email contains invalid characters"),
+		}
+	}
+}
+
+impl Email {
+	/// Maximum length of the domain part (RFC 1035).
+	pub const MAX_DOMAIN_LEN: usize = 255;
+	/// Maximum total length (RFC 5321).
+	pub const MAX_LEN: usize = 254;
+	/// Maximum length of the local part (RFC 5321).
+	pub const MAX_LOCAL_LEN: usize = 64;
+
+	// -- Construction ---------------------------------------------------------------
+
+	/// Validate and construct an [`Email`].
+	///
+	/// The value is normalised to lowercase. Returns [`EmailError`] on invalid
+	/// input. Use [`Email::from_unchecked`] to skip validation for trusted sources.
+	pub fn from(value: String) -> Result<Self, EmailError> {
+		Self::validate(&value)?;
+		Ok(Self::from_unchecked(value.to_lowercase()))
+	}
+
+	/// Construct an [`Email`] from a trusted source without validation or
+	/// normalisation.
+	///
+	/// The caller guarantees the value is a valid, lowercase email address. Use
+	/// this when deserialising from a database or an already-validated API
+	/// response — never on user input.
+	pub fn from_unchecked(value: String) -> Self {
+		Self::new(value)
+	}
+
+	/// Recover the underlying string (always lowercase).
+	pub fn as_str(&self) -> &str {
+		self.as_inner()
+	}
+
+	/// The local part (before the `@`), e.g. `user` in `user@example.com`.
+	pub fn local_part(&self) -> &str {
+		let s = self.as_str();
+		&s[..s.find('@').unwrap_or(s.len())]
+	}
+
+	/// The domain part (after the `@`), e.g. `example.com` in `user@example.com`.
+	pub fn domain(&self) -> &str {
+		let s = self.as_str();
+		&s[s.find('@').map(|i| i + 1).unwrap_or(s.len())..]
+	}
+
+	// -- Validation ----------------------------------------------------------------
+
+	/// Validate without constructing. Returns `Ok(())` or a structured error.
+	///
+	/// Rules:
+	/// 1. Non-empty
+	/// 2. Contains exactly one `@`
+	/// 3. Local and domain parts non-empty
+	/// 4. Local part ≤ 64 chars, domain ≤ 255 chars, total ≤ 254
+	/// 5. Domain contains at least one `.` (TLD)
+	/// 6. No whitespace or control characters
+	pub fn validate(value: &str) -> Result<(), EmailError> {
+		if value.is_empty() {
+			return Err(EmailError::Empty);
+		}
+
+		// Must contain exactly one @.
+		let at_pos = value.find('@');
+		let Some(at_pos) = at_pos else {
+			return Err(EmailError::NoAt);
+		};
+		if value[at_pos + 1..].contains('@') {
+			return Err(EmailError::InvalidChar);
+		}
+
+		let local = &value[..at_pos];
+		let domain = &value[at_pos + 1..];
+
+		if local.is_empty() {
+			return Err(EmailError::EmptyLocal);
+		}
+		if domain.is_empty() {
+			return Err(EmailError::EmptyDomain);
+		}
+
+		if local.len() > Self::MAX_LOCAL_LEN {
+			return Err(EmailError::LocalTooLong { actual: local.len() });
+		}
+		if domain.len() > Self::MAX_DOMAIN_LEN {
+			return Err(EmailError::DomainTooLong { actual: domain.len() });
+		}
+		if value.len() > Self::MAX_LEN {
+			return Err(EmailError::TooLong { actual: value.len() });
+		}
+
+		// Domain must contain at least one dot.
+		if !domain.contains('.') {
+			return Err(EmailError::NoTld);
+		}
+
+		// No whitespace or control characters.
+		if value.chars().any(|c| c.is_whitespace() || c.is_control()) {
+			return Err(EmailError::InvalidChar);
+		}
+
+		Ok(())
+	}
+
+	/// Runtime type guard — returns `true` when `value` is a valid email string.
+	pub fn is_email(value: &str) -> bool {
+		Self::validate(value).is_ok()
+	}
+
+	// -- User-input parsing --------------------------------------------------------
+
+	/// Parse loosely-formatted user input into an [`Email`].
+	///
+	/// Trims whitespace and normalises to lowercase. Returns `None` on invalid
+	/// input.
+	pub fn parse_input(raw: &str) -> Option<Self> {
+		let trimmed = raw.trim();
+		if trimmed.is_empty() {
+			return None;
+		}
+		Self::validate(trimmed).ok()?;
+		Some(Self::from_unchecked(trimmed.to_lowercase()))
+	}
+}
+
+impl fmt::Display for Email {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.write_str(self.as_str())
+	}
+}
+
 // ── Country-code table ─────────────────────────────────────────────────────────
 
 // Country codes (1–3 digits, ITU-T zones 1–9). Tried longest-first so
@@ -484,5 +687,138 @@ mod tests {
 		let email = Email::new("a@b.com".into());
 		assert_eq!(email.as_inner(), "a@b.com");
 		assert_eq!(email.into_inner(), "a@b.com");
+	}
+	// -- Email: validate --
+
+	#[test]
+	fn email_accepts_valid() {
+		let cases = ["user@example.com", "a@b.cd", "first.last@sub.example.co.uk", "user+tag@example.com", "123@numbers.org"];
+		for raw in cases {
+			assert!(Email::validate(raw).is_ok(), "should accept {raw}");
+		}
+	}
+
+	#[test]
+	fn email_rejects_empty() {
+		let err = Email::validate("").unwrap_err();
+		assert_eq!(err.code(), "empty");
+	}
+
+	#[test]
+	fn email_rejects_no_at() {
+		let err = Email::validate("userexample.com").unwrap_err();
+		assert_eq!(err.code(), "no_at");
+	}
+
+	#[test]
+	fn email_rejects_empty_local() {
+		let err = Email::validate("@example.com").unwrap_err();
+		assert_eq!(err.code(), "empty_local");
+	}
+
+	#[test]
+	fn email_rejects_empty_domain() {
+		let err = Email::validate("user@").unwrap_err();
+		assert_eq!(err.code(), "empty_domain");
+	}
+
+	#[test]
+	fn email_rejects_multiple_at() {
+		assert!(Email::validate("a@b@c.com").is_err());
+	}
+
+	#[test]
+	fn email_rejects_no_tld() {
+		let err = Email::validate("user@localhost").unwrap_err();
+		assert_eq!(err.code(), "no_tld");
+	}
+
+	#[test]
+	fn email_rejects_whitespace() {
+		assert!(Email::validate("user @example.com").is_err());
+		assert!(Email::validate("user@example.com\n").is_err());
+	}
+
+	#[test]
+	fn email_rejects_local_too_long() {
+		let long_local = "a".repeat(65) + "@example.com";
+		let err = Email::validate(&long_local).unwrap_err();
+		assert_eq!(err.code(), "local_too_long");
+	}
+
+	#[test]
+	fn email_rejects_domain_too_long() {
+		let long_domain = "a".repeat(256);
+		let long = format!("user@{long_domain}");
+		let err = Email::validate(&long).unwrap_err();
+		assert_eq!(err.code(), "domain_too_long");
+	}
+
+	#[test]
+	fn email_rejects_total_too_long() {
+		// 64-char local + @ + 189-char domain = 254, so make it 255
+		let long = "a".repeat(255);
+		let err = Email::validate(&long).unwrap_err();
+		// Should fail with either too_long or no_at (no @ in repeated 'a')
+		assert!(err.code() == "too_long" || err.code() == "no_at");
+	}
+
+	// -- Email: from / from_unchecked --
+
+	#[test]
+	fn email_from_constructs_and_normalises() {
+		let e = Email::from("User@Example.COM".into()).unwrap();
+		assert_eq!(e.as_str(), "user@example.com");
+	}
+
+	#[test]
+	fn email_from_rejects_invalid() {
+		assert!(Email::from("bad".into()).is_err());
+	}
+
+	#[test]
+	fn email_from_unchecked_skips_validation() {
+		let e = Email::from_unchecked(String::new());
+		assert_eq!(e.as_str(), "");
+	}
+
+	// -- Email: is_email --
+
+	#[test]
+	fn email_is_email_type_guard() {
+		assert!(Email::is_email("user@example.com"));
+		assert!(!Email::is_email(""));
+		assert!(!Email::is_email("notanemail"));
+	}
+
+	// -- Email: local_part / domain --
+
+	#[test]
+	fn email_local_and_domain() {
+		let e = Email::from("user@example.com".into()).unwrap();
+		assert_eq!(e.local_part(), "user");
+		assert_eq!(e.domain(), "example.com");
+	}
+
+	// -- Email: parse_input --
+
+	#[test]
+	fn email_parse_input_trims_whitespace() {
+		let e = Email::parse_input("  user@example.com  ").unwrap();
+		assert_eq!(e.as_str(), "user@example.com");
+	}
+
+	#[test]
+	fn email_parse_input_returns_none_for_invalid() {
+		assert!(Email::parse_input("notanemail").is_none());
+		assert!(Email::parse_input("").is_none());
+	}
+
+	// -- Email: Display --
+
+	#[test]
+	fn email_display_returns_lowercase() {
+		let e = Email::from("User@Example.COM".into()).unwrap();
+		assert_eq!(format!("{e}"), "user@example.com");
 	}
 }
