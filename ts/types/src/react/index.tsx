@@ -21,7 +21,14 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PhoneNumber, type PhoneNumberError, type PhoneNumberValidation } from '@evinvest/types';
+import {
+  PhoneNumber,
+  type PhoneNumberError,
+  type PhoneNumberValidation,
+  Email,
+  type EmailError,
+  type EmailValidation,
+} from '@evinvest/types';
 
 // ── usePhoneNumber ────────────────────────────────────────────────────────────
 
@@ -168,4 +175,117 @@ function resolveDisplay(value?: string | PhoneNumber): string {
   if (PhoneNumber.isPhoneNumber(value)) return PhoneNumber.format(value);
   // Raw string — return as-is (may be partial/invalid).
   return value;
+}
+
+// ── useEmail ───────────────────────────────────────────────────────────────────
+
+export interface UseEmailOptions {
+  /** Initial email value (raw string or `Email`). */
+  initial?: string | Email;
+  /** Called whenever a valid `Email` is parsed from the input. */
+  onValid?: (email: Email) => void;
+}
+
+export interface UseEmailResult {
+  /**
+   * Props to spread onto an `<input type="email">`. Includes `value`,
+   * `onChange`, `onBlur`, and `aria-invalid` when the current input is
+   * non-empty and invalid.
+   */
+  readonly inputProps: {
+    readonly value: string;
+    readonly onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    readonly onBlur: () => void;
+    readonly 'aria-invalid': true | undefined;
+  };
+  /** The canonical `Email`, or `undefined` when the input is invalid or empty. */
+  readonly value: Email | undefined;
+  /** What's currently shown in the input. */
+  readonly displayValue: string;
+  /** Structured error for the current input, or `null` when valid or empty. */
+  readonly error: EmailError | null;
+  /** Whether the current display value parses to a valid `Email`. */
+  readonly isValid: boolean;
+  /** Reset to a new value (or clear). Pass a string or `Email`. */
+  readonly reset: (value?: string | Email) => void;
+}
+
+/**
+ * Bind an email input to an `Email` TypeObject.
+ *
+ * The hook owns the input's display state. The email is validated on every
+ * keystroke; the input shows the raw value while the user is typing and trims
+ * on blur.
+ */
+export function useEmail(options: UseEmailOptions = {}): UseEmailResult {
+  const initialDisplay = useMemo(() => {
+    if (!options.initial) return '';
+    if (Email.isEmail(options.initial)) return Email.raw(options.initial);
+    return String(options.initial);
+  }, [options.initial]);
+
+  const [display, setDisplay] = useState<string>(initialDisplay);
+  const [validation, setValidation] = useState<EmailValidation>(() =>
+    initialDisplay.length > 0 ? Email.validate(initialDisplay) : { ok: true },
+  );
+  const onValidRef = useRef(options.onValid);
+  onValidRef.current = options.onValid;
+
+  const value = useMemo<Email | undefined>(() => {
+    if (!validation.ok) return undefined;
+    if (display.trim().length > 0)
+      return Email.fromUnsafe(display.trim().toLowerCase());
+    return undefined;
+  }, [validation.ok, display]);
+
+  // Notify parent on valid changes.
+  const prevValueRef = useRef<Email | undefined>(value);
+  useEffect(() => {
+    if (value !== prevValueRef.current) {
+      prevValueRef.current = value;
+      if (value) onValidRef.current?.(value);
+    }
+  }, [value]);
+
+  const handleChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const raw = (event.target as HTMLInputElement).value;
+      setDisplay(raw);
+      setValidation(Email.validate(raw.trim()));
+    },
+    [],
+  );
+
+  const handleBlur = useCallback(() => {
+    // Trim whitespace and normalise to lowercase on blur when valid.
+    if (validation.ok && display.trim().length > 0) {
+      setDisplay(display.trim().toLowerCase());
+    }
+  }, [validation.ok, display]);
+
+  const reset = useCallback((next?: string | Email) => {
+    if (!next) {
+      setDisplay('');
+      setValidation({ ok: true });
+      return;
+    }
+    const raw = typeof next === 'string' ? next : Email.raw(next);
+    setDisplay(raw);
+    setValidation(Email.validate(raw));
+  }, []);
+
+  const error: EmailError | null = validation.ok ? null : validation;
+  const isValid = validation.ok && display.trim().length > 0;
+
+  const inputProps = useMemo<UseEmailResult['inputProps']>(
+    () => ({
+      value: display,
+      onChange: handleChange,
+      onBlur: handleBlur,
+      'aria-invalid': error ? true : undefined,
+    }),
+    [display, handleChange, handleBlur, error],
+  );
+
+  return { inputProps, value, displayValue: display, error, isValid, reset };
 }
