@@ -28,6 +28,10 @@
 //!   `settings!` macro reads env vars into a validated struct with aggregate
 //!   error reporting and secret redaction. Zero deps; sops stays at the shell/CI
 //!   boundary. See [`settings`](mod@settings).
+//! - **`types`** — shared domain TypeObjects (mirrors `@evinvest/types`):
+//!   [`PhoneNumber`](types::PhoneNumber) with E.164 validation and formatting, plus
+//!   the generic [`Branded<T, B>`](types::Branded) newtype for future types (Email,
+//!   Currency, …). Zero deps, wasm-safe. See [`types`](mod@types).
 //! - **`otel`** — OpenTelemetry logs + traces over OTLP (native backends only;
 //!   inert on wasm): two `tracing` layers + a flush guard, and tonic
 //!   interceptors for W3C trace propagation. See [`otel`].
@@ -59,6 +63,9 @@ pub mod experiments;
 
 #[cfg(feature = "settings")]
 pub mod settings;
+
+#[cfg(feature = "types")]
+pub mod types;
 
 // wasm-only: the module links wasm-bindgen/web-sys, which aren't deps on native.
 // The `mfe!` macro is `#[macro_export]`ed from inside, so it too is wasm-only —
