@@ -81,6 +81,10 @@ experiments = ["dep:dioxus", "dep:js-sys", "dep:web-sys", "dep:wasm-bindgen"]
 # library only reads the already-injected environment. Zero runtime deps.
 settings = []
 
+# Shared domain TypeObjects — PhoneNumber, Email, … — with validation.
+# Zero runtime deps, wasm-safe (mirrors `@evinvest/types`).
+types = []
+
 # Producer SDK for landing-host microfrontends (see `mfe.rs` + the `mfe!` macro).
 # wasm-only: the module is gated to `target_arch = "wasm32"`, so this is inert on
 # native. A producer crate enables it; landing never compiles ev_lib at all.
@@ -145,7 +149,7 @@ wasm-bindgen-futures = { version = "0.4", optional = true }
 web-sys = { version = "0.3", optional = true, features = ["Document", "Window", "HtmlDocument", "Storage", "Navigator", "Element", "TransitionEvent", "Location"] }
 
 [dev-dependencies]
-ev_lib = { path = ".", features = ["architecture", "uikit", "analytics", "error_monitoring", "experiments", "settings"] }
+ev_lib = { path = ".", features = ["architecture", "uikit", "analytics", "error_monitoring", "experiments", "settings", "types"] }
 
 async-trait.workspace = true
 axum = { workspace = true, features = ["ws"] }
