@@ -45,7 +45,7 @@ export function Switch({
       <span
         data-slot="switch-thumb"
         data-state={state}
-        className="bg-background pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0"
+        className="data-[state=checked]:bg-primary-foreground data-[state=unchecked]:bg-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0"
       />
     </button>
   );
