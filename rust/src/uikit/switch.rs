@@ -7,7 +7,8 @@ const SWITCH_BASE: &str = "peer data-[state=checked]:bg-primary data-[state=unch
                            border border-transparent shadow-xs transition-all outline-none focus-visible:ring-[3px] \
                            disabled:cursor-not-allowed disabled:opacity-50";
 
-const THUMB: &str = "bg-background pointer-events-none block size-4 rounded-full ring-0 transition-transform \
+const THUMB: &str = "data-[state=checked]:bg-primary-foreground data-[state=unchecked]:bg-foreground pointer-events-none \
+                     block size-4 rounded-full ring-0 transition-transform \
                      data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0";
 
 #[component]
