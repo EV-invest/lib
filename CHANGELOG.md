@@ -11,8 +11,10 @@ Rust crate and its TypeScript mirror at once.
 
 | Package                      | Source                 | Version |
 | ---------------------------- | ---------------------- | ------- |
-| `ev_lib` (Rust crate)        | `rust/`                | 0.5.0   |
-| `@evinvest/uikit`            | `ts/uikit/`            | 0.6.3   |
+| `ev_lib` (Rust crate)        | `rust/`                | 0.6.5   |
+| `@evinvest/uikit`            | `ts/uikit/`            | 0.8.0   |
+| `@evinvest/types`            | `ts/types/`            | 0.2.0   |
+| `@evinvest/settings`         | `ts/settings/`         | 0.1.0   |
 | `@evinvest/analytics`        | `ts/analytics/`        | 0.1.2   |
 | `@evinvest/architecture`     | `ts/architecture/`     | 0.1.0   |
 | `@evinvest/error-monitoring` | `ts/error-monitoring/` | 0.1.0   |
