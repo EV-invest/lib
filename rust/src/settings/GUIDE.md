@@ -8,6 +8,9 @@ summary and the parity table, see [`README.md`](./README.md). The TS mirror is
 - [The model](#the-model)
 - [Declare settings](#declare-settings)
 - [The contract](#the-contract)
+- [Optional here, mandatory in production](#optional-here-mandatory-in-production)
+- [Deploy preflight](#deploy-preflight)
+- [Detecting drift](#detecting-drift)
 - [Secrets: the sops boundary](#secrets-the-sops-boundary)
 - [Presets — the canonical names](#presets--the-canonical-names)
 - [Testing](#testing)
@@ -43,12 +46,15 @@ ev_lib::settings! {
 	}
 }
 
-let settings = AppSettings::from_env().unwrap_or_else(|error| {
-	// one message listing EVERY problem — fix the whole list in one edit
-	eprintln!("{error}");
-	std::process::exit(78); // EX_CONFIG
-});
+// one message listing EVERY problem — fix the whole list in one edit —
+// then exit 78 (EX_CONFIG)
+let settings = ev_lib::settings::or_exit(AppSettings::from_env());
 ```
+
+Use `or_exit` rather than `?` at the entry point. Propagating the error gives
+exit code 1, which an operator cannot tell apart from "the database blinked" —
+and a restart fixes that one but never this one. 78 says *don't bother
+restarting me, fix the config*.
 
 Custom types parse via their `FromStr`:
 
@@ -79,12 +85,126 @@ Shared with `@evinvest/settings` and pinned by mirrored test vectors
 | --- | --- |
 | naming | SHOUTY field name; `prefix = "APP"` → `APP_…`; `#[env("NAME")]` is the final name (prefix not applied) |
 | required | default; `Option<T>` opts out; `= "literal"` defaults (literal parsed by the same rules, only when unset) |
+| profiles | `#[required_in("prod", …)]` re-requires an optional/defaulted field; profile = `APP_ENV` from the same source, unset ⇒ `development` |
 | empty string | **unset** — `VAR=` behaves exactly like no `VAR` |
 | `bool` | `true`/`false`/`1`/`0`, ASCII case-insensitive, no trimming |
 | lists | split on `,`, trim items, drop empty items (`"a, b ,,c"` → `a`,`b`,`c`) |
 | scalars | **not** trimmed — `" 8080"` is not a number |
 | errors | aggregate: one error lists every missing/invalid var; declaration order |
 | secrets | `#[secret]` — `Debug` prints `***`; errors never show the value (a bad *default* is shown — it lives in source code) |
+
+## Optional here, mandatory in production
+
+The dangerous setting is not the missing required one — that already stops the
+boot. It is the `Option<T>` whose absence is a *silent* no-op: an unset
+`SMTP_HOST` means mail is logged instead of sent, an unset `SENTRY_DSN` means
+the alerts you are waiting for never arrive. On a laptop that is the point; in
+production it is an outage nobody paged for.
+
+`#[required_in(…)]` names the profiles where the convenience stops:
+
+```rust
+ev_lib::settings! {
+	pub struct AppSettings {
+		/// Unset ⇒ mail is logged, not sent. Not acceptable in production.
+		#[required_in("production")]
+		smtp_host: Option<String>,
+		#[secret]
+		#[required_in("production")]
+		smtp_password: Option<String>,
+		/// The dev default must not survive a deploy.
+		#[required_in("production", "staging")]
+		public_origin: String = "http://localhost:3000",
+	}
+}
+```
+
+- The profile is `APP_ENV`, read **from the same source** as the fields, empty
+  counting as unset, defaulting to `development` — so a test map decides it too,
+  and an unconfigured environment is never mistaken for production.
+- On an `Option<T>` field, unset becomes an error in those profiles. The field
+  *type* does not change: your `if let Some(host)` branches stay, and the
+  invariant "in production this is never `None`" is enforced at boot.
+- On a defaulted field, the default simply does not apply there — the value has
+  to be stated.
+- On an already-required field it is a compile error; it could only be a
+  misunderstanding.
+
+The failure reads like every other one, and joins the same aggregate list:
+
+```text
+invalid settings (2 problems)
+  - SMTP_HOST: missing (required when APP_ENV=production)
+  - PUBLIC_ORIGIN: missing (required when APP_ENV=production)
+```
+
+## Deploy preflight
+
+`required_var_names(profile)` is the same knowledge in list form: every var that
+must be set for the boot to succeed *there*. That makes "will this deploy come
+up?" answerable before it rolls, instead of after a CrashLoopBackOff:
+
+```rust
+for var in AppSettings::required_var_names("production") {
+	println!("{var}");
+}
+```
+
+Wire it into a binary or a test and diff it against the keys the deployment
+actually provides (a k8s Secret, a sops file, a CI environment). `var_names()`
+remains the full surface — the checklist is a subset of it.
+
+## Detecting drift
+
+A running process cannot notice its own environment changing: `std::env` is
+fixed at `exec`, and a container runtime that injected values through `envFrom`
+never revisits them. So polling `std::env::var` finds nothing, ever — which is
+why [`drift`](./drift.rs) takes an **injected source** and you point it at
+something that does move: a Secret mounted as a directory of files (a kubelet
+re-syncs one about once a minute), a rendered dotenv file, a control-plane API.
+
+```rust
+use std::{fs, path::Path, time::Duration};
+
+use ev_lib::settings::drift::Watcher;
+
+/// k8s mounts a Secret volume as one file per key.
+fn mounted(dir: &Path) -> impl FnMut(&str) -> Option<String> + '_ {
+	move |var| fs::read_to_string(dir.join(var)).ok()
+}
+
+let dir = Path::new("/etc/app-secrets");
+let watcher = Watcher::new(AppSettings::var_names(), &mut mounted(dir));
+
+tokio::spawn(async move {
+	let mut ticks = tokio::time::interval(Duration::from_secs(300));
+	loop {
+		ticks.tick().await;
+		for change in watcher.poll(&mut mounted(dir)) {
+			tracing::warn!(%change, "settings drifted from the source — redeploy to apply");
+		}
+	}
+});
+```
+
+Three deliberate properties:
+
+- **The baseline is boot, not the previous poll.** The fact worth alerting on is
+  "this process is running with settings that no longer match the source", and
+  that stays true until it is replaced. A detected drift keeps being reported —
+  that is the alert, not a leak.
+- **Nothing is applied.** There is no hot-apply API. GitHub is the source of
+  truth for what is deployed; a process that reconfigures itself out from under
+  gitops erases the audit trail that the env edit *was*. Detect → alert →
+  redeploy. (A stateless service may legitimately turn a drift into a
+  `std::process::exit` and let the scheduler restart it with the new values —
+  that is also the only way env delivered through `envFrom` is ever picked up.)
+- **Values never leave.** A snapshot stores a hash, and a change is a name plus
+  a verb (`appeared`/`disappeared`/`changed`), so the whole path is safe to log.
+  `appeared` is the "an optional finally got configured" case.
+
+Five minutes is the house cadence: faster only adds log volume, since the
+kubelet's own sync is about a minute.
 
 ## Secrets: the sops boundary
 
@@ -199,7 +319,7 @@ where it went:
 | --- | --- |
 | clap `SettingsFlags` (a flag per field) | gone — settings are env-only; keep your own clap for real CLI args |
 | XDG config-file scan (7 formats), `nix eval` for `.nix` configs | gone — no file layer |
-| `LiveSettings` mtime-polling hot reload | gone — env is fixed at `exec`; restart to reconfigure |
+| `LiveSettings` mtime-polling hot reload | replaced by [`drift`](#detecting-drift): it *detects* a moved source and alerts; applying still means a restart |
 | interactive "extend the config file" stdin prompt | gone — the aggregate error lists everything instead |
 | `write-defaults` / `diff` / `schema` subcommands | `var_names()` covers the `.env.example` case |
 | nightly host crate (`specialization`, `default_field_values`) | stable-compatible `macro_rules!` |
