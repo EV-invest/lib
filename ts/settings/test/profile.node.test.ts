@@ -45,9 +45,22 @@ describe('requiredIn', () => {
     expect(error).toBeInstanceOf(SettingsError);
     const { issues, message } = error as SettingsError;
     expect(issues.map((issue) => issue.key)).toEqual(['SMTP_HOST', 'PUBLIC_ORIGIN']);
-    expect(issues[0]).toEqual({ key: 'SMTP_HOST', kind: 'missing-in-profile', profile: 'production' });
+    expect(issues[0]).toEqual({ key: 'SMTP_HOST', kind: 'missing-in-profile', profile: 'production', profileFromVar: true });
     // Same wording as the Rust `Display` impl.
     expect(message).toContain('SMTP_HOST: missing (required when APP_ENV=production)');
+  });
+
+  it('does not blame APP_ENV when an explicit profile decided it', () => {
+    let error: unknown;
+    try {
+      createSettings({ server: schema, runtimeEnv: {}, profile: 'production' });
+    } catch (caught) {
+      error = caught;
+    }
+    // Naming APP_ENV here would send whoever reads it to a variable that had no
+    // say — the Next.js case, where the profile comes from NODE_ENV.
+    expect((error as SettingsError).message).toContain('SMTP_HOST: missing (required when the active profile is production)');
+    expect((error as SettingsError).message).not.toContain('APP_ENV');
   });
 
   it('honours every named profile independently', () => {

@@ -149,7 +149,7 @@ export function createSettings<
   // On the client, server values never reach the bundle: validate (and store)
   // the client schema only.
   const active = isServer ? { ...server, ...client } : client;
-  const profile = activeProfile(options.runtimeEnv, options.profile);
+  const { profile, fromVar: profileFromVar } = activeProfile(options.runtimeEnv, options.profile);
   const issues: SettingsIssue[] = [];
   const values: Record<string, unknown> = {};
   for (const [key, validator] of Object.entries(active)) {
@@ -158,7 +158,7 @@ export function createSettings<
     // Checked before the default is applied: in a profile that demands the
     // value, a dev-shaped default is exactly what must not silently stand in.
     if (raw === undefined && validator.requiredIn.includes(profile)) {
-      issues.push({ key, kind: 'missing-in-profile', profile });
+      issues.push({ key, kind: 'missing-in-profile', profile, profileFromVar });
       continue;
     }
     // A default literal lives in source code, so it is never redacted.

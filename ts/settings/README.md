@@ -89,7 +89,9 @@ invalid settings (1 problem)
 The profile is `APP_ENV` from `runtimeEnv` (empty counts as unset, default
 `development`). In a Next.js app pass `profile: process.env.NODE_ENV` instead of
 introducing a second, drifting name — and pass it explicitly whenever a `client`
-setting uses `requiredIn`, since the browser bundle carries no `APP_ENV`.
+setting uses `requiredIn`, since the browser bundle carries no `APP_ENV`. With an
+explicit `profile` the message drops the variable name (`…required when the
+active profile is production`), so it never points at a variable that had no say.
 
 ### Failing the boot with a useful exit code
 

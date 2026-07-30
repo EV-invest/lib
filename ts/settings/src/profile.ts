@@ -25,7 +25,16 @@ export const DEFAULT_PROFILE = 'development';
  * `NODE_ENV`, which the framework owns: `profile: process.env.NODE_ENV` keeps
  * one source of truth instead of a second, drifting `APP_ENV`.
  */
-export function activeProfile(runtimeEnv: Readonly<Record<string, string | undefined>>, override?: string): string {
-  const raw = override ?? runtimeEnv[PROFILE_VAR];
-  return raw === undefined || raw === '' ? DEFAULT_PROFILE : raw;
+export function activeProfile(
+  runtimeEnv: Readonly<Record<string, string | undefined>>,
+  override?: string,
+): { readonly profile: string; readonly fromVar: boolean } {
+  const overridden = override !== undefined && override !== '';
+  const raw = overridden ? override : runtimeEnv[PROFILE_VAR];
+  return {
+    profile: raw === undefined || raw === '' ? DEFAULT_PROFILE : raw,
+    // Whether an error may point at PROFILE_VAR: with an override in play,
+    // naming APP_ENV would send whoever reads it to the wrong variable.
+    fromVar: !overridden,
+  };
 }
