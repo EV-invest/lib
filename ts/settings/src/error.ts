@@ -10,8 +10,10 @@
  * ```
  */
 
+import { PROFILE_VAR } from './profile';
+
 /** What went wrong with one variable. */
-export type SettingsIssueKind = 'missing' | 'invalid';
+export type SettingsIssueKind = 'missing' | 'missing-in-profile' | 'invalid';
 
 /** One problem with one variable. */
 export interface SettingsIssue {
@@ -22,6 +24,8 @@ export interface SettingsIssue {
   readonly detail?: string;
   /** The offending raw value. Omitted for `secret(...)` settings. */
   readonly value?: string;
+  /** For `missing-in-profile` issues: the active profile that demanded it. */
+  readonly profile?: string;
 }
 
 /**
@@ -47,6 +51,7 @@ function formatIssues(issues: readonly SettingsIssue[]): string {
 
 function formatIssue(issue: SettingsIssue): string {
   if (issue.kind === 'missing') return `${issue.key}: missing`;
+  if (issue.kind === 'missing-in-profile') return `${issue.key}: missing (required when ${PROFILE_VAR}=${issue.profile})`;
   // JSON.stringify quotes/escapes like Rust's `{:?}` for printable values
   // (control characters escape differently — cosmetic, not part of the contract).
   const value = issue.value === undefined ? '' : ` ${JSON.stringify(issue.value)}`;

@@ -15,9 +15,16 @@
  * reload (a process's environment is fixed at startup). Secrets management
  * stays at the shell/CI boundary (sops + age — see the GUIDE); this package
  * never decrypts anything, it only reads the already-injected environment.
+ *
+ * What a setting is allowed to be missing can still depend on where the process
+ * runs: `requiredIn(...)` turns an optional or defaulted setting back into a
+ * boot failure in the profiles that name it, so "unconfigured ⇒ silent no-op"
+ * stays a local-development convenience instead of a production outage.
  */
 
 export { SettingsError, type SettingsIssue, type SettingsIssueKind } from './error';
+export { EX_CONFIG, orExit } from './exit';
+export { DEFAULT_PROFILE, PROFILE_VAR, activeProfile } from './profile';
 export {
   bool,
   int,
@@ -26,6 +33,7 @@ export {
   oneOf,
   optional,
   port,
+  requiredIn,
   secret,
   str,
   url,
