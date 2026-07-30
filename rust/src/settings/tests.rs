@@ -67,6 +67,73 @@ fn unprefixed_names_are_shouty_field_names() {
 	assert_eq!(Unprefixed::var_names(), vec!["BIND", "TIMEOUT_SECS"]);
 }
 
+crate::settings! {
+	/// The "optional in dev, mandatory in prod" surface.
+	struct Profiled {
+		/// Unset is fine locally; in production a silent no-op mailer is not.
+		#[required_in("production")]
+		smtp_host: Option<String>,
+		/// A dev-friendly default that must not survive into production.
+		#[required_in("production", "staging")]
+		public_origin: String = "http://localhost:3000",
+		/// No profile marker: optional everywhere.
+		posthog_key: Option<String>,
+	}
+}
+
+#[test]
+fn required_in_is_inert_outside_the_named_profiles() {
+	// APP_ENV unset ⇒ `development`.
+	let profiled = Profiled::from_source(map_source(&[])).unwrap();
+	assert_eq!(profiled.smtp_host, None);
+	assert_eq!(profiled.public_origin, "http://localhost:3000");
+
+	// A profile nobody named behaves the same way.
+	let profiled = Profiled::from_source(map_source(&[("APP_ENV", "preview")])).unwrap();
+	assert_eq!(profiled.smtp_host, None);
+}
+
+#[test]
+fn required_in_fails_the_load_in_a_named_profile() {
+	let error = Profiled::from_source(map_source(&[("APP_ENV", "production")])).unwrap_err();
+
+	let vars: Vec<&str> = error.errors.iter().map(|e| e.var.as_str()).collect();
+	assert_eq!(vars, vec!["SMTP_HOST", "PUBLIC_ORIGIN"], "the defaulted field's default must not apply either");
+	assert_eq!(error.errors[0].kind, FieldErrorKind::MissingInProfile { profile: "production".to_string() });
+	assert!(error.to_string().contains("SMTP_HOST: missing (required when APP_ENV=production)"));
+
+	// A second named profile is honoured — and `staging` does not name SMTP_HOST,
+	// so satisfying PUBLIC_ORIGIN alone is enough there.
+	let profiled = Profiled::from_source(map_source(&[("APP_ENV", "staging"), ("PUBLIC_ORIGIN", "https://evinvest.ltd")])).unwrap();
+	assert_eq!(profiled.smtp_host, None);
+}
+
+#[test]
+fn required_in_still_parses_a_value_that_is_present() {
+	let profiled = Profiled::from_source(map_source(&[
+		("APP_ENV", "production"),
+		("SMTP_HOST", "smtp.gmail.com"),
+		("PUBLIC_ORIGIN", "https://evinvest.ltd"),
+	]))
+	.unwrap();
+	assert_eq!(profiled.smtp_host.as_deref(), Some("smtp.gmail.com"));
+	assert_eq!(profiled.public_origin, "https://evinvest.ltd");
+	assert_eq!(profiled.posthog_key, None);
+}
+
+#[test]
+fn required_var_names_is_the_deploy_checklist() {
+	assert_eq!(Profiled::required_var_names("development"), Vec::<String>::new());
+	assert_eq!(Profiled::required_var_names("staging"), vec!["PUBLIC_ORIGIN"]);
+	assert_eq!(Profiled::required_var_names("production"), vec!["SMTP_HOST", "PUBLIC_ORIGIN"]);
+	// Plain required fields are on the list in every profile; optional ones never.
+	assert_eq!(Full::required_var_names("production"), vec!["APP_DATABASE_URL", "APP_SIGNING_KEY"]);
+	// `var_names()` stays the full surface — the checklist is a subset of it.
+	for var in Profiled::required_var_names("production") {
+		assert!(Profiled::var_names().contains(&var));
+	}
+}
+
 #[test]
 fn errors_aggregate_in_declaration_order() {
 	let error = Full::from_source(map_source(&[("APP_PORT", "not-a-port"), ("APP_SIGNING_KEY", "k")])).unwrap_err();
