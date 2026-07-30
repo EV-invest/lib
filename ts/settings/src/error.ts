@@ -10,8 +10,10 @@
  * ```
  */
 
+import { PROFILE_VAR } from './profile';
+
 /** What went wrong with one variable. */
-export type SettingsIssueKind = 'missing' | 'invalid';
+export type SettingsIssueKind = 'missing' | 'missing-in-profile' | 'invalid';
 
 /** One problem with one variable. */
 export interface SettingsIssue {
@@ -22,6 +24,13 @@ export interface SettingsIssue {
   readonly detail?: string;
   /** The offending raw value. Omitted for `secret(...)` settings. */
   readonly value?: string;
+  /** For `missing-in-profile` issues: the active profile that demanded it. */
+  readonly profile?: string;
+  /**
+   * Whether the profile came from {@link PROFILE_VAR} (so the message may name
+   * it) rather than from an explicit `profile` option.
+   */
+  readonly profileFromVar?: boolean;
 }
 
 /**
@@ -47,6 +56,12 @@ function formatIssues(issues: readonly SettingsIssue[]): string {
 
 function formatIssue(issue: SettingsIssue): string {
   if (issue.kind === 'missing') return `${issue.key}: missing`;
+  if (issue.kind === 'missing-in-profile') {
+    // Name the variable only when it is what decided the profile — the Rust
+    // mirror always can, having no override.
+    const because = issue.profileFromVar === false ? `the active profile is ${issue.profile}` : `${PROFILE_VAR}=${issue.profile}`;
+    return `${issue.key}: missing (required when ${because})`;
+  }
   // JSON.stringify quotes/escapes like Rust's `{:?}` for printable values
   // (control characters escape differently — cosmetic, not part of the contract).
   const value = issue.value === undefined ? '' : ` ${JSON.stringify(issue.value)}`;

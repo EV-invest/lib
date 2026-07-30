@@ -22,6 +22,13 @@
 //!   variable at once, instead of failing on the first.
 //! - `#[secret]` fields redact their value in `Debug` output and in error
 //!   messages.
+//! - `#[required_in("production", …)]` re-requires an `Option`/defaulted field
+//!   in the named deployment profiles, matched against [`PROFILE_VAR`] read
+//!   from the same source (unset ⇒ [`DEFAULT_PROFILE`]).
+//!
+//! Two things sit next to the macro: [`or_exit`] fails a boot with
+//! [`EX_CONFIG`] instead of a nondescript 1, and [`drift`] reports when the
+//! source a process was configured from has moved on without it.
 //!
 //! ```
 //! ev_lib::settings! {
@@ -52,6 +59,7 @@ pub use value::FromEnvValue;
 
 mod macros;
 
+pub mod drift;
 pub mod presets;
 
 #[cfg(test)]
@@ -92,6 +100,7 @@ impl fmt::Display for FieldError {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match &self.kind {
 			FieldErrorKind::Missing => write!(f, "{}: missing", self.var),
+			FieldErrorKind::MissingInProfile { profile } => write!(f, "{}: missing (required when {PROFILE_VAR}={profile})", self.var),
 			FieldErrorKind::Invalid { value: Some(value), message } => write!(f, "{}: invalid value {value:?}: {message}", self.var),
 			FieldErrorKind::Invalid { value: None, message } => write!(f, "{}: invalid value: {message}", self.var),
 		}
@@ -102,8 +111,53 @@ impl fmt::Display for FieldError {
 pub enum FieldErrorKind {
 	/// Required variable is unset (or set to the empty string).
 	Missing,
+	/// A `#[required_in(…)]` variable that is unset while the active profile is
+	/// one it names — the "optional in dev, mandatory in prod" case.
+	MissingInProfile { profile: String },
 	/// The value failed to parse. `value` is `None` for `#[secret]` fields.
 	Invalid { value: Option<String>, message: String },
+}
+
+/// The variable that names the deployment profile `#[required_in(…)]` matches
+/// against. Org-canonical (see [`presets::AppEnv`]), so a service never has to
+/// re-declare which var decides "are we in production".
+pub const PROFILE_VAR: &str = "APP_ENV";
+
+/// The profile assumed when [`PROFILE_VAR`] is unset — the safe default, since
+/// an unconfigured environment is a developer's laptop, not production.
+pub const DEFAULT_PROFILE: &str = "development";
+
+/// `EX_CONFIG` from `sysexits.h`: the process died because its configuration is
+/// wrong, not because a dependency blipped. Restarting it unchanged cannot help
+/// — which is exactly what an operator (and a CrashLoopBackOff triage) needs to
+/// know.
+pub const EX_CONFIG: i32 = 78;
+
+/// Read the active deployment profile from a source, honouring the same
+/// empty-is-unset rule as every other variable.
+pub fn profile(source: &mut impl FnMut(&str) -> Option<String>) -> String {
+	lookup(source, PROFILE_VAR).unwrap_or_else(|| DEFAULT_PROFILE.to_string())
+}
+
+/// Unwrap a settings load, or print every problem and exit [`EX_CONFIG`].
+///
+/// Use this instead of `?` at a service's entry point: propagating the error
+/// gives exit code 1, indistinguishable from "the database was briefly gone",
+/// and buries the aggregate list under a backtrace.
+///
+/// ```no_run
+/// # ev_lib::settings! { pub struct AppSettings { database_url: String } }
+/// let settings = ev_lib::settings::or_exit(AppSettings::from_env());
+/// ```
+#[cfg(not(target_arch = "wasm32"))]
+pub fn or_exit<T>(loaded: Result<T, SettingsError>) -> T {
+	match loaded {
+		Ok(settings) => settings,
+		Err(error) => {
+			eprintln!("{error}");
+			std::process::exit(EX_CONFIG);
+		}
+	}
 }
 
 /// The final env var name for a field: the `#[env("NAME")]` override verbatim,
@@ -149,6 +203,49 @@ pub fn optional<T: FromEnvValue>(raw: Option<String>, var: &str, secret: bool, e
 	match raw {
 		None => Some(None),
 		Some(raw) => parse_value(&raw, var, secret, errors).map(Some),
+	}
+}
+
+/// Parse an `Option<T>` field carrying `#[required_in(…)]`: identical to
+/// [`optional`], except that being unset is an error when `profile` is one of
+/// `required_in`.
+pub fn optional_required_in<T: FromEnvValue>(raw: Option<String>, var: &str, secret: bool, errors: &mut Vec<FieldError>, profile: &str, required_in: &[&str]) -> Option<Option<T>> {
+	match raw {
+		None if required_in.contains(&profile) => {
+			errors.push(FieldError {
+				var: var.to_string(),
+				kind: FieldErrorKind::MissingInProfile { profile: profile.to_string() },
+			});
+			None
+		}
+		None => Some(None),
+		Some(raw) => parse_value(&raw, var, secret, errors).map(Some),
+	}
+}
+
+/// Parse a defaulted field carrying `#[required_in(…)]`: identical to
+/// [`with_default`], except that in a named profile the default does not apply
+/// — the variable must be set explicitly. For values whose dev-friendly default
+/// is wrong in production (a loopback bind, a permissive origin) this turns a
+/// silent misconfiguration into a boot failure.
+pub fn with_default_required_in<T: FromEnvValue>(
+	raw: Option<String>,
+	default: &str,
+	var: &str,
+	secret: bool,
+	errors: &mut Vec<FieldError>,
+	profile: &str,
+	required_in: &[&str],
+) -> Option<T> {
+	match raw {
+		None if required_in.contains(&profile) => {
+			errors.push(FieldError {
+				var: var.to_string(),
+				kind: FieldErrorKind::MissingInProfile { profile: profile.to_string() },
+			});
+			None
+		}
+		raw => with_default(raw, default, var, secret, errors),
 	}
 }
 

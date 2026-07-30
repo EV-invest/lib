@@ -5,6 +5,7 @@
  */
 
 import { SettingsError, type SettingsIssue } from './error';
+import { activeProfile } from './profile';
 import type { Validator } from './validators';
 
 /** A settings declaration: env var name → {@link Validator}. */
@@ -41,6 +42,15 @@ export interface CreateSettingsOptions<S extends SettingsSchema, C extends Setti
   readonly runtimeEnv: Readonly<Record<string, string | undefined>>;
   /** Contract: `VAR=` (empty string) behaves like unset. Default `true`. */
   readonly emptyStringAsUnset?: boolean;
+  /**
+   * The deployment profile `requiredIn(...)` settings are matched against.
+   * Default: `APP_ENV` from {@link runtimeEnv}, else `development`. Pass
+   * `process.env.NODE_ENV` in a Next.js app, where the framework already owns
+   * that name — and pass it explicitly whenever a `client` setting is
+   * `requiredIn(...)`, since the browser bundle carries no `APP_ENV` and would
+   * always resolve to `development`.
+   */
+  readonly profile?: string;
   /**
    * Where we are running. Default: `window` is absent from `globalThis`.
    * Override for workers or exotic runtimes.
@@ -128,16 +138,29 @@ export function createSettings<
         `@evinvest/settings: setting "${key}" is both optional and defaulted — a defaulted setting is always present, drop one`,
       );
     }
+    // Mirrors the Rust `#[required_in]`-on-a-required-field compile error.
+    if (validator.requiredIn.length > 0 && !validator.optional && validator.defaultLiteral === undefined) {
+      throw new Error(
+        `@evinvest/settings: setting "${key}" is required everywhere, so requiredIn(...) does nothing — wrap it in optional(...) or withDefault(...)`,
+      );
+    }
   }
 
   // On the client, server values never reach the bundle: validate (and store)
   // the client schema only.
   const active = isServer ? { ...server, ...client } : client;
+  const { profile, fromVar: profileFromVar } = activeProfile(options.runtimeEnv, options.profile);
   const issues: SettingsIssue[] = [];
   const values: Record<string, unknown> = {};
   for (const [key, validator] of Object.entries(active)) {
     let raw = options.runtimeEnv[key];
     if (emptyAsUnset && raw === '') raw = undefined;
+    // Checked before the default is applied: in a profile that demands the
+    // value, a dev-shaped default is exactly what must not silently stand in.
+    if (raw === undefined && validator.requiredIn.includes(profile)) {
+      issues.push({ key, kind: 'missing-in-profile', profile, profileFromVar });
+      continue;
+    }
     // A default literal lives in source code, so it is never redacted.
     const fromDefault = raw === undefined && validator.defaultLiteral !== undefined;
     if (fromDefault) raw = validator.defaultLiteral;

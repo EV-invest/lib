@@ -66,7 +66,45 @@ invalid settings (2 problems)
 ```
 
 Validators: `str`, `num`, `int`, `port`, `bool`, `url`, `list`, `oneOf` —
-refined by `optional(v)`, `withDefault(v, 'literal')`, `secret(v)`.
+refined by `optional(v)`, `withDefault(v, 'literal')`, `secret(v)`,
+`requiredIn(v, 'production')`.
+
+### Optional here, mandatory in production
+
+The setting that hurts is not the missing required one — that already stops the
+boot. It is the optional whose absence is a *silent* no-op: no `SMTP_HOST` means
+mail is logged instead of sent, no `SENTRY_DSN` means the alerts never arrive.
+`requiredIn` names the profiles where that convenience ends:
+
+```ts
+SMTP_HOST: requiredIn(optional(str()), 'production'),
+PUBLIC_ORIGIN: requiredIn(withDefault(url(), 'http://localhost:3000'), 'production', 'staging'),
+```
+
+```text
+invalid settings (1 problem)
+  - SMTP_HOST: missing (required when APP_ENV=production)
+```
+
+The profile is `APP_ENV` from `runtimeEnv` (empty counts as unset, default
+`development`). In a Next.js app pass `profile: process.env.NODE_ENV` instead of
+introducing a second, drifting name — and pass it explicitly whenever a `client`
+setting uses `requiredIn`, since the browser bundle carries no `APP_ENV`. With an
+explicit `profile` the message drops the variable name (`…required when the
+active profile is production`), so it never points at a variable that had no say.
+
+### Failing the boot with a useful exit code
+
+`orExit(() => …)` prints the aggregate message and exits `78` (`EX_CONFIG`) on a
+`SettingsError`, rethrowing anything else. Exit 1 is indistinguishable from "a
+dependency blinked", which a restart fixes; 78 says a restart cannot.
+
+```ts
+// instrumentation.ts — before the server accepts traffic
+export function register() {
+  orExit(() => assertConfig());
+}
+```
 
 ## Rust ↔ TS parity
 
@@ -87,13 +125,21 @@ shared rules:
   `±(2^53 - 1)` — use `str()` for 64-bit ids.
 - errors aggregate into one `SettingsError` (message shape shared with the
   Rust `Display` impl); `secret(v)` redacts values in error output.
+- `requiredIn(v, …)` ↔ `#[required_in(…)]`, matched against the same canonical
+  `APP_ENV` with the same `development` fallback, checked **before** a default
+  applies, and rejected on a setting that is already required everywhere (a
+  compile error on the Rust side, a thrown declaration error here). The profile
+  semantics are pinned by mirrored tests:
+  [`test/profile.node.test.ts`](./test/profile.node.test.ts) ↔
+  `rust/src/settings/tests.rs` (`required_in_*`).
 - the contract is pinned by mirrored vectors:
   [`test/contract.node.test.ts`](./test/contract.node.test.ts) ↔
   `rust/src/settings/tests.rs` (`mod contract`). Change both sides or neither.
 
 TS-only (browser-bundler concerns, no Rust equivalent): the `server`/`client`
-split with `clientPrefix`, the explicit `runtimeEnv` destructure, and the
-`NEXT_PUBLIC_*` client presets.
+split with `clientPrefix`, the explicit `runtimeEnv` destructure, the `profile`
+override, and the `NEXT_PUBLIC_*` client presets. Rust-only: `drift`, a backend
+concern (a browser bundle has no environment to drift from).
 
 ## Limitations
 

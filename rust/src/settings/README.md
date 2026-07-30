@@ -13,6 +13,12 @@ missing/invalid variable in a single aggregate error.
 > shell/CI boundary (sops + age) — this library never decrypts anything. See
 > the [GUIDE](./GUIDE.md) for the full sops workflow.
 
+Three things a service gets from it: a load that **fails the boot** on anything
+missing or unparseable, `#[required_in(…)]` so an optional that is merely
+convenient locally becomes mandatory in production, and a
+[drift detector](./drift.rs) that says when the environment moved on without
+this process.
+
 ## Install
 
 ```toml
@@ -42,20 +48,24 @@ ev_lib::settings! {
 		/// `POSTHOG_KEY` — `#[env]` overrides the full name (no prefix).
 		#[env("POSTHOG_KEY")]
 		posthog_key: Option<String>,
+		/// `CABINET_SMTP_HOST` — unset is fine locally, a boot failure in prod.
+		#[required_in("production")]
+		smtp_host: Option<String>,
 	}
 }
 
-fn main() -> Result<(), ev_lib::settings::SettingsError> {
-	let settings = AppSettings::from_env()?; // one error listing EVERY problem
-	println!("{settings:?}");                // secrets print as "***"
-	Ok(())
+fn main() {
+	// one message listing EVERY problem, then exit 78 (EX_CONFIG)
+	let settings = ev_lib::settings::or_exit(AppSettings::from_env());
+	println!("{settings:?}"); // secrets print as "***"
 }
 ```
 
 Generated API: the struct (fields `pub`, `Clone`, redacting `Debug`),
 `from_env()`, `from_source(impl FnMut(&str) -> Option<String>)` (tests, custom
-stores), and `var_names()` (declaration-order var list — generate a
-`.env.example` from it).
+stores), `var_names()` (declaration-order var list — generate a `.env.example`
+from it), and `required_var_names(profile)` (the subset that must be set in that
+profile — the checklist a deploy preflight compares a Secret's keys against).
 
 Types parse themselves through [`FromEnvValue`](./value.rs) — implemented for
 `String`, `bool`, the numeric primitives, `PathBuf`, the `std::net` address
@@ -77,12 +87,16 @@ The Rust crate is the source of truth; the TS package preserves its
 | required | plain field | plain validator |
 | optional | `Option<T>` | `optional(v)` |
 | default | `= "literal"` (parsed by the same rules) | `withDefault(v, "literal")` |
+| required per profile | `#[required_in("production")]` | `requiredIn(v, 'production')` |
+| the profile | `APP_ENV` from the same source | `APP_ENV` from `runtimeEnv`, or `profile:` |
 | secret | `#[secret]` (Debug + errors) | `secret(v)` (errors; JS has no Debug boundary) |
 | typing | `FromEnvValue` (types parse themselves) | named validators (`str`, `num`, `port`, …) |
 | aggregate errors | `SettingsError { errors }` | `SettingsError.issues` (same message shape) |
+| fail the boot | `or_exit(…)` → exit 78 | `orExit(() => …)` → `process.exit(78)` |
 | injected source | `from_source(fn)` | `runtimeEnv` record |
 | shared names | `presets::{Posthog, Sentry, AppEnv}` | `presets.posthog()` … + `NEXT_PUBLIC_*` client variants |
 | client/server split | — (no browser bundle) | `server` / `client` + `clientPrefix` |
+| drift detection | [`drift::Watcher`](./drift.rs) | — (backend concern) |
 
 The parsing contract (bool/list rules, empty-string-is-unset, no trimming) is
 pinned by mirrored test vectors: `rust/src/settings/tests.rs` (`mod contract`)
@@ -94,8 +108,15 @@ pinned by mirrored test vectors: `rust/src/settings/tests.rs` (`mod contract`)
   a service that needs layered file config should reach for a config crate, not
   this. (This is the deliberate "shortening" of `v_utils`' `LiveSettings` —
   see the [GUIDE](./GUIDE.md#migrating-from-v_utils-livesettings).)
-- **No hot reload.** `from_env` is a one-shot read; env can't change under a
-  running process anyway.
+- **No hot reload, by decision.** `from_env` is a one-shot read; env can't
+  change under a running process anyway. [`drift`](./drift.rs) *detects* that
+  the source moved and leaves the fix to a redeploy — nothing here applies a
+  change in place, because a process that reconfigures itself stops matching the
+  git state that is supposed to describe it.
+- **Reading the drift source is the caller's job.** `drift` takes an injected
+  source so the library keeps its no-files, no-network promise; the three lines
+  of `std::fs` that read a mounted Secret live in the service, next to the
+  interval that drives them.
 - **`Option` must be written literally** (`Option<T>`, not
   `std::option::Option<T>`) — the macro matches it by name. An `Option` field
   cannot take a default (compile error).

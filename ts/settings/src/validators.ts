@@ -29,12 +29,17 @@ export interface Validator<T> {
   readonly secret: boolean;
   /** Used when the variable is unset; parsed by the same rules as an env value. */
   readonly defaultLiteral: string | undefined;
+  /**
+   * Deployment profiles in which being unset is an error anyway — the mirror of
+   * `#[required_in(…)]`. Empty for every plain validator.
+   */
+  readonly requiredIn: readonly string[];
   /** Parse a raw (non-empty) env string; throws `Error(message)` when invalid. */
   readonly parse: (raw: string) => T;
 }
 
 function base<T>(kind: string, parse: (raw: string) => T): Validator<T> {
-  return { kind, optional: false, secret: false, defaultLiteral: undefined, parse };
+  return { kind, optional: false, secret: false, defaultLiteral: undefined, requiredIn: [], parse };
 }
 
 function messageOf(error: unknown): string {
@@ -172,6 +177,28 @@ export function optional<T>(validator: Validator<T>): Validator<T | undefined> {
  */
 export function withDefault<T>(validator: Validator<T>, literal: string): Validator<T> {
   return { ...validator, defaultLiteral: literal };
+}
+
+/**
+ * Escalate an {@link optional} or {@link withDefault} setting back to required
+ * in the named deployment profiles — the mirror of `#[required_in(…)]`. The
+ * active profile is `APP_ENV` (see `PROFILE_VAR`), unset meaning `development`.
+ *
+ * This is the fix for the settings whose absence is harmless on a laptop and
+ * invisible damage in production: an unset mailer host is a logged no-op, an
+ * unset DSN is silence where the alerts should be.
+ *
+ * ```ts
+ * SMTP_HOST: requiredIn(optional(str()), 'production'),
+ * // a dev-only default that must be stated explicitly once deployed
+ * PUBLIC_ORIGIN: requiredIn(withDefault(url(), 'http://localhost:3000'), 'production', 'staging'),
+ * ```
+ *
+ * Rejected by {@link createSettings} on a setting that is already required
+ * everywhere — there it would do nothing.
+ */
+export function requiredIn<T>(validator: Validator<T>, ...profiles: readonly string[]): Validator<T> {
+  return { ...validator, requiredIn: [...validator.requiredIn, ...profiles] };
 }
 
 /**

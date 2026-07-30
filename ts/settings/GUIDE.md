@@ -21,8 +21,8 @@ covers the TS-specific ends of it.
 - **Declaration** — `createSettings({ server, client, clientPrefix, runtimeEnv })`
   validates eagerly and returns a typed, read-only object.
 - **Parsing** — validators define how one string becomes one value; `optional` /
-  `withDefault` / `secret` mirror the Rust field grammar (`Option<T>`,
-  `= "lit"`, `#[secret]`).
+  `withDefault` / `secret` / `requiredIn` mirror the Rust field grammar
+  (`Option<T>`, `= "lit"`, `#[secret]`, `#[required_in(…)]`).
 - **Injection** — who puts values into `process.env` is not the package's
   business: direnv + sops in dev, `SOPS_AGE_KEY` in CI, the platform in prod.
   Apps stay sops-unaware.
@@ -185,3 +185,13 @@ catches unparsable `withDefault` literals, which only surface when used.
   has no such opt-out, so prefer not to.
 - **`list` wraps the list, not the item:** `secret(list())`, not
   `list(secret(str()))`.
+- **`requiredIn` needs something to escalate.** It wraps `optional(v)` or
+  `withDefault(v, lit)`; on a plain validator it would do nothing, so
+  `createSettings` rejects it.
+- **`requiredIn` on a client setting needs an explicit `profile`.** The browser
+  bundle has no `APP_ENV`, so the fallback resolves to `development` and the
+  check never fires. Pass `profile: process.env.NODE_ENV`.
+- **Unset ⇒ `development`.** An environment that forgot `APP_ENV` is treated as
+  a laptop, never as production — the safe direction, but it does mean a
+  deployment that drops `APP_ENV` silently loses every `requiredIn` guard. The
+  deploy preflight (Rust `required_var_names`) is what catches that.

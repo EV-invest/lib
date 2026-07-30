@@ -11,16 +11,47 @@ Rust crate and its TypeScript mirror at once.
 
 | Package                      | Source                 | Version |
 | ---------------------------- | ---------------------- | ------- |
-| `ev_lib` (Rust crate)        | `rust/`                | 0.6.5   |
+| `ev_lib` (Rust crate)        | `rust/`                | 0.6.6   |
 | `@evinvest/uikit`            | `ts/uikit/`            | 0.8.0   |
 | `@evinvest/types`            | `ts/types/`            | 0.2.0   |
-| `@evinvest/settings`         | `ts/settings/`         | 0.1.0   |
+| `@evinvest/settings`         | `ts/settings/`         | 0.2.0   |
 | `@evinvest/analytics`        | `ts/analytics/`        | 0.1.2   |
 | `@evinvest/architecture`     | `ts/architecture/`     | 0.1.0   |
 | `@evinvest/error-monitoring` | `ts/error-monitoring/` | 0.1.0   |
 | `@evinvest/experiments`      | `ts/experiments/`      | 0.1.0   |
 
 ## [Unreleased]
+
+### Added
+
+- **`settings` — deployment-profile guards (both ports)**: `#[required_in("production")]`
+  (Rust) / `requiredIn(v, 'production')` (TS) turns an optional or defaulted
+  setting back into a boot failure in the named profiles. The setting that hurts
+  is not the missing required one — that already stops the boot — but the
+  optional whose absence is a *silent* no-op: no `SMTP_HOST` means mail is logged
+  instead of sent, no `SENTRY_DSN` means the alerts never arrive. On a defaulted
+  field the dev-shaped default stops applying there, so the value must be
+  explicit. The profile is the canonical `APP_ENV` read from the same source
+  (unset ⇒ `development`, so an unconfigured environment is never mistaken for
+  production); TS additionally takes a `profile` override for Next.js, where
+  `NODE_ENV` already owns that name. Refused at compile time (Rust) / declaration
+  time (TS) on a setting that is already required everywhere.
+- **`settings` — `required_var_names(profile)`** (Rust): the deploy-time
+  checklist, so a preflight can diff a Secret's keys against what the image
+  actually needs instead of discovering the gap as a CrashLoopBackOff.
+- **`settings` — `or_exit` / `orExit`**: fail a boot with `EX_CONFIG` (78)
+  instead of a nondescript 1, so "the config is wrong, a restart cannot help" is
+  distinguishable from the dependency blip a restart does fix.
+- **`settings::drift`** (Rust): detects that the source a process was configured
+  from has moved on without it. Polling `std::env` is useless by construction —
+  it is fixed at `exec`, and a runtime that injected values through `envFrom`
+  never revisits them — so the watcher takes an **injected** source, to be
+  pointed at something that does move (a Secret mounted as files, a rendered
+  dotenv). The baseline is boot, not the previous poll, so a stale process keeps
+  reporting until it is replaced. It only detects: nothing is applied in place,
+  because a process that reconfigures itself erases the gitops env edit that was
+  the audit trail. Snapshots hold hashes and a change is a name plus a verb, so
+  the whole path is safe to log.
 
 ### Fixed
 
