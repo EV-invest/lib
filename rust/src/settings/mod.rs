@@ -67,10 +67,22 @@ mod tests;
 
 use std::fmt;
 
+/// The variable that names the deployment profile `#[required_in(…)]` matches
+/// against. Org-canonical (see [`presets::AppEnv`]), so a service never has to
+/// re-declare which var decides "are we in production".
+pub const PROFILE_VAR: &str = "APP_ENV";
+/// The profile assumed when [`PROFILE_VAR`] is unset — the safe default, since
+/// an unconfigured environment is a developer's laptop, not production.
+pub const DEFAULT_PROFILE: &str = "development";
+/// `EX_CONFIG` from `sysexits.h`: the process died because its configuration is
+/// wrong, not because a dependency blipped. Restarting it unchanged cannot help
+/// — which is exactly what an operator (and a CrashLoopBackOff triage) needs to
+/// know.
+pub const EX_CONFIG: i32 = 78;
 /// Aggregate settings failure: every missing/invalid variable found in one
 /// pass. `Display` lists each problem on its own line; secret fields never
 /// print their value.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SettingsError {
 	pub errors: Vec<FieldError>,
 }
@@ -89,7 +101,7 @@ impl fmt::Display for SettingsError {
 impl std::error::Error for SettingsError {}
 
 /// One problem with one variable.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FieldError {
 	/// The env var name as it was looked up (prefix/override applied).
 	pub var: String,
@@ -107,7 +119,7 @@ impl fmt::Display for FieldError {
 	}
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum FieldErrorKind {
 	/// Required variable is unset (or set to the empty string).
 	Missing,
@@ -117,21 +129,6 @@ pub enum FieldErrorKind {
 	/// The value failed to parse. `value` is `None` for `#[secret]` fields.
 	Invalid { value: Option<String>, message: String },
 }
-
-/// The variable that names the deployment profile `#[required_in(…)]` matches
-/// against. Org-canonical (see [`presets::AppEnv`]), so a service never has to
-/// re-declare which var decides "are we in production".
-pub const PROFILE_VAR: &str = "APP_ENV";
-
-/// The profile assumed when [`PROFILE_VAR`] is unset — the safe default, since
-/// an unconfigured environment is a developer's laptop, not production.
-pub const DEFAULT_PROFILE: &str = "development";
-
-/// `EX_CONFIG` from `sysexits.h`: the process died because its configuration is
-/// wrong, not because a dependency blipped. Restarting it unchanged cannot help
-/// — which is exactly what an operator (and a CrashLoopBackOff triage) needs to
-/// know.
-pub const EX_CONFIG: i32 = 78;
 
 /// Read the active deployment profile from a source, honouring the same
 /// empty-is-unset rule as every other variable.

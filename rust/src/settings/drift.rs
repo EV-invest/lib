@@ -46,7 +46,7 @@ use std::{collections::BTreeMap, fmt};
 use super::lookup;
 
 /// What a variable is doing, without saying what it holds.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ChangeKind {
 	/// Unset at boot, set now — the "an optional finally got configured" case.
 	Appeared,
@@ -67,7 +67,7 @@ impl fmt::Display for ChangeKind {
 }
 
 /// One variable that no longer matches what this process booted with.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VarChange {
 	pub var: String,
 	pub kind: ChangeKind,
@@ -82,7 +82,7 @@ impl fmt::Display for VarChange {
 /// The state of a set of variables at one instant: present-or-not, and a hash
 /// of the value. Never the value itself — a snapshot of a service's settings is
 /// mostly credentials, and this one gets logged.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Snapshot {
 	vars: BTreeMap<String, Option<u64>>,
 }

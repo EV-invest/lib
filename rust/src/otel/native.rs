@@ -15,6 +15,8 @@ use tonic::{Request, Status};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 use tracing_subscriber::{Layer, registry::LookupSpan};
 
+/// The boxed `tracing` layers [`telemetry`] hands back for the subscriber registry.
+pub type OtelLayers<S> = Vec<Box<dyn Layer<S> + Send + Sync + 'static>>;
 /// Telemetry configuration. `environment` picks the trace sampling rate; the OTLP
 /// endpoint and the `Resource` (`service.name`, `service.version`,
 /// `deployment.environment`) are read from the standard `OTEL_*` env by the SDK.
@@ -48,9 +50,6 @@ impl Drop for Telemetry {
 		}
 	}
 }
-
-/// The boxed `tracing` layers [`telemetry`] hands back for the subscriber registry.
-pub type OtelLayers<S> = Vec<Box<dyn Layer<S> + Send + Sync + 'static>>;
 
 /// Builds the OTel logs + traces `tracing` layers and their lifetime guard, or
 /// `None` when `OTEL_EXPORTER_OTLP_ENDPOINT` is unset (telemetry off) or an

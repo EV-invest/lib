@@ -91,7 +91,14 @@ types = []
 # `wasm` pulls `dioxus?/web` + `web-sys`; `document` is for the bundle's `<link>`;
 # `launch` is the `LaunchBuilder` behind `launch_into`, which a producer crate
 # would otherwise have to enable itself for this feature to compile.
-mfe = ["dep:dioxus", "dep:wasm-bindgen", "dep:js-sys", "dioxus?/document", "dioxus?/launch", "wasm"]
+mfe = [
+    "dep:dioxus",
+    "dep:wasm-bindgen",
+    "dep:js-sys",
+    "dioxus?/document",
+    "dioxus?/launch",
+    "wasm",
+]
 
 # One opt-in switch that layers wasm/browser backends onto whatever other
 # features are enabled — each feature contributes its own wasm needs here with
