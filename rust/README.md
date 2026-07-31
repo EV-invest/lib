@@ -10,7 +10,7 @@ rust/
 ├── src/
 │   ├── lib.rs
 │   ├── architecture/      the `architecture` feature (DDD tactical kernel)
-│   ├── uikit/             the `uikit` feature (dep-light Dioxus UI kit + tokens.css)
+│   ├── uikit/             the `uikit` feature (dep-light Dioxus UI kit)
 │   ├── analytics/         the `analytics` feature (PostHog product analytics)
 │   ├── error_monitoring/  the `error_monitoring` feature (Sentry error monitoring)
 │   ├── experiments/       the `experiments` feature (frontend-only A/B testing)

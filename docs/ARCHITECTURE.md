@@ -10,6 +10,7 @@ mirror its _semantics_ idiomatically.
 ```
 lib/                 (repo: EV-invest/lib)
 ├── Cargo.toml       thin virtual workspace — anchors the crate at the repo root
+├── tokens.css       the shared design tokens, one copy for both ports
 ├── rust/            the crate (sources); one library per Cargo feature
 │   ├── Cargo.toml
 │   ├── src/{lib.rs, architecture/, uikit/, analytics/, error_monitoring/, experiments/, settings/, otel/}
@@ -90,7 +91,8 @@ keeps from the repo's discipline:
   Tailwind class strings are identical per element across Rust and TS. Variants
   are the **superset** of the two original sources.
 - **`tokens.css` is the contract:** the design tokens (CSS custom properties +
-  Tailwind `@theme inline`) ship from both packages in byte parity. Every
+  Tailwind `@theme inline`) live once at the repo root; the npm package copies
+  the file in from its `prepare` script, so both ports ship it. Every
   component class references a token; a consumer must `@import` `tokens.css`.
 - **CSS is generated at runtime by the v4 browser CDN**, which DOM-scans the
   live page — so class strings may be composed dynamically (`format!("h-{}", n)`),

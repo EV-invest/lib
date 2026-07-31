@@ -1,8 +1,8 @@
 #![feature(default_field_values)]
 //! Emits one TS file per uikit component under `ts/uikit/src/generated/` from the
-//! Rust styling source of truth (`ev_lib_classes`), and copies `tokens.css` over.
-//! Run via `cargo run -p ev_lib_gen`; the output is committed and CI fails if it
-//! drifts (`git diff --exit-code ts/uikit/src/generated rust/src/uikit/tokens.css`).
+//! Rust styling source of truth (`ev_lib_classes`). Run via `cargo run -p
+//! ev_lib_gen`; the output is committed and CI fails if it drifts
+//! (`git diff --exit-code ts/uikit/src/generated`).
 
 use std::{fmt::Write as _, fs, path::Path};
 
@@ -28,8 +28,6 @@ fn main() {
 		fs::write(&path, out).expect("write generated component file");
 		println!("wrote {}", path.display());
 	}
-
-	fs::copy(root.join("rust/src/uikit/tokens.css"), root.join("ts/uikit/styles/tokens.css")).expect("copy tokens.css");
 }
 /// One TS export. The serializer turns each into a single statement; `manifest`
 /// lists them per component so adding a class string is one flat line there.

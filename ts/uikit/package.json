@@ -35,7 +35,7 @@
     "build": "tsup",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "prepare": "tsup"
+    "prepare": "mkdir -p styles && cp ../../tokens.css styles/tokens.css && tsup"
   },
   "peerDependencies": {
     "react": "^18 || ^19",

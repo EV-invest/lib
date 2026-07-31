@@ -45,8 +45,8 @@ Tailwind v4 entrypoint — this is the load-bearing part of the kit:
 @import "@evinvest/uikit/styles/tokens.css";
 ```
 
-`styles/tokens.css` is kept byte-for-byte in parity with the Rust feature's
-`tokens.css`; it defines a single **dark** palette via `:root` and wires it into
+`styles/tokens.css` is copied at pack time from the repo-root `tokens.css` shared
+with the Rust feature; it defines a single **dark** palette via `:root` and wires it into
 Tailwind utilities via `@theme inline`. (The kit drops `dark:*` utility variants
 because the palette is dark by default — see [Limitations](#limitations).)
 

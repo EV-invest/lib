@@ -95,7 +95,13 @@ fn main() -> ExitCode {
 			continue;
 		}
 		let name = json["name"].as_str().expect("package.json name").to_owned();
-		if changed(&name, &[dir.to_str().expect("utf8 path")]) {
+		// uikit's `styles/tokens.css` is copied in by its `prepare` script, so the
+		// root source is part of what it publishes even though it lives outside dir.
+		let mut paths = vec![dir.to_str().expect("utf8 path")];
+		if name == "@evinvest/uikit" {
+			paths.push("tokens.css");
+		}
+		if changed(&name, &paths) {
 			impacted.push((dir, name));
 		}
 	}

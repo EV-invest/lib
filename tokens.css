@@ -1,8 +1,8 @@
 /*
  * Shared design tokens — the theme contract for the `ev_lib::uikit` (Rust) and
  * `@evinvest/uikit` (TypeScript) components. Import this file from any Tailwind v4
- * entrypoint. Kept byte-for-byte in parity with `@evinvest/uikit`'s
- * `styles/tokens.css`; change one, change the other.
+ * entrypoint. Single source for both ports — `@evinvest/uikit` copies this file
+ * into `styles/tokens.css` from its `prepare` script.
  *
  * Structure:
  *   @theme inline {}  — wires values into Tailwind utilities (processed by
@@ -75,6 +75,16 @@
   --color-main-accent-t2: #2e9e5b;
   --color-main-accent-t3: #f2c94c;
   --color-main-accent-t4: #e58aae;
+
+  /*
+   * Tracing levels — the one place a severity gets a hue. Read outside CSS too
+   * (gitops mirrors these into Discord embed bars), so: plain hex, no color-mix.
+   */
+  --color-level-trace: #6b7fa0;
+  --color-level-debug: #2a9d8f;
+  --color-level-info: #4a90d9;
+  --color-level-warn: #f2c94c;
+  --color-level-error: #da251d;
 }
 
 :root {

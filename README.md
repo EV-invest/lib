@@ -45,7 +45,7 @@ it enables.
 | Feature | What it is |
 | --- | --- |
 | `architecture` | I/O-free, `wasm32`-safe DDD tactical kernel: typed ids, entities, aggregate roots, repositories, gateways, the unit of work, domain events, specifications |
-| `uikit` | dep-light Dioxus UI kit (mirrors `@evinvest/uikit`): 63 shadcn-semantics components on `dioxus` + `tailwind_fuse`, no `@radix-ui`/`cva`. Ships the shared design tokens (`tokens.css`) |
+| `uikit` | dep-light Dioxus UI kit (mirrors `@evinvest/uikit`): 63 shadcn-semantics components on `dioxus` + `tailwind_fuse`, no `@radix-ui`/`cva`. Styled by the repo-root `tokens.css`, shared with the TS kit |
 | `analytics` | PostHog product analytics (mirrors `@evinvest/analytics`): does network I/O, gated per-target — `reqwest` + `serde`/`serde_json` native, pure-Rust HTTP on wasm |
 | `error_monitoring` | Sentry error monitoring (mirrors `@evinvest/error-monitoring`): does network I/O; the native `sentry` crate is native-only, wasm reports over pure-Rust HTTP |
 | `experiments` | frontend-only A/B testing (mirrors `@evinvest/experiments`): reports exposure through an injected sink, never imports `analytics` |

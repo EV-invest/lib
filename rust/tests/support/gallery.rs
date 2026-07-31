@@ -14,7 +14,7 @@ use ev_lib::uikit::*;
 /// The theme contract; inlined into the Tailwind-processed `<style>` so its
 /// `@theme`/`:root` tokens drive the utilities. Absolute path via the manifest
 /// dir so it resolves identically from the example crate and the test crate.
-const TOKENS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/uikit/tokens.css"));
+const TOKENS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../tokens.css"));
 const DIST: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/visual/dist");
 /// The board. One line per primitive — the only place to edit when adding one.
 #[rustfmt::skip]
