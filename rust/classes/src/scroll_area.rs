@@ -7,7 +7,7 @@ pub const SCROLL_AREA_THUMB: &str = "bg-border relative flex-1 rounded-full";
 
 pub const SCROLLBAR_BASE: &str = "flex touch-none p-px transition-colors select-none";
 
-#[derive(strum::AsRefStr, strum::EnumIter, PartialEq, TwVariant)]
+#[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum ScrollBarOrientation {
 	#[tw(default, class = "h-full w-2.5 border-l border-l-transparent")]

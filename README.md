@@ -97,7 +97,6 @@ counterpart yet).
 `rustfmt.toml`, CI workflows, and this README are generated on entry — don't
 hand-edit generated files.
 
-<!-- Per-library details live in each package's own README (Rust feature docs; ts/<pkg>/README.md). -->
 
 
 <br>

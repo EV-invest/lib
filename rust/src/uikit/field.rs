@@ -8,7 +8,7 @@ use crate::{
 	},
 };
 
-#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[derive(Clone, Default, PartialEq, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum FieldLegendVariant {
 	#[default]

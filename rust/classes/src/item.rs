@@ -27,7 +27,7 @@ pub const ITEM_HEADER: &str = "flex basis-full items-center justify-between gap-
 
 pub const ITEM_FOOTER: &str = "flex basis-full items-center justify-between gap-2";
 
-#[derive(strum::AsRefStr, strum::EnumIter, PartialEq, TwVariant)]
+#[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum ItemVariant {
 	#[tw(default, class = "bg-transparent")]
@@ -38,7 +38,7 @@ pub enum ItemVariant {
 	Muted,
 }
 
-#[derive(strum::AsRefStr, strum::EnumIter, PartialEq, TwVariant)]
+#[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum ItemSize {
 	#[tw(default, class = "p-4 gap-4")]
@@ -47,7 +47,7 @@ pub enum ItemSize {
 	Sm,
 }
 
-#[derive(strum::AsRefStr, strum::EnumIter, PartialEq, TwVariant)]
+#[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum ItemMediaVariant {
 	#[tw(default, class = "bg-transparent")]

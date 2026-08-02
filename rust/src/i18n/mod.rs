@@ -62,7 +62,7 @@ pub const DEFAULT_LOCALE: Locale = Locale::En;
 /// Note `Vi` — Vietnamese — is the ISO 639-1 *language* code. `vn` is the ISO
 /// 3166 *country* code for Vietnam and is not a valid `hreflang` / `lang` value;
 /// Google silently discards invalid values, so the distinction is load-bearing.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Locale {
 	#[default]
 	En,
@@ -126,7 +126,7 @@ impl std::str::FromStr for Locale {
 }
 
 /// The error [`Locale::from_str`] returns for a tag EV does not publish.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UnknownLocale(pub String);
 
 impl std::fmt::Display for UnknownLocale {
@@ -274,7 +274,7 @@ pub type Messages = BTreeMap<String, String>;
 /// crashed view, whereas the raw key is self-describing on screen, greppable,
 /// and survives to a screenshot in a bug report. [`policy::audit`] is what
 /// *finds* missing keys — the runtime's job is only to degrade legibly.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Translator {
 	messages: Messages,
 	locale: Locale,

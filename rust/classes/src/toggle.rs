@@ -9,7 +9,7 @@ pub const TOGGLE_BASE: &str = "inline-flex items-center justify-center gap-2 rou
                                focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none transition-[color,box-shadow] \
                                aria-invalid:ring-destructive/20 aria-invalid:border-destructive whitespace-nowrap";
 
-#[derive(strum::AsRefStr, strum::EnumIter, PartialEq, TwVariant)]
+#[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum ToggleVariant {
 	#[tw(default, class = "bg-transparent")]

@@ -9,7 +9,7 @@ pub const ALERT_TITLE: &str = "col-start-2 line-clamp-1 min-h-4 font-medium trac
 
 pub const ALERT_DESCRIPTION: &str = "text-muted-foreground col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed";
 
-#[derive(strum::AsRefStr, strum::EnumIter, PartialEq, TwVariant)]
+#[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum AlertVariant {
 	#[tw(default, class = "bg-card text-card-foreground")]

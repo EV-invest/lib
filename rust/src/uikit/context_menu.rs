@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Default vs destructive item styling; mirrors the TS `variant` union.
-#[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
+#[derive(Clone, Copy, Default, PartialEq, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum ContextMenuItemVariant {
 	#[default]

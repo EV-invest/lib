@@ -1,4 +1,4 @@
-#[derive(strum::AsRefStr, Clone, Copy, Default, strum::EnumIter, PartialEq)]
+#[derive(Clone, Copy, Default, PartialEq, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Size {
 	Sm,

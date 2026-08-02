@@ -114,7 +114,7 @@ pub struct EventEnvelope<E: DomainEvent> {
 mod tests {
 	use super::*;
 
-	#[derive(Clone, Debug, serde::Deserialize, PartialEq, serde::Serialize)]
+	#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 	struct Published {
 		slug: String,
 	}

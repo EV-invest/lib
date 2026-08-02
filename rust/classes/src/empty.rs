@@ -12,7 +12,7 @@ pub const EMPTY_CONTENT: &str = "flex w-full max-w-sm min-w-0 flex-col items-cen
 
 pub const EMPTY_MEDIA_BASE: &str = "flex shrink-0 items-center justify-center mb-2 [&_svg]:pointer-events-none [&_svg]:shrink-0";
 
-#[derive(strum::AsRefStr, strum::EnumIter, PartialEq, TwVariant)]
+#[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum EmptyMediaVariant {
 	#[tw(default, class = "bg-transparent")]

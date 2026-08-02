@@ -12,7 +12,7 @@ pub const BUTTON_BASE: &str = "inline-flex items-center justify-center gap-2 whi
 
 /// Per-variant classes only; the base rides on [`BUTTON_BASE`]. `as_class()` yields
 /// the variant string, the codegen key is `as_ref()` (kebab).
-#[derive(strum::AsRefStr, strum::EnumIter, PartialEq, TwVariant)]
+#[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum ButtonVariant {
 	#[tw(default, class = "bg-primary text-primary-foreground hover:bg-primary/90")]

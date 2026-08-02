@@ -14,7 +14,7 @@ pub const TOAST_TITLE: &str = "font-medium";
 /// Pinned stack container base; the per-position offsets ride on [`ToastPosition`].
 pub const TOASTER_BASE: &str = "pointer-events-none fixed z-100 w-[calc(100%-2rem)] max-w-sm";
 
-#[derive(strum::AsRefStr, strum::EnumIter, PartialEq, TwVariant)]
+#[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum ToastVariant {
 	#[tw(default, class = "bg-popover text-popover-foreground border-border")]
@@ -29,7 +29,7 @@ pub enum ToastVariant {
 	Warning,
 }
 
-#[derive(strum::AsRefStr, strum::EnumIter, PartialEq, TwVariant)]
+#[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum ToastPosition {
 	#[tw(class = "top-4 left-4")]

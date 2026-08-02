@@ -9,7 +9,7 @@ use crate::{
 };
 
 /// Tab layout axis; also drives the roving-focus arrow keys.
-#[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
+#[derive(Clone, Copy, Default, PartialEq, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum TabsOrientation {
 	#[default]

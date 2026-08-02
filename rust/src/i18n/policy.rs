@@ -52,7 +52,7 @@ use super::{DEFAULT_LOCALE, Locale, Messages};
 /// ```json
 /// { "team.title": { "en": "Our team", "t": "Наша команда" } }
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TranslatedEntry {
 	/// The English source this was translated from.
 	pub en: String,
@@ -64,7 +64,7 @@ pub struct TranslatedEntry {
 pub type TranslatedCatalogue = BTreeMap<String, TranslatedEntry>;
 
 /// Why a translated entry was refused, and English used instead.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RejectionReason {
 	/// Today's English differs from the `en` the translation was written against.
 	SourceDrift,
@@ -102,7 +102,7 @@ impl std::fmt::Display for RejectionReason {
 }
 
 /// One refusal, with enough detail to fix it without opening the catalogue.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Rejection {
 	pub key: String,
 	pub reason: RejectionReason,
@@ -110,7 +110,7 @@ pub struct Rejection {
 }
 
 /// The outcome of applying the policy to one locale's catalogue.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ResolvedCatalogue {
 	pub locale: Locale,
 	/// Ready for [`Translator`](super::Translator): accepted translations,
@@ -263,7 +263,7 @@ fn check(entry: &TranslatedEntry, en: &str, locale: Locale) -> Option<(Rejection
 	None
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum ArgType {
 	Value,
 	Plural,
@@ -280,7 +280,7 @@ impl std::fmt::Display for ArgType {
 	}
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 struct ArgumentShape {
 	arg_type: ArgType,
 	branches: BTreeSet<String>,
@@ -484,7 +484,7 @@ pub fn audit(resolved: &[ResolvedCatalogue], floor: f64) -> (bool, String) {
 /// the clear case: hiding an open role from a Russian speaker who reads English
 /// fine costs a candidate, and loses more than the inconsistency costs. Choose
 /// per collection, deliberately.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum MissingContentPolicy {
 	#[default]
 	Hide,

@@ -40,7 +40,7 @@ pub const SIDEBAR_MENU: &str = "flex w-full min-w-0 flex-col gap-1";
 
 pub const SIDEBAR_MENU_ITEM: &str = "group/menu-item relative";
 
-#[derive(strum::AsRefStr, strum::EnumIter, PartialEq, TwVariant)]
+#[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum SidebarMenuButtonVariant {
 	#[tw(default, class = "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground")]
@@ -51,7 +51,7 @@ pub enum SidebarMenuButtonVariant {
 	Outline,
 }
 
-#[derive(strum::AsRefStr, strum::EnumIter, PartialEq, TwVariant)]
+#[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum SidebarMenuButtonSize {
 	#[tw(default, class = "h-8 text-sm")]

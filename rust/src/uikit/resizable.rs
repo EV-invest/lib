@@ -7,7 +7,7 @@ use crate::{
 
 /// Layout axis of a [`ResizablePanelGroup`]; rendered as `data-panel-group-direction`
 /// so the canonical class selectors flip the flex axis and the handle geometry.
-#[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
+#[derive(Clone, Copy, Default, PartialEq, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum ResizableDirection {
 	#[default]

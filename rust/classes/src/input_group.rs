@@ -24,7 +24,7 @@ pub const INPUT_GROUP_INPUT_CONTROL: &str = "flex-1 rounded-none border-0 bg-tra
 /// Appended to the shared `TEXTAREA_BASE` for a group-embedded textarea.
 pub const INPUT_GROUP_TEXTAREA_CONTROL: &str = "flex-1 resize-none rounded-none border-0 bg-transparent py-3 shadow-none focus-visible:ring-0";
 
-#[derive(strum::AsRefStr, strum::EnumIter, PartialEq, TwVariant)]
+#[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum InputGroupAddonAlign {
 	#[tw(default, class = "order-first pl-3 has-[>button]:ml-[-0.45rem] has-[>kbd]:ml-[-0.35rem]")]

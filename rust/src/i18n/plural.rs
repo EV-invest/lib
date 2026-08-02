@@ -17,7 +17,7 @@ use super::Locale;
 /// A CLDR plural category. `Zero` and `Two` are unused by EV's five locales but
 /// named so the enum matches CLDR rather than our current subset — a locale
 /// that needs them should not require widening this type under time pressure.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum PluralCategory {
 	Zero,
 	One,

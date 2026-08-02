@@ -64,7 +64,7 @@ pub fn SidebarProvider(
 	}
 }
 
-#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[derive(Clone, Default, PartialEq, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum SidebarSide {
 	#[default]
@@ -72,7 +72,7 @@ pub enum SidebarSide {
 	Right,
 }
 
-#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[derive(Clone, Default, PartialEq, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum SidebarVariant {
 	#[default]
@@ -81,7 +81,7 @@ pub enum SidebarVariant {
 	Inset,
 }
 
-#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[derive(Clone, Default, PartialEq, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum SidebarCollapsible {
 	#[default]

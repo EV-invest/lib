@@ -31,7 +31,7 @@ pub const FIELD_SEPARATOR_CONTENT: &str = "bg-background text-muted-foreground r
 
 pub const FIELD_ERROR: &str = "text-destructive text-sm font-normal";
 
-#[derive(strum::AsRefStr, strum::EnumIter, PartialEq, TwVariant)]
+#[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum FieldOrientation {
 	#[tw(default, class = "flex-col [&>*]:w-full [&>.sr-only]:w-auto")]

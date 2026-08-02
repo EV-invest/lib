@@ -17,7 +17,7 @@ pub const DRAWER_TITLE: &str = "text-foreground font-semibold";
 pub const DRAWER_DESCRIPTION: &str = "text-muted-foreground text-sm";
 
 /// Edge the drawer slides in from. The shared content base rides on [`DRAWER_CONTENT_BASE`].
-#[derive(strum::AsRefStr, strum::EnumIter, PartialEq, TwVariant)]
+#[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum DrawerDirection {
 	#[tw(

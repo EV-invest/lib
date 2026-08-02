@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Item visual tone — the canonical superset mirrors the TS `variant` prop.
-#[derive(strum::AsRefStr, Clone, Default, PartialEq)]
+#[derive(Clone, Default, PartialEq, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum MenubarItemVariant {
 	#[default]

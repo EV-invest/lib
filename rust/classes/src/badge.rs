@@ -7,7 +7,7 @@ pub const BADGE_BASE: &str = "inline-flex items-center justify-center rounded-md
                               aria-invalid:ring-destructive/20 aria-invalid:border-destructive";
 
 /// Canonical superset of the cabinet (`Success`) and landing variants.
-#[derive(strum::AsRefStr, strum::EnumIter, PartialEq, TwVariant)]
+#[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum BadgeVariant {
 	#[tw(default, class = "border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90")]

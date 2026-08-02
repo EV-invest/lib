@@ -7,7 +7,7 @@ use crate::{
 
 /// Orientation of a [`Slider`]; rendered as `data-orientation` so the landing
 /// class selectors lay the track out horizontally or vertically.
-#[derive(strum::AsRefStr, Clone, Copy, Default, PartialEq)]
+#[derive(Clone, Copy, Default, PartialEq, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum SliderOrientation {
 	#[default]

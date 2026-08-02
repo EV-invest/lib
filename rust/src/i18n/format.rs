@@ -14,7 +14,7 @@ use std::collections::BTreeMap;
 use super::Locale;
 
 /// A value interpolated into a message pattern.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum MessageValue {
 	Str(String),
 	Num(f64),

@@ -46,7 +46,6 @@
             AGENTS.md
             CLAUDE.md
             .claude/
-            .pre-commit-config.yaml
           '';
           lfs = false;
         };
