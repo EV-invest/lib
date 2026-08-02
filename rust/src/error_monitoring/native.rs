@@ -43,6 +43,14 @@ pub struct Config {
 	/// SDK's `SENTRY_RELEASE` env detection — the same default as the TS port —
 	/// and events stay unattributed when that is unset too.
 	pub release: Option<String>,
+	/// Which service emitted the event, tagged as `service` on every event.
+	///
+	/// A Sentry *project* is a DSN, so several services routinely share one. Left
+	/// `None` they are told apart only by `server_name` — a pod hostname in k8s —
+	/// and by `release`, which is per-crate and therefore not a service dimension
+	/// at all. Pass the same name the rest of the platform uses for this process
+	/// (`OTEL_SERVICE_NAME`) so a Sentry issue, a trace, and a log line agree.
+	pub service: Option<String>,
 }
 
 impl Config {
@@ -66,7 +74,22 @@ pub fn init(config: &Config) -> Option<sentry::ClientInitGuard> {
 		release: config.release.clone().map(Into::into),
 		environment: Some(config.environment.clone().into()),
 		traces_sample_rate: config.traces_sample_rate,
+		before_send: init_before_send(config.service.clone()),
 		..Default::default()
+	}))
+}
+
+/// Stamps `service` on every outgoing event.
+///
+/// It rides in `before_send` rather than on a scope because scopes are per-hub:
+/// a tag set on the main hub would be missing from events raised on a task or
+/// thread that got its own hub, which is most of them in an async service.
+/// An existing `service` tag (set deliberately at a call site) wins.
+fn init_before_send(service: Option<String>) -> Option<sentry::BeforeCallback<sentry::protocol::Event<'static>>> {
+	let service = service?;
+	Some(std::sync::Arc::new(move |mut event: sentry::protocol::Event<'static>| {
+		event.tags.entry("service".to_string()).or_insert_with(|| service.clone());
+		Some(event)
 	}))
 }
 
@@ -100,6 +123,7 @@ mod tests {
 			environment: "test".to_string(),
 			traces_sample_rate: 1.0,
 			release: None,
+			service: None,
 		};
 		assert!(init(&config).is_none());
 	}
@@ -114,6 +138,7 @@ mod tests {
 				environment: "test".to_string(),
 				traces_sample_rate: 1.0,
 				release: None,
+				service: None,
 			};
 			assert!(init(&config).is_none(), "an unusable DSN should disable reporting, got a guard for {dsn:?}");
 		}
@@ -126,6 +151,7 @@ mod tests {
 			environment: "test".to_string(),
 			traces_sample_rate: 1.0,
 			release: None,
+			service: None,
 		};
 		let guard = init(&config);
 		assert!(guard.is_some(), "a syntactically valid DSN should yield a guard");
@@ -144,6 +170,7 @@ mod tests {
 			environment: "test".to_string(),
 			traces_sample_rate: 1.0,
 			release: Some("site-backend@2.3.1".to_string()),
+			service: None,
 		};
 		let guard = init(&config).expect("valid DSN yields a guard");
 		assert_eq!(guard.options().release.as_deref(), Some("site-backend@2.3.1"));
@@ -157,6 +184,7 @@ mod tests {
 			environment: "test".to_string(),
 			traces_sample_rate: 1.0,
 			release: None,
+			service: None,
 		};
 		let guard = init(&config).expect("valid DSN yields a guard");
 		// With `release: None` the SDK still env-detects SENTRY_RELEASE, so pin
@@ -212,5 +240,43 @@ mod tests {
 			"the reported error message should reach Sentry, got {:?}",
 			exception.value
 		);
+	}
+
+	/// Several services share one Sentry project (a project *is* a DSN), so the
+	/// tag is what tells them apart — it has to survive onto the wire, and onto
+	/// events raised off the main hub.
+	#[test]
+	fn the_service_tag_reaches_the_wire() {
+		let captured: Arc<Mutex<Vec<sentry::Envelope>>> = Arc::new(Mutex::new(Vec::new()));
+		let sink = captured.clone();
+
+		let mut options = sentry::ClientOptions {
+			dsn: Some("https://public@example.com/1".parse().unwrap()),
+			transport: Some(Arc::new(move |_: &sentry::ClientOptions| {
+				Arc::new(CapturingTransport { envelopes: sink.clone() }) as Arc<dyn sentry::Transport>
+			})),
+			..Default::default()
+		};
+		// The same hook `init` installs, exercised without a global client.
+		options.before_send = init_before_send(Some("piggybank-core".to_string()));
+
+		let hub = Arc::new(sentry::Hub::new(Some(Arc::new(options.into())), Arc::new(Default::default())));
+		// A separate thread gets its own hub, which is exactly the case a
+		// scope-set tag would miss.
+		std::thread::spawn(move || {
+			sentry::Hub::run(hub.clone(), || report(&std::io::Error::other("boom")));
+			hub.client().unwrap().flush(Some(Duration::from_secs(1)));
+		})
+		.join()
+		.unwrap();
+
+		let envelopes = captured.lock().unwrap();
+		let event = envelopes[0].event().expect("an event");
+		assert_eq!(event.tags.get("service").map(String::as_str), Some("piggybank-core"));
+	}
+
+	#[test]
+	fn no_service_means_no_tag() {
+		assert!(init_before_send(None).is_none(), "an unset service must not install a hook at all");
 	}
 }
