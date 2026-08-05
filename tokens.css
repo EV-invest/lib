@@ -10,6 +10,12 @@
  *   :root {}          — raw CSS custom properties; work everywhere
  *   @keyframes / rules — toast (sonner) enter/exit motion at the tail; shipped
  *                       here so the lifecycle is self-contained (see below)
+ *
+ * Surface ladder — dark UI reads as unfinished when every plane is the same
+ * value, so the steps below are deliberate and measured; keep them apart if you
+ * retune. background #070d18 → surface #0d1526 (1.07:1) → card #16233c (1.24:1
+ * vs background) → popover #1d2c49 (1.13:1 vs card) → muted #26375c. Elevation
+ * rides the same ladder via --shadow-card / -elevated / -overlay.
  */
 
 @theme inline {
@@ -17,6 +23,16 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  /* Depth has to be a ladder, not a single drop shadow: on a dark theme the
+   * value steps alone are too close to separate a resting card from a menu
+   * from a modal, so each tier gets its own spread + opacity. */
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.30);
+  --shadow-elevated:
+    0 4px 12px -2px rgb(0 0 0 / 0.40),
+    0 2px 4px -2px rgb(0 0 0 / 0.30);
+  --shadow-overlay: 0 16px 48px -12px rgb(0 0 0 / 0.60);
 
   /* The leading var() carries its own fallback: next/font (landing) sets
    * `--font-inter` / `--font-playfair`; a Rust consumer renders `uikit::Fonts`,
@@ -68,8 +84,10 @@
    */
   --color-main-brand: #001e4e;
   --color-main-black: #070d18;
-  --color-main-surface: #081020;
-  --color-main-card: #0c1626;
+  /* these two are what consumers reach for (`bg-main-surface`, `bg-main-card`),
+   * so they carry the surface ladder rather than the semantic tokens alone */
+  --color-main-surface: #0d1526;
+  --color-main-card: #16233c;
   --color-main-mist: #e6e1d3;
   --color-main-accent-t1: #2a9d8f;
   --color-main-accent-t2: #2e9e5b;
@@ -91,33 +109,41 @@
   /* ── shadcn semantic tokens ──────────────────────────────────── */
   --background: #070d18;
   --foreground: white;
-  --card: #0c1626;
+  --card: #16233c;
   --card-foreground: white;
-  --popover: #0c1626;
+  --popover: #1d2c49;
   --popover-foreground: white;
-  --primary: #001e4e;
-  --primary-foreground: #e6e1d3;
-  --secondary: #081020;
+  /* teal, not the brand navy: navy filled a Button/Switch at ~1.1:1 against
+   * these surfaces, i.e. an invisible control, and consumers hardcoded teal to
+   * get around it. The brand navy still lives in --color-main-brand. */
+  --primary: #2a9d8f;
+  --primary-foreground: #070d18;
+  --secondary: #0d1526;
   --secondary-foreground: white;
-  --muted: #16213a;
-  --muted-foreground: color-mix(in srgb, #e6e1d3 40%, transparent);
+  --muted: #26375c;
+  /* the most-used secondary text token, so it has to clear AA on its own */
+  --muted-foreground: color-mix(in srgb, #e6e1d3 65%, transparent);
   --accent: color-mix(in srgb, #e6e1d3 8%, transparent);
   --accent-foreground: white;
-  --destructive: #da251d;
-  --destructive-foreground: #e6e1d3;
-  --border: color-mix(in srgb, #e6e1d3 10%, transparent);
+  /* lifted off the brand red: this is the loss/negative signal in a financial
+   * product, and the brand value failed AA on a card */
+  --destructive: #ef5b52;
+  --destructive-foreground: #070d18;
+  --border: color-mix(in srgb, #e6e1d3 14%, transparent);
   --input: color-mix(in srgb, #e6e1d3 20%, transparent);
   --ring: #2a9d8f;
   --radius: 0.375rem; /* 6px on mobile; bumped to 8px ≥ sm (see @media below) */
 
   /* ── sidebar (PC nav) ───────────────────────────────────────── */
-  --sidebar: #0c1626;
+  /* the rail sits one step under the cards it frames, so it tracks --secondary
+     on the ladder rather than --card */
+  --sidebar: #0d1526;
   --sidebar-foreground: white;
-  --sidebar-primary: #001e4e;
-  --sidebar-primary-foreground: #e6e1d3;
+  --sidebar-primary: #2a9d8f;
+  --sidebar-primary-foreground: #070d18;
   --sidebar-accent: color-mix(in srgb, #e6e1d3 8%, transparent);
   --sidebar-accent-foreground: white;
-  --sidebar-border: color-mix(in srgb, #e6e1d3 10%, transparent);
+  --sidebar-border: color-mix(in srgb, #e6e1d3 14%, transparent);
   --sidebar-ring: #2a9d8f;
   --sidebar-width: 14rem;
 
