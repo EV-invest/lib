@@ -1,0 +1,4 @@
+# Deliberately empty. `tokens.css` is generated here by the `prepare` script and is
+# gitignored, but npm falls back to .gitignore when packing — which silently dropped the
+# design tokens from the published tarball (0.8.1 shipped without them). An .npmignore in
+# this directory takes precedence over the .gitignore, so the generated file ships.

@@ -35,7 +35,8 @@
     "build": "tsup",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "prepare": "mkdir -p styles && cp ../../tokens.css styles/tokens.css && tsup"
+    "prepare": "mkdir -p styles && cp ../../tokens.css styles/tokens.css && tsup",
+    "prepublishOnly": "node scripts/verify-pack.mjs"
   },
   "peerDependencies": {
     "react": "^18 || ^19",
