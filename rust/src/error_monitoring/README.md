@@ -45,6 +45,8 @@ fn main() -> anyhow::Result<()> {
         environment: env,
         // expands in *this* crate, so events are attributed to your app's release
         release: release_name!().map(|r| r.into_owned()),
+        // tells siblings apart when they share a project; match OTEL_SERVICE_NAME
+        service: Some("site-backend".to_string()),
     };
     let _guard = init(&config); // None when the DSN is absent/unusable — binding is simply inert
     // … build the tracing subscriber + runtime, then serve …
@@ -105,6 +107,7 @@ Sentry JS SDKs. Parity is by behaviour.
 | server init | `init(&Config) -> Option<ClientInitGuard>` | `initServer(opts)` (`./node`) |
 | sample rate policy | `Config::traces_sample_rate_for(env)` (0.1 prod / 1.0 else) | `defaultTracesSampleRate` (0.1 / 1.0) |
 | release attribution | `Config.release`; `None` → SDK `SENTRY_RELEASE` detection (fill via `release_name!()` in the app crate) | SDK env detection (`SENTRY_RELEASE`) |
+| service attribution | `Config.service` → `service` tag on events and transactions | pass `serverName`/tags to the SDK yourself |
 | report a 5xx error | `report(&dyn Error)` | `sink.reportError(err, ctx)` (`.` core) |
 | HTTP capture | tower `NewSentryLayer` + `SentryHttpLayer` | Next request hooks (`./next`) |
 | tracing breadcrumbs | `tracing_layer()` in the subscriber | (SDK integrations) |

@@ -53,6 +53,15 @@ Rust crate and its TypeScript mirror at once.
   the audit trail. Snapshots hold hashes and a change is a name plus a verb, so
   the whole path is safe to log.
 
+- **`error_monitoring::Config.service`** (Rust, native): names the service on
+  every event and transaction as a `service` tag. A Sentry project is a DSN, so
+  sibling services commonly share one and were separable only by hostname in the
+  issue list. Set from the same value as `OTEL_SERVICE_NAME` so an issue, a trace
+  and a log line agree. It is a scope tag rather than a `before_send` hook
+  because `before_send` never sees transactions, which need the name just as
+  much. **Breaking:** `Config` gains a public field, so struct literals must add
+  `service` (`None` keeps the old behaviour).
+
 ### Fixed
 
 - `error_monitoring` (Rust, native): a malformed or empty `Config.dsn` now

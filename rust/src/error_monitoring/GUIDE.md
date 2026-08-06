@@ -37,6 +37,7 @@ SDK), so a browser bundle may carry the DSN.
 | `SENTRY_DSN` | native | DSN, or unset/empty/malformed → Sentry disabled (no-op). |
 | `APP_ENV` | native | Environment tag (`production`, `staging`, …). |
 | `SENTRY_RELEASE` | native | Release fallback the SDK reads when `Config.release` is `None`. |
+| `OTEL_SERVICE_NAME` | native | Not read here — the name to mirror into `Config.service` so an issue, a trace and a log line agree. |
 
 On native, the sampling policy mirrors the site: `Config::traces_sample_rate_for`
 returns `0.1` in production and `1.0` everywhere else.
@@ -62,6 +63,8 @@ fn main() -> anyhow::Result<()> {
         environment: env,
         // expands in *this* crate, so events are attributed to your app's release
         release: release_name!().map(|r| r.into_owned()),
+        // a project is a DSN, so siblings sharing one need this to be told apart
+        service: Some("site-backend".to_string()),
     };
     // Dropping this guard flushes queued events — bind it for the life of main.
     let _sentry_guard = init(&config);
