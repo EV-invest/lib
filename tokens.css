@@ -85,9 +85,12 @@
   --color-main-brand: #001e4e;
   --color-main-black: #070d18;
   /* these two are what consumers reach for (`bg-main-surface`, `bg-main-card`),
-   * so they carry the surface ladder rather than the semantic tokens alone */
-  --color-main-surface: #0d1526;
-  --color-main-card: #16233c;
+   * and they REFERENCE the semantic tokens rather than repeating them. A literal
+   * copy drifts the moment only one side is retuned — which is exactly what
+   * happened: `bg-card` surfaces moved to a new palette while `bg-main-card`
+   * ones stayed behind, so half a client changed colour and half did not. */
+  --color-main-surface: var(--secondary);
+  --color-main-card: var(--card);
   --color-main-mist: #e6e1d3;
   --color-main-accent-t1: #2a9d8f;
   --color-main-accent-t2: #2e9e5b;
@@ -113,11 +116,17 @@
   --card-foreground: white;
   --popover: #1d2c49;
   --popover-foreground: white;
-  /* teal, not the brand navy: navy filled a Button/Switch at ~1.1:1 against
+  /* Teal, not the brand navy: navy filled a Button/Switch at ~1.1:1 against
    * these surfaces, i.e. an invisible control, and consumers hardcoded teal to
-   * get around it. The brand navy still lives in --color-main-brand. */
-  --primary: #2a9d8f;
-  --primary-foreground: #070d18;
+   * get around it. The brand navy still lives in --color-main-brand.
+   *
+   * Darker and less saturated than --color-main-accent-t1, because a solid fill
+   * and a readable accent are different jobs: at #2a9d8f the accent is already
+   * at 4.72:1 on a card, so calming the CTAs by darkening that one token would
+   * drop every teal label below AA. This fill carries a white label (5.38:1)
+   * and still clears 3.61:1 against the page, so a button reads as a button. */
+  --primary: #28766d;
+  --primary-foreground: #ffffff;
   --secondary: #0d1526;
   --secondary-foreground: white;
   --muted: #26375c;
@@ -139,8 +148,8 @@
      on the ladder rather than --card */
   --sidebar: #0d1526;
   --sidebar-foreground: white;
-  --sidebar-primary: #2a9d8f;
-  --sidebar-primary-foreground: #070d18;
+  --sidebar-primary: #28766d;
+  --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: color-mix(in srgb, #e6e1d3 8%, transparent);
   --sidebar-accent-foreground: white;
   --sidebar-border: color-mix(in srgb, #e6e1d3 14%, transparent);
