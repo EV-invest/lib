@@ -43,6 +43,12 @@ pub struct Config {
 	/// SDK's `SENTRY_RELEASE` env detection — the same default as the TS port —
 	/// and events stay unattributed when that is unset too.
 	pub release: Option<String>,
+	/// Name of the service the events came from, reported as a `service` tag
+	/// (e.g. `"piggybank-core"`). A Sentry project is a DSN, so sibling services
+	/// commonly share one; without this they are separable only by hostname. Use
+	/// the same value as `OTEL_SERVICE_NAME` so an issue, a trace and a log line
+	/// agree on the name. `None` leaves events untagged.
+	pub service: Option<String>,
 }
 
 impl Config {
@@ -61,19 +67,33 @@ pub fn init(config: &Config) -> Option<sentry::ClientInitGuard> {
 	// Parse before handing the DSN over: `sentry::init((dsn, options))` would
 	// `expect` on it and panic at boot.
 	let dsn = config.dsn.as_deref().into_dsn().ok().flatten()?;
-	Some(sentry::init(sentry::ClientOptions {
+	let guard = sentry::init(sentry::ClientOptions {
 		dsn: Some(dsn),
 		release: config.release.clone().map(Into::into),
 		environment: Some(config.environment.clone().into()),
 		traces_sample_rate: config.traces_sample_rate,
 		..Default::default()
-	}))
+	});
+	if let Some(service) = &config.service {
+		// The main hub, because every other thread lazily clones its own hub from
+		// this scope — so tagging here reaches threads that do not exist yet, which
+		// is why `init` belongs at the top of `main`.
+		sentry::Hub::main().configure_scope(|scope| tag_service(scope, service));
+	}
+	Some(guard)
 }
 
 /// Reports an unexpected error to Sentry. Call only for genuinely unexpected
 /// failures (5xx territory), mirroring the site's `error_reporter::report`.
 pub fn report(error: &dyn StdError) {
 	sentry::capture_error(error);
+}
+
+/// Names the service on everything the scope touches. A scope rather than
+/// `before_send` because `before_send` fires for events only — transactions
+/// apply the scope instead, and would otherwise go out unnamed.
+fn tag_service(scope: &mut sentry::Scope, service: &str) {
+	scope.set_tag("service", service);
 }
 
 #[cfg(test)]
@@ -100,6 +120,7 @@ mod tests {
 			environment: "test".to_string(),
 			traces_sample_rate: 1.0,
 			release: None,
+			service: None,
 		};
 		assert!(init(&config).is_none());
 	}
@@ -114,6 +135,7 @@ mod tests {
 				environment: "test".to_string(),
 				traces_sample_rate: 1.0,
 				release: None,
+				service: None,
 			};
 			assert!(init(&config).is_none(), "an unusable DSN should disable reporting, got a guard for {dsn:?}");
 		}
@@ -126,6 +148,7 @@ mod tests {
 			environment: "test".to_string(),
 			traces_sample_rate: 1.0,
 			release: None,
+			service: None,
 		};
 		let guard = init(&config);
 		assert!(guard.is_some(), "a syntactically valid DSN should yield a guard");
@@ -144,6 +167,7 @@ mod tests {
 			environment: "test".to_string(),
 			traces_sample_rate: 1.0,
 			release: Some("site-backend@2.3.1".to_string()),
+			service: None,
 		};
 		let guard = init(&config).expect("valid DSN yields a guard");
 		assert_eq!(guard.options().release.as_deref(), Some("site-backend@2.3.1"));
@@ -157,6 +181,7 @@ mod tests {
 			environment: "test".to_string(),
 			traces_sample_rate: 1.0,
 			release: None,
+			service: None,
 		};
 		let guard = init(&config).expect("valid DSN yields a guard");
 		// With `release: None` the SDK still env-detects SENTRY_RELEASE, so pin
@@ -167,6 +192,38 @@ mod tests {
 			assert_eq!(guard.options().release, None, "no release without Config.release or SENTRY_RELEASE");
 		}
 		drop(guard);
+	}
+
+	// Scope-level, so these assert on a scope of their own — reading the main
+	// hub's would race every other test in the binary.
+	#[test]
+	fn the_service_names_an_event() {
+		let mut scope = sentry::Scope::default();
+		tag_service(&mut scope, "piggybank-core");
+
+		let event = scope.apply_to_event(sentry::protocol::Event::default()).expect("tagging must not drop the event");
+		assert_eq!(event.tags.get("service").map(String::as_str), Some("piggybank-core"));
+	}
+
+	#[test]
+	fn the_service_names_a_transaction_too() {
+		// The reason this is a scope tag and not `before_send`: traces share the
+		// issue list's need to say which service they came from, and `before_send`
+		// never sees them.
+		let mut scope = sentry::Scope::default();
+		tag_service(&mut scope, "cabinet-backend");
+
+		let mut transaction = sentry::protocol::Transaction::default();
+		scope.apply_to_transaction(&mut transaction);
+		assert_eq!(transaction.tags.get("service").map(String::as_str), Some("cabinet-backend"));
+	}
+
+	#[test]
+	fn no_service_leaves_events_untagged() {
+		let scope = sentry::Scope::default();
+
+		let event = scope.apply_to_event(sentry::protocol::Event::default()).expect("an empty scope must not drop the event");
+		assert!(!event.tags.contains_key("service"), "an unnamed service should add no tag, got {:?}", event.tags);
 	}
 
 	// In-memory transport: captures envelopes instead of POSTing them. This
