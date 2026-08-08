@@ -85,9 +85,13 @@
   --color-main-brand: #001e4e;
   --color-main-black: #070d18;
   /* these two are what consumers reach for (`bg-main-surface`, `bg-main-card`),
-   * so they carry the surface ladder rather than the semantic tokens alone */
-  --color-main-surface: #0d1526;
-  --color-main-card: #16233c;
+   * and they REFERENCE the semantic tokens rather than repeating them. Literal
+   * copies drift the moment only one side is retuned, and that is not
+   * hypothetical: a client that overrode `--card` alone got its `bg-card`
+   * surfaces on the new palette and its `bg-main-card` ones — profile,
+   * settings, wallet — left on the old, so half the app changed colour. */
+  --color-main-surface: var(--secondary);
+  --color-main-card: var(--card);
   --color-main-mist: #e6e1d3;
   --color-main-accent-t1: #2a9d8f;
   --color-main-accent-t2: #2e9e5b;
