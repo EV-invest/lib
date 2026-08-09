@@ -1,6 +1,6 @@
 {
   "name": "@evinvest/settings",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Typed, validated env settings with aggregate error reporting and a server/client split — zero runtime deps, mirroring the settings Cargo feature. Secrets stay in sops at the shell/CI boundary; this package only reads the already-injected environment.",
   "license": "BlueOak-1.0.0",
   "publishConfig": {
