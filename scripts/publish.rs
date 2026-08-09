@@ -36,6 +36,16 @@ fn run(cmd: &mut Command) {
 	assert!(status.success(), "command failed: {cmd:?}");
 }
 
+/// Like `run`, but a non-zero exit is an answer rather than the end of the release.
+fn try_run(cmd: &mut Command) -> bool {
+	cmd.status().expect("spawn").success()
+}
+
+fn version_of(dir: &std::path::Path) -> String {
+	let json: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(dir.join("package.json")).expect("read package.json")).expect("parse package.json");
+	json["version"].as_str().expect("package.json version").to_owned()
+}
+
 fn capture(cmd: &mut Command) -> String {
 	let out = cmd.output().expect("spawn");
 	assert!(out.status.success(), "command failed: {cmd:?}");
@@ -106,10 +116,24 @@ fn main() -> ExitCode {
 		}
 	}
 
-	// Fail before releasing anything if npm publishing can't authenticate.
-	if !impacted.is_empty() && std::env::var_os("NPM_TOKEN").is_none() {
-		eprintln!("NPM_TOKEN must be set to publish {} npm package(s)", impacted.len());
-		return ExitCode::FAILURE;
+	let npmrc = PathBuf::from(&root).join("scripts/publish.npmrc");
+
+	// Fail before releasing anything if npm publishing can't authenticate. Checking the
+	// variable is merely present is not the same as checking it works: an expired token
+	// used to get all the way to `npm publish` and die there, after cargo-release had
+	// already versioned, tagged and pushed the crates. Ask the registry who we are.
+	if !impacted.is_empty() {
+		if std::env::var_os("NPM_TOKEN").is_none() {
+			eprintln!("NPM_TOKEN must be set to publish {} npm package(s)", impacted.len());
+			return ExitCode::FAILURE;
+		}
+		match Command::new("npm").arg("whoami").env("NPM_CONFIG_USERCONFIG", &npmrc).output() {
+			Ok(out) if out.status.success() => println!(">> npm authenticated as {}", String::from_utf8_lossy(&out.stdout).trim()),
+			_ => {
+				eprintln!("NPM_TOKEN is set but the registry rejects it — nothing was released.");
+				return ExitCode::FAILURE;
+			}
+		}
 	}
 
 	// Rust: cargo-release versions, tags, commits, pushes and uploads to crates.io.
@@ -122,25 +146,53 @@ fn main() -> ExitCode {
 		run(&mut cmd);
 	}
 
-	let npmrc = PathBuf::from(&root).join("scripts/publish.npmrc");
 	let mut tags: Vec<String> = Vec::new();
+	let mut failed: Vec<String> = Vec::new();
 	for (dir, name) in &impacted {
 		println!(">> publishing {name}");
 		run(Command::new("npm").arg("install").current_dir(dir));
+
+		// The bump has to happen before `npm publish` reads the manifest, so a failed
+		// publish leaves the package claiming a version that was never released. Left
+		// alone that poisons the next run: it bumps again from the phantom version, so
+		// either a release number is skipped or the retry dies on "cannot publish over".
+		// Remember what to go back to.
+		let previous = version_of(dir);
 		run(Command::new("npm").args(["version", &level, "--no-git-tag-version"]).current_dir(dir));
-		run(Command::new("npm").arg("publish").current_dir(dir).env("NPM_CONFIG_USERCONFIG", &npmrc));
-		let bumped: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(dir.join("package.json")).expect("read package.json")).expect("parse package.json");
-		let version = bumped["version"].as_str().expect("package.json version");
+
+		if !try_run(Command::new("npm").arg("publish").current_dir(dir).env("NPM_CONFIG_USERCONFIG", &npmrc)) {
+			eprintln!("!! {name} did not publish — restoring {previous}");
+			run(Command::new("npm").args(["version", &previous, "--no-git-tag-version", "--allow-same-version"]).current_dir(dir));
+			failed.push(name.clone());
+			// One package's npm permissions are not a reason to strand the others: a
+			// scoped token that cannot write to one name still publishes the rest.
+			continue;
+		}
+
 		run(Command::new("git").arg("add").arg(dir));
-		tags.push(format!("{name}-v{version}"));
+		tags.push(format!("{name}-v{}", version_of(dir)));
 	}
 
+	// Only what actually reached the registry gets committed and tagged. `changed()`
+	// reads these tags to decide what needs releasing next time, so tagging an
+	// unpublished package would quietly exclude it from every future run.
 	if !tags.is_empty() {
 		run(Command::new("git").args(["commit", "-m", "release: npm packages", "-m", &tags.join("\n")]));
 		for tag in &tags {
 			run(Command::new("git").args(["tag", tag.as_str()]));
 		}
 		run(Command::new("git").args(["push", "--follow-tags"]));
+	}
+
+	if !failed.is_empty() {
+		eprintln!();
+		eprintln!("published: {}", if tags.is_empty() { "nothing".to_owned() } else { tags.join(", ") });
+		eprintln!("FAILED:    {}", failed.join(", "));
+		eprintln!();
+		eprintln!("A 404 on PUT to an existing package means authenticated but not authorised —");
+		eprintln!("npm hides the difference. Check that $NPM_TOKEN's account maintains those");
+		eprintln!("packages, and that a granular token lists them.");
+		return ExitCode::FAILURE;
 	}
 
 	ExitCode::SUCCESS
