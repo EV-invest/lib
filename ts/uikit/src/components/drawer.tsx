@@ -122,6 +122,7 @@ export function DrawerContent({ className, children, ...props }: React.Component
     <Portal>
       <div
         data-slot="drawer-overlay"
+        data-state="open"
         className={DRAWER_OVERLAY}
         onClick={() => setOpen(false)}
       />
