@@ -64,4 +64,26 @@ describe("Drawer", () => {
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
     expect(lastOpen).toBe(false);
   });
+
+  // The Drawer shipped with no transition at all — it appeared in a single frame while
+  // every sibling overlay animated. The enter animation is keyed off `data-state`, so
+  // both halves are asserted: the classes, and the attribute that arms them (the scrim
+  // carried none, which silently disabled its fade).
+  it("animates in, on both the panel and the scrim", () => {
+    const { container } = render(tree({ defaultOpen: true }));
+    const panel = screen.getByRole("dialog");
+    expect(panel).toHaveAttribute("data-state", "open");
+    expect(panel.className).toContain("data-[state=open]:animate-in");
+    expect(panel.className).toContain("data-[state=open]:slide-in-from-bottom");
+
+    const scrim = container.ownerDocument.querySelector('[data-slot="drawer-overlay"]');
+    expect(scrim).not.toBeNull();
+    expect(scrim).toHaveAttribute("data-state", "open");
+    expect(scrim!.className).toContain("data-[state=open]:fade-in-0");
+  });
+
+  it("slides from the edge it is docked to", () => {
+    render(tree({ defaultOpen: true, direction: "right" }));
+    expect(screen.getByRole("dialog").className).toContain("data-[state=open]:slide-in-from-right");
+  });
 });
