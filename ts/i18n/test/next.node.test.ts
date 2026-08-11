@@ -30,6 +30,16 @@ describe("localeRewrites", () => {
       { source: "/:path*", destination: "/en/:path*" },
     ]);
   });
+
+  it("is a catch-all, which is why it belongs in `fallback` and not `afterFiles`", () => {
+    // Documented as a test because the wrong hook half-works: afterFiles runs
+    // before dynamic routes, so it rewrites /ru/team -> /en/ru/team (404) while
+    // /team still resolves and hides the bug. The rule below matches ANY path —
+    // safe only when it runs last, after dynamic routes have had their chance.
+    const [rule] = localeRewrites();
+    expect(rule?.source).toBe("/:path*");
+    expect(rule?.destination.startsWith("/en/")).toBe(true);
+  });
 });
 
 describe("localeRedirects", () => {

@@ -82,10 +82,10 @@ localeAlternates("/team");        // { en: "/team", ru: "/ru/team", … }
 ## Wiring a Next.js app
 
 Routing is **config-level, not middleware**. Put every page under
-`app/[locale]/`, then let one `afterFiles` rewrite serve the default locale at
-unprefixed paths. `afterFiles` runs only when no filesystem route matched, so
-prefixed locale routes and zone mounts (`/cabinet`, `/rea`, `/api/*`) never
-reach it — and the app keeps shipping no `proxy.ts` at all.
+`app/[locale]/`, then let one **`fallback`** rewrite serve the default locale at
+unprefixed paths. `fallback` runs last — after dynamic routes — so prefixed
+locale routes and zone mounts (`/cabinet`, `/rea`, `/api/*`) never reach it, and
+the app keeps shipping no `proxy.ts` at all.
 
 ```ts
 // next.config.ts
@@ -93,7 +93,7 @@ import { localeRewrites, localeRedirects } from "@evinvest/i18n/next";
 
 const nextConfig = {
   async rewrites() {
-    return { beforeFiles: [...zoneRewrites], afterFiles: localeRewrites(), fallback: [] };
+    return { beforeFiles: [...zoneRewrites], afterFiles: [], fallback: localeRewrites() };
   },
   // Collapses /en/* onto the unprefixed form so each page has one canonical URL.
   async redirects() {
@@ -101,6 +101,14 @@ const nextConfig = {
   },
 };
 ```
+
+> **Not `afterFiles`.** This is the one easy mistake, and it half-works, which is
+> what makes it dangerous. Next's order is `redirects → beforeFiles → filesystem
+> → afterFiles → dynamic routes → fallback`. The entire `app/[locale]/` tree is a
+> *dynamic* route, so an `afterFiles` rule fires **before** `[locale]` is tried:
+> `/ru/team` gets rewritten to `/en/ru/team` and 404s, while `/team` resolves
+> correctly and hides the bug. Verified on Next 16.2.9 — see
+> `site_conductor/docs/i18n-routing-spike.md`.
 
 ```tsx
 // app/[locale]/layout.tsx
@@ -115,6 +123,13 @@ export function generateStaticParams() {
 `generateStaticParams` **must** include the default locale: unprefixed URLs are
 *rewritten* onto `/en/*`, so those routes have to be really prerendered even
 though no reader ever sees that URL.
+
+`dynamicParams = false` is **load-bearing, not hygiene.** Since
+`app/[locale]/page.tsx` is the homepage, `[locale]` matches any single segment —
+so `/team` is ambiguous with it. With `dynamicParams = false`, `[locale]`
+declines the unknown segment and the request falls through to the `fallback`
+rewrite that resolves it as English. Without it, `/team` renders the homepage
+with `locale === "team"`.
 
 ## Translating
 

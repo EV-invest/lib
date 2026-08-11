@@ -5,12 +5,15 @@
  * locale unprefixed, every other locale under `/<locale>`.
  *
  * The mechanism is deliberately **config-level, not middleware**. Every page
- * lives under `app/[locale]/`, and one `afterFiles` rewrite maps the unprefixed
- * paths onto the default locale. `afterFiles` runs only when no filesystem route
- * matched, so `/ru/team` (which matches `app/[locale]/team`) and the zone mounts
+ * lives under `app/[locale]/`, and one `fallback` rewrite maps the unprefixed
+ * paths onto the default locale. `fallback` runs last — after dynamic routes —
+ * so `/ru/team` (which matches `app/[locale]/team`) and the zone mounts
  * (`/cabinet`, `/rea`, `/api/*`) never reach it. The public site therefore keeps
  * its property of shipping no `proxy.ts` at all, and every route stays
  * statically prerenderable for a deliberately weak VPS.
+ *
+ * Two details carry the whole scheme, both verified by spike rather than
+ * assumed — see {@link localeRewrites} and {@link localeStaticParams}.
  *
  * This file is server-safe: it exports plain data for `next.config.ts` and for
  * `generateStaticParams`/`generateMetadata`. It imports nothing from `next`.
@@ -27,8 +30,15 @@ import {
  *
  * Includes the default locale: unprefixed URLs are *rewritten* to it, so
  * `/en/team` must be a real prerendered route even though no reader ever sees
- * that URL. Pair with `export const dynamicParams = false` so an unknown first
- * segment 404s instead of being swallowed by `[locale]`.
+ * that URL.
+ *
+ * **`export const dynamicParams = false` is required, and is load-bearing rather
+ * than hygiene.** In the real end state `app/[locale]/page.tsx` is the homepage,
+ * so `[locale]` matches any single segment — which makes a one-segment English
+ * URL like `/team` ambiguous with it. With `dynamicParams = false` and these
+ * params, `[locale]` *declines* the unknown segment and the request falls
+ * through to the `fallback` rewrite that resolves it as English. Without it,
+ * `/team` renders the homepage with `locale === "team"`.
  *
  * @param locales - Locales to prerender. Defaults to all of `LOCALES`.
  * @returns One `{ locale }` param object per locale.
@@ -60,22 +70,35 @@ export interface RedirectRule extends UrlRule {
 }
 
 /**
- * The `afterFiles` rewrite that serves the default locale at unprefixed paths.
+ * The **`fallback`** rewrite that serves the default locale at unprefixed paths.
  *
- * Must go in `afterFiles` — **not** `beforeFiles`. In `beforeFiles` it would run
- * ahead of the filesystem and swallow the zone mounts and every prefixed locale
- * route. In `afterFiles` it is the last resort, which is precisely the semantics
- * wanted: "no real route matched, so this must be an unprefixed default-locale
- * page".
+ * It must go in `fallback`, and this is the one thing about the scheme that is
+ * easy to get wrong — an `afterFiles` rule looks like it works, because the
+ * English half does. Next's routing order is:
+ *
+ * ```
+ * headers → redirects → beforeFiles → filesystem → afterFiles → DYNAMIC ROUTES → fallback
+ * ```
+ *
+ * `afterFiles` runs after the *filesystem* (static files, non-dynamic pages) but
+ * **before dynamic routes** — and the whole `app/[locale]/` tree is a dynamic
+ * route. So an `afterFiles` rule fires before `[locale]` is ever tried:
+ * `/ru/team` is rewritten to `/en/ru/team` and 404s, while `/team` happens to
+ * resolve correctly and hides the bug. Verified on Next 16.2.9; see
+ * `site_conductor/docs/i18n-routing-spike.md`.
+ *
+ * `fallback` runs last, after dynamic routes have had their chance, which is the
+ * semantics actually wanted: "no real route matched, so this must be an
+ * unprefixed default-locale page".
  *
  * @param defaultLocale - The unprefixed locale. Defaults to `DEFAULT_LOCALE`.
- * @returns One rewrite rule, ready to spread into `afterFiles`.
+ * @returns One rewrite rule, ready to spread into `fallback`.
  *
  * @example
  * ```ts
  * // next.config.ts
  * async rewrites() {
- *   return { beforeFiles: [...zoneRewrites], afterFiles: localeRewrites(), fallback: [] };
+ *   return { beforeFiles: [...zoneRewrites], afterFiles: [], fallback: localeRewrites() };
  * }
  * ```
  */
