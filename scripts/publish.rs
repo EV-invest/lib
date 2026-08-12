@@ -247,7 +247,15 @@ fn main() -> ExitCode {
 	if !tags.is_empty() {
 		run(Command::new("git").args(["commit", "-m", "release: npm packages", "-m", &tags.join("\n")]));
 		for tag in &tags {
-			run(Command::new("git").args(["tag", tag.as_str()]));
+			// `-a` is load-bearing, not style. `--follow-tags` below pushes only
+			// ANNOTATED tags, so a plain `git tag` created the tag locally and
+			// silently left it behind — the release commit went up, the tag did
+			// not. On any other machine `changed()` then saw the package as never
+			// published and the next run tried to publish over the live version.
+			// @evinvest/{uikit-v0.9.0,settings-v0.3.0,types-v0.3.0} were all
+			// stranded this way, which is the real cause of the missing tags
+			// AGENTS.md blames on hand-publishing.
+			run(Command::new("git").args(["tag", "-a", tag.as_str(), "-m", tag.as_str()]));
 		}
 		run(Command::new("git").args(["push", "--follow-tags"]));
 	}
