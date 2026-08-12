@@ -21,10 +21,23 @@ edition = "2024"
 serde_json = "1"
 ---
 
-//! `nix run .#publish -- <major|minor|patch>`: bump+publish the Rust crates via
-//! cargo-release, then bump+publish every TS package, skipping any crate/package
-//! with no changes since its own last `<name>-v*` tag (i.e. its last publish).
-//! npm auth comes from `$NPM_TOKEN` via scripts/publish.npmrc.
+//! `nix run .#publish -- <major|minor|patch> [--npm-only] [--only <name>]...`:
+//! bump+publish the Rust crates via cargo-release, then bump+publish every TS
+//! package, skipping any crate/package with no changes since its own last
+//! `<name>-v*` tag (i.e. its last publish). npm auth comes from `$NPM_TOKEN` via
+//! scripts/publish.npmrc.
+//!
+//! By default everything pending is released together, which is usually right —
+//! but one bump level then applies to all of it, and the crates go to crates.io.
+//! Two escape hatches, because "release this one thing" is otherwise impossible:
+//!
+//!   --only <name>   restrict to these crates/packages by exact name, repeatable.
+//!                   Anything pending but unnamed is left for a later run.
+//!   --npm-only      skip cargo-release entirely; publish only TS packages.
+//!
+//! Both narrow the set — neither can widen it past what actually changed, so a
+//! `--only` naming an unchanged package releases nothing rather than forcing a
+//! version out.
 
 use std::{
 	path::PathBuf,
@@ -71,13 +84,38 @@ fn changed(prefix: &str, paths: &[&str]) -> bool {
 }
 
 fn main() -> ExitCode {
-	let level = match std::env::args().nth(1).as_deref() {
+	let args: Vec<String> = std::env::args().skip(1).collect();
+	let level = match args.first().map(String::as_str) {
 		Some(l @ ("major" | "minor" | "patch")) => l.to_owned(),
 		_ => {
-			eprintln!("usage: publish <major|minor|patch>");
+			eprintln!("usage: publish <major|minor|patch> [--npm-only] [--only <name>]...");
 			return ExitCode::FAILURE;
 		}
 	};
+
+	let mut npm_only = false;
+	let mut only: Vec<String> = Vec::new();
+	let mut rest = args[1..].iter();
+	while let Some(arg) = rest.next() {
+		match arg.as_str() {
+			"--npm-only" => npm_only = true,
+			"--only" => match rest.next() {
+				Some(name) => only.push(name.clone()),
+				None => {
+					eprintln!("--only needs a package name");
+					return ExitCode::FAILURE;
+				}
+			},
+			other => {
+				eprintln!("unknown argument: {other}");
+				eprintln!("usage: publish <major|minor|patch> [--npm-only] [--only <name>]...");
+				return ExitCode::FAILURE;
+			}
+		}
+	}
+	// Empty `only` means "no restriction", so this has to be a membership test
+	// rather than a filter that would otherwise drop everything.
+	let selected = |name: &str| only.is_empty() || only.iter().any(|o| o == name);
 
 	let root = capture(Command::new("git").args(["rev-parse", "--show-toplevel"]));
 	std::env::set_current_dir(&root).expect("cd to repo root");
@@ -91,9 +129,14 @@ fn main() -> ExitCode {
 		("ev_lib_gen", &["rust/gen"]),
 		("ev_lib", &["rust", ":!rust/classes", ":!rust/gen", ":!rust/uikit-viewer"]),
 	];
-	let rust_changed: Vec<&str> = RUST.iter().filter(|(name, paths)| changed(name, paths)).map(|(name, _)| *name).collect();
+	let rust_changed: Vec<&str> = if npm_only {
+		Vec::new()
+	} else {
+		RUST.iter().filter(|(name, paths)| selected(name) && changed(name, paths)).map(|(name, _)| *name).collect()
+	};
 
 	let mut impacted: Vec<(PathBuf, String)> = Vec::new();
+	let mut known: Vec<String> = RUST.iter().map(|(n, _)| (*n).to_owned()).collect();
 	for entry in std::fs::read_dir("ts").expect("read ts/") {
 		let dir = entry.expect("dir entry").path();
 		let manifest = dir.join("package.json");
@@ -105,16 +148,41 @@ fn main() -> ExitCode {
 			continue;
 		}
 		let name = json["name"].as_str().expect("package.json name").to_owned();
+		known.push(name.clone());
 		// uikit's `styles/tokens.css` is copied in by its `prepare` script, so the
 		// root source is part of what it publishes even though it lives outside dir.
 		let mut paths = vec![dir.to_str().expect("utf8 path")];
 		if name == "@evinvest/uikit" {
 			paths.push("tokens.css");
 		}
-		if changed(&name, &paths) {
+		if selected(&name) && changed(&name, &paths) {
 			impacted.push((dir, name));
 		}
 	}
+
+	// A misspelled --only would otherwise select nothing and exit successfully,
+	// which reads exactly like a clean release that published everything asked for.
+	let unknown: Vec<&String> = only.iter().filter(|o| !known.contains(o)).collect();
+	if !unknown.is_empty() {
+		eprintln!("--only named nothing releasable: {}", unknown.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", "));
+		eprintln!("releasable names are: {}", known.join(", "));
+		return ExitCode::FAILURE;
+	}
+
+	// Say what this run covers before it starts changing versions, so a narrowed
+	// release cannot look like a full one in the log.
+	if !only.is_empty() || npm_only {
+		eprintln!(">> narrowed release: {}", if npm_only { "npm only".to_owned() } else { format!("--only {}", only.join(" ")) });
+	}
+	eprintln!(">> releasing crates: {}", if rust_changed.is_empty() { "none".to_owned() } else { rust_changed.join(", ") });
+	eprintln!(
+		">> releasing npm:    {}",
+		if impacted.is_empty() {
+			"none".to_owned()
+		} else {
+			impacted.iter().map(|(_, n)| n.as_str()).collect::<Vec<_>>().join(", ")
+		}
+	);
 
 	let npmrc = PathBuf::from(&root).join("scripts/publish.npmrc");
 
