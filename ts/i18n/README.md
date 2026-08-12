@@ -32,6 +32,13 @@ zero-dependency, server-safe **core** — locale registry, URL contract,
 - `./next` — needs the `next` peer only nominally; it imports nothing from
   `next` and returns plain data for `next.config.ts` and the metadata APIs.
 
+`.` and `./next` ship **both ESM and CJS**. That is not symmetry for its own
+sake: `next.config.ts` is loaded as CJS, so the ESM-only 0.1.0 could not be
+`require`d there at all — it failed with `ERR_PACKAGE_PATH_NOT_EXPORTED` in the
+one file `localeRewrites`/`localeRedirects` exist to serve. `./react` stays
+ESM-only, since a `"use client"` module is consumed by a bundler and never
+`require`d from a config.
+
 ## Install
 
 ```sh
@@ -115,9 +122,7 @@ const nextConfig = {
 import { localeStaticParams } from "@evinvest/i18n/next";
 
 export const dynamicParams = false;              // unknown first segment ⇒ 404
-export function generateStaticParams() {
-  return localeStaticParams();                    // includes "en" — see below
-}
+export const generateStaticParams = localeStaticParams;  // includes "en" — see below
 ```
 
 `generateStaticParams` **must** include the default locale: unprefixed URLs are
@@ -211,7 +216,7 @@ lands, this package is the sole implementation.
 ## Scripts
 
 ```sh
-npm run build      # tsup → dist/ (ESM only)
+npm run build      # tsup → dist/ (ESM; plus CJS for `.` and `./next`)
 npm test           # vitest: node project for the core + next, jsdom for react
 npm run typecheck  # full tsconfig, then the DOM-free core tsconfig
 npm run preflight  # dry run for a release — checks everything, publishes nothing

@@ -16,11 +16,19 @@ describe("localeStaticParams", () => {
     expect(localeStaticParams()).toHaveLength(LOCALES.length);
   });
 
-  it("honours a subset", () => {
-    expect(localeStaticParams(["en", "ru"])).toEqual([
-      { locale: "en" },
-      { locale: "ru" },
-    ]);
+  it("ignores whatever Next passes it", () => {
+    // Meant to be used as `export const generateStaticParams =
+    // localeStaticParams`, and Next calls that with a props object. An earlier
+    // signature took a `locales` array in that first slot, so the direct
+    // assignment failed to typecheck — and at runtime would have fed
+    // `{ params }` straight into the locale list. Arguments are ignored by
+    // construction now, so the assignment is safe in both respects.
+    const asNextCallsIt = localeStaticParams as unknown as (
+      props: unknown
+    ) => unknown;
+    expect(asNextCallsIt({ params: { locale: "ru" } })).toEqual(
+      localeStaticParams()
+    );
   });
 });
 

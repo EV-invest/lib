@@ -47,20 +47,41 @@ const tag = run("git", ["describe", "--tags", "--abbrev=0", "--match", `${pkg.na
 if (tag.err) ok(`no ${pkg.name}-v* tag — treated as never published, so it will be released`);
 else warn(`already tagged ${tag.out.trim()} — this would be a re-release, not a first release`);
 
-step("version");
-// The publish script bumps before publishing, so the number that reaches npm is
-// this one bumped by the level given. 0.0.0 + minor = 0.1.0, the intended first release.
-if (pkg.version === "0.0.0") ok("0.0.0 — `-- minor` publishes 0.1.0");
-else warn(`${pkg.version} — \`-- minor\` would publish ${pkg.version.replace(/^(\d+)\.(\d+)\..*/, (_, a, b) => `${a}.${+b + 1}.0`)}, skipping ${pkg.version}`);
-
 step("registry");
 const view = run("npm", ["view", `${pkg.name}`, "version"]);
-if (view.err) ok(`${pkg.name} is unpublished — the name is free`);
-else warn(`${pkg.name}@${view.out.trim()} already exists — publish must bump past it`);
+const published = view.err ? null : view.out.trim();
+if (published === null) ok(`${pkg.name} is unpublished — the name is free`);
+else ok(`${pkg.name}@${published} is live — this run must bump past it`);
+
+step("version");
+// The publish script bumps BEFORE publishing, so what reaches npm is this number
+// bumped by the level given.
+const nextMinor = pkg.version.replace(/^(\d+)\.(\d+)\..*/, (_, a, b) => `${a}.${+b + 1}.0`);
+if (published === null && pkg.version === "0.0.0") ok("0.0.0 — `-- minor` publishes 0.1.0");
+else if (published === null)
+  warn(`${pkg.version} — \`-- minor\` would publish ${nextMinor}, skipping ${pkg.version}`);
+else if (published === pkg.version)
+  ok(`${pkg.version} matches the registry — \`-- minor\` publishes ${nextMinor}`);
+else
+  warn(`manifest says ${pkg.version} but the registry has ${published} — check nothing half-released`);
 
 step("manifest promises");
+// Conditions nest — `"import": { "types": …, "default": … }` is as valid as a
+// flat `"import": "./dist/index.js"`, and the dual ESM/CJS map uses both shapes.
+// Walk to the string leaves rather than assuming one level, or every nested
+// target reads as the literal "[object Object]" and fails.
+function* exportTargets(node, trail = []) {
+  if (typeof node === "string") {
+    yield [trail.join(" "), node];
+    return;
+  }
+  if (node && typeof node === "object") {
+    for (const [cond, child] of Object.entries(node))
+      yield* exportTargets(child, [...trail, cond]);
+  }
+}
 for (const [sub, map] of Object.entries(pkg.exports ?? {})) {
-  for (const [cond, target] of Object.entries(map)) {
+  for (const [cond, target] of exportTargets(map)) {
     if (existsSync(target)) ok(`${sub} ${cond} -> ${target}`);
     else bad(`${sub} ${cond} -> ${target} (missing — run npm run build)`);
   }
