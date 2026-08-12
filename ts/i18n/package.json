@@ -1,6 +1,6 @@
 {
   "name": "@evinvest/i18n",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Dep-light internationalisation toolkit for EV's five locales: a zero-dep server-safe core (locale registry, URL contract, Accept-Language negotiation, ICU-subset formatter) plus React and Next.js subpaths. Owns no number or currency policy — consuming apps keep one policy per unit of measure.",
   "license": "BlueOak-1.0.0",
   "publishConfig": {
