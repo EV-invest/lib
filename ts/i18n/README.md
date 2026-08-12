@@ -214,4 +214,37 @@ lands, this package is the sole implementation.
 npm run build      # tsup → dist/ (ESM only)
 npm test           # vitest: node project for the core + next, jsdom for react
 npm run typecheck  # full tsconfig, then the DOM-free core tsconfig
+npm run preflight  # dry run for a release — checks everything, publishes nothing
 ```
+
+## Release
+
+Releases go through the repo-wide script, never `npm publish` from here — see
+AGENTS.md for why (a hand publish skips the bump and the tag, and the tag is what
+decides what gets released next time).
+
+```sh
+npm run preflight                                   # from ts/i18n — verify first
+cd "$(git rev-parse --show-toplevel)"
+NPM_TOKEN=… nix run .#publish -- minor              # bumps, publishes, commits, tags, pushes
+```
+
+`publish.rs` walks `ts/*` and treats a package with no `<name>-v*` tag as never
+published, so this one is picked up automatically — nothing to register. It bumps
+**before** publishing, which is why the manifest sits at `0.0.0`: `-- minor`
+makes the first release `0.1.0`.
+
+Two things to know for this first release:
+
+- **A granular npm token probably cannot create it.** Granular tokens list the
+  packages they may write to, and a package that does not exist yet cannot be on
+  that list. npm reports the refusal as a 404, which is indistinguishable from
+  "not found" — `publish.rs` says as much in its failure output. Use an
+  automation or classic token with `@evinvest` write access for the first
+  publish; granular is fine afterwards.
+- **`prepublishOnly` runs `verify-pack.mjs`,** which refuses to publish a tarball
+  that does not contain what `exports` promises. It follows each entry point's
+  own imports rather than checking a fixed list, because `.`, `./react` and
+  `./next` share a hash-named chunk whose filename changes every build — a
+  missing chunk passes every `files`-field check and then throws
+  `ERR_MODULE_NOT_FOUND` in the consumer.
