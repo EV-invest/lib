@@ -1,6 +1,6 @@
 [package]
 name = "ev_lib"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2024"
 description = "EV-invest shared Rust libraries, one per feature"
 license = "BlueOak-1.0.0"
@@ -79,6 +79,13 @@ experiments = ["dep:dioxus", "dep:js-sys", "dep:web-sys", "dep:wasm-bindgen"]
 # defaults, `Option` = optional, `#[secret]` redaction. Env-only by design — no
 # config files, no hot reload; sops/age decrypt at the shell/CI boundary and this
 # library only reads the already-injected environment. Zero runtime deps.
+# Five-locale i18n (mirrors `@evinvest/i18n`): locale registry, URL contract,
+# Accept-Language negotiation, an ICU-subset formatter and the translation
+# policy. Zero deps and wasm-safe — the CLDR plural rules and number grouping
+# for EV's five locales are hand-written rather than pulling in ICU4X, which
+# would add megabytes of locale data to a Dioxus wasm bundle.
+i18n = []
+
 settings = []
 
 # Shared domain TypeObjects — PhoneNumber, Email, … — with validation.

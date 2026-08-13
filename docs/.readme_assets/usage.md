@@ -23,6 +23,7 @@ it enables.
 | `analytics` | PostHog product analytics (mirrors `@evinvest/analytics`): does network I/O, gated per-target — `reqwest` + `serde`/`serde_json` native, pure-Rust HTTP on wasm |
 | `error_monitoring` | Sentry error monitoring (mirrors `@evinvest/error-monitoring`): does network I/O; the native `sentry` crate is native-only, wasm reports over pure-Rust HTTP |
 | `experiments` | frontend-only A/B testing (mirrors `@evinvest/experiments`): reports exposure through an injected sink, never imports `analytics` |
+| `i18n` | five-locale internationalisation (mirrors `@evinvest/i18n`): locale registry, `/<locale>` URL contract, `Accept-Language` negotiation, an ICU-subset message formatter, and the translation policy that refuses a translation whose English source has moved. Zero deps, wasm-safe; CLDR plural rules for the five locales are hand-written rather than pulling in ICU4X. Reads the same `messages/<locale>/*.json` as the TS half |
 | `settings` | typed env settings (mirrors `@evinvest/settings`): the `settings!` macro reads env vars into a validated struct — aggregate errors, defaults, secret redaction, `#[required_in("production")]` profile guards, `or_exit` (EX_CONFIG), and drift detection over an injected source; zero deps, env-only (sops/age decrypt at the shell/CI boundary) |
 | `otel` | OpenTelemetry logs + traces over OTLP (native-only backends, inert on wasm): `tracing` layers + flush guard, tonic interceptors for W3C trace propagation |
 | `wasm` | opt-in switch layering browser/js backends onto whatever features are enabled |

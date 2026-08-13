@@ -211,10 +211,17 @@ function check(
       // The arithmetic half of "semantically equal". English has two plural
       // categories; Russian has four. A translation that only mirrors English's
       // branches is missing cases that will be hit by real numbers.
+      //
+      // `other` is NOT accepted as a wildcard here, even though the formatter
+      // falls back to it at runtime. That fallback is what stops a page breaking;
+      // it is not evidence the translation is right. A Russian `one`/`other` pair
+      // renders "5 участка" for five — grammatical nonsense — and the runtime
+      // cannot tell, because it got a branch. The whole point of a build-time
+      // check is to catch what degrades silently. A locale that genuinely needs
+      // one branch (Vietnamese) declares only `other`, so it passes on the same
+      // rule rather than an exemption.
       const required = new Intl.PluralRules(locale).resolvedOptions().pluralCategories;
-      const absent = required.filter(
-        category => !mirrored.branches.has(category) && !mirrored.branches.has("other"),
-      );
+      const absent = required.filter(category => !mirrored.branches.has(category));
       if (absent.length > 0) {
         return {
           reason: "plural-category-missing",

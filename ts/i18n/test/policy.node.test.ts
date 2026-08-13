@@ -114,6 +114,40 @@ describe("rule 1.2 — structural equivalence", () => {
     expect(r.rejected[0]?.detail).toContain("many");
   });
 
+  it("refuses a Russian plural that mirrors English's one/other exactly", () => {
+    // The realistic failure, and the one the `other`-as-wildcard escape used to
+    // let through: a translator carries English's two branches across verbatim.
+    // It renders — `other` catches few and many — which is precisely why the
+    // runtime cannot flag it. "5 товара" is not Russian.
+    const r = resolveCatalogue("ru", en, {
+      "cart.items": {
+        en: en["cart.items"],
+        t: "{n, plural, one {# товар} other {# товара}}",
+      },
+    });
+    expect(r.rejected[0]).toMatchObject({
+      key: "cart.items",
+      reason: "plural-category-missing",
+    });
+    expect(r.rejected[0]?.detail).toContain("few");
+    expect(r.rejected[0]?.detail).toContain("many");
+  });
+
+  it("accepts a bare `other` only where the locale declares nothing else", () => {
+    // Vietnamese has no plural inflection, so one branch is the whole rule.
+    const vi = resolveCatalogue("vi", en, {
+      "cart.items": { en: en["cart.items"], t: "{n, plural, other {# món}}" },
+    });
+    expect(vi.rejected).toEqual([]);
+
+    // Russian gets no such exemption, even though the formatter would fall back
+    // to `other` at runtime for every count.
+    const ru = resolveCatalogue("ru", en, {
+      "cart.items": { en: en["cart.items"], t: "{n, plural, other {# товаров}}" },
+    });
+    expect(ru.rejected[0]?.reason).toBe("plural-category-missing");
+  });
+
   it("accepts a Russian plural that covers every category", () => {
     const r = resolveCatalogue("ru", en, {
       "cart.items": {
@@ -126,13 +160,6 @@ describe("rule 1.2 — structural equivalence", () => {
     expect(t("cart.items", { n: 1 })).toBe("1 товар");
     expect(t("cart.items", { n: 3 })).toBe("3 товара");
     expect(t("cart.items", { n: 8 })).toBe("8 товаров");
-  });
-
-  it("accepts `other` alone as covering the remaining categories", () => {
-    const r = resolveCatalogue("ru", en, {
-      "cart.items": { en: en["cart.items"], t: "{n, plural, other {# товара}}" },
-    });
-    expect(r.rejected).toEqual([]);
   });
 
   it("does not mistake an escaped brace for a placeholder", () => {
