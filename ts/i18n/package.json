@@ -1,6 +1,6 @@
 {
   "name": "@evinvest/i18n",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Dep-light internationalisation toolkit for EV's five locales: a zero-dep server-safe core (locale registry, URL contract, Accept-Language negotiation, ICU-subset formatter) plus React and Next.js subpaths. Owns no number or currency policy — consuming apps keep one policy per unit of measure.",
   "license": "BlueOak-1.0.0",
   "publishConfig": {
@@ -14,7 +14,10 @@
   "type": "module",
   "exports": {
     ".": {
-      "import": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
       "require": {
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
@@ -25,11 +28,20 @@
       "import": "./dist/react.js"
     },
     "./next": {
-      "import": { "types": "./dist/next.d.ts", "default": "./dist/next.js" },
-      "require": { "types": "./dist/next.d.cts", "default": "./dist/next.cjs" }
+      "import": {
+        "types": "./dist/next.d.ts",
+        "default": "./dist/next.js"
+      },
+      "require": {
+        "types": "./dist/next.d.cts",
+        "default": "./dist/next.cjs"
+      }
     },
     "./policy": {
-      "import": { "types": "./dist/policy.d.ts", "default": "./dist/policy.js" },
+      "import": {
+        "types": "./dist/policy.d.ts",
+        "default": "./dist/policy.js"
+      },
       "require": {
         "types": "./dist/policy.d.cts",
         "default": "./dist/policy.cjs"
