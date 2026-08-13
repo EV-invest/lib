@@ -40,21 +40,24 @@ import {
  * through to the `fallback` rewrite that resolves it as English. Without it,
  * `/team` renders the homepage with `locale === "team"`.
  *
- * @param locales - Locales to prerender. Defaults to all of `LOCALES`.
+ * Takes no arguments, deliberately. Next types `generateStaticParams` as
+ * receiving a props object, so a function with a leading `locales` parameter is
+ * not assignable to it — the obvious `export const generateStaticParams =
+ * localeStaticParams` failed to typecheck, and at runtime Next would have passed
+ * `{ params }` straight into the `locales` slot. Prerendering a subset is rare
+ * enough to be a one-line `.map` at the call site.
+ *
  * @returns One `{ locale }` param object per locale.
  *
  * @example
  * ```ts
  * // app/[locale]/layout.tsx
  * export const dynamicParams = false;
- * export function generateStaticParams() {
- *   return localeStaticParams();
- * }
+ * export const generateStaticParams = localeStaticParams;
  * ```
  */
-export function localeStaticParams(
-  locales: readonly Locale[] = LOCALES,
-): { locale: Locale }[] {
+export function localeStaticParams(): { locale: Locale }[] {
+  const locales: readonly Locale[] = LOCALES;
   return locales.map(locale => ({ locale }));
 }
 

@@ -14,9 +14,16 @@ import { defineConfig } from 'tsup';
 // via `tsup.react.config.ts`) so its declaration survives.
 export default defineConfig([
   // Config #1 — server-safe entries. This is the ONLY config that cleans `dist/`.
+  //
+  // Dual ESM+CJS for one concrete reason: `next.config.ts` is loaded as CJS, so
+  // an ESM-only `./next` subpath dies there with ERR_PACKAGE_PATH_NOT_EXPORTED —
+  // in exactly the file `localeRewrites`/`localeRedirects` exist to serve.
+  // site_conductor hit this and had to inline the rewrite rule instead.
+  // `./react` stays ESM-only below: it is a `"use client"` module a bundler
+  // consumes, never something a config file `require`s.
   {
     entry: { index: 'src/index.ts', next: 'src/next/index.ts' },
-    format: ['esm'],
+    format: ['esm', 'cjs'],
     dts: true,
     clean: true,
     sourcemap: true,
