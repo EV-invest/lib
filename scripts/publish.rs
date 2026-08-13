@@ -88,13 +88,14 @@ fn main() -> ExitCode {
 	let level = match args.first().map(String::as_str) {
 		Some(l @ ("major" | "minor" | "patch")) => l.to_owned(),
 		_ => {
-			eprintln!("usage: publish <major|minor|patch> [--npm-only] [--only <name>]...");
+			eprintln!("usage: publish <major|minor|patch> [--npm-only] [--only <name>]... [--otp <code>]");
 			return ExitCode::FAILURE;
 		}
 	};
 
 	let mut npm_only = false;
 	let mut only: Vec<String> = Vec::new();
+	let mut otp: Option<String> = None;
 	let mut rest = args[1..].iter();
 	while let Some(arg) = rest.next() {
 		match arg.as_str() {
@@ -106,9 +107,16 @@ fn main() -> ExitCode {
 					return ExitCode::FAILURE;
 				}
 			},
+			"--otp" => match rest.next() {
+				Some(code) => otp = Some(code.clone()),
+				None => {
+					eprintln!("--otp needs the six-digit code from your authenticator");
+					return ExitCode::FAILURE;
+				}
+			},
 			other => {
 				eprintln!("unknown argument: {other}");
-				eprintln!("usage: publish <major|minor|patch> [--npm-only] [--only <name>]...");
+				eprintln!("usage: publish <major|minor|patch> [--npm-only] [--only <name>]... [--otp <code>]");
 				return ExitCode::FAILURE;
 			}
 		}
@@ -228,7 +236,19 @@ fn main() -> ExitCode {
 		let previous = version_of(dir);
 		run(Command::new("npm").args(["version", &level, "--no-git-tag-version"]).current_dir(dir));
 
-		if !try_run(Command::new("npm").arg("publish").current_dir(dir).env("NPM_CONFIG_USERCONFIG", &npmrc)) {
+		// `--otp` when the account enforces 2FA on publish. A token that reads
+		// fine still cannot write: npm answers by starting its interactive
+		// web-login flow ("Authenticate your account at …"), which in a
+		// non-interactive run dies polling an auth handshake nobody completed —
+		// and surfaces as a 404, which looks exactly like a permissions problem
+		// and is not one. An automation token avoids the whole dance; this flag
+		// is for publishing from a laptop with an authenticator to hand.
+		let mut publish = Command::new("npm");
+		publish.arg("publish").current_dir(dir).env("NPM_CONFIG_USERCONFIG", &npmrc);
+		if let Some(code) = &otp {
+			publish.arg(format!("--otp={code}"));
+		}
+		if !try_run(&mut publish) {
 			eprintln!("!! {name} did not publish — restoring {previous}");
 			run(Command::new("npm").args(["version", &previous, "--no-git-tag-version", "--allow-same-version"]).current_dir(dir));
 			failed.push(name.clone());
@@ -265,9 +285,21 @@ fn main() -> ExitCode {
 		eprintln!("published: {}", if tags.is_empty() { "nothing".to_owned() } else { tags.join(", ") });
 		eprintln!("FAILED:    {}", failed.join(", "));
 		eprintln!();
-		eprintln!("A 404 on PUT to an existing package means authenticated but not authorised —");
-		eprintln!("npm hides the difference. Check that $NPM_TOKEN's account maintains those");
-		eprintln!("packages, and that a granular token lists them.");
+		eprintln!("npm reports several different failures as a 404. Read the output above:");
+		eprintln!();
+		eprintln!("  \"Authenticate your account at https://www.npmjs.com/auth/cli/…\"");
+		eprintln!("      2FA is enforced on publish and the token cannot satisfy it. The token");
+		eprintln!("      is fine — it read the registry to get here. Re-run with --otp <code>,");
+		eprintln!("      or use an automation token, which bypasses 2FA by design.");
+		eprintln!();
+		eprintln!("  a 404 on PUT to a package that already exists");
+		eprintln!("      authenticated but not authorised. Check that $NPM_TOKEN's account");
+		eprintln!("      maintains those packages, and that a granular token lists them.");
+		eprintln!();
+		eprintln!("  a 404 on a package that does not exist yet");
+		eprintln!("      a granular token cannot create a new name — it can only list packages");
+		eprintln!("      that already exist. Use an automation or classic token for a first");
+		eprintln!("      publish.");
 		return ExitCode::FAILURE;
 	}
 
