@@ -15,6 +15,7 @@ rust/
 │   ├── error_monitoring/  the `error_monitoring` feature (Sentry error monitoring)
 │   ├── experiments/       the `experiments` feature (frontend-only A/B testing)
 │   ├── settings/          the `settings` feature (typed env settings)
+│   ├── i18n/              the `i18n` feature (five-locale internationalisation)
 │   └── otel/              the `otel` feature (OpenTelemetry logs + traces, native-only)
 └── tests/              integration tests
 ```
@@ -35,6 +36,15 @@ see their rustdoc and READMEs.
 environment — no files, no network): the `settings!` macro builds validated
 settings structs with aggregate error reporting; sops/age decrypt at the
 shell/CI boundary, never in the library. It mirrors `@evinvest/settings`.
+
+`i18n` is zero-dep and wasm-safe: the locale registry, the `/<locale>` URL
+contract, `Accept-Language` negotiation, an ICU-subset message formatter, and
+the translation policy. It exists because a Dioxus zone cannot import an npm
+package, and both halves read **the same `messages/<locale>/*.json`** so a
+catalogue is portable between them and neither can drift alone. The CLDR plural
+rules and number grouping are hand-written for exactly EV's five locales rather
+than pulling ICU4X into a wasm bundle — see the module note on why that is a
+deliberate ceiling, not a shortcut. It mirrors `@evinvest/i18n`.
 
 Each feature mirrors a TypeScript package in [`../ts`](../ts). cargo runs from the
 repo root — pass `-p ev` for feature flags. See

@@ -35,6 +35,12 @@
 //! - **`otel`** — OpenTelemetry logs + traces over OTLP (native backends only;
 //!   inert on wasm): two `tracing` layers + a flush guard, and tonic
 //!   interceptors for W3C trace propagation. See [`otel`].
+//! - **`i18n`** — five-locale internationalisation (mirrors `@evinvest/i18n`):
+//!   the locale registry, the `/<locale>` URL contract, `Accept-Language`
+//!   negotiation, an ICU-subset message formatter, and the translation policy
+//!   that refuses a translation whose English source has moved. Zero deps,
+//!   wasm-safe. Reads the same `messages/<locale>/*.json` as the TypeScript
+//!   half, so a catalogue is portable between them. See [`i18n`].
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
@@ -60,6 +66,9 @@ pub mod otel;
 
 #[cfg(feature = "experiments")]
 pub mod experiments;
+
+#[cfg(feature = "i18n")]
+pub mod i18n;
 
 #[cfg(feature = "settings")]
 pub mod settings;
