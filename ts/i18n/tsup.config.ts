@@ -22,7 +22,11 @@ export default defineConfig([
   // `./react` stays ESM-only below: it is a `"use client"` module a bundler
   // consumes, never something a config file `require`s.
   {
-    entry: { index: 'src/index.ts', next: 'src/next/index.ts' },
+    entry: {
+      index: 'src/index.ts',
+      next: 'src/next/index.ts',
+      policy: 'src/policy/index.ts',
+    },
     format: ['esm', 'cjs'],
     dts: true,
     clean: true,

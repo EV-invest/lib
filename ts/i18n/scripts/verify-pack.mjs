@@ -26,6 +26,8 @@ const ENTRIES = [
   "dist/next.js",
   "dist/index.cjs",
   "dist/next.cjs",
+  "dist/policy.js",
+  "dist/policy.cjs",
 ];
 const REQUIRED = [
   "package.json",
@@ -35,6 +37,8 @@ const REQUIRED = [
   "dist/next.d.ts",
   "dist/index.d.cts",
   "dist/next.d.cts",
+  "dist/policy.d.ts",
+  "dist/policy.d.cts",
 ];
 
 const out = execFileSync("npm", ["pack", "--dry-run", "--json"], {

@@ -136,6 +136,78 @@ declines the unknown segment and the request falls through to the `fallback`
 rewrite that resolves it as English. Without it, `/team` renders the homepage
 with `locale === "team"`.
 
+## The policy
+
+Three rules, enforced by `@evinvest/i18n/policy` rather than by review.
+
+**1.1 — English is canonical.** `en` is the authored source: it defines the key
+set, the placeholders, and the meaning. Every other locale is a derivation, and
+only English introduces keys. A key that exists solely in a translation is
+rejected as an orphan (it renders nowhere anyway — usually a rename that left the
+translation behind).
+
+**1.2 — A translation that no longer matches its English source is not used.**
+English is served instead. This is the rule that stops a stale translation from
+quietly contradicting the site: when the English changes and the translation does
+not, the translation is no longer a translation of anything — it is last
+quarter's claim, in another language, presented as current.
+
+**1.3 — Compiled content with no translation for the current locale is hidden,**
+not silently served in English. See `availableIn`.
+
+### What "semantic comparison" means here
+
+Nothing compares *meaning* across languages — no program does that reliably, and
+one claiming to would fail silently, which is worse than not trying. Two things
+*are* mechanically checkable, and together they catch what actually goes wrong:
+
+- **Provenance** — each translated entry records the English text it was written
+  against. If today's English differs, the entry is stale by construction.
+- **Structure** — placeholders, argument types, and the plural categories a
+  locale requires must all match. A Russian string handling only `one`/`other` is
+  *provably* not equivalent to an English plural, because Russian also needs
+  `few` and `many`. That one is arithmetic, not opinion.
+
+A translation can still be a bad translation of the right source. That is a
+reviewer's job, and the module does not pretend otherwise.
+
+### Catalogue format
+
+English stays a plain map. Every other locale carries the source it was
+translated from:
+
+```jsonc
+// messages/en/common.json — canonical
+{ "cart.items": "{n, plural, one {# item} other {# items}}" }
+
+// messages/ru/common.json — each entry records its source
+{
+  "cart.items": {
+    "en": "{n, plural, one {# item} other {# items}}",
+    "t": "{n, plural, one {# товар} few {# товара} many {# товаров} other {# товара}}"
+  }
+}
+```
+
+The source is stored as *text*, not a hash. A hash would be shorter and equally
+correct, but a reviewer could not see what the translator was looking at; inline,
+a drifted entry is self-evident in the diff.
+
+```ts
+import { resolveCatalogue, auditCatalogues } from "@evinvest/i18n/policy";
+
+const { messages, rejected, coverage } = resolveCatalogue("ru", en, ru);
+const t = translator(messages, "ru");   // stale keys already fell back to English
+```
+
+Every English key is present in `messages` either way, so a page cannot break
+because a translation went stale — it degrades to canonical English.
+
+Wire `auditCatalogues` into CI. The runtime degrading safely is exactly why drift
+needs a second, noisy channel: a silent fallback looks identical to a site that
+was never translated, so without the check a locale can rot to zero coverage
+unnoticed.
+
 ## Translating
 
 Server Components call `translator()` directly — the locale is already in their

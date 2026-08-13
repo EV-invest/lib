@@ -27,6 +27,13 @@
     "./next": {
       "import": { "types": "./dist/next.d.ts", "default": "./dist/next.js" },
       "require": { "types": "./dist/next.d.cts", "default": "./dist/next.cjs" }
+    },
+    "./policy": {
+      "import": { "types": "./dist/policy.d.ts", "default": "./dist/policy.js" },
+      "require": {
+        "types": "./dist/policy.d.cts",
+        "default": "./dist/policy.cjs"
+      }
     }
   },
   "types": "./dist/index.d.ts",
