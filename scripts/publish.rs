@@ -33,6 +33,10 @@ serde_json = "1"
 //!
 //!   --only <name>   restrict to these crates/packages by exact name, repeatable.
 //!                   Anything pending but unnamed is left for a later run.
+//!   --skip <name>   the complement: release everything pending EXCEPT these.
+//!                   For a crate this account cannot publish at all (see the
+//!                   ownership note in the failure handler), --only would mean
+//!                   listing every other package by hand on every release.
 //!   --npm-only      skip cargo-release entirely; publish only TS packages.
 //!
 //! Both narrow the set — neither can widen it past what actually changed, so a
@@ -52,6 +56,18 @@ fn run(cmd: &mut Command) {
 /// Like `run`, but a non-zero exit is an answer rather than the end of the release.
 fn try_run(cmd: &mut Command) -> bool {
 	cmd.status().expect("spawn").success()
+}
+
+/// Run a command, streaming nothing but keeping stdout+stderr, and report both
+/// the outcome and what it said. Used for cargo-release, whose failure mode has
+/// to be *read* to be diagnosed — and which must not be re-run to find out.
+fn run_capturing(cmd: &mut Command) -> (bool, String) {
+	let out = cmd.output().expect("spawn");
+	let mut text = String::from_utf8_lossy(&out.stdout).into_owned();
+	text.push_str(&String::from_utf8_lossy(&out.stderr));
+	// The operator still needs to see it; capturing is for diagnosis, not silence.
+	print!("{text}");
+	(out.status.success(), text)
 }
 
 fn version_of(dir: &std::path::Path) -> String {
@@ -88,13 +104,14 @@ fn main() -> ExitCode {
 	let level = match args.first().map(String::as_str) {
 		Some(l @ ("major" | "minor" | "patch")) => l.to_owned(),
 		_ => {
-			eprintln!("usage: publish <major|minor|patch> [--npm-only] [--only <name>]... [--otp <code>]");
+			eprintln!("usage: publish <major|minor|patch> [--npm-only] [--only <name>]... [--skip <name>]... [--otp <code>]");
 			return ExitCode::FAILURE;
 		}
 	};
 
 	let mut npm_only = false;
 	let mut only: Vec<String> = Vec::new();
+	let mut skip: Vec<String> = Vec::new();
 	let mut otp: Option<String> = None;
 	let mut rest = args[1..].iter();
 	while let Some(arg) = rest.next() {
@@ -107,6 +124,13 @@ fn main() -> ExitCode {
 					return ExitCode::FAILURE;
 				}
 			},
+			"--skip" => match rest.next() {
+				Some(name) => skip.push(name.clone()),
+				None => {
+					eprintln!("--skip needs a package name");
+					return ExitCode::FAILURE;
+				}
+			},
 			"--otp" => match rest.next() {
 				Some(code) => otp = Some(code.clone()),
 				None => {
@@ -116,17 +140,42 @@ fn main() -> ExitCode {
 			},
 			other => {
 				eprintln!("unknown argument: {other}");
-				eprintln!("usage: publish <major|minor|patch> [--npm-only] [--only <name>]... [--otp <code>]");
+				eprintln!("usage: publish <major|minor|patch> [--npm-only] [--only <name>]... [--skip <name>]... [--otp <code>]");
 				return ExitCode::FAILURE;
 			}
 		}
 	}
 	// Empty `only` means "no restriction", so this has to be a membership test
-	// rather than a filter that would otherwise drop everything.
-	let selected = |name: &str| only.is_empty() || only.iter().any(|o| o == name);
+	// rather than a filter that would otherwise drop everything. `skip` then
+	// subtracts, and subtracts last: naming something in both is a contradiction,
+	// and the safe reading of a contradiction is "don't publish it".
+	let selected = |name: &str| (only.is_empty() || only.iter().any(|o| o == name)) && !skip.iter().any(|s| s == name);
 
 	let root = capture(Command::new("git").args(["rev-parse", "--show-toplevel"]));
 	std::env::set_current_dir(&root).expect("cd to repo root");
+
+	// cargo-release refuses to run against a dirty tree, and it refuses *late* —
+	// after this script has printed the release plan and authenticated with npm,
+	// which together read exactly like a run that is about to succeed. Worse, the
+	// files it objects to are usually a half-finished version bump from a previous
+	// failed release, so the operator sees an error about the very thing they were
+	// trying to publish. Check first, and name the files.
+	let dirty = capture(Command::new("git").args(["status", "--porcelain"]));
+	if !dirty.is_empty() {
+		eprintln!("working tree is not clean — nothing was released.");
+		eprintln!();
+		for line in dirty.lines() {
+			eprintln!("  {line}");
+		}
+		eprintln!();
+		eprintln!("cargo-release requires a clean tree so a release commit contains only the");
+		eprintln!("version bump. Commit or stash the above, then re-run.");
+		eprintln!();
+		eprintln!("If these are a version bump left behind by a release that failed partway,");
+		eprintln!("committing them is usually right: the registry already has that version, so");
+		eprintln!("the manifest is catching up with what shipped, not claiming something new.");
+		return ExitCode::FAILURE;
+	}
 
 	// Releasable rust crates and the pathspec that is "their own" sources. ev_lib
 	// is everything under rust/ except the nested crates; uikit-viewer is
@@ -170,17 +219,27 @@ fn main() -> ExitCode {
 
 	// A misspelled --only would otherwise select nothing and exit successfully,
 	// which reads exactly like a clean release that published everything asked for.
-	let unknown: Vec<&String> = only.iter().filter(|o| !known.contains(o)).collect();
+	let unknown: Vec<&String> = only.iter().chain(skip.iter()).filter(|o| !known.contains(o)).collect();
 	if !unknown.is_empty() {
-		eprintln!("--only named nothing releasable: {}", unknown.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", "));
+		eprintln!("--only/--skip named nothing releasable: {}", unknown.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", "));
 		eprintln!("releasable names are: {}", known.join(", "));
 		return ExitCode::FAILURE;
 	}
 
 	// Say what this run covers before it starts changing versions, so a narrowed
 	// release cannot look like a full one in the log.
-	if !only.is_empty() || npm_only {
-		eprintln!(">> narrowed release: {}", if npm_only { "npm only".to_owned() } else { format!("--only {}", only.join(" ")) });
+	if !only.is_empty() || !skip.is_empty() || npm_only {
+		let mut how: Vec<String> = Vec::new();
+		if npm_only {
+			how.push("npm only".to_owned());
+		}
+		if !only.is_empty() {
+			how.push(format!("--only {}", only.join(" ")));
+		}
+		if !skip.is_empty() {
+			how.push(format!("--skip {}", skip.join(" ")));
+		}
+		eprintln!(">> narrowed release: {}", how.join(", "));
 	}
 	eprintln!(">> releasing crates: {}", if rust_changed.is_empty() { "none".to_owned() } else { rust_changed.join(", ") });
 	eprintln!(
@@ -213,13 +272,61 @@ fn main() -> ExitCode {
 	}
 
 	// Rust: cargo-release versions, tags, commits, pushes and uploads to crates.io.
+	//
+	// In that order — which is the whole problem when the upload fails. By the time
+	// crates.io says no, the version bump is already a commit in the branch, so a
+	// panic here does not leave the repo as it found it. Remember where we were and
+	// hand the operator the exact way back.
 	if !rust_changed.is_empty() {
+		let before = capture(Command::new("git").args(["rev-parse", "HEAD"]));
 		let mut cmd = Command::new("cargo");
 		cmd.args(["release", "--no-confirm", "--execute", &level]);
 		for c in &rust_changed {
 			cmd.args(["-p", c]);
 		}
-		run(&mut cmd);
+		let (ok, output) = run_capturing(&mut cmd);
+		if !ok {
+			let after = capture(Command::new("git").args(["rev-parse", "HEAD"]));
+			eprintln!();
+			eprintln!("cargo-release failed. No npm package was touched.");
+			eprintln!();
+
+			// crates.io answers "not an owner" with a 403 that names no crate, so the
+			// operator is left guessing which of several `-p` crates it meant.
+			if output.contains("you don't seem to be an owner") || output.contains("403 Forbidden") {
+				eprintln!("crates.io refused the upload: this account does not own one of these crates.");
+				eprintln!();
+				eprintln!("This is not transient and re-running will not fix it. Check who owns what:");
+				eprintln!();
+				for c in &rust_changed {
+					eprintln!("    cargo owner --list {c}");
+				}
+				eprintln!();
+				eprintln!("Ownership is per crate, so a crate someone else created stays unpublishable");
+				eprintln!("from here until they add this account (`cargo owner --add <login> <crate>`).");
+				eprintln!("Until then, route around it — every other pending package still releases:");
+				eprintln!();
+				eprintln!("    nix run .#publish -- {level} --skip <crate>");
+				eprintln!();
+			}
+
+			if before != after {
+				eprintln!("cargo-release had already committed before it failed. The repo is NOT as");
+				eprintln!("it was: HEAD moved {} -> {}.", &before[..12.min(before.len())], &after[..12.min(after.len())]);
+				eprintln!();
+				eprintln!("To undo the version bump it left behind:");
+				eprintln!();
+				eprintln!("    git reset --hard {before}");
+				eprintln!("    git tag --points-at {after}   # then `git tag -d` any it lists");
+				eprintln!();
+				eprintln!("Do that before the next release. Left in place, the bumped version is one");
+				eprintln!("the registry never received, so the next run bumps again from a number that");
+				eprintln!("does not exist and the release history skips a version.");
+			} else {
+				eprintln!("HEAD did not move, so nothing needs undoing.");
+			}
+			return ExitCode::FAILURE;
+		}
 	}
 
 	let mut tags: Vec<String> = Vec::new();
