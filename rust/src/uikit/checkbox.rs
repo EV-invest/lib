@@ -2,9 +2,9 @@ use dioxus::prelude::*;
 
 use crate::{cn, uikit::primitives::use_controllable};
 
-const CHECKBOX_BASE: &str = "peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground \
+const CHECKBOX_BASE: &str = "peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-on-primary \
                              data-[state=checked]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 \
-                             aria-invalid:ring-destructive/20 aria-invalid:border-destructive size-4 shrink-0 \
+                             aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error size-4 shrink-0 \
                              rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] \
                              disabled:cursor-not-allowed disabled:opacity-50";
 

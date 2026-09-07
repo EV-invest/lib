@@ -18,6 +18,6 @@ export const DRAWER_HEADER = "flex flex-col gap-0.5 p-4 text-center sm:gap-1.5 s
 
 export const DRAWER_FOOTER = "mt-auto flex flex-col gap-2 p-4";
 
-export const DRAWER_TITLE = "text-foreground font-semibold";
+export const DRAWER_TITLE = "text-ink font-semibold";
 
-export const DRAWER_DESCRIPTION = "text-muted-foreground text-sm";
+export const DRAWER_DESCRIPTION = "text-ink-soft text-sm";

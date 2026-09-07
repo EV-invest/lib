@@ -18,6 +18,6 @@ export const SHEET_HEADER = "flex flex-col gap-1.5 p-4";
 
 export const SHEET_FOOTER = "mt-auto flex flex-col gap-2 p-4";
 
-export const SHEET_TITLE = "text-foreground font-semibold";
+export const SHEET_TITLE = "text-ink font-semibold";
 
-export const SHEET_DESCRIPTION = "text-muted-foreground text-sm";
+export const SHEET_DESCRIPTION = "text-ink-soft text-sm";

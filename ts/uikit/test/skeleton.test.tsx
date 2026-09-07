@@ -6,7 +6,7 @@ describe("Skeleton", () => {
   it("renders the base classes and slot", () => {
     const { container } = render(<Skeleton data-testid="sk" />);
     const el = container.querySelector('[data-slot="skeleton"]')!;
-    expect(el).toHaveClass("bg-accent");
+    expect(el).toHaveClass("bg-hover");
     expect(el).toHaveClass("animate-pulse");
     expect(el).toHaveClass("rounded-md");
   });

@@ -12,9 +12,9 @@ pub const DRAWER_HEADER: &str = "flex flex-col gap-0.5 p-4 text-center sm:gap-1.
 
 pub const DRAWER_FOOTER: &str = "mt-auto flex flex-col gap-2 p-4";
 
-pub const DRAWER_TITLE: &str = "text-foreground font-semibold";
+pub const DRAWER_TITLE: &str = "text-ink font-semibold";
 
-pub const DRAWER_DESCRIPTION: &str = "text-muted-foreground text-sm";
+pub const DRAWER_DESCRIPTION: &str = "text-ink-soft text-sm";
 
 /// Edge the drawer slides in from. The shared content base rides on [`DRAWER_CONTENT_BASE`].
 #[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]

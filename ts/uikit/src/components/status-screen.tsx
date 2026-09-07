@@ -1,9 +1,9 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
+import { buttonVariants, type ButtonVariant } from "./button";
 
 /**
- * The shared 404 / 403 / 500 status surface, ported from site_conductor so every
- * EV app (landing, cabinet) shows the same branded error pages.
+ * The shared 404 / 403 / 500 status surface.
  *
  * `StatusScreen` is the generic shell; `NotFound` / `Forbidden` / `ServerError`
  * are the ready-made pages with their copy baked in — a host renders those with
@@ -13,35 +13,38 @@ import { cn } from "../lib/cn";
  */
 export type StatusAccent = "teal" | "gold" | "red" | "blue";
 
-// Accent → token text colour. Bound to ev/color tokens; "blue" is the blueprint
-// accent the design specifies as a raw value (no token equivalent).
+// Which accent rung the page wears — the mark, eyebrow, code, headline and CTAs
+// all take it. Ordered by significance: 404 is a shrug, 403 a warning, 500 an
+// error. See the kit's docs/spec/accents.md.
 const ACCENT_TEXT: Record<StatusAccent, string> = {
-  teal: "text-main-accent-t1",
-  gold: "text-main-accent-t3",
-  red: "text-destructive",
-  blue: "text-[#5e9be6]",
+  teal: "text-accent-debug",
+  gold: "text-accent-warn",
+  red: "text-accent-error",
+  blue: "text-accent-info",
 };
 
-const BTN_BASE =
-  "inline-flex items-center justify-center rounded-md px-6 py-3.5 font-mono-tech text-xs uppercase tracking-widest transition-colors";
-
 const BTN_FILLED: Record<StatusAccent, string> = {
-  teal: "bg-main-accent-t1 text-main-black hover:bg-main-accent-t1/90",
-  gold: "bg-main-accent-t3 text-main-black hover:bg-main-accent-t3/90",
-  red: "bg-destructive text-white hover:bg-destructive/90",
-  blue: "bg-[#5e9be6] text-main-black hover:bg-[#5e9be6]/90",
+  teal: "bg-accent-debug text-background hover:bg-accent-debug/90",
+  gold: "bg-accent-warn text-background hover:bg-accent-warn/90",
+  red: "bg-accent-error text-on-accent-error hover:bg-accent-error/90",
+  blue: "bg-accent-info text-on-accent-info hover:bg-accent-info/90",
 };
 
 const BTN_OUTLINE: Record<StatusAccent, string> = {
-  teal: "border border-main-accent-t1/40 text-main-accent-t1 hover:bg-main-accent-t1/10",
-  gold: "border border-main-accent-t3/40 text-main-accent-t3 hover:bg-main-accent-t3/10",
-  red: "border border-destructive/40 text-destructive hover:bg-destructive/10",
-  blue: "border border-[#5e9be6]/40 text-[#5e9be6] hover:bg-[#5e9be6]/10",
+  teal: "border border-accent-debug/40 text-accent-debug hover:bg-accent-debug/10",
+  gold: "border border-accent-warn/40 text-accent-warn hover:bg-accent-warn/10",
+  red: "border border-accent-error/40 text-accent-error hover:bg-accent-error/10",
+  blue: "border border-accent-info/40 text-accent-info hover:bg-accent-info/10",
 };
 
-/** Class for a status CTA — shared by the nav links and the 500 retry button. */
-export function statusButtonClass(accent: StatusAccent, variant: "filled" | "outline") {
-  return cn(BTN_BASE, variant === "filled" ? BTN_FILLED[accent] : BTN_OUTLINE[accent]);
+// A status CTA is a Button at the page's accent: the canonical button string,
+// then the mono/uppercase treatment the error pages wear, then the accent.
+function statusCtaClass(accent: StatusAccent, variant: ButtonVariant) {
+  return cn(
+    buttonVariants({ variant, size: "lg" }),
+    "font-mono text-xs uppercase tracking-widest",
+    variant === "outline" ? BTN_OUTLINE[accent] : BTN_FILLED[accent],
+  );
 }
 
 // The EV skyline crown — the rooftop silhouette of the brand logo (Figma uikit
@@ -81,7 +84,7 @@ function ArrowLeftIcon({ className }: { className?: string }) {
 export interface StatusLinkData {
   label: string;
   href: string;
-  variant?: "filled" | "outline";
+  variant?: ButtonVariant;
   leadingArrow?: boolean;
 }
 
@@ -122,7 +125,7 @@ export function StatusScreen({
   const L = linkComponent ?? "a";
   const accentText = ACCENT_TEXT[accent];
   return (
-    <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-main-black px-6 py-32 text-center">
+    <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-6 py-32 text-center">
       <div
         aria-hidden
         className={cn(
@@ -132,18 +135,18 @@ export function StatusScreen({
       />
       <div className="relative z-10 flex w-full max-w-2xl flex-col items-center">
         <LogoMark className={cn("mb-7 h-10 w-auto", accentText)} />
-        <p className={cn("mb-6 font-mono-tech text-[11px] uppercase tracking-[0.34em]", accentText)}>{eyebrow}</p>
-        <p className={cn("font-serif-display text-[110px] font-medium leading-[0.9] sm:text-[180px]", accentText)}>{code}</p>
-        <h1 className="mt-4 font-serif-display text-3xl font-light leading-tight text-white sm:text-5xl">
+        <p className={cn("mb-6 font-mono text-[11px] uppercase tracking-[0.34em]", accentText)}>{eyebrow}</p>
+        <p className={cn("font-serif text-[110px] font-medium leading-[0.9] sm:text-[180px]", accentText)}>{code}</p>
+        <h1 className="mt-4 font-serif text-3xl font-light leading-tight text-ink sm:text-5xl">
           {headlineLead}
           <span className={cn("font-serif italic", accentText)}>{headlineAccent}</span>
           {headlineTail}
         </h1>
-        <p className="mx-auto mt-5 max-w-md text-sm leading-relaxed text-main-mist/60 sm:text-base">{subtext}</p>
+        <p className="mx-auto mt-5 max-w-md text-sm leading-relaxed text-ink/60 sm:text-base">{subtext}</p>
         <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row">
           {children}
           {links?.map((link) => (
-            <L key={link.label} href={link.href} className={statusButtonClass(accent, link.variant ?? "filled")}>
+            <L key={link.label} href={link.href} className={statusCtaClass(accent, link.variant ?? "default")}>
               {link.leadingArrow ? <ArrowLeftIcon className="mr-2 h-4 w-4" /> : null}
               {link.label}
             </L>
@@ -225,7 +228,7 @@ export function ServerError({ linkComponent = "a", homeHref = "/", reset }: Serv
     >
       <button
         type="button"
-        className={statusButtonClass("red", "filled")}
+        className={statusCtaClass("red", "default")}
         onClick={() => (reset ? reset() : window.location.reload())}
       >
         Try again

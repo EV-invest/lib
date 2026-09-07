@@ -151,8 +151,6 @@ export type {
 
 export { Kbd, KbdGroup } from "./components/kbd";
 
-export { Logo } from "./components/logo";
-export type { LogoProps } from "./components/logo";
 
 export {
   Pagination,
@@ -176,7 +174,6 @@ export { Spinner } from "./components/spinner";
 
 export {
   StatusScreen,
-  statusButtonClass,
   NotFound,
   Forbidden,
   ServerError,
@@ -204,6 +201,7 @@ export {
 export * from "./components/accordion";
 export * from "./components/collapsible";
 export * from "./components/container";
+export * from "./components/band";
 export * from "./components/tabs";
 export * from "./components/toggle";
 export * from "./components/toggle-group";

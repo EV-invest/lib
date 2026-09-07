@@ -8,7 +8,7 @@
 // cannot recurse.
 import { execFileSync } from "node:child_process";
 
-const REQUIRED = ["package.json", "dist/index.js", "dist/index.d.ts", "styles/tokens.css"];
+const REQUIRED = ["package.json", "dist/index.js", "dist/index.d.ts", "styles/tokens.css", "styles/tokens-legacy.css", "styles/motion.css"];
 
 const out = execFileSync("npm", ["pack", "--dry-run", "--json"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
 

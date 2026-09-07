@@ -1,6 +1,6 @@
 {
   "name": "@evinvest/uikit",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Dep-light React UI kit: shadcn-semantics components with zero @radix-ui / cva, mirroring the ev_lib::uikit Rust feature. Ships the shared design tokens.",
   "license": "BlueOak-1.0.0",
   "publishConfig": {
@@ -17,7 +17,9 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./styles/tokens.css": "./styles/tokens.css"
+    "./styles/tokens.css": "./styles/tokens.css",
+    "./styles/tokens-legacy.css": "./styles/tokens-legacy.css",
+    "./styles/motion.css": "./styles/motion.css"
   },
   "types": "./dist/index.d.ts",
   "main": "./dist/index.js",
@@ -35,7 +37,7 @@
     "build": "tsup",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "prepare": "mkdir -p styles && cp ../../tokens.css styles/tokens.css && tsup",
+    "prepare": "mkdir -p styles && cp ../../tokens.css ../../tokens-legacy.css ../../motion.css styles/ && tsup",
     "prepublishOnly": "node scripts/verify-pack.mjs"
   },
   "peerDependencies": {

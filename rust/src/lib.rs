@@ -44,6 +44,15 @@
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
+// The class tables are written against one token vocabulary; `legacy` and
+// `modern` say which stylesheet the consumer imported. Cargo unifies features
+// additively, so "both" would otherwise resolve silently to whichever `cfg` is
+// checked first — hence a hard stop rather than a precedence rule.
+#[cfg(all(feature = "uikit", feature = "legacy", feature = "modern"))]
+compile_error!("ev_lib: `legacy` and `modern` are exclusive — a build imports one tokens stylesheet. Set `default-features = false` and pick one.");
+#[cfg(all(feature = "uikit", not(any(feature = "legacy", feature = "modern"))))]
+compile_error!("ev_lib: the `uikit` feature needs `legacy` (import tokens-legacy.css) or `modern` (import tokens.css).");
+
 #[cfg(feature = "architecture")]
 pub mod architecture;
 

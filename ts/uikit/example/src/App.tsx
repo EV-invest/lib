@@ -76,9 +76,9 @@ function Section({
   return (
     <section className="space-y-3">
       <div className="flex items-baseline gap-3">
-        <h2 className="text-foreground text-lg font-semibold">{title}</h2>
+        <h2 className="text-ink text-lg font-semibold">{title}</h2>
         {hint ? (
-          <span className="text-muted-foreground text-xs">{hint}</span>
+          <span className="text-ink-soft text-xs">{hint}</span>
         ) : null}
       </div>
       <div className="flex flex-wrap items-center gap-3">{children}</div>
@@ -94,7 +94,7 @@ export default function App() {
 
   return (
     <TooltipProvider>
-      <div className="bg-background text-foreground min-h-dvh">
+      <div className="bg-background text-ink min-h-dvh">
         <div className="mx-auto max-w-3xl space-y-12 p-6 sm:p-12">
           <header className="space-y-2">
             <div className="flex items-center gap-3">
@@ -103,9 +103,9 @@ export default function App() {
               </h1>
               <Badge variant="success">React</Badge>
             </div>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-ink-soft text-sm">
               Live viewer rendered from local source — the Dioxus mirror lives in{" "}
-              <code className="text-foreground">rust/uikit-viewer</code>.
+              <code className="text-ink">rust/uikit-viewer</code>.
             </p>
           </header>
 
@@ -234,13 +234,13 @@ export default function App() {
                 <TabsTrigger value="returns">Returns</TabsTrigger>
                 <TabsTrigger value="risk">Risk</TabsTrigger>
               </TabsList>
-              <TabsContent value="overview" className="text-muted-foreground text-sm">
+              <TabsContent value="overview" className="text-ink-soft text-sm">
                 A navy-led institutional base with tiered accents.
               </TabsContent>
-              <TabsContent value="returns" className="text-muted-foreground text-sm">
+              <TabsContent value="returns" className="text-ink-soft text-sm">
                 Headline IRR / ROI figures sit on Rice Gold.
               </TabsContent>
-              <TabsContent value="risk" className="text-muted-foreground text-sm">
+              <TabsContent value="risk" className="text-ink-soft text-sm">
                 Drawdowns and exposure, kept legible.
               </TabsContent>
             </Tabs>

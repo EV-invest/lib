@@ -4,7 +4,6 @@ import { Slot } from "../primitives/slot";
 import { useControllableState } from "../primitives/use-controllable-state";
 import {
   SIDEBAR_MENU_BUTTON_BASE,
-  sidebarMenuButtonVariantClasses,
   sidebarMenuButtonSizeClasses,
   SIDEBAR_WRAPPER,
   SIDEBAR_FLAT,
@@ -21,11 +20,11 @@ import {
   SIDEBAR_GROUP_CONTENT,
   SIDEBAR_MENU,
   SIDEBAR_MENU_ITEM,
-  type SidebarMenuButtonVariant,
   type SidebarMenuButtonSize,
 } from "../generated/sidebar";
+import { buttonVariantClasses, type ButtonVariant } from "../generated/button";
 
-export type { SidebarMenuButtonVariant, SidebarMenuButtonSize };
+export type { SidebarMenuButtonSize };
 
 // omitted: mobile sheet, cookie, kbd shortcut — see README Limitations
 
@@ -128,7 +127,7 @@ export function Sidebar({
 
   return (
     <div
-      className="group peer text-sidebar-foreground hidden md:block"
+      className="group peer text-ink hidden md:block"
       data-state={state}
       data-collapsible={state === "collapsed" ? collapsible : ""}
       data-variant={variant}
@@ -323,14 +322,14 @@ export function SidebarMenuItem({ className, ...props }: React.ComponentProps<"l
 export interface SidebarMenuButtonProps extends React.ComponentProps<"button"> {
   asChild?: boolean;
   isActive?: boolean;
-  variant?: SidebarMenuButtonVariant;
+  variant?: ButtonVariant;
   size?: SidebarMenuButtonSize;
 }
 
 export function SidebarMenuButton({
   asChild = false,
   isActive = false,
-  variant = "default",
+  variant = "ghost",
   size = "default",
   className,
   ...props
@@ -345,7 +344,7 @@ export function SidebarMenuButton({
       data-active={isActive}
       className={cn(
         SIDEBAR_MENU_BUTTON_BASE,
-        sidebarMenuButtonVariantClasses[variant],
+        buttonVariantClasses[variant],
         sidebarMenuButtonSizeClasses[size],
         className,
       )}

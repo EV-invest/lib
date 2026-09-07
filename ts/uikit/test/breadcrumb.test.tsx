@@ -28,7 +28,7 @@ describe("Breadcrumb", () => {
     );
     const link = getByText("home");
     expect(link.tagName).toBe("A");
-    expect(link).toHaveClass("hover:text-foreground");
+    expect(link).toHaveClass("hover:text-ink");
     expect(link).toHaveAttribute("data-slot", "breadcrumb-link");
   });
 
@@ -40,7 +40,7 @@ describe("Breadcrumb", () => {
     );
     const el = getByRole("button");
     expect(el.tagName).toBe("BUTTON");
-    expect(el).toHaveClass("hover:text-foreground");
+    expect(el).toHaveClass("hover:text-ink");
   });
 
   it("page carries aria-current", () => {

@@ -1,1 +1,1 @@
-pub const SKELETON_BASE: &str = "bg-accent animate-pulse rounded-md";
+pub const SKELETON_BASE: &str = "bg-hover animate-pulse rounded-md";

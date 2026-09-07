@@ -22,7 +22,7 @@ describe("Card", () => {
     expect(el).toHaveClass("has-data-[slot=card-action]:grid-cols-[1fr_auto]");
   });
 
-  it("title stays minimal (no landing text-foreground)", () => {
+  it("title stays minimal (no landing text-ink)", () => {
     const { getByText } = render(<CardTitle>t</CardTitle>);
     const el = getByText("t");
     expect(el).toHaveClass("font-semibold");

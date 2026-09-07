@@ -10,9 +10,9 @@ pub const TABLE_FOOTER: &str = "bg-muted/50 border-t font-medium [&>tr]:last:bor
 
 pub const TABLE_ROW: &str = "hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors";
 
-pub const TABLE_HEAD: &str = "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap \
+pub const TABLE_HEAD: &str = "text-ink h-10 px-2 text-left align-middle font-medium whitespace-nowrap \
                              [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]";
 
 pub const TABLE_CELL: &str = "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]";
 
-pub const TABLE_CAPTION: &str = "text-muted-foreground mt-4 text-sm";
+pub const TABLE_CAPTION: &str = "text-ink-soft mt-4 text-sm";

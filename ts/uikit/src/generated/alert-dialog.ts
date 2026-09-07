@@ -10,4 +10,4 @@ export const ALERT_DIALOG_FOOTER = "flex flex-col-reverse gap-2 sm:flex-row sm:j
 
 export const ALERT_DIALOG_TITLE = "text-lg font-semibold";
 
-export const ALERT_DIALOG_DESCRIPTION = "text-muted-foreground text-sm";
+export const ALERT_DIALOG_DESCRIPTION = "text-ink-soft text-sm";

@@ -8,7 +8,7 @@ use crate::{
 	},
 };
 
-const CHEVRON: &str = "text-muted-foreground pointer-events-none size-4 shrink-0 translate-y-0.5 transition-transform duration-200";
+const CHEVRON: &str = "text-ink-soft pointer-events-none size-4 shrink-0 translate-y-0.5 transition-transform duration-200";
 
 /// Single keeps at most one item open; Multiple allows several.
 #[derive(Clone, Copy, Default, PartialEq)]

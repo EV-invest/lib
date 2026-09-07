@@ -1,0 +1,66 @@
+/*
+ * The pre-0.10 token vocabulary, layered over the current one.
+ *
+ * Import this instead of `tokens.css` while a consumer still writes
+ * `text-main-mist`, `bg-sidebar`, `text-muted-foreground` and friends in its own
+ * markup. It re-declares every old utility name and re-points the current tokens
+ * at the old values, so a kit component styled `bg-card text-ink` renders exactly
+ * what `bg-card text-card-foreground` rendered.
+ *
+ * Paired with the `legacy` Cargo feature and the `./styles/tokens-legacy.css`
+ * export of `@evinvest/uikit`. Both go away together once every consumer has
+ * moved; see docs/spec/accents.md for the model that replaces this.
+ */
+
+@import "./tokens.css";
+
+@theme inline {
+  --color-foreground: var(--ink);
+  --color-card-foreground: var(--ink);
+  --color-popover-foreground: var(--ink);
+  --color-primary-foreground: var(--on-primary);
+  --color-secondary-foreground: var(--on-secondary);
+  --color-accent: var(--hover);
+  --color-accent-foreground: var(--ink);
+  --color-destructive: var(--accent-error);
+  --color-destructive-foreground: var(--on-accent-error);
+
+  /* the sidebar namespace was eight aliases of tokens that already existed */
+  --color-sidebar: var(--secondary);
+  --color-sidebar-foreground: var(--ink);
+  --color-sidebar-primary: var(--primary);
+  --color-sidebar-primary-foreground: var(--on-primary);
+  --color-sidebar-accent: var(--hover);
+  --color-sidebar-accent-foreground: var(--ink);
+  --color-sidebar-border: var(--border);
+  --color-sidebar-ring: var(--ring);
+
+  --color-main-brand: var(--brand);
+  --color-main-black: var(--background);
+  --color-main-surface: var(--secondary);
+  --color-main-card: var(--card);
+  --color-main-mist: #e6e1d3;
+  --color-main-accent-t1: var(--accent-debug);
+  --color-main-accent-t2: var(--positive);
+  --color-main-accent-t3: var(--accent-warn);
+  --color-main-accent-t4: var(--chart-4);
+
+  --color-level-trace: var(--accent-trace);
+  --color-level-debug: var(--accent-debug);
+  --color-level-info: var(--accent-info);
+  --color-level-warn: var(--accent-warn);
+  --color-level-error: #da251d;
+}
+
+/* The seven tokens whose value moved. Everything else in `tokens.css` already
+ * carries its pre-0.10 value. */
+:root,
+.dark {
+  --ink: white;
+  --ink-mid: #e6e1d3;
+  --ink-soft: color-mix(in srgb, #e6e1d3 65%, transparent);
+  --hover: color-mix(in srgb, #e6e1d3 8%, transparent);
+  --border: color-mix(in srgb, #e6e1d3 14%, transparent);
+  --input: color-mix(in srgb, #e6e1d3 20%, transparent);
+  --on-secondary: white;
+}

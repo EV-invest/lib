@@ -12,7 +12,7 @@ export const CALENDAR_GRID = "w-full border-collapse mt-4";
 
 export const CALENDAR_WEEKDAY_ROW = "flex";
 
-export const CALENDAR_WEEKDAY = "text-muted-foreground rounded-md flex-1 font-normal text-[0.8rem] select-none";
+export const CALENDAR_WEEKDAY = "text-ink-soft rounded-md flex-1 font-normal text-[0.8rem] select-none";
 
 export const CALENDAR_WEEK = "flex w-full mt-2";
 
@@ -22,6 +22,6 @@ export const CALENDAR_DAY_CELL = "relative w-full h-full p-0 text-center aspect-
 
 export const CALENDAR_DAY = "size-auto w-full aspect-square font-normal leading-none";
 
-export const CALENDAR_DAY_SELECTED = "bg-primary text-primary-foreground";
+export const CALENDAR_DAY_SELECTED = "bg-primary text-on-primary";
 
-export const CALENDAR_DAY_TODAY = "bg-accent text-accent-foreground rounded-md";
+export const CALENDAR_DAY_TODAY = "bg-hover text-ink rounded-md";

@@ -34,14 +34,14 @@ fn Gallery() -> Element {
 	];
 
 	rsx! {
-		div { class: "bg-background text-foreground min-h-dvh",
+		div { class: "bg-background text-ink min-h-dvh",
 			div { class: "mx-auto max-w-3xl space-y-12 p-6 sm:p-12",
 				header { class: "space-y-2",
 					div { class: "flex items-center gap-3",
 						h1 { class: "text-2xl font-bold tracking-tight", "ev_lib::uikit" }
 						Badge { variant: BadgeVariant::Success, "Dioxus" }
 					}
-					p { class: "text-muted-foreground text-sm",
+					p { class: "text-ink-soft text-sm",
 						"Live viewer rendered by Dioxus \u{2192} wasm. The React mirror lives in ts/uikit/example."
 					}
 				}
@@ -85,7 +85,7 @@ fn Gallery() -> Element {
 				}
 
 				section { class: "space-y-3",
-					h2 { class: "text-foreground text-lg font-semibold", "Buttons" }
+					h2 { class: "text-ink text-lg font-semibold", "Buttons" }
 					div { class: "flex flex-wrap items-center gap-3",
 						Button { "Default" }
 						Button { variant: ButtonVariant::Secondary, "Secondary" }
@@ -97,7 +97,7 @@ fn Gallery() -> Element {
 				}
 
 				section { class: "space-y-3",
-					h2 { class: "text-foreground text-lg font-semibold", "Badges" }
+					h2 { class: "text-ink text-lg font-semibold", "Badges" }
 					div { class: "flex flex-wrap items-center gap-3",
 						Badge { "Default" }
 						Badge { variant: BadgeVariant::Secondary, "Secondary" }
@@ -108,7 +108,7 @@ fn Gallery() -> Element {
 				}
 
 				section { class: "space-y-3",
-					h2 { class: "text-foreground text-lg font-semibold", "Alert" }
+					h2 { class: "text-ink text-lg font-semibold", "Alert" }
 					div { class: "flex w-full flex-col gap-3",
 						Alert {
 							AlertTitle { "Heads up" }
@@ -122,7 +122,7 @@ fn Gallery() -> Element {
 				}
 
 				section { class: "space-y-3",
-					h2 { class: "text-foreground text-lg font-semibold", "Bits & pieces" }
+					h2 { class: "text-ink text-lg font-semibold", "Bits & pieces" }
 					div { class: "flex flex-wrap items-center gap-3", Spinner {} }
 				}
 			}

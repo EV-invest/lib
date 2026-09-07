@@ -87,7 +87,7 @@ pub fn ChartTooltipContent(
 			}
 			div { class: "grid gap-1.5",
 				for item in items {
-					div { class: "[&>svg]:text-muted-foreground flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5 items-center",
+					div { class: "[&>svg]:text-ink-soft flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5 items-center",
 						if !hide_indicator {
 							div {
 								class: "shrink-0 rounded-[2px] h-2.5 w-2.5",
@@ -98,9 +98,9 @@ pub fn ChartTooltipContent(
 							}
 						}
 						div { class: "flex flex-1 justify-between leading-none items-center",
-							span { class: "text-muted-foreground", "{item.label}" }
+							span { class: "text-ink-soft", "{item.label}" }
 							if !item.value.is_empty() {
-								span { class: "text-foreground font-mono font-medium tabular-nums", "{item.value}" }
+								span { class: "text-ink font-mono font-medium tabular-nums", "{item.value}" }
 							}
 						}
 					}
@@ -130,7 +130,7 @@ pub fn ChartLegendContent(#[props(default)] class: String, #[props(default)] ite
 	rsx! {
 		div { class: cls, "data-slot": "chart-legend",
 			for item in rows {
-				div { class: "[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3",
+				div { class: "[&>svg]:text-ink-soft flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3",
 					div {
 						class: "h-2 w-2 shrink-0 rounded-[2px]",
 						style: match &item.color {

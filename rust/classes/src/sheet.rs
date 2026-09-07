@@ -19,6 +19,6 @@ pub const SHEET_HEADER: &str = "flex flex-col gap-1.5 p-4";
 
 pub const SHEET_FOOTER: &str = "mt-auto flex flex-col gap-2 p-4";
 
-pub const SHEET_TITLE: &str = "text-foreground font-semibold";
+pub const SHEET_TITLE: &str = "text-ink font-semibold";
 
-pub const SHEET_DESCRIPTION: &str = "text-muted-foreground text-sm";
+pub const SHEET_DESCRIPTION: &str = "text-ink-soft text-sm";

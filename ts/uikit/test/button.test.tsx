@@ -31,7 +31,7 @@ describe("Button", () => {
 
   it("buttonVariants helper fuses variant, size and className override", () => {
     const cls = buttonVariants({ variant: "ghost", size: "default", className: "px-10" });
-    expect(cls).toContain("hover:bg-accent");
+    expect(cls).toContain("hover:bg-hover");
     expect(cls).toContain("h-9");
     expect(cls).toContain("px-10");
     // the default size's standalone `px-4` is dropped by the override (the

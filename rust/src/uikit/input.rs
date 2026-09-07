@@ -49,7 +49,7 @@ mod tests {
 		let html = render(app);
 		assert!(html.contains("data-slot=\"input\""), "{html}");
 		assert!(html.contains("border-input"), "{html}");
-		assert!(html.contains("placeholder:text-muted-foreground"), "{html}");
+		assert!(html.contains("placeholder:text-ink-soft"), "{html}");
 	}
 
 	#[test]

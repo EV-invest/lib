@@ -12,4 +12,4 @@ export const DIALOG_FOOTER = "flex flex-col-reverse gap-2 sm:flex-row sm:justify
 
 export const DIALOG_TITLE = "text-lg leading-none font-semibold";
 
-export const DIALOG_DESCRIPTION = "text-muted-foreground text-sm";
+export const DIALOG_DESCRIPTION = "text-ink-soft text-sm";

@@ -13,7 +13,7 @@ describe("Badge", () => {
 
   it("renders the success variant (canon parity with Rust)", () => {
     const { getByText } = render(<Badge variant="success">ok</Badge>);
-    expect(getByText("ok")).toHaveClass("text-main-accent-t2");
+    expect(getByText("ok")).toHaveClass("text-positive");
   });
 
   it("lets className override the base", () => {

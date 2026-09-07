@@ -79,7 +79,7 @@ pub fn FormItem(#[props(default)] class: String, children: Element) -> Element {
 	}
 }
 /// Wraps [`Label`], pointing `for` at the control id. Unlike the TS port — where
-/// `data-error` rides on the element and `data-[error=true]:text-destructive`
+/// `data-error` rides on the element and `data-[error=true]:text-accent-error`
 /// reacts to it — the `Label` component forwards no arbitrary attributes, so
 /// `error` folds the destructive colour straight into the class instead.
 #[component]
@@ -195,7 +195,7 @@ mod tests {
 		}
 		let html = render(app);
 		assert!(html.contains("data-slot=\"label\""), "wraps Label: {html}");
-		assert!(html.contains("text-destructive"), "{html}");
+		assert!(html.contains("text-accent-error"), "{html}");
 	}
 
 	/// The opening tag of the first element carrying `data-slot="<slot>"`.
@@ -233,7 +233,7 @@ mod tests {
 		assert!(input.contains("id=\"form-item-"), "the control id belongs on the input: {input}");
 		assert!(!control.contains("id=\"form-item-"), "the wrapper must not take the id: {control}");
 
-		// `aria-invalid:border-destructive` lives on INPUT_BASE, so this attribute
+		// `aria-invalid:border-accent-error` lives on INPUT_BASE, so this attribute
 		// is inert anywhere but the input.
 		assert!(input.contains("aria-invalid=\"true\""), "{input}");
 		assert!(!control.contains("aria-invalid"), "{control}");
@@ -305,7 +305,7 @@ mod tests {
 		}
 		let html = render(app);
 		assert!(html.contains("data-slot=\"form-message\""), "{html}");
-		assert!(html.contains("text-destructive"), "{html}");
+		assert!(html.contains("text-accent-error"), "{html}");
 		assert!(html.contains("required"), "{html}");
 	}
 }

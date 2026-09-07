@@ -128,7 +128,7 @@ function ChartTooltipContent({
           <div
             key={index}
             className={cn(
-              "[&>svg]:text-muted-foreground flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5 items-center",
+              "[&>svg]:text-ink-soft flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5 items-center",
             )}
           >
             {!hideIndicator && (
@@ -143,9 +143,9 @@ function ChartTooltipContent({
               />
             )}
             <div className="flex flex-1 justify-between leading-none items-center">
-              <span className="text-muted-foreground">{item.label}</span>
+              <span className="text-ink-soft">{item.label}</span>
               {item.value !== undefined && (
-                <span className="text-foreground font-mono font-medium tabular-nums">
+                <span className="text-ink font-mono font-medium tabular-nums">
                   {item.value}
                 </span>
               )}
@@ -191,7 +191,7 @@ function ChartLegendContent({
         <div
           key={index}
           className={cn(
-            "[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3",
+            "[&>svg]:text-ink-soft flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3",
           )}
         >
           {!hideIcon && (

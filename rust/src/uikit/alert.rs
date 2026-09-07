@@ -54,7 +54,7 @@ mod tests {
 			}
 		}
 		let html = render(app);
-		assert!(html.contains("text-destructive"), "{html}");
+		assert!(html.contains("text-accent-error"), "{html}");
 	}
 
 	#[test]
@@ -70,6 +70,6 @@ mod tests {
 		let html = render(app);
 		assert!(html.contains("data-slot=\"alert-title\""), "{html}");
 		assert!(html.contains("data-slot=\"alert-description\""), "{html}");
-		assert!(html.contains("text-muted-foreground"), "{html}");
+		assert!(html.contains("text-ink-soft"), "{html}");
 	}
 }

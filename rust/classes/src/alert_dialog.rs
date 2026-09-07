@@ -12,4 +12,4 @@ pub const ALERT_DIALOG_FOOTER: &str = "flex flex-col-reverse gap-2 sm:flex-row s
 
 pub const ALERT_DIALOG_TITLE: &str = "text-lg font-semibold";
 
-pub const ALERT_DIALOG_DESCRIPTION: &str = "text-muted-foreground text-sm";
+pub const ALERT_DIALOG_DESCRIPTION: &str = "text-ink-soft text-sm";
