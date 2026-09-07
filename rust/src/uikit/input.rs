@@ -7,6 +7,9 @@ use crate::{
 
 /// Picks up the id and `aria-*` of an enclosing
 /// [`FormControl`](crate::uikit::FormControl); outside one, all three are absent.
+///
+/// `name` and `required` are what make this submit inside a plain
+/// `<form method="post">`, with no hydration and no handler.
 #[component]
 pub fn Input(
 	#[props(default)] class: String,
@@ -14,6 +17,8 @@ pub fn Input(
 	#[props(default)] placeholder: String,
 	#[props(default)] disabled: bool,
 	#[props(default)] value: String,
+	name: Option<String>,
+	#[props(default)] required: bool,
 	oninput: Option<EventHandler<FormEvent>>,
 ) -> Element {
 	let cls = cn!(INPUT_BASE, class);
@@ -28,6 +33,8 @@ pub fn Input(
 			id: form.as_ref().map(|f| f.id.clone()),
 			"aria-describedby": form.as_ref().map(|f| f.described_by.clone()),
 			"aria-invalid": form.as_ref().map(|f| f.invalid.to_string()),
+			name,
+			required,
 			placeholder,
 			disabled,
 			value,

@@ -164,6 +164,9 @@
   /* control geometry, so a consumer reshapes every button/input at once */
   --control-radius: calc(var(--radius) - 2px);
   --control-py: 0.5rem;
+  /* the Xl (call-to-action) button reads all three */
+  --control-px: 2rem;
+  --control-text: 1rem;
   /* multiplies the display type scale (uikit <Display>) */
   --display-scale: 1;
   /* the vertical rhythm of a full-bleed <Section>; `tight` is the sub-page one */

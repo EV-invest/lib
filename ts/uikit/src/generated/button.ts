@@ -17,11 +17,11 @@ export const buttonSizeClasses = {
   "xs": "h-7 gap-1 px-2 text-xs has-[>svg]:px-1.5",
   "sm": "h-8 gap-1.5 px-3 has-[>svg]:px-2.5",
   "lg": "h-10 px-6 has-[>svg]:px-4",
-  "xl": "h-12 px-8 text-base has-[>svg]:px-6",
+  "xl": "px-[var(--control-px)] py-[var(--control-py)] text-[length:var(--control-text)]",
   "icon": "h-9 aspect-square px-0",
   "icon-xs": "h-7 aspect-square px-0",
   "icon-sm": "h-8 aspect-square px-0",
   "icon-lg": "h-10 aspect-square px-0",
-  "icon-xl": "h-12 aspect-square px-0",
+  "icon-xl": "aspect-square p-[var(--control-py)]",
 } as const;
 export type ButtonSize = keyof typeof buttonSizeClasses;

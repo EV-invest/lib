@@ -77,6 +77,7 @@ aria-valuenow=100
 aria-valuenow=25
 aria-valuenow=60
 aspect-square
+aspect-square p-[var(--control-py)]
 aspect-square size-full
 avatar-fallback
 avatar-image
@@ -393,7 +394,7 @@ focus:bg-hover focus:text-ink data-[state=open]:bg-hover data-[state=open]:text-
 focus:bg-hover focus:text-ink data-[variant=destructive]:text-accent-error data-[variant=destructive]:focus:bg-accent-error/10 data-[variant=destructive]:focus:text-accent-error data-[variant=destructive]:*:[svg]:!text-accent-error [&_svg:not([class*='text-'])]:text-ink-soft relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4
 focus:bg-hover focus:text-ink relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4
 focus:bg-hover focus:text-ink relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4
-font-display font-bold max-w-[54rem] tracking-[-0.005em] leading-[1.16] md:leading-[1.14] text-[calc(1.5625rem*var(--display-scale))] md:text-[calc(2.625rem*var(--display-scale))]
+font-display [font-weight:700] max-w-[54rem] tracking-[-0.005em] leading-[1.16] md:leading-[1.14] text-[calc(1.5625rem*var(--display-scale))] md:text-[calc(2.625rem*var(--display-scale))]
 font-medium
 font-medium text-[10px] md:text-[11.5px] tracking-[0.15em] md:tracking-[0.16em] text-primary
 font-semibold
@@ -432,9 +433,7 @@ h-10 aspect-square px-0
 h-10 px-2.5 min-w-10
 h-10 px-6 has-[>svg]:px-4
 h-12
-h-12 aspect-square px-0
 h-12 px-3 min-w-12
-h-12 px-8 text-base has-[>svg]:px-6
 h-12 text-sm group-data-[collapsible=icon]:p-0!
 h-2 w-2 shrink-0 rounded-[2px]
 h-2.5 flex-col border-t border-t-transparent
@@ -601,6 +600,7 @@ px-2 py-1.5
 px-2 py-1.5 text-sm font-medium data-[inset]:pl-8
 px-4
 px-6
+px-[var(--control-px)] py-[var(--control-py)] text-[length:var(--control-text)]
 px-[var(--page-px,1rem)]
 py-3 px-4 gap-2.5
 py-6 text-center text-sm

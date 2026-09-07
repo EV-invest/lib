@@ -13,6 +13,8 @@ pub fn Textarea(
 	#[props(default)] placeholder: String,
 	#[props(default)] disabled: bool,
 	#[props(default)] value: String,
+	name: Option<String>,
+	#[props(default)] required: bool,
 	oninput: Option<EventHandler<FormEvent>>,
 ) -> Element {
 	let cls = cn!(TEXTAREA_BASE, class);
@@ -25,6 +27,8 @@ pub fn Textarea(
 			id: form.as_ref().map(|f| f.id.clone()),
 			"aria-describedby": form.as_ref().map(|f| f.described_by.clone()),
 			"aria-invalid": form.as_ref().map(|f| f.invalid.to_string()),
+			name,
+			required,
 			placeholder,
 			disabled,
 			value,

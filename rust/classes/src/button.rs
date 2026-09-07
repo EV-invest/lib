@@ -37,11 +37,13 @@ pub fn button_size_class(size: Size, icon: bool) -> &'static str {
 		(Size::Sm, false) => "h-8 gap-1.5 px-3 has-[>svg]:px-2.5",
 		(Size::Md, false) => "h-9 px-4 py-[var(--control-py)] has-[>svg]:px-3",
 		(Size::Lg, false) => "h-10 px-6 has-[>svg]:px-4",
-		(Size::Xl, false) => "h-12 px-8 text-base has-[>svg]:px-6",
+		// the CTA size: geometry entirely from the control tokens, so a consumer
+		// reshapes its call to action by writing values
+		(Size::Xl, false) => "px-[var(--control-px)] py-[var(--control-py)] text-[length:var(--control-text)]",
 		(Size::Xs, true) => "h-7 aspect-square px-0",
 		(Size::Sm, true) => "h-8 aspect-square px-0",
 		(Size::Md, true) => "h-9 aspect-square px-0",
 		(Size::Lg, true) => "h-10 aspect-square px-0",
-		(Size::Xl, true) => "h-12 aspect-square px-0",
+		(Size::Xl, true) => "aspect-square p-[var(--control-py)]",
 	}
 }
