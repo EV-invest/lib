@@ -25,7 +25,7 @@ describe("Calendar", () => {
     );
     expect(getByText("10")).toHaveClass("bg-primary");
     expect(getByText("10")).toHaveAttribute("data-selected", "true");
-    expect(getByText("15")).toHaveClass("bg-accent");
+    expect(getByText("15")).toHaveClass("bg-hover");
     expect(getByText("15")).toHaveAttribute("data-today", "true");
     expect(getByText("10").closest("td")).toHaveAttribute(
       "aria-selected",

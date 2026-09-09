@@ -172,7 +172,7 @@ mod tests {
 		}
 		let html = render(app);
 		assert!(html.contains("data-slot=\"button\""), "{html}");
-		assert!(html.contains("hover:bg-accent"), "ghost variant: {html}");
+		assert!(html.contains("hover:bg-hover"), "ghost variant: {html}");
 		assert!(html.contains("h-6"), "xs size class: {html}");
 	}
 

@@ -11,6 +11,9 @@ use crate::{
 pub fn button_classes(variant: &ButtonVariant, size: Size, icon: bool, class: &str) -> String {
 	cn!(BUTTON_BASE, variant.as_class(), button_size_class(size, icon), class)
 }
+/// With `href` this is an `<a>` wearing the button's classes — a link that looks
+/// like a call to action is still a link, and the kit has no `asChild` slot to
+/// express that otherwise.
 #[component]
 pub fn Button(
 	#[props(default)] variant: ButtonVariant,
@@ -18,6 +21,7 @@ pub fn Button(
 	#[props(default)] icon: bool,
 	#[props(default)] class: String,
 	#[props(default)] disabled: bool,
+	href: Option<String>,
 	/// Left unset the HTML default applies (`submit` inside a `Form`), mirroring
 	/// the TS port where `type` is just another forwarded button prop. Callers
 	/// that must not submit — addons, toolbars — pass `"button"`.
@@ -26,6 +30,17 @@ pub fn Button(
 	children: Element,
 ) -> Element {
 	let cls = button_classes(&variant, size, icon, &class);
+	if let Some(href) = href {
+		return rsx! {
+			a {
+				class: cls,
+				"data-slot": "button",
+				href,
+				onclick: move |e| { if let Some(h) = onclick { h.call(e); } },
+				{children}
+			}
+		};
+	}
 	rsx! {
 		button {
 			class: cls,

@@ -1,16 +1,12 @@
 import * as React from "react";
 import { Container } from "./container";
-import { Logo } from "./logo";
 
 /**
- * The EV brand chrome footer, ported from site_conductor: a 12-col grid —
- * brand 3 | sitemap groups 2 each | Offices 3 | Newsletter 2 — over the dark
- * field, with the legal links and copyright line. On mobile the sitemap
- * columns sit side by side. All copy is parameterized with the EV defaults so
- * a bare `<Footer nav={…} />` matches the site; only the sitemap groups (and
- * the newsletter form, when wanted) come from the app. `children` render right
- * after the `<footer>` tag — the slot for app-side extras like the
- * build-version easter egg.
+ * A 12-col footer grid — brand 3 | sitemap groups 2 each | offices 3 |
+ * newsletter 2 — with the legal links and copyright line. On mobile the sitemap
+ * columns sit side by side. Every string is the caller's; the `offices` and
+ * `newsletter` columns are omitted when empty. `children` render right after the
+ * `<footer>` tag — the slot for app-side extras like a build-version easter egg.
  *
  * `linkComponent` lets Next hosts pass `next/link`; everyone else gets `<a>`.
  */
@@ -30,49 +26,41 @@ export interface FooterOffice {
 }
 
 export interface FooterProps {
+  brand: string;
+  description: string;
+  copyright: string;
   nav: readonly FooterLinkGroup[];
-  description?: string;
+  /** The mark beside the brand name. Sized by the caller. */
+  mark?: React.ReactNode;
+  tagline?: string;
   offices?: readonly FooterOffice[];
+  officesHeading?: string;
   legalLinks?: readonly FooterLink[];
-  /** The newsletter form; the Newsletter column renders only when present. */
+  /** The newsletter form; the newsletter column renders only when present. */
   newsletter?: React.ReactNode;
+  newsletterHeading?: string;
   newsletterBlurb?: string;
   version?: string;
   commitHref?: string;
-  tagline?: string;
   linkComponent?: React.ElementType;
   children?: React.ReactNode;
 }
 
-const DEFAULT_DESCRIPTION =
-  "EV Investment is a registered real estate advisory and investment management fund specializing in premium coastal developments in Quy Nhon, Binh Dinh province, Vietnam.";
-
-const DEFAULT_OFFICES: readonly FooterOffice[] = [
-  {
-    name: "Quy Nhon Head Office",
-    address: "102 An Duong Vuong St, Nguyen Van Cu Ward, Quy Nhon City, Vietnam",
-  },
-  {
-    name: "Ho Chi Minh Representative",
-    address: "Deutsches Haus, 33 Le Duan Blvd, District 1, Ho Chi Minh City, Vietnam",
-  },
-];
-
-const DEFAULT_LEGAL_LINKS: readonly FooterLink[] = [
-  { label: "Privacy Policy", href: "#hero" },
-  { label: "Terms of Service", href: "#hero" },
-];
-
 export function Footer({
+  brand,
+  description,
+  copyright,
   nav,
-  description = DEFAULT_DESCRIPTION,
-  offices = DEFAULT_OFFICES,
-  legalLinks = DEFAULT_LEGAL_LINKS,
+  mark,
+  tagline,
+  offices = [],
+  officesHeading = "Offices",
+  legalLinks = [],
   newsletter,
-  newsletterBlurb = "Subscribe, to receive our macro reports",
+  newsletterHeading = "Newsletter",
+  newsletterBlurb = "",
   version,
   commitHref,
-  tagline = "Quy Nhon Fund",
   linkComponent,
   children,
 }: FooterProps) {
@@ -81,30 +69,32 @@ export function Footer({
   return (
     <footer
       data-slot="footer"
-      className="bg-main-black border-t border-main-mist/10 py-16"
+      className="bg-background border-t border-ink/10 py-16"
     >
       {children}
       <Container>
         <div className="grid grid-cols-2 gap-x-8 gap-y-8 lg:grid-cols-12 mb-12">
           <div className="col-span-2 lg:col-span-3">
             <div className="flex items-center gap-3 mb-6">
-              <Logo className="w-8 h-8 text-white" />
+              {mark}
               <div className="flex flex-col">
-                <span className="font-serif-display font-bold text-base tracking-wider text-white">
-                  EV INVESTMENT
+                <span className="font-serif font-bold text-base tracking-wider text-ink">
+                  {brand}
                 </span>
-                <span className="text-[8px] font-mono-tech tracking-[0.3em] text-main-accent-t1 uppercase">
-                  {tagline}
-                </span>
+                {tagline && (
+                  <span className="text-[8px] font-mono tracking-[0.3em] text-accent-debug uppercase">
+                    {tagline}
+                  </span>
+                )}
               </div>
             </div>
-            <p className="text-main-mist/40 text-xs font-light max-w-sm leading-relaxed mb-6">
+            <p className="text-ink/40 text-xs font-light max-w-sm leading-relaxed mb-6">
               {description}
             </p>
-            <div className="flex gap-4 text-xs font-mono-tech text-main-accent-t1">
+            <div className="flex gap-4 text-xs font-mono text-accent-debug">
               {legalLinks.map((link, i) => (
                 <React.Fragment key={link.label}>
-                  {i > 0 && <span className="text-main-mist/20">|</span>}
+                  {i > 0 && <span className="text-ink/20">|</span>}
                   <L href={link.href} className="hover:underline">
                     {link.label}
                   </L>
@@ -119,7 +109,7 @@ export function Footer({
               aria-label={`Footer ${group.heading} links`}
               className="lg:col-span-2"
             >
-              <h4 className="font-mono-tech text-xs text-white uppercase tracking-widest mb-6">
+              <h4 className="font-mono text-xs text-ink uppercase tracking-widest mb-6">
                 {group.heading}
               </h4>
               <ul className="space-y-3">
@@ -127,7 +117,7 @@ export function Footer({
                   <li key={link.href}>
                     <L
                       href={link.href}
-                      className="text-xs font-light text-main-mist/70 hover:text-main-accent-t1 transition-colors"
+                      className="text-xs font-light text-ink/70 hover:text-accent-debug transition-colors"
                     >
                       {link.label}
                     </L>
@@ -137,30 +127,32 @@ export function Footer({
             </nav>
           ))}
 
-          <div className="col-span-2 lg:col-span-3">
-            <h4 className="font-mono-tech text-xs text-white uppercase tracking-widest mb-6">
-              Offices
-            </h4>
-            <ul className="space-y-4 text-xs text-main-mist/70 font-light leading-relaxed">
-              {offices.map((office) => (
-                <li key={office.name}>
-                  <strong className="text-white block font-mono-tech text-[10px] uppercase tracking-wider mb-1">
-                    {office.name}
-                  </strong>
-                  {office.address}
-                </li>
-              ))}
-            </ul>
-          </div>
+          {offices.length > 0 && (
+            <div className="col-span-2 lg:col-span-3">
+              <h4 className="font-mono text-xs text-ink uppercase tracking-widest mb-6">
+                {officesHeading}
+              </h4>
+              <ul className="space-y-4 text-xs text-ink/70 font-light leading-relaxed">
+                {offices.map((office) => (
+                  <li key={office.name}>
+                    <strong className="text-ink block font-mono text-[10px] uppercase tracking-wider mb-1">
+                      {office.name}
+                    </strong>
+                    {office.address}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {newsletter && (
             <div className="col-span-2 lg:col-span-2">
-              <h4 className="font-mono-tech text-xs text-white uppercase tracking-widest mb-6">
-                Newsletter
+              <h4 className="font-mono text-xs text-ink uppercase tracking-widest mb-6">
+                {newsletterHeading}
               </h4>
               {/* What the source's <Tier tier="alt"><Text> emits: alt body size
                   + the info variant, then the mb-4 the caller adds. */}
-              <p className="text-sm sm:text-xs font-light leading-relaxed text-main-mist/70 mb-4">
+              <p className="text-sm sm:text-xs font-light leading-relaxed text-ink/70 mb-4">
                 {newsletterBlurb}
               </p>
               {newsletter}
@@ -168,13 +160,13 @@ export function Footer({
           )}
         </div>
 
-        <div className="border-t border-main-mist/10 pt-8 text-[10px] font-mono-tech text-main-mist/40">
+        <div className="border-t border-ink/10 pt-8 text-[10px] font-mono text-ink/40">
           <p>
-            © 2026 EV Investment. All rights reserved.
+            {copyright}
             {version && (
               <>
                 {" "}
-                <a href={commitHref} className="text-main-mist/30">
+                <a href={commitHref} className="text-ink/30">
                   {version}
                 </a>
               </>

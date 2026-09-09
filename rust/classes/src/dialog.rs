@@ -10,4 +10,4 @@ pub const DIALOG_CLOSE: &str = "ring-offset-background focus:ring-ring absolute 
 pub const DIALOG_HEADER: &str = "flex flex-col gap-2 text-center sm:text-left";
 pub const DIALOG_FOOTER: &str = "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end";
 pub const DIALOG_TITLE: &str = "text-lg leading-none font-semibold";
-pub const DIALOG_DESCRIPTION: &str = "text-muted-foreground text-sm";
+pub const DIALOG_DESCRIPTION: &str = "text-ink-soft text-sm";

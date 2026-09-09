@@ -35,8 +35,8 @@ pub fn SelectTrigger(#[props(default)] size: Size, #[props(default)] class: Stri
 	let open = ctx.open.get();
 	let data_state = if open { "open" } else { "closed" };
 	let cls = cn!(
-		"border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground \
-		 focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 aria-invalid:border-destructive \
+		"border-input data-[placeholder]:text-ink-soft [&_svg:not([class*='text-'])]:text-ink-soft \
+		 focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error \
 		 flex w-fit items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs \
 		 transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 \
 		 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex \
@@ -93,7 +93,7 @@ pub fn SelectContent(#[props(default)] class: String, children: Element) -> Elem
 		return rsx! {};
 	}
 	let cls = cn!(
-		"bg-popover text-popover-foreground absolute top-full left-0 z-50 mt-1 max-h-96 min-w-[8rem] \
+		"bg-popover text-ink absolute top-full left-0 z-50 mt-1 max-h-96 min-w-[8rem] \
 		 overflow-x-hidden overflow-y-auto rounded-md border shadow-md",
 		class
 	);
@@ -122,7 +122,7 @@ pub fn SelectItem(value: String, #[props(default)] class: String, children: Elem
 	let ctx = use_context::<SelectCtx>();
 	let selected = ctx.value.get() == value;
 	let cls = cn!(
-		"focus:bg-accent focus:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full \
+		"focus:bg-hover focus:text-ink [&_svg:not([class*='text-'])]:text-ink-soft relative flex w-full \
 		 cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none \
 		 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 \
 		 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
@@ -172,7 +172,7 @@ pub fn SelectGroup(#[props(default)] class: String, children: Element) -> Elemen
 }
 #[component]
 pub fn SelectLabel(#[props(default)] class: String, children: Element) -> Element {
-	let cls = cn!("text-muted-foreground px-2 py-1.5 text-xs", class);
+	let cls = cn!("text-ink-soft px-2 py-1.5 text-xs", class);
 	rsx! {
 		div { class: cls, "data-slot": "select-label", {children} }
 	}

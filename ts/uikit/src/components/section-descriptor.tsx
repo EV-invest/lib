@@ -13,7 +13,7 @@ import { FIELD_TITLE, FIELD_DESCRIPTION } from "../generated/field";
  * which carries keyboard support and find-in-page auto-expand for free.
  */
 const SECTION_DESCRIPTOR =
-  "flex flex-col gap-2 rounded-lg border bg-accent p-4 text-left";
+  "flex flex-col gap-2 rounded-lg border bg-hover p-4 text-left";
 
 // lucide `info`, inlined per the kit's no-lucide-dep icon convention.
 function InfoGlyph({ className }: { className?: string }) {
@@ -59,7 +59,7 @@ export function SectionDescriptor({
 }: SectionDescriptorProps) {
   const titleContent = (
     <>
-      {icon && <InfoGlyph className="text-main-accent-t1" />}
+      {icon && <InfoGlyph className="text-accent-debug" />}
       <span>{title}</span>
     </>
   );

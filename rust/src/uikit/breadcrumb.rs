@@ -143,7 +143,7 @@ mod tests {
 		assert!(html.contains("data-slot=\"breadcrumb-list\""), "{html}");
 		assert!(html.contains("data-slot=\"breadcrumb-item\""), "{html}");
 		assert!(html.contains("data-slot=\"breadcrumb-link\""), "{html}");
-		assert!(html.contains("hover:text-foreground"), "{html}");
+		assert!(html.contains("hover:text-ink"), "{html}");
 	}
 
 	#[test]

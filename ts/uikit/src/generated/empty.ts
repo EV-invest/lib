@@ -8,12 +8,12 @@ export const EMPTY_MEDIA_BASE = "flex shrink-0 items-center justify-center mb-2 
 
 export const emptyMediaVariants = {
   "default": "bg-transparent",
-  "icon": "bg-muted text-foreground flex size-10 shrink-0 items-center justify-center rounded-lg [&_svg:not([class*='size-'])]:size-6",
+  "icon": "bg-muted text-ink flex size-10 shrink-0 items-center justify-center rounded-lg [&_svg:not([class*='size-'])]:size-6",
 } as const;
 export type EmptyMediaVariant = keyof typeof emptyMediaVariants;
 
 export const EMPTY_TITLE = "text-lg font-medium tracking-tight";
 
-export const EMPTY_DESCRIPTION = "text-muted-foreground [&>a:hover]:text-primary text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4";
+export const EMPTY_DESCRIPTION = "text-ink-soft [&>a:hover]:text-primary text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4";
 
 export const EMPTY_CONTENT = "flex w-full max-w-sm min-w-0 flex-col items-center gap-4 text-sm text-balance";

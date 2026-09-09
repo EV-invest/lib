@@ -4,7 +4,7 @@ export const ITEM_GROUP = "group/item-group flex flex-col";
 
 export const ITEM_SEPARATOR = "my-0";
 
-export const ITEM_BASE = "group/item flex items-center border border-transparent text-sm rounded-md transition-colors [a]:hover:bg-accent/50 [a]:transition-colors duration-100 flex-wrap outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]";
+export const ITEM_BASE = "group/item flex items-center border border-transparent text-sm rounded-md transition-colors [a]:hover:bg-hover/50 [a]:transition-colors duration-100 flex-wrap outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]";
 
 export const itemVariants = {
   "default": "bg-transparent",
@@ -32,7 +32,7 @@ export const ITEM_CONTENT = "flex flex-1 flex-col gap-1 [&+[data-slot=item-conte
 
 export const ITEM_TITLE = "flex w-fit items-center gap-2 text-sm leading-snug font-medium";
 
-export const ITEM_DESCRIPTION = "text-muted-foreground line-clamp-2 text-sm leading-normal font-normal text-balance [&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4";
+export const ITEM_DESCRIPTION = "text-ink-soft line-clamp-2 text-sm leading-normal font-normal text-balance [&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4";
 
 export const ITEM_ACTIONS = "flex items-center gap-2";
 

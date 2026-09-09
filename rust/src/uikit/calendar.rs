@@ -294,7 +294,7 @@ mod tests {
 		let html = render(app);
 		assert!(html.contains("aria-selected=\"true\""), "{html}");
 		assert!(html.contains("bg-primary"), "{html}");
-		assert!(html.contains("bg-accent"), "{html}");
+		assert!(html.contains("bg-hover"), "{html}");
 		assert!(html.contains("data-selected=\"true\""), "{html}");
 	}
 }

@@ -61,7 +61,7 @@ fn head(title: &str) -> String {
 {TOKENS}
 </style>
 <style>
-  html, body {{ background: var(--background); color: var(--foreground); }}
+  html, body {{ background: var(--background); color: var(--ink); }}
   /* A `transform` makes any `position: fixed` overlay descendant resolve
      against its cell, not the viewport — so open dropdowns/dialogs/tooltips
      stay boxed inside the component they belong to. */
@@ -87,7 +87,7 @@ fn standalone(title: &str, fragment: &str) -> String {
 fn cell(name: &str, fragment: &str) -> String {
 	format!(
 		"<section class=\"stage flex flex-col gap-3 rounded-lg border border-border bg-card/30 p-5\">\
-		 <h3 class=\"text-xs font-medium uppercase tracking-wide text-muted-foreground\">{name}</h3>\
+		 <h3 class=\"text-xs font-medium uppercase tracking-wide text-ink-soft\">{name}</h3>\
 		 <div class=\"flex flex-1 flex-wrap items-center gap-3\">{fragment}</div></section>"
 	)
 }
@@ -538,14 +538,14 @@ fn d_chart() -> Element {
 		"revenue".to_string(),
 		ChartSeries {
 			label: Some("Revenue".to_string()),
-			color: Some("var(--main-accent-t2)".to_string()),
+			color: Some("var(--positive)".to_string()),
 		},
 	)];
 	rsx! {
 		ChartContainer { id: "demo", class: "w-72", config,
 			div { class: "flex h-40 items-end gap-2",
 				for h in [40, 72, 55, 90, 65, 80] {
-					div { class: "w-8 rounded-t bg-main-accent-t2", style: "height: {h}%" }
+					div { class: "w-8 rounded-t bg-positive", style: "height: {h}%" }
 				}
 			}
 		}

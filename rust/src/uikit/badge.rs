@@ -37,7 +37,7 @@ mod tests {
 			}
 		}
 		let html = render(app);
-		assert!(html.contains("text-main-accent-t2"), "{html}");
+		assert!(html.contains("text-positive"), "{html}");
 	}
 
 	#[test]

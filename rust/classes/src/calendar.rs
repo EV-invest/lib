@@ -10,7 +10,7 @@ pub const CALENDAR_GRID: &str = "w-full border-collapse mt-4";
 
 pub const CALENDAR_WEEKDAY_ROW: &str = "flex";
 
-pub const CALENDAR_WEEKDAY: &str = "text-muted-foreground rounded-md flex-1 font-normal text-[0.8rem] select-none";
+pub const CALENDAR_WEEKDAY: &str = "text-ink-soft rounded-md flex-1 font-normal text-[0.8rem] select-none";
 
 pub const CALENDAR_WEEK: &str = "flex w-full mt-2";
 
@@ -20,6 +20,6 @@ pub const CALENDAR_DAY_CELL: &str = "relative w-full h-full p-0 text-center aspe
 
 pub const CALENDAR_DAY: &str = "size-auto w-full aspect-square font-normal leading-none";
 
-pub const CALENDAR_DAY_SELECTED: &str = "bg-primary text-primary-foreground";
+pub const CALENDAR_DAY_SELECTED: &str = "bg-primary text-on-primary";
 
-pub const CALENDAR_DAY_TODAY: &str = "bg-accent text-accent-foreground rounded-md";
+pub const CALENDAR_DAY_TODAY: &str = "bg-hover text-ink rounded-md";

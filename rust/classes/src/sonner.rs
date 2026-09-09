@@ -5,7 +5,7 @@ use tailwind_fuse::{AsTailwindClass, TwVariant};
 /// stays in the React component (the Rust kit has no swipe-to-dismiss).
 pub const TOAST_BASE: &str = "pointer-events-auto flex w-full items-start gap-3 rounded-md border p-4 text-sm shadow-lg";
 
-pub const TOAST_CLOSE: &str = "text-foreground/50 hover:text-foreground shrink-0 transition-colors";
+pub const TOAST_CLOSE: &str = "text-ink/50 hover:text-ink shrink-0 transition-colors";
 
 pub const TOAST_CONTENT: &str = "flex-1 space-y-1";
 
@@ -17,15 +17,15 @@ pub const TOASTER_BASE: &str = "pointer-events-none fixed z-100 w-[calc(100%-2re
 #[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum ToastVariant {
-	#[tw(default, class = "bg-popover text-popover-foreground border-border")]
+	#[tw(default, class = "bg-popover text-ink border-border")]
 	Default,
-	#[tw(class = "bg-popover text-popover-foreground border-main-accent-t2/40")]
+	#[tw(class = "bg-popover text-ink border-positive/40")]
 	Success,
-	#[tw(class = "bg-popover text-popover-foreground border-destructive/50")]
+	#[tw(class = "bg-popover text-ink border-accent-error/50")]
 	Error,
-	#[tw(class = "bg-popover text-popover-foreground border-border")]
+	#[tw(class = "bg-popover text-ink border-border")]
 	Info,
-	#[tw(class = "bg-popover text-popover-foreground border-border")]
+	#[tw(class = "bg-popover text-ink border-border")]
 	Warning,
 }
 

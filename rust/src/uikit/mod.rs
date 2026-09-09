@@ -12,7 +12,7 @@
 //!
 //! ```toml
 //! [target.'cfg(target_arch = "wasm32")'.dependencies]
-//! ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["uikit", "wasm"] }
+//! ev_lib = { version = "0.10", default-features = false, features = ["uikit", "modern", "wasm"] }
 //! ```
 
 pub mod primitives;
@@ -20,42 +20,21 @@ pub mod primitives;
 #[cfg(test)]
 mod test_util;
 
-// Styling data (class tables, `Size`, `ButtonVariant`) lives in the Dioxus-free
-// `ev_lib_classes` crate, the single source of truth the TS codegen reads too.
+// Styling data lives in the Dioxus-free `ev_lib_classes` crate, the single source
+// of truth the TS codegen reads too. The class strings are an implementation
+// detail of the components — only the types a caller has to *name* to build a
+// prop are re-exported.
+pub(crate) use ev_lib_classes::*;
 pub use ev_lib_classes::{
-	ACCORDION_CONTENT, ACCORDION_CONTENT_INNER, ACCORDION_HEADER, ACCORDION_ITEM, ACCORDION_TRIGGER, ALERT_BASE, ALERT_DESCRIPTION, ALERT_DIALOG_CONTENT, ALERT_DIALOG_DESCRIPTION,
-	ALERT_DIALOG_FOOTER, ALERT_DIALOG_HEADER, ALERT_DIALOG_OVERLAY, ALERT_DIALOG_TITLE, ALERT_TITLE, AVATAR, AVATAR_FALLBACK, AVATAR_IMAGE, AlertVariant, BADGE_BASE, BREADCRUMB_ELLIPSIS,
-	BREADCRUMB_ITEM, BREADCRUMB_LINK, BREADCRUMB_LIST, BREADCRUMB_PAGE, BREADCRUMB_SEPARATOR, BUTTON_BASE, BUTTON_GROUP_BASE, BUTTON_GROUP_SEPARATOR_BASE, BUTTON_GROUP_TEXT_BASE,
-	BadgeVariant, ButtonGroupOrientation, ButtonVariant, CALENDAR_CAPTION, CALENDAR_DAY, CALENDAR_DAY_CELL, CALENDAR_DAY_EMPTY, CALENDAR_DAY_SELECTED, CALENDAR_DAY_TODAY, CALENDAR_GRID,
-	CALENDAR_NAV, CALENDAR_NAV_BUTTON, CALENDAR_ROOT, CALENDAR_WEEK, CALENDAR_WEEKDAY, CALENDAR_WEEKDAY_ROW, CARD, CARD_ACTION, CARD_CONTENT, CARD_DESCRIPTION, CARD_FOOTER, CARD_HEADER,
-	CARD_TITLE, CAROUSEL_CONTENT_TRACK, CAROUSEL_CONTENT_TRACK_HORIZONTAL, CAROUSEL_CONTENT_TRACK_VERTICAL, CAROUSEL_CONTENT_VIEWPORT, CAROUSEL_EDGE_FADE_NEXT, CAROUSEL_EDGE_FADE_PREV,
-	CAROUSEL_ITEM, CAROUSEL_ITEM_HORIZONTAL, CAROUSEL_ITEM_VERTICAL, CAROUSEL_NAV, CAROUSEL_NEXT_HORIZONTAL, CAROUSEL_NEXT_VERTICAL, CAROUSEL_PREVIOUS_HORIZONTAL,
-	CAROUSEL_PREVIOUS_VERTICAL, CHART_CONTAINER, CHART_LEGEND, CHART_TOOLTIP, COMMAND_DIALOG_COMMAND, COMMAND_DIALOG_CONTENT, COMMAND_DIALOG_OVERLAY, COMMAND_EMPTY, COMMAND_GROUP,
-	COMMAND_INPUT, COMMAND_INPUT_WRAPPER, COMMAND_ITEM, COMMAND_LIST, COMMAND_ROOT, COMMAND_SEPARATOR, COMMAND_SHORTCUT, CONTAINER_BASE, CONTEXT_MENU_CHECK_ITEM, CONTEXT_MENU_CONTENT,
-	CONTEXT_MENU_ITEM, CONTEXT_MENU_LABEL, CONTEXT_MENU_SEPARATOR, CONTEXT_MENU_SHORTCUT, CONTEXT_MENU_SUB_CONTENT, CONTEXT_MENU_SUB_TRIGGER, DIALOG_CLOSE, DIALOG_CONTENT,
-	DIALOG_DESCRIPTION, DIALOG_FOOTER, DIALOG_HEADER, DIALOG_OVERLAY, DIALOG_TITLE, DRAWER_CONTENT_BASE, DRAWER_DESCRIPTION, DRAWER_FOOTER, DRAWER_HANDLE, DRAWER_HEADER, DRAWER_OVERLAY,
-	DRAWER_TITLE, DROPDOWN_MENU_CHECK_ITEM, DROPDOWN_MENU_CONTENT, DROPDOWN_MENU_ITEM, DROPDOWN_MENU_ITEM_INDICATOR, DROPDOWN_MENU_LABEL, DROPDOWN_MENU_SEPARATOR, DROPDOWN_MENU_SHORTCUT,
-	DROPDOWN_MENU_SUB_CONTENT, DROPDOWN_MENU_SUB_TRIGGER, DrawerDirection, EMPTY, EMPTY_CONTENT, EMPTY_DESCRIPTION, EMPTY_HEADER, EMPTY_MEDIA_BASE, EMPTY_TITLE, EmptyMediaVariant,
-	FIELD_BASE, FIELD_CONTENT, FIELD_DESCRIPTION, FIELD_ERROR, FIELD_GROUP, FIELD_LABEL, FIELD_LEGEND, FIELD_SEPARATOR, FIELD_SEPARATOR_CONTENT, FIELD_SEPARATOR_LINE, FIELD_SET,
-	FIELD_TITLE, FORM_DESCRIPTION, FORM_ITEM, FORM_LABEL, FORM_MESSAGE, FieldOrientation, HOVER_CARD_CONTENT, INPUT_BASE, INPUT_GROUP_ADDON_BASE, INPUT_GROUP_BASE, INPUT_GROUP_BUTTON_BASE,
-	INPUT_GROUP_INPUT_CONTROL, INPUT_GROUP_TEXT, INPUT_GROUP_TEXTAREA_CONTROL, INPUT_OTP_CONTAINER, INPUT_OTP_GROUP, INPUT_OTP_INPUT, INPUT_OTP_SLOT, INPUT_OTP_SLOT_CARET,
-	INPUT_OTP_SLOT_CARET_WRAPPER, ITEM_ACTIONS, ITEM_BASE, ITEM_CONTENT, ITEM_DESCRIPTION, ITEM_FOOTER, ITEM_GROUP, ITEM_HEADER, ITEM_MEDIA_BASE, ITEM_SEPARATOR, ITEM_TITLE,
-	InputGroupAddonAlign, InputGroupButtonSize, ItemMediaVariant, ItemSize, ItemVariant, KBD_BASE, KBD_GROUP_BASE, LABEL_BASE, MENUBAR_CHECKBOX_ITEM, MENUBAR_CONTENT, MENUBAR_ITEM,
-	MENUBAR_ITEM_INDICATOR, MENUBAR_LABEL, MENUBAR_RADIO_ITEM, MENUBAR_ROOT, MENUBAR_SEPARATOR, MENUBAR_SHORTCUT, MENUBAR_SUB_CONTENT, MENUBAR_SUB_TRIGGER, MENUBAR_TRIGGER, NAVIGATION_MENU,
-	NAVIGATION_MENU_CONTENT, NAVIGATION_MENU_INDICATOR, NAVIGATION_MENU_ITEM, NAVIGATION_MENU_LINK, NAVIGATION_MENU_LIST, NAVIGATION_MENU_TRIGGER_STYLE, NAVIGATION_MENU_VIEWPORT,
-	Orientation, POPOVER_CONTENT, PROGRESS_INDICATOR, PROGRESS_TRACK, RADIO_GROUP_ITEM, RADIO_GROUP_ROOT, RESIZABLE_GROUP, RESIZABLE_HANDLE, RESIZABLE_HANDLE_GRIP, RESIZABLE_PANEL,
-	SCROLL_AREA_THUMB, SCROLL_AREA_VIEWPORT, SCROLLBAR_BASE, SEPARATOR_BASE, SHEET_CLOSE, SHEET_CONTENT, SHEET_DESCRIPTION, SHEET_FOOTER, SHEET_HEADER, SHEET_OVERLAY, SHEET_SIDE_BOTTOM,
-	SHEET_SIDE_LEFT, SHEET_SIDE_RIGHT, SHEET_SIDE_TOP, SHEET_TITLE, SIDEBAR_CONTENT, SIDEBAR_FLAT, SIDEBAR_FOOTER, SIDEBAR_GROUP, SIDEBAR_GROUP_CONTENT, SIDEBAR_GROUP_LABEL, SIDEBAR_HEADER,
-	SIDEBAR_INNER, SIDEBAR_INSET, SIDEBAR_MENU, SIDEBAR_MENU_BUTTON_BASE, SIDEBAR_MENU_ITEM, SIDEBAR_RAIL, SIDEBAR_SEPARATOR, SIDEBAR_TRIGGER, SIDEBAR_WRAPPER, SKELETON_BASE, SLIDER_RANGE,
-	SLIDER_ROOT, SLIDER_THUMB, SLIDER_TRACK, ScrollBarOrientation, SidebarMenuButtonSize, SidebarMenuButtonVariant, Size, TABLE, TABLE_BODY, TABLE_CAPTION, TABLE_CELL, TABLE_CONTAINER,
-	TABLE_FOOTER, TABLE_HEAD, TABLE_HEADER, TABLE_ROW, TABS_CONTENT, TABS_LIST, TABS_ROOT, TABS_TRIGGER, TEXTAREA_BASE, TOAST_BASE, TOAST_CLOSE, TOAST_CONTENT, TOAST_TITLE, TOASTER_BASE,
-	TOGGLE_BASE, TOOLTIP_CONTENT, ToastPosition, ToastVariant, ToggleVariant, button_size_class, input_group_button_size_class, toggle_size_class,
+	AlertVariant, BadgeVariant, ButtonGroupOrientation, ButtonVariant, DrawerDirection, EmptyMediaVariant, FieldOrientation, InputGroupAddonAlign, InputGroupButtonSize, ItemMediaVariant,
+	ItemSize, ItemVariant, Orientation, Polarity, ScrollBarOrientation, Size, Surface, ToastPosition, ToastVariant, ToggleVariant,
 };
 
 mod accordion;
 mod alert;
 mod avatar;
 mod badge;
+mod band;
 mod breadcrumb;
 mod button;
 mod button_group;
@@ -66,7 +45,6 @@ mod collapsible;
 mod container;
 mod empty;
 mod field;
-mod fonts;
 mod input;
 mod input_group;
 mod input_otp;
@@ -94,6 +72,7 @@ pub use accordion::{Accordion, AccordionContent, AccordionItem, AccordionTrigger
 pub use alert::{Alert, AlertDescription, AlertTitle};
 pub use avatar::{Avatar, AvatarFallback, AvatarImage};
 pub use badge::Badge;
+pub use band::{Check, Display, Eyebrow, Prose, Section, SectionHead, Stat};
 pub use breadcrumb::{Breadcrumb, BreadcrumbEllipsis, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator};
 pub use button::{Button, button_classes};
 pub use button_group::{ButtonGroup, ButtonGroupSeparator, ButtonGroupText};
@@ -106,7 +85,6 @@ pub use container::Container;
 pub use drawer::{Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerOverlay, DrawerTitle, DrawerTrigger};
 pub use empty::{Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle};
 pub use field::{Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldLegendVariant, FieldSeparator, FieldSet, FieldTitle};
-pub use fonts::Fonts;
 pub use input::Input;
 pub use input_group::{InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput, InputGroupText, InputGroupTextarea};
 pub use input_otp::{InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot};
@@ -183,13 +161,10 @@ pub use form::*;
 pub use resizable::*;
 pub use sonner::*;
 
-// Brand chrome — the EV site shell (Footer/Logo) and the shared status
-// pages (404/403/500), shared across surfaces. The brand Header lives in
-// site_conductor: with zones chromeless, the conductor is its only consumer.
+// Site chrome — the footer grid and the 404/403/500 status pages. Both take
+// their copy and their mark from the caller; the kit carries no brand.
 mod footer;
-mod logo;
 mod status_screen;
 
 pub use footer::{Footer, FooterLink, FooterLinkGroup, FooterOffice};
-pub use logo::Logo;
-pub use status_screen::{Forbidden, NotFound, ServerError, StatusAccent, StatusButtonVariant, StatusLinkData, StatusScreen, status_button_class};
+pub use status_screen::{Forbidden, NotFound, ServerError, StatusAccent, StatusLinkData, StatusScreen};

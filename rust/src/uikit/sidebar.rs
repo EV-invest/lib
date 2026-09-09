@@ -3,9 +3,10 @@ use dioxus::prelude::*;
 use crate::{
 	cn,
 	uikit::{
-		SIDEBAR_CONTENT, SIDEBAR_FLAT, SIDEBAR_FOOTER, SIDEBAR_GROUP, SIDEBAR_GROUP_CONTENT, SIDEBAR_GROUP_LABEL, SIDEBAR_HEADER, SIDEBAR_INNER, SIDEBAR_INSET, SIDEBAR_MENU,
-		SIDEBAR_MENU_BUTTON_BASE, SIDEBAR_MENU_ITEM, SIDEBAR_RAIL, SIDEBAR_SEPARATOR, SIDEBAR_TRIGGER, SIDEBAR_WRAPPER, SidebarMenuButtonSize, SidebarMenuButtonVariant,
+		ButtonVariant, SIDEBAR_CONTENT, SIDEBAR_FLAT, SIDEBAR_FOOTER, SIDEBAR_GROUP, SIDEBAR_GROUP_CONTENT, SIDEBAR_GROUP_LABEL, SIDEBAR_HEADER, SIDEBAR_INNER, SIDEBAR_INSET, SIDEBAR_MENU,
+		SIDEBAR_MENU_BUTTON_BASE, SIDEBAR_MENU_ITEM, SIDEBAR_RAIL, SIDEBAR_SEPARATOR, SIDEBAR_TRIGGER, SIDEBAR_WRAPPER, Size,
 		primitives::{Controllable, use_controllable},
+		sidebar_menu_button_size_class,
 	},
 };
 
@@ -112,7 +113,7 @@ pub fn Sidebar(
 	let inner = cn!(SIDEBAR_INNER, class);
 	rsx! {
 		div {
-			class: "group peer text-sidebar-foreground hidden md:block",
+			class: "group peer text-ink hidden md:block",
 			"data-state": state,
 			"data-collapsible": data_collapsible,
 			"data-variant": variant.as_ref(),
@@ -246,14 +247,14 @@ pub fn SidebarMenuItem(#[props(default)] class: String, children: Element) -> El
 /// which would put an `<a>` inside this `<button>`.
 #[component]
 pub fn SidebarMenuButton(
-	#[props(default)] variant: SidebarMenuButtonVariant,
-	#[props(default)] size: SidebarMenuButtonSize,
+	#[props(default = ButtonVariant::Ghost)] variant: ButtonVariant,
+	#[props(default = Size::Sm)] size: Size,
 	#[props(default)] is_active: bool,
 	onclick: Option<EventHandler<MouseEvent>>,
 	#[props(default)] class: String,
 	children: Element,
 ) -> Element {
-	let cls = cn!(SIDEBAR_MENU_BUTTON_BASE, variant.as_class(), size.as_class(), class);
+	let cls = cn!(SIDEBAR_MENU_BUTTON_BASE, variant.as_class(), sidebar_menu_button_size_class(size), class);
 	rsx! {
 		button {
 			r#type: "button",
@@ -324,8 +325,8 @@ mod tests {
 			rsx! {
 				SidebarProvider {
 					SidebarMenuButton {
-						variant: SidebarMenuButtonVariant::Outline,
-						size: SidebarMenuButtonSize::Lg,
+						variant: ButtonVariant::Outline,
+						size: Size::Lg,
 						is_active: true,
 						"go"
 					}

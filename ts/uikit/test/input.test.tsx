@@ -7,7 +7,7 @@ describe("Input", () => {
     const { container } = render(<Input />);
     const el = container.querySelector("input")!;
     expect(el).toHaveClass("border-input");
-    expect(el).toHaveClass("placeholder:text-muted-foreground");
+    expect(el).toHaveClass("placeholder:text-ink-soft");
     expect(el).toHaveAttribute("data-slot", "input");
   });
 

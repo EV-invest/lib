@@ -133,7 +133,7 @@ export function AccordionTrigger({
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="text-muted-foreground pointer-events-none size-4 shrink-0 translate-y-0.5 transition-transform duration-200"
+          className="text-ink-soft pointer-events-none size-4 shrink-0 translate-y-0.5 transition-transform duration-200"
         >
           <path d="m6 9 6 6 6-6" />
         </svg>

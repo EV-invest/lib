@@ -34,10 +34,10 @@ Requires Node ≥ 20 and React 18 or 19. `dist/` is built on publish, not commit
 
 ## Design tokens — the theme contract
 
-Every component's Tailwind classes reference design tokens (`bg-primary`,
-`text-card-foreground`, `border-input`, `ring-ring`, `bg-main-accent-t2`, …).
-Those tokens are **shipped with the package** and must be imported into your
-Tailwind v4 entrypoint — this is the load-bearing part of the kit:
+Every component's Tailwind classes reference design tokens and nothing else, so
+a consumer re-themes the whole kit by writing values, never by overriding
+classes. The tokens are **shipped with the package** and must be imported into
+your Tailwind v4 entrypoint — this is the load-bearing part of the kit:
 
 ```css
 /* app.css — your Tailwind v4 entrypoint */
@@ -45,10 +45,40 @@ Tailwind v4 entrypoint — this is the load-bearing part of the kit:
 @import "@evinvest/uikit/styles/tokens.css";
 ```
 
+| group | names |
+|---|---|
+| scope | `:root` · `.dark` · `.light` — a consumer defines one or both |
+| surfaces | `background` `card` `popover` `muted` `hover` |
+| ink | `ink` `ink-mid` `ink-soft` — hierarchy, loudest first |
+| lines | `border` `input` `ring` |
+| roles | `brand` `primary` `secondary` `positive` `accent-trace` `accent-debug` `accent-info` `accent-warn` `accent-error`, each with `on-*` where it gets filled |
+| scalars | `radius` `control-radius` `control-py` `display-scale` `band-py` `page-max` `page-px` `shadow-*` `font-*` |
+| charts | `chart-1` … `chart-5` |
+
+Custom properties inherit, so a scope class on a `<section>` re-themes its
+subtree — `bg-card text-ink` is correct on both polarities with no prop. That is
+what `<Section polarity="dark">` does.
+
+A surface takes its ink from the scope, so it carries no `-foreground`. A
+**filled role** does not — gold wants black and navy wants white regardless of
+polarity — so `on-{role}` exists exactly there.
+
+Accents are decorative and **ordered by significance**, quiet to loud. Pick a
+rung by how loud the thing should be, never by what it means; see
+[`docs/spec/accents.md`](../../docs/spec/accents.md). Every consumer defines all
+five, binding rungs it does not distinguish to the same value, which is what
+lets a kit component reference an accent at all.
+
 `styles/tokens.css` is copied at pack time from the repo-root `tokens.css` shared
-with the Rust feature; it defines a single **dark** palette via `:root` and wires it into
-Tailwind utilities via `@theme inline`. (The kit drops `dark:*` utility variants
-because the palette is dark by default — see [Limitations](#limitations).)
+with the Rust feature, and carries EV's values: a single dark palette on
+`:root, .dark`. A consumer with two polarities writes its own sheet against the
+same names.
+
+`styles/tokens-legacy.css` is the pre-0.11 vocabulary layered on top —
+`text-main-mist`, `bg-sidebar`, `text-muted-foreground` and the rest keep
+working, and the current tokens are re-pointed at the old values so rendered
+colour is unchanged. Import it instead while migrating; it goes away once every
+consumer has moved.
 
 ## Usage
 

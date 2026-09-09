@@ -1,27 +1,37 @@
 [package]
 name = "ev_lib"
-version = "0.9.0"
+version = "0.10.0"
 edition = "2024"
 description = "EV-invest shared Rust libraries, one per feature"
 license = "BlueOak-1.0.0"
 repository = "https://github.com/EV-invest/lib"
 
 [features]
-# Each library is opt-in. No default features: a consumer enables only what it uses.
+# Which token vocabulary the consumer's Tailwind entrypoint imports. The class
+# tables are written once, against `tokens.css`; `legacy` says the consumer
+# imported `tokens-legacy.css` instead, which re-declares the pre-0.10 utility
+# names on top and re-points the new tokens at the old values.
+#
+# `legacy` is the default so that bumping the version changes nothing. Both at
+# once is a build error; neither is fine — `default-features = false` is how a
+# consumer takes one library out of this crate, and it must keep working.
+default = ["legacy"]
+legacy = []
+modern = []
+
+# Each library is opt-in.
 architecture = ["dep:async-trait", "dep:serde", "dep:uuid", "dep:jiff"]
 
 # Dep-light Dioxus UI kit (mirrors `@evinvest/uikit`). Renderer-agnostic RSX components;
 # pulls only Dioxus + tailwind_fuse (the `cn!` engine). Unlike the kernel this
 # library carries runtime deps — a UI kit can't be zero-dep; see AGENTS.md.
-# `asset` + `document`: the `Fonts` component bundles the brand webfonts via
-# `asset!` and injects their `@font-face` through `document::Style`.
+# `document`: the sonner toaster injects its stacking CSS through `document::Style`.
 uikit = [
     "dep:dioxus",
     "dep:ev_lib_classes",
     "dep:tailwind_fuse",
     "tailwind_fuse?/variant",
     "dep:strum",
-    "dioxus?/asset",
     "dioxus?/document",
 ]
 

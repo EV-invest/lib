@@ -332,7 +332,7 @@ function ToastItem({
       <div className={TOAST_CONTENT}>
         <div className={TOAST_TITLE}>{t.message}</div>
         {t.description ? (
-          <div className="text-muted-foreground text-sm">{t.description}</div>
+          <div className="text-ink-soft text-sm">{t.description}</div>
         ) : null}
       </div>
       <button

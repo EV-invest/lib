@@ -21,7 +21,7 @@ mod tests {
 			rsx! { Skeleton {} }
 		}
 		let html = render(app);
-		assert!(html.contains("bg-accent"), "{html}");
+		assert!(html.contains("bg-hover"), "{html}");
 		assert!(html.contains("animate-pulse"), "{html}");
 		assert!(html.contains("data-slot=\"skeleton\""), "{html}");
 	}

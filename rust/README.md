@@ -23,7 +23,30 @@ rust/
 Unlike `architecture`, the `uikit` feature carries runtime deps (`dioxus`,
 `tailwind_fuse`) — a UI kit can't be zero-dep. It mirrors the `@evinvest/uikit`
 TypeScript package and ships the shared design tokens; see its rustdoc and
-[`../ts/uikit/README.md`](../ts/uikit/README.md).
+[`../ts/uikit/README.md`](../ts/uikit/README.md), which carries the token table.
+
+The class strings live once, in the Dioxus-free `ev_lib_classes` crate
+([`classes/`](classes)); `ev_lib_gen` emits the TypeScript half from them, so the
+two ports cannot drift. `uikit` re-exports only the types a caller has to *name*
+to build a prop (`ButtonVariant`, `Size`, `Polarity`, `Surface`, …) — the class
+constants are an implementation detail.
+
+`legacy` (the consumer imported `tokens-legacy.css`) and `modern` (`tokens.css`)
+say which token vocabulary the Tailwind entrypoint speaks. `default = ["legacy"]`,
+so bumping the version changes nothing; both at once is a build error. `modern`
+therefore reads:
+
+```toml
+ev_lib = { version = "0.10", default-features = false, features = ["uikit", "modern"] }
+```
+
+Tailwind cannot scan a crate unpacked from crates.io, so
+`ev_lib_classes::CLASS_INVENTORY` carries every class literal the kit can emit.
+Write it out from `build.rs` and `@source` the result:
+
+```rust
+std::fs::write("uikit-classes.txt", ev_lib_classes::CLASS_INVENTORY).unwrap();
+```
 
 `analytics`, `error_monitoring`, and `experiments` likewise carry runtime deps
 and **do network I/O** (PostHog / Sentry), gated per-target so native and browser

@@ -23,6 +23,7 @@ pub fn manifest() -> Vec<(&'static str, Vec<Ts>)> {
 		("textarea", textarea()),
 		("kbd", kbd()),
 		("container", container()),
+		("band", band()),
 		("card", card()),
 		("breadcrumb", breadcrumb()),
 		("avatar", avatar()),
@@ -58,14 +59,60 @@ pub fn manifest() -> Vec<(&'static str, Vec<Ts>)> {
 	]
 }
 
+fn band() -> Vec<Ts> {
+	vec![
+		table::<Polarity>("polarityClasses", "Polarity"),
+		table::<Surface>("surfaceClasses", "Surface"),
+		Ts::Const {
+			name: "SECTION_BASE",
+			value: SECTION_BASE,
+		},
+		Ts::Const {
+			name: "SECTION_PY",
+			value: SECTION_PY,
+		},
+		Ts::Const {
+			name: "SECTION_PY_TIGHT",
+			value: SECTION_PY_TIGHT,
+		},
+		Ts::Const {
+			name: "SECTION_HEAD",
+			value: SECTION_HEAD,
+		},
+		Ts::Const { name: "EYEBROW", value: EYEBROW },
+		Ts::Const {
+			name: "DISPLAY_BASE",
+			value: DISPLAY_BASE,
+		},
+		Ts::Const { name: "LEDE", value: LEDE },
+		Ts::Const { name: "PROSE", value: PROSE },
+		Ts::Const { name: "STAT", value: STAT },
+		Ts::Const {
+			name: "STAT_FIGURE",
+			value: STAT_FIGURE,
+		},
+		Ts::Const {
+			name: "STAT_LABEL",
+			value: STAT_LABEL,
+		},
+		Ts::Const { name: "CHECK", value: CHECK },
+	]
+}
+
 fn sidebar() -> Vec<Ts> {
 	vec![
 		Ts::Const {
 			name: "SIDEBAR_MENU_BUTTON_BASE",
 			value: SIDEBAR_MENU_BUTTON_BASE,
 		},
-		table::<SidebarMenuButtonVariant>("sidebarMenuButtonVariantClasses", "SidebarMenuButtonVariant"),
-		table::<SidebarMenuButtonSize>("sidebarMenuButtonSizeClasses", "SidebarMenuButtonSize"),
+		Ts::Table {
+			name: "sidebarMenuButtonSizeClasses",
+			ty: "SidebarMenuButtonSize",
+			entries: [(Size::Xs, "xs"), (Size::Sm, "default"), (Size::Lg, "lg")]
+				.into_iter()
+				.map(|(s, k)| (k.to_string(), sidebar_menu_button_size_class(s).to_string()))
+				.collect(),
+		},
 		Ts::Const {
 			name: "SIDEBAR_WRAPPER",
 			value: SIDEBAR_WRAPPER,
@@ -1259,7 +1306,7 @@ fn toggle() -> Vec<Ts> {
 		Ts::Table {
 			name: "toggleSizeClasses",
 			ty: "ToggleSize",
-			entries: [(Size::Md, "default"), (Size::Sm, "sm"), (Size::Lg, "lg")]
+			entries: [(Size::Md, "default"), (Size::Xs, "xs"), (Size::Sm, "sm"), (Size::Lg, "lg"), (Size::Xl, "xl")]
 				.into_iter()
 				.map(|(s, k)| (k.to_string(), toggle_size_class(s).to_string()))
 				.collect(),
@@ -1280,11 +1327,15 @@ fn button() -> Vec<Ts> {
 			ty: "ButtonSize",
 			entries: [
 				(Size::Md, "default"),
+				(Size::Xs, "xs"),
 				(Size::Sm, "sm"),
 				(Size::Lg, "lg"),
+				(Size::Xl, "xl"),
 				(Size::Md, "icon"),
+				(Size::Xs, "icon-xs"),
 				(Size::Sm, "icon-sm"),
 				(Size::Lg, "icon-lg"),
+				(Size::Xl, "icon-xl"),
 			]
 			.into_iter()
 			.map(|(size, key)| (key.to_string(), button_size_class(size, key.starts_with("icon")).to_string()))

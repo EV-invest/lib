@@ -1,6 +1,6 @@
 use tailwind_fuse::{AsTailwindClass, TwVariant};
 
-pub const FIELD_BASE: &str = "group/field flex w-full gap-3 data-[invalid=true]:text-destructive";
+pub const FIELD_BASE: &str = "group/field flex w-full gap-3 data-[invalid=true]:text-accent-error";
 
 pub const FIELD_SET: &str = "flex flex-col gap-6 has-[>[data-slot=checkbox-group]]:gap-3 has-[>[data-slot=radio-group]]:gap-3";
 
@@ -19,7 +19,7 @@ pub const FIELD_LABEL: &str = "group/field-label peer/field-label flex w-fit gap
 pub const FIELD_TITLE: &str = "flex w-fit items-center gap-2 text-sm leading-snug font-medium \
          group-data-[disabled=true]/field:opacity-50";
 
-pub const FIELD_DESCRIPTION: &str = "text-muted-foreground text-sm leading-normal font-normal \
+pub const FIELD_DESCRIPTION: &str = "text-ink-soft text-sm leading-normal font-normal \
          group-has-[[data-orientation=horizontal]]/field:text-balance last:mt-0 nth-last-2:-mt-1 \
          [[data-variant=legend]+&]:-mt-1.5 [&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4";
 
@@ -27,9 +27,9 @@ pub const FIELD_SEPARATOR: &str = "relative -my-2 h-5 text-sm group-data-[varian
 
 pub const FIELD_SEPARATOR_LINE: &str = "absolute inset-0 top-1/2 shrink-0 bg-border h-px w-full";
 
-pub const FIELD_SEPARATOR_CONTENT: &str = "bg-background text-muted-foreground relative mx-auto block w-fit px-2";
+pub const FIELD_SEPARATOR_CONTENT: &str = "bg-background text-ink-soft relative mx-auto block w-fit px-2";
 
-pub const FIELD_ERROR: &str = "text-destructive text-sm font-normal";
+pub const FIELD_ERROR: &str = "text-accent-error text-sm font-normal";
 
 #[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]

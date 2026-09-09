@@ -170,7 +170,7 @@ mod tests {
 		}
 		let html = render(app);
 		assert!(html.contains("role=\"alert\""), "{html}");
-		assert!(html.contains("text-destructive"), "{html}");
+		assert!(html.contains("text-accent-error"), "{html}");
 		assert!(html.contains("bad"), "{html}");
 	}
 

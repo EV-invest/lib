@@ -123,7 +123,7 @@ export function InfoTipTrigger({
       aria-controls={contentId}
       ref={anchorRef as React.Ref<never>}
       className={cn(
-        "inline-flex size-4 shrink-0 cursor-help items-center justify-center rounded-full align-middle text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:text-main-accent-t1",
+        "inline-flex size-4 shrink-0 cursor-help items-center justify-center rounded-full align-middle text-ink-soft outline-none transition-colors hover:text-ink focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:text-accent-debug",
         className,
       )}
       onClick={(e: React.MouseEvent<HTMLButtonElement>) => {

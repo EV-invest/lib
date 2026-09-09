@@ -11,11 +11,14 @@
 
 use dioxus::prelude::*;
 
-use crate::cn;
+use crate::{
+	cn,
+	uikit::{ButtonVariant, Size, button_classes},
+};
 
-const BTN_BASE: &str = "inline-flex items-center justify-center rounded-md px-6 py-3.5 font-mono-tech text-xs uppercase tracking-widest transition-colors";
-/// Accent → token colours. Bound to ev/color tokens; `Blue` is the blueprint
-/// accent the design specifies as a raw value (no token equivalent).
+/// Which accent rung the page wears — the mark, eyebrow, code, headline and CTAs
+/// all take it. Ordered by significance: 404 is a shrug, 403 a warning, 500 an
+/// error. See the kit's docs/spec/accents.md.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum StatusAccent {
 	Teal,
@@ -28,48 +31,30 @@ impl StatusAccent {
 	/// Accent text colour — threads through the logo, eyebrow, code and headline.
 	fn text(self) -> &'static str {
 		match self {
-			StatusAccent::Teal => "text-main-accent-t1",
-			StatusAccent::Gold => "text-main-accent-t3",
-			StatusAccent::Red => "text-destructive",
-			StatusAccent::Blue => "text-[#5e9be6]",
+			StatusAccent::Teal => "text-accent-debug",
+			StatusAccent::Gold => "text-accent-warn",
+			StatusAccent::Red => "text-accent-error",
+			StatusAccent::Blue => "text-accent-info",
 		}
 	}
 
 	fn filled(self) -> &'static str {
 		match self {
-			StatusAccent::Teal => "bg-main-accent-t1 text-main-black hover:bg-main-accent-t1/90",
-			StatusAccent::Gold => "bg-main-accent-t3 text-main-black hover:bg-main-accent-t3/90",
-			StatusAccent::Red => "bg-destructive text-white hover:bg-destructive/90",
-			StatusAccent::Blue => "bg-[#5e9be6] text-main-black hover:bg-[#5e9be6]/90",
+			StatusAccent::Teal => "bg-accent-debug text-background hover:bg-accent-debug/90",
+			StatusAccent::Gold => "bg-accent-warn text-background hover:bg-accent-warn/90",
+			StatusAccent::Red => "bg-accent-error text-on-accent-error hover:bg-accent-error/90",
+			StatusAccent::Blue => "bg-accent-info text-on-accent-info hover:bg-accent-info/90",
 		}
 	}
 
 	fn outline(self) -> &'static str {
 		match self {
-			StatusAccent::Teal => "border border-main-accent-t1/40 text-main-accent-t1 hover:bg-main-accent-t1/10",
-			StatusAccent::Gold => "border border-main-accent-t3/40 text-main-accent-t3 hover:bg-main-accent-t3/10",
-			StatusAccent::Red => "border border-destructive/40 text-destructive hover:bg-destructive/10",
-			StatusAccent::Blue => "border border-[#5e9be6]/40 text-[#5e9be6] hover:bg-[#5e9be6]/10",
+			StatusAccent::Teal => "border border-accent-debug/40 text-accent-debug hover:bg-accent-debug/10",
+			StatusAccent::Gold => "border border-accent-warn/40 text-accent-warn hover:bg-accent-warn/10",
+			StatusAccent::Red => "border border-accent-error/40 text-accent-error hover:bg-accent-error/10",
+			StatusAccent::Blue => "border border-accent-info/40 text-accent-info hover:bg-accent-info/10",
 		}
 	}
-}
-
-/// A status CTA's fill — filled (solid accent) or outline (accent border).
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum StatusButtonVariant {
-	Filled,
-	Outline,
-}
-
-/// Class for a status CTA — shared by the nav links and the 500 retry button.
-pub fn status_button_class(accent: StatusAccent, variant: StatusButtonVariant) -> String {
-	cn!(
-		BTN_BASE,
-		match variant {
-			StatusButtonVariant::Filled => accent.filled(),
-			StatusButtonVariant::Outline => accent.outline(),
-		}
-	)
 }
 
 /// One CTA in a [`StatusScreen`]'s action row.
@@ -77,12 +62,9 @@ pub fn status_button_class(accent: StatusAccent, variant: StatusButtonVariant) -
 pub struct StatusLinkData {
 	pub label: String,
 	pub href: String,
-	pub variant: StatusButtonVariant,
+	pub variant: ButtonVariant,
 	pub leading_arrow: bool,
 }
-
-// The EV skyline crown — the rooftop silhouette of the brand logo (Figma uikit
-// node 17:3, wordmark omitted), filled with `currentColor` so it takes the accent.
 /// Shared skeleton for the 404 / 403 / 500 status pages: a centred hero with the
 /// logo mark, a mono eyebrow, a giant Playfair code, a headline whose final clause
 /// is an italic accent, supporting copy, and the CTAs. The accent threads through
@@ -103,7 +85,7 @@ pub fn StatusScreen(
 ) -> Element {
 	let accent_text = accent.text();
 	rsx! {
-		section { class: "relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-main-black px-6 py-32 text-center",
+		section { class: "relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-6 py-32 text-center",
 			div {
 				aria_hidden: "true",
 				class: cn!(
@@ -113,21 +95,21 @@ pub fn StatusScreen(
 			}
 			div { class: "relative z-10 flex w-full max-w-2xl flex-col items-center",
 				{logo_mark(cn!("mb-7 h-10 w-auto", accent_text))}
-				p { class: cn!("mb-6 font-mono-tech text-[11px] uppercase tracking-[0.34em]", accent_text), {eyebrow} }
-				p { class: cn!("font-serif-display text-[110px] font-medium leading-[0.9] sm:text-[180px]", accent_text), {code} }
-				h1 { class: "mt-4 font-serif-display text-3xl font-light leading-tight text-white sm:text-5xl",
+				p { class: cn!("mb-6 font-mono text-[11px] uppercase tracking-[0.34em]", accent_text), {eyebrow} }
+				p { class: cn!("font-serif text-[110px] font-medium leading-[0.9] sm:text-[180px]", accent_text), {code} }
+				h1 { class: "mt-4 font-serif text-3xl font-light leading-tight text-ink sm:text-5xl",
 					{headline_lead}
 					span { class: cn!("font-serif italic", accent_text), {headline_accent} }
 					{headline_tail}
 				}
-				p { class: "mx-auto mt-5 max-w-md text-sm leading-relaxed text-main-mist/60 sm:text-base", {subtext} }
+				p { class: "mx-auto mt-5 max-w-md text-sm leading-relaxed text-ink/60 sm:text-base", {subtext} }
 				div { class: "mt-9 flex flex-col items-center gap-3 sm:flex-row",
 					{children}
 					for link in links.iter() {
 						a {
 							key: "{link.label}",
 							href: link.href.clone(),
-							class: status_button_class(accent, link.variant),
+							class: status_cta_class(accent, link.variant),
 							if link.leading_arrow {
 								{arrow_left_icon()}
 							}
@@ -154,13 +136,13 @@ pub fn NotFound(#[props(default = "/".to_string())] home_href: String, #[props(d
 				StatusLinkData {
 					label: "Back to home".to_string(),
 					href: home_href,
-					variant: StatusButtonVariant::Filled,
+					variant: ButtonVariant::Default,
 					leading_arrow: true,
 				},
 				StatusLinkData {
 					label: "Contact the team".to_string(),
 					href: contact_href,
-					variant: StatusButtonVariant::Outline,
+					variant: ButtonVariant::Outline,
 					leading_arrow: false,
 				},
 			],
@@ -182,13 +164,13 @@ pub fn Forbidden(#[props(default = "/".to_string())] home_href: String, #[props(
 				StatusLinkData {
 					label: "Back to home".to_string(),
 					href: home_href,
-					variant: StatusButtonVariant::Filled,
+					variant: ButtonVariant::Default,
 					leading_arrow: true,
 				},
 				StatusLinkData {
 					label: "Request access".to_string(),
 					href: contact_href,
-					variant: StatusButtonVariant::Outline,
+					variant: ButtonVariant::Outline,
 					leading_arrow: false,
 				},
 			],
@@ -210,13 +192,13 @@ pub fn ServerError(#[props(default = "/".to_string())] home_href: String, reset:
 				StatusLinkData {
 					label: "Back to home".to_string(),
 					href: home_href,
-					variant: StatusButtonVariant::Outline,
+					variant: ButtonVariant::Outline,
 					leading_arrow: true,
 				},
 			],
 			button {
 				r#type: "button",
-				class: status_button_class(StatusAccent::Red, StatusButtonVariant::Filled),
+				class: status_cta_class(StatusAccent::Red, ButtonVariant::Default),
 				onclick: move |_| {
 					if let Some(cb) = reset {
 						cb.call(());
@@ -229,6 +211,22 @@ pub fn ServerError(#[props(default = "/".to_string())] home_href: String, reset:
 		}
 	}
 }
+/// A status CTA is a [`Button`](crate::uikit::Button) at the page's accent: the
+/// canonical button string, then the mono/uppercase treatment the error pages
+/// wear, then the accent colour.
+fn status_cta_class(accent: StatusAccent, variant: ButtonVariant) -> String {
+	cn!(
+		button_classes(&variant, Size::Lg, false, ""),
+		"font-mono text-xs uppercase tracking-widest",
+		match variant {
+			ButtonVariant::Outline => accent.outline(),
+			_ => accent.filled(),
+		}
+	)
+}
+
+// The EV skyline crown — the rooftop silhouette of the brand logo (Figma uikit
+// node 17:3, wordmark omitted), filled with `currentColor` so it takes the accent.
 fn logo_mark(class: String) -> Element {
 	rsx! {
 		svg {
@@ -284,7 +282,7 @@ mod tests {
 					links: vec![StatusLinkData {
 						label: "Back to home".to_string(),
 						href: "/".to_string(),
-						variant: StatusButtonVariant::Filled,
+						variant: ButtonVariant::Default,
 						leading_arrow: true,
 					}],
 				}

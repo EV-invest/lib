@@ -7,13 +7,13 @@ pub const ALERT_BASE: &str = "relative w-full rounded-lg border px-4 py-3 text-s
 
 pub const ALERT_TITLE: &str = "col-start-2 line-clamp-1 min-h-4 font-medium tracking-tight";
 
-pub const ALERT_DESCRIPTION: &str = "text-muted-foreground col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed";
+pub const ALERT_DESCRIPTION: &str = "text-ink-soft col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed";
 
 #[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum AlertVariant {
-	#[tw(default, class = "bg-card text-card-foreground")]
+	#[tw(default, class = "bg-card text-ink")]
 	Default,
-	#[tw(class = "text-destructive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-destructive/90")]
+	#[tw(class = "text-accent-error bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-accent-error/90")]
 	Destructive,
 }

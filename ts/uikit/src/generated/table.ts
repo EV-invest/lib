@@ -12,8 +12,8 @@ export const TABLE_FOOTER = "bg-muted/50 border-t font-medium [&>tr]:last:border
 
 export const TABLE_ROW = "hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors";
 
-export const TABLE_HEAD = "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]";
+export const TABLE_HEAD = "text-ink h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]";
 
 export const TABLE_CELL = "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]";
 
-export const TABLE_CAPTION = "text-muted-foreground mt-4 text-sm";
+export const TABLE_CAPTION = "text-ink-soft mt-4 text-sm";

@@ -13,7 +13,7 @@ describe("Alert", () => {
 
   it("renders the destructive variant", () => {
     const { getByRole } = render(<Alert variant="destructive">x</Alert>);
-    expect(getByRole("alert")).toHaveClass("text-destructive");
+    expect(getByRole("alert")).toHaveClass("text-accent-error");
   });
 
   it("renders title and description slots", () => {
@@ -26,7 +26,7 @@ describe("Alert", () => {
     expect(getByText("t")).toHaveAttribute("data-slot", "alert-title");
     const desc = getByText("d");
     expect(desc).toHaveAttribute("data-slot", "alert-description");
-    expect(desc).toHaveClass("text-muted-foreground");
+    expect(desc).toHaveClass("text-ink-soft");
   });
 
   it("lets className override the base", () => {

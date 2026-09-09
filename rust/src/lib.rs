@@ -44,6 +44,15 @@
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
+// `legacy` and `modern` say which tokens stylesheet the consumer imported. Cargo
+// unifies features additively, so "both" would otherwise resolve silently to
+// whichever `cfg` is checked first — hence a hard stop rather than a precedence
+// rule. Neither is *not* an error: `default-features = false` is the documented
+// way to take one library out of this crate, and a build that has not declared
+// yet is a build that has not migrated yet.
+#[cfg(all(feature = "uikit", feature = "legacy", feature = "modern"))]
+compile_error!("ev_lib: `legacy` and `modern` are exclusive — a build imports one tokens stylesheet. Set `default-features = false` and pick one.");
+
 #[cfg(feature = "architecture")]
 pub mod architecture;
 
