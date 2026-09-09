@@ -10,7 +10,11 @@ repository = "https://github.com/EV-invest/lib"
 # Which token vocabulary the consumer's Tailwind entrypoint imports. The class
 # tables are written once, against `tokens.css`; `legacy` says the consumer
 # imported `tokens-legacy.css` instead, which re-declares the pre-0.10 utility
-# names on top. Exactly one must be on — `lib.rs` fails the build otherwise.
+# names on top and re-points the new tokens at the old values.
+#
+# `legacy` is the default so that bumping the version changes nothing. Both at
+# once is a build error; neither is fine — `default-features = false` is how a
+# consumer takes one library out of this crate, and it must keep working.
 default = ["legacy"]
 legacy = []
 modern = []

@@ -31,9 +31,10 @@ two ports cannot drift. `uikit` re-exports only the types a caller has to *name*
 to build a prop (`ButtonVariant`, `Size`, `Polarity`, `Surface`, …) — the class
 constants are an implementation detail.
 
-`uikit` needs exactly one of `legacy` (the consumer imported
-`tokens-legacy.css`) or `modern` (`tokens.css`); `default = ["legacy"]`, and the
-build fails loudly on both or neither. `modern` therefore reads:
+`legacy` (the consumer imported `tokens-legacy.css`) and `modern` (`tokens.css`)
+say which token vocabulary the Tailwind entrypoint speaks. `default = ["legacy"]`,
+so bumping the version changes nothing; both at once is a build error. `modern`
+therefore reads:
 
 ```toml
 ev_lib = { version = "0.10", default-features = false, features = ["uikit", "modern"] }
