@@ -37,9 +37,15 @@ const BTN_OUTLINE: Record<StatusAccent, string> = {
   blue: "border border-accent-info/40 text-accent-info hover:bg-accent-info/10",
 };
 
-// A status CTA is a Button at the page's accent: the canonical button string,
-// then the mono/uppercase treatment the error pages wear, then the accent.
-function statusCtaClass(accent: StatusAccent, variant: ButtonVariant) {
+/**
+ * A status CTA is a Button at the page's accent: the canonical button string,
+ * then the mono/uppercase treatment the error pages wear, then the accent.
+ *
+ * Exported because a host that renders its own action into `StatusScreen`'s
+ * slot — a retry button wired to Next's `reset`, say — has to be able to match
+ * the CTAs beside it, and the accent colour maps are ours.
+ */
+export function statusCtaClass(accent: StatusAccent, variant: ButtonVariant) {
   return cn(
     buttonVariants({ variant, size: "lg" }),
     "font-mono text-xs uppercase tracking-widest",

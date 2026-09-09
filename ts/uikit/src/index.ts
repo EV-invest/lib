@@ -177,6 +177,7 @@ export {
   NotFound,
   Forbidden,
   ServerError,
+  statusCtaClass,
 } from "./components/status-screen";
 export type {
   StatusAccent,

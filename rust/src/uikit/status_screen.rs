@@ -214,7 +214,11 @@ pub fn ServerError(#[props(default = "/".to_string())] home_href: String, reset:
 /// A status CTA is a [`Button`](crate::uikit::Button) at the page's accent: the
 /// canonical button string, then the mono/uppercase treatment the error pages
 /// wear, then the accent colour.
-fn status_cta_class(accent: StatusAccent, variant: ButtonVariant) -> String {
+///
+/// Public because a host that renders its own action into [`StatusScreen`]'s
+/// slot — a retry button wired to a framework's `reset`, say — has to be able to
+/// match the CTAs beside it, and the accent colour maps are ours.
+pub fn status_cta_class(accent: StatusAccent, variant: ButtonVariant) -> String {
 	cn!(
 		button_classes(&variant, Size::Lg, false, ""),
 		"font-mono text-xs uppercase tracking-widest",

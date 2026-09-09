@@ -40,13 +40,18 @@ therefore reads:
 ev_lib = { version = "0.10", default-features = false, features = ["uikit", "modern"] }
 ```
 
-Tailwind cannot scan a crate unpacked from crates.io, so
-`ev_lib_classes::CLASS_INVENTORY` carries every class literal the kit can emit.
-Write it out from `build.rs` and `@source` the result:
+Tailwind can neither scan nor `@import` a crate unpacked from crates.io, so
+`ev_lib_classes` carries both halves as data: `CLASS_INVENTORY` is every class
+literal the kit can emit, and `TOKENS_CSS` / `TOKENS_LEGACY_CSS` are the token
+sheets, flattened. Write them out from `build.rs`:
 
 ```rust
 std::fs::write("uikit-classes.txt", ev_lib_classes::CLASS_INVENTORY).unwrap();
+std::fs::write("assets/tokens.css", ev_lib_classes::TOKENS_LEGACY_CSS).unwrap();
 ```
+
+then `@source` the first and `@import` the second. A hand-kept copy of either is
+a file that drifts silently on the next bump.
 
 `analytics`, `error_monitoring`, and `experiments` likewise carry runtime deps
 and **do network I/O** (PostHog / Sentry), gated per-target so native and browser

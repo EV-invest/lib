@@ -473,7 +473,6 @@ hover:text-ink transition-colors
 hover:underline
 http://www.w3.org/2000/svg
 https://example.com/commit/abc
-https://github.com/EV-invest/lib.git
 info-tip-
 info-tip-content
 info-tip-trigger
