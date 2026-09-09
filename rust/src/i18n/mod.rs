@@ -57,6 +57,14 @@ pub const LOCALES: [Locale; 5] = [Locale::En, Locale::Ru, Locale::Vi, Locale::Fr
 /// Also the only locale whose URLs carry no prefix — see [`locale_path`].
 pub const DEFAULT_LOCALE: Locale = Locale::En;
 
+/// A loaded catalogue: flat `key → pattern`.
+///
+/// Flat rather than nested because the policy diffs and reports per
+/// fully-qualified key, and a nested shape would make every one of those
+/// operations a tree walk for no gain at the call site. `BTreeMap` rather than
+/// `HashMap` so a report's key order is deterministic — a CI diff that reorders
+/// itself between runs is not a diff.
+pub type Messages = BTreeMap<String, String>;
 /// One of the five locales EV publishes.
 ///
 /// Note `Vi` — Vietnamese — is the ISO 639-1 *language* code. `vn` is the ISO
@@ -257,15 +265,6 @@ pub fn negotiate(header: Option<&str>, locales: &[Locale]) -> Locale {
 }
 
 // ── Messages ─────────────────────────────────────────────────────────────────
-
-/// A loaded catalogue: flat `key → pattern`.
-///
-/// Flat rather than nested because the policy diffs and reports per
-/// fully-qualified key, and a nested shape would make every one of those
-/// operations a tree walk for no gain at the call site. `BTreeMap` rather than
-/// `HashMap` so a report's key order is deterministic — a CI diff that reorders
-/// itself between runs is not a diff.
-pub type Messages = BTreeMap<String, String>;
 
 /// A catalogue bound to one locale, ready to render.
 ///

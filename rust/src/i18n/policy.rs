@@ -39,6 +39,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::{DEFAULT_LOCALE, Locale, Messages};
 
+/// A non-English catalogue as authored on disk.
+pub type TranslatedCatalogue = BTreeMap<String, TranslatedEntry>;
 /// One translated entry: the text, plus the English it was translated from.
 ///
 /// `en` is stored as the source *text* rather than a hash on purpose. A hash
@@ -59,9 +61,6 @@ pub struct TranslatedEntry {
 	/// The translation.
 	pub t: String,
 }
-
-/// A non-English catalogue as authored on disk.
-pub type TranslatedCatalogue = BTreeMap<String, TranslatedEntry>;
 
 /// Why a translated entry was refused, and English used instead.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -206,6 +205,85 @@ pub fn resolve_catalogue(locale: Locale, source: &Messages, translated: &Transla
 	}
 }
 
+/// Render resolved catalogues as a report for a CI check.
+///
+/// The runtime already degrades safely — rule 1.2 serves English and the view is
+/// fine. That safety is exactly why drift needs a *second*, noisy channel: a
+/// silent fallback looks identical to a surface that was never translated, so
+/// without this a locale can rot to zero coverage without anyone noticing.
+///
+/// `floor` is the minimum acceptable coverage, 0–1; pass `1.0` for "no drift".
+pub fn audit(resolved: &[ResolvedCatalogue], floor: f64) -> (bool, String) {
+	let mut lines = Vec::new();
+	let mut ok = true;
+
+	for cat in resolved {
+		let pct = (cat.coverage * 100.0).round() as i64;
+		let healthy = cat.rejected.is_empty() && cat.coverage >= floor;
+		if !healthy {
+			ok = false;
+		}
+		lines.push(format!("{} {}  {pct}% coverage", if healthy { "ok  " } else { "FAIL" }, cat.locale));
+
+		for r in &cat.rejected {
+			lines.push(format!("       {}  [{}] {}", r.key, r.reason, r.detail));
+		}
+		// Missing keys are listed but capped: a locale that has translated nothing
+		// yet would otherwise bury the drift that actually needs fixing.
+		if !cat.missing.is_empty() {
+			let shown: Vec<&str> = cat.missing.iter().take(10).map(String::as_str).collect();
+			lines.push(format!("       untranslated ({}): {}", cat.missing.len(), shown.join(", ")));
+			if cat.missing.len() > shown.len() {
+				lines.push(format!("       …and {} more", cat.missing.len() - shown.len()));
+			}
+		}
+	}
+
+	(ok, lines.join("\n"))
+}
+/// What to do with a content item that has no translation for the current
+/// locale.
+///
+/// [`Hide`](MissingContentPolicy::Hide) is the policy for *compiled* content —
+/// publications, the whitepaper, anything built once and surfaced everywhere. A
+/// Russian reader given an English essay under Russian chrome learns that the
+/// locale is a veneer.
+///
+/// [`Fallback`](MissingContentPolicy::Fallback) exists because the rule is not
+/// universally right, and pretending otherwise would be the bug. A vacancy is
+/// the clear case: hiding an open role from a Russian speaker who reads English
+/// fine costs a candidate, and loses more than the inconsistency costs. Choose
+/// per collection, deliberately.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum MissingContentPolicy {
+	#[default]
+	Hide,
+	Fallback,
+}
+/// Apply rule 1.3 to a content collection.
+///
+/// ```
+/// use ev_lib::i18n::Locale;
+/// use ev_lib::i18n::policy::{MissingContentPolicy, available_in};
+///
+/// struct Lot { name: &'static str, locales: Vec<Locale> }
+/// let lots = vec![
+///     Lot { name: "A1", locales: vec![Locale::En, Locale::Ru] },
+///     Lot { name: "B2", locales: vec![Locale::En] },
+/// ];
+///
+/// let shown = available_in(Locale::Ru, &lots, |l| l.locales.as_slice(), MissingContentPolicy::Hide);
+/// assert_eq!(shown.len(), 1);
+/// assert_eq!(shown[0].name, "A1");
+/// ```
+pub fn available_in<T, F>(locale: Locale, items: &[T], locales_of: F, policy: MissingContentPolicy) -> Vec<&T>
+where
+	F: Fn(&T) -> &[Locale], {
+	if locale == DEFAULT_LOCALE || policy == MissingContentPolicy::Fallback {
+		return items.iter().collect();
+	}
+	items.iter().filter(|item| locales_of(item).contains(&locale)).collect()
+}
 /// The whole of rule 1.2 for a single entry. `None` means accepted.
 fn check(entry: &TranslatedEntry, en: &str, locale: Locale) -> Option<(RejectionReason, String)> {
 	if entry.t.trim().is_empty() {
@@ -215,7 +293,7 @@ fn check(entry: &TranslatedEntry, en: &str, locale: Locale) -> Option<(Rejection
 	// Provenance. The one check that catches ordinary drift: English moved, the
 	// translation did not.
 	if entry.en != en {
-		return Some((RejectionReason::SourceDrift, format!("translated from {:?}, source is now {:?}", entry.en, en)));
+		return Some((RejectionReason::SourceDrift, format!("translated from {:?}, source is now {en:?}", entry.en)));
 	}
 
 	let source_args = scan_arguments(en);
@@ -432,86 +510,4 @@ fn branches_of(body: &[char]) -> Vec<(String, Vec<char>)> {
 	out
 }
 
-/// Render resolved catalogues as a report for a CI check.
-///
-/// The runtime already degrades safely — rule 1.2 serves English and the view is
-/// fine. That safety is exactly why drift needs a *second*, noisy channel: a
-/// silent fallback looks identical to a surface that was never translated, so
-/// without this a locale can rot to zero coverage without anyone noticing.
-///
-/// `floor` is the minimum acceptable coverage, 0–1; pass `1.0` for "no drift".
-pub fn audit(resolved: &[ResolvedCatalogue], floor: f64) -> (bool, String) {
-	let mut lines = Vec::new();
-	let mut ok = true;
-
-	for cat in resolved {
-		let pct = (cat.coverage * 100.0).round() as i64;
-		let healthy = cat.rejected.is_empty() && cat.coverage >= floor;
-		if !healthy {
-			ok = false;
-		}
-		lines.push(format!("{} {}  {pct}% coverage", if healthy { "ok  " } else { "FAIL" }, cat.locale));
-
-		for r in &cat.rejected {
-			lines.push(format!("       {}  [{}] {}", r.key, r.reason, r.detail));
-		}
-		// Missing keys are listed but capped: a locale that has translated nothing
-		// yet would otherwise bury the drift that actually needs fixing.
-		if !cat.missing.is_empty() {
-			let shown: Vec<&str> = cat.missing.iter().take(10).map(String::as_str).collect();
-			lines.push(format!("       untranslated ({}): {}", cat.missing.len(), shown.join(", ")));
-			if cat.missing.len() > shown.len() {
-				lines.push(format!("       …and {} more", cat.missing.len() - shown.len()));
-			}
-		}
-	}
-
-	(ok, lines.join("\n"))
-}
-
 // ── Rule 1.3 — content ───────────────────────────────────────────────────────
-
-/// What to do with a content item that has no translation for the current
-/// locale.
-///
-/// [`Hide`](MissingContentPolicy::Hide) is the policy for *compiled* content —
-/// publications, the whitepaper, anything built once and surfaced everywhere. A
-/// Russian reader given an English essay under Russian chrome learns that the
-/// locale is a veneer.
-///
-/// [`Fallback`](MissingContentPolicy::Fallback) exists because the rule is not
-/// universally right, and pretending otherwise would be the bug. A vacancy is
-/// the clear case: hiding an open role from a Russian speaker who reads English
-/// fine costs a candidate, and loses more than the inconsistency costs. Choose
-/// per collection, deliberately.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum MissingContentPolicy {
-	#[default]
-	Hide,
-	Fallback,
-}
-
-/// Apply rule 1.3 to a content collection.
-///
-/// ```
-/// use ev_lib::i18n::Locale;
-/// use ev_lib::i18n::policy::{MissingContentPolicy, available_in};
-///
-/// struct Lot { name: &'static str, locales: Vec<Locale> }
-/// let lots = vec![
-///     Lot { name: "A1", locales: vec![Locale::En, Locale::Ru] },
-///     Lot { name: "B2", locales: vec![Locale::En] },
-/// ];
-///
-/// let shown = available_in(Locale::Ru, &lots, |l| l.locales.as_slice(), MissingContentPolicy::Hide);
-/// assert_eq!(shown.len(), 1);
-/// assert_eq!(shown[0].name, "A1");
-/// ```
-pub fn available_in<T, F>(locale: Locale, items: &[T], locales_of: F, policy: MissingContentPolicy) -> Vec<&T>
-where
-	F: Fn(&T) -> &[Locale], {
-	if locale == DEFAULT_LOCALE || policy == MissingContentPolicy::Fallback {
-		return items.iter().collect();
-	}
-	items.iter().filter(|item| locales_of(item).contains(&locale)).collect()
-}

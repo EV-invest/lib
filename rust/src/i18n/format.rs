@@ -13,6 +13,8 @@ use std::collections::BTreeMap;
 
 use super::Locale;
 
+/// Values interpolated into a message pattern, keyed by argument name.
+pub type MessageValues = BTreeMap<String, MessageValue>;
 /// A value interpolated into a message pattern.
 #[derive(Clone, Debug, PartialEq)]
 pub enum MessageValue {
@@ -59,9 +61,6 @@ macro_rules! from_number {
 	};
 }
 from_number!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64);
-
-/// Values interpolated into a message pattern, keyed by argument name.
-pub type MessageValues = BTreeMap<String, MessageValue>;
 
 /// Format one ICU-subset pattern.
 ///
