@@ -67,7 +67,10 @@
         # this just provisions the toolchain and runs it as a cargo script.
         publish = pkgs.writeShellApplication {
           name = "publish";
-          runtimeInputs = [ rust pkgs.cargo-release pkgs.nodejs pkgs.git ];
+          # `treefmt` is not decoration: cargo-release commits the version bump,
+          # which fires this repo's own pre-commit hook, which shells out to it.
+          # Without it every release dies mid-bump with `command not found`.
+          runtimeInputs = [ rust pkgs.cargo-release pkgs.nodejs pkgs.git pkgs.treefmt ];
           text = ''
             cd "$(git rev-parse --show-toplevel)"
             exec cargo -Zscript -q scripts/publish.rs "$@"
