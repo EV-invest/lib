@@ -1433,7 +1433,7 @@ dependencies = [
 
 [[package]]
 name = "ev_lib_classes"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "strum",
  "tailwind_fuse",
@@ -1441,7 +1441,7 @@ dependencies = [
 
 [[package]]
 name = "ev_lib_gen"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "ev_lib_classes",
  "strum",
