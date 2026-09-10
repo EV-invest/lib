@@ -104,6 +104,11 @@
           runtimeInputs = [ rust pkgs.cargo-release pkgs.nodejs pkgs.git pkgs.treefmt ];
           text = ''
             cd "$(git rev-parse --show-toplevel)"
+            # cargo-release verifies each tarball by compiling it out of the
+            # registry cache, and sccache intermittently dies there (exit 254) —
+            # the same reason v_flakes unsets this in every generated CI job. The
+            # verification build is one-shot, so a compiler cache buys nothing.
+            export RUSTC_WRAPPER=""
             exec cargo -Zscript -q scripts/publish.rs "$@"
           '';
         };
