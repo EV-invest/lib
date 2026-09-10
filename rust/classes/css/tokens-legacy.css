@@ -395,6 +395,7 @@
 
 @theme inline {
   --color-foreground: var(--ink);
+  --color-muted-foreground: var(--ink-soft);
   --color-card-foreground: var(--ink);
   --color-popover-foreground: var(--ink);
   --color-primary-foreground: var(--on-primary);
