@@ -116,11 +116,11 @@ impl ToasterHandle {
 	}
 
 	pub fn toast(&self, message: impl Into<String>) -> u64 {
-		self.push(message, ToastVariant::Default, Some(DEFAULT_DURATION_MS))
+		self.push(message, ToastVariant::Neutral, Some(DEFAULT_DURATION_MS))
 	}
 
-	pub fn success(&self, message: impl Into<String>) -> u64 {
-		self.push(message, ToastVariant::Success, Some(DEFAULT_DURATION_MS))
+	pub fn positive(&self, message: impl Into<String>) -> u64 {
+		self.push(message, ToastVariant::Positive, Some(DEFAULT_DURATION_MS))
 	}
 
 	pub fn error(&self, message: impl Into<String>) -> u64 {
@@ -131,8 +131,8 @@ impl ToasterHandle {
 		self.push(message, ToastVariant::Info, Some(DEFAULT_DURATION_MS))
 	}
 
-	pub fn warning(&self, message: impl Into<String>) -> u64 {
-		self.push(message, ToastVariant::Warning, Some(DEFAULT_DURATION_MS))
+	pub fn warn(&self, message: impl Into<String>) -> u64 {
+		self.push(message, ToastVariant::Warn, Some(DEFAULT_DURATION_MS))
 	}
 
 	/// Full control over variant + lifetime. `duration` is ms, or `None` for a
@@ -336,12 +336,12 @@ mod tests {
 		#[component]
 		fn Seed() -> Element {
 			let toaster = use_toaster();
-			use_hook(move || toaster.success("Done"));
+			use_hook(move || toaster.positive("Done"));
 			rsx! {}
 		}
 		let html = render(app);
 		assert!(html.contains("role=\"status\""), "{html}");
-		assert!(html.contains("data-variant=\"success\""), "{html}");
+		assert!(html.contains("data-variant=\"positive\""), "{html}");
 		assert!(html.contains("data-state=\"open\""), "fresh toast mounts open: {html}");
 		assert!(html.contains("Done"), "{html}");
 		assert!(html.contains("data-slot=\"toast\""), "{html}");
@@ -384,13 +384,13 @@ mod tests {
 			use_hook(move || {
 				toaster.toast("plain");
 				toaster.info("info");
-				toaster.warning("warning");
+				toaster.warn("warn");
 			});
 			rsx! {}
 		}
 		let html = render(app);
 		assert!(html.contains("data-variant=\"info\""), "{html}");
-		assert!(html.contains("data-variant=\"warning\""), "{html}");
+		assert!(html.contains("data-variant=\"warn\""), "{html}");
 	}
 
 	#[test]
@@ -407,7 +407,7 @@ mod tests {
 		fn Seed() -> Element {
 			let toaster = use_toaster();
 			use_hook(move || {
-				let id = toaster.success("keep");
+				let id = toaster.positive("keep");
 				toaster.dismiss(id);
 			});
 			rsx! {}
@@ -480,7 +480,7 @@ mod tests {
 			let toaster = use_toaster();
 			use_hook(move || {
 				toaster.info("older");
-				toaster.warning("newer");
+				toaster.warn("newer");
 			});
 			rsx! {}
 		}
@@ -507,7 +507,7 @@ mod tests {
 		fn Seed() -> Element {
 			let toaster = use_toaster();
 			use_hook(move || {
-				toaster.success("times out");
+				toaster.positive("times out");
 				toaster.show("sticky", ToastVariant::Info, None);
 			});
 			rsx! {}

@@ -22,7 +22,7 @@ describe("Empty", () => {
     const el = getByText("m");
     expect(el).toHaveClass("bg-transparent");
     expect(el).toHaveAttribute("data-slot", "empty-icon");
-    expect(el).toHaveAttribute("data-variant", "default");
+    expect(el).toHaveAttribute("data-variant", "bare");
   });
 
   it("renders media icon variant (canon parity with Rust)", () => {

@@ -142,11 +142,11 @@ export function MenubarGroup({ className, ...props }: React.ComponentProps<"div"
 export function MenubarItem({
   className,
   inset,
-  variant = "default",
+  variant = "neutral",
   ...props
 }: React.ComponentProps<"div"> & {
   inset?: boolean;
-  variant?: "default" | "destructive";
+  variant?: "neutral" | "destructive";
 }) {
   return (
     <div

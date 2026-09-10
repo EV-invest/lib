@@ -15,8 +15,8 @@ type ToggleGroupContextValue = {
 };
 
 const ToggleGroupContext = React.createContext<ToggleGroupContextValue>({
-  variant: "default",
-  size: "default",
+  variant: "bare",
+  size: "md",
   value: [],
   toggle: () => {},
 });
@@ -38,8 +38,8 @@ function toArray(v: string | string[] | undefined): string[] {
 
 export function ToggleGroup({
   className,
-  variant = "default",
-  size = "default",
+  variant = "bare",
+  size = "md",
   type = "single",
   value,
   defaultValue,
@@ -104,8 +104,8 @@ export function ToggleGroupItem({
   ...props
 }: ToggleGroupItemProps) {
   const context = React.useContext(ToggleGroupContext);
-  const resolvedVariant = context.variant || variant || "default";
-  const resolvedSize = context.size || size || "default";
+  const resolvedVariant = context.variant || variant || "bare";
+  const resolvedSize = context.size || size || "md";
   const on = context.value.includes(value);
 
   return (

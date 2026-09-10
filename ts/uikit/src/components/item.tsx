@@ -56,8 +56,8 @@ export interface ItemProps extends React.ComponentProps<"div"> {
 
 export function Item({
   className,
-  variant = "default",
-  size = "default",
+  variant = "bare",
+  size = "md",
   asChild = false,
   ...props
 }: ItemProps) {
@@ -79,7 +79,7 @@ export interface ItemMediaProps extends React.ComponentProps<"div"> {
 
 export function ItemMedia({
   className,
-  variant = "default",
+  variant = "bare",
   ...props
 }: ItemMediaProps) {
   return (

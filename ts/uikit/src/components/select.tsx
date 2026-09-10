@@ -64,12 +64,12 @@ export function Select({
 }
 
 export interface SelectTriggerProps extends React.ComponentProps<"button"> {
-  size?: "sm" | "default";
+  size?: "sm" | "md";
 }
 
 export function SelectTrigger({
   className,
-  size = "default",
+  size = "md",
   onClick,
   children,
   ...props

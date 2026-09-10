@@ -7,7 +7,7 @@ export const EMPTY_HEADER = "flex max-w-sm flex-col items-center gap-2 text-cent
 export const EMPTY_MEDIA_BASE = "flex shrink-0 items-center justify-center mb-2 [&_svg]:pointer-events-none [&_svg]:shrink-0";
 
 export const emptyMediaVariants = {
-  "default": "bg-transparent",
+  "bare": "bg-transparent",
   "icon": "bg-muted text-ink flex size-10 shrink-0 items-center justify-center rounded-lg [&_svg:not([class*='size-'])]:size-6",
 } as const;
 export type EmptyMediaVariant = keyof typeof emptyMediaVariants;

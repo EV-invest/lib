@@ -11,30 +11,36 @@ import { buttonVariants, type ButtonVariant } from "./button";
  * what you want off an error page); pass `linkComponent` (e.g. `next/link`) for
  * soft navigation from a client boundary.
  */
-export type StatusAccent = "teal" | "gold" | "red" | "blue";
+export type Accent = "trace" | "debug" | "info" | "warn" | "error";
 
-// Which accent rung the page wears — the mark, eyebrow, code, headline and CTAs
-// all take it. Ordered by significance: 404 is a shrug, 403 a warning, 500 an
-// error. See the kit's docs/spec/accents.md.
-const ACCENT_TEXT: Record<StatusAccent, string> = {
-  teal: "text-accent-debug",
-  gold: "text-accent-warn",
-  red: "text-accent-error",
-  blue: "text-accent-info",
+// Which accent rung a surface wears — for a status page, the mark, eyebrow,
+// code, headline and CTAs all take it. Ordered by significance: 404 is a shrug,
+// 403 a warning, 500 an error. See the kit's docs/spec/accents.md.
+//
+// The tables spell out every rung because Tailwind scans for literal class
+// names; `bg-accent-${rung}` would compile to nothing.
+const ACCENT_TEXT: Record<Accent, string> = {
+  trace: "text-accent-trace",
+  debug: "text-accent-debug",
+  info: "text-accent-info",
+  warn: "text-accent-warn",
+  error: "text-accent-error",
 };
 
-const BTN_FILLED: Record<StatusAccent, string> = {
-  teal: "bg-accent-debug text-background hover:bg-accent-debug/90",
-  gold: "bg-accent-warn text-background hover:bg-accent-warn/90",
-  red: "bg-accent-error text-on-accent-error hover:bg-accent-error/90",
-  blue: "bg-accent-info text-on-accent-info hover:bg-accent-info/90",
+const BTN_FILLED: Record<Accent, string> = {
+  trace: "bg-accent-trace text-on-accent-trace hover:bg-accent-trace/90",
+  debug: "bg-accent-debug text-background hover:bg-accent-debug/90",
+  info: "bg-accent-info text-on-accent-info hover:bg-accent-info/90",
+  warn: "bg-accent-warn text-background hover:bg-accent-warn/90",
+  error: "bg-accent-error text-on-accent-error hover:bg-accent-error/90",
 };
 
-const BTN_OUTLINE: Record<StatusAccent, string> = {
-  teal: "border border-accent-debug/40 text-accent-debug hover:bg-accent-debug/10",
-  gold: "border border-accent-warn/40 text-accent-warn hover:bg-accent-warn/10",
-  red: "border border-accent-error/40 text-accent-error hover:bg-accent-error/10",
-  blue: "border border-accent-info/40 text-accent-info hover:bg-accent-info/10",
+const BTN_OUTLINE: Record<Accent, string> = {
+  trace: "border border-accent-trace/40 text-accent-trace hover:bg-accent-trace/10",
+  debug: "border border-accent-debug/40 text-accent-debug hover:bg-accent-debug/10",
+  info: "border border-accent-info/40 text-accent-info hover:bg-accent-info/10",
+  warn: "border border-accent-warn/40 text-accent-warn hover:bg-accent-warn/10",
+  error: "border border-accent-error/40 text-accent-error hover:bg-accent-error/10",
 };
 
 /**
@@ -45,7 +51,7 @@ const BTN_OUTLINE: Record<StatusAccent, string> = {
  * slot — a retry button wired to Next's `reset`, say — has to be able to match
  * the CTAs beside it, and the accent colour maps are ours.
  */
-export function statusCtaClass(accent: StatusAccent, variant: ButtonVariant) {
+export function statusCtaClass(accent: Accent, variant: ButtonVariant) {
   return cn(
     buttonVariants({ variant, size: "lg" }),
     "font-mono text-xs uppercase tracking-widest",
@@ -95,7 +101,7 @@ export interface StatusLinkData {
 }
 
 export interface StatusScreenProps {
-  accent: StatusAccent;
+  accent: Accent;
   eyebrow: string;
   code: string;
   headlineLead: string;
@@ -152,7 +158,7 @@ export function StatusScreen({
         <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row">
           {children}
           {links?.map((link) => (
-            <L key={link.label} href={link.href} className={statusCtaClass(accent, link.variant ?? "default")}>
+            <L key={link.label} href={link.href} className={statusCtaClass(accent, link.variant ?? "primary")}>
               {link.leadingArrow ? <ArrowLeftIcon className="mr-2 h-4 w-4" /> : null}
               {link.label}
             </L>
@@ -176,7 +182,7 @@ export interface StatusPageProps {
 export function NotFound({ linkComponent = "a", homeHref = "/", contactHref = "/contact" }: StatusPageProps) {
   return (
     <StatusScreen
-      accent="teal"
+      accent="debug"
       eyebrow="Page not found"
       code="404"
       headlineLead="You've reached "
@@ -195,7 +201,7 @@ export function NotFound({ linkComponent = "a", homeHref = "/", contactHref = "/
 export function Forbidden({ linkComponent = "a", homeHref = "/", contactHref = "/contact" }: StatusPageProps) {
   return (
     <StatusScreen
-      accent="gold"
+      accent="warn"
       eyebrow="Access forbidden"
       code="403"
       headlineLead="This harbour is "
@@ -223,7 +229,7 @@ export interface ServerErrorProps {
 export function ServerError({ linkComponent = "a", homeHref = "/", reset }: ServerErrorProps) {
   return (
     <StatusScreen
-      accent="red"
+      accent="error"
       eyebrow="Server error"
       code="500"
       headlineLead="Our systems are "
@@ -234,7 +240,7 @@ export function ServerError({ linkComponent = "a", homeHref = "/", reset }: Serv
     >
       <button
         type="button"
-        className={statusCtaClass("red", "default")}
+        className={statusCtaClass("error", "primary")}
         onClick={() => (reset ? reset() : window.location.reload())}
       >
         Try again

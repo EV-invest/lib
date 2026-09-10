@@ -162,14 +162,14 @@ export function DropdownMenuGroup({ className, ...props }: React.ComponentProps<
 
 export interface DropdownMenuItemProps extends React.ComponentProps<"div"> {
   inset?: boolean;
-  variant?: "default" | "destructive";
+  variant?: "neutral" | "destructive";
   disabled?: boolean;
 }
 
 export function DropdownMenuItem({
   className,
   inset,
-  variant = "default",
+  variant = "neutral",
   disabled,
   onClick,
   onKeyDown,

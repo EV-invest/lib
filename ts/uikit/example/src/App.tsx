@@ -49,18 +49,18 @@ const POSITIONS: ToastPosition[] = [
 ];
 
 const TOAST_VARIANTS: ToastVariant[] = [
-  "default",
-  "success",
-  "error",
+  "neutral",
+  "positive",
   "info",
-  "warning",
+  "warn",
+  "error",
 ];
 
 function fire(variant: ToastVariant) {
   const title = variant[0]!.toUpperCase() + variant.slice(1);
   // single line, to match the Dioxus port (Rust toasts have no description) when
   // comparing the two viewers side by side
-  if (variant === "default") toast(`${title} toast`);
+  if (variant === "neutral") toast(`${title} toast`);
   else toast[variant](`${title} toast`);
 }
 
@@ -132,9 +132,9 @@ export default function App() {
                 <Button
                   size="sm"
                   onClick={() => {
-                    fire("success");
+                    fire("positive");
                     fire("info");
-                    fire("warning");
+                    fire("warn");
                   }}
                 >
                   Stack ×3
@@ -155,7 +155,7 @@ export default function App() {
                     <Button
                       key={p}
                       size="sm"
-                      variant={p === position ? "default" : "outline"}
+                      variant={p === position ? "primary" : "outline"}
                       onClick={() => setPosition(p)}
                     >
                       {p}

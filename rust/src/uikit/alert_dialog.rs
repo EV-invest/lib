@@ -92,7 +92,7 @@ pub fn AlertDialogDescription(#[props(default)] class: String, children: Element
 #[component]
 pub fn AlertDialogAction(onclick: Option<EventHandler<MouseEvent>>, #[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<AlertDialogCtx>();
-	let cls = button_classes(&ButtonVariant::Default, Size::Md, false, &class);
+	let cls = button_classes(&ButtonVariant::Primary, Size::Md, false, &class);
 	rsx! {
 		button {
 			r#type: "button",

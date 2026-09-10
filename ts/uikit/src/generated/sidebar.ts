@@ -4,7 +4,7 @@ export const SIDEBAR_MENU_BUTTON_BASE = "peer/menu-button flex w-full items-cent
 
 export const sidebarMenuButtonSizeClasses = {
   "xs": "h-7 text-xs",
-  "default": "h-8 text-sm",
+  "sm": "h-8 text-sm",
   "lg": "h-12 text-sm group-data-[collapsible=icon]:p-0!",
 } as const;
 export type SidebarMenuButtonSize = keyof typeof sidebarMenuButtonSizeClasses;

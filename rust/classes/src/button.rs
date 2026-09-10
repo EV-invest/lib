@@ -16,7 +16,7 @@ pub const BUTTON_BASE: &str = "inline-flex items-center justify-center gap-2 whi
 #[strum(serialize_all = "kebab-case")]
 pub enum ButtonVariant {
 	#[tw(default, class = "bg-primary text-on-primary hover:bg-primary/90")]
-	Default,
+	Primary,
 	#[tw(class = "bg-secondary text-on-secondary hover:bg-secondary/80")]
 	Secondary,
 	#[tw(class = "border bg-transparent shadow-xs hover:bg-hover hover:text-ink")]

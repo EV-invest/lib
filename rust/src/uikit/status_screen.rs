@@ -16,43 +16,50 @@ use crate::{
 	uikit::{ButtonVariant, Size, button_classes},
 };
 
-/// Which accent rung the page wears — the mark, eyebrow, code, headline and CTAs
-/// all take it. Ordered by significance: 404 is a shrug, 403 a warning, 500 an
-/// error. See the kit's docs/spec/accents.md.
+/// Which accent rung a surface wears — for a status page, the mark, eyebrow,
+/// code, headline and CTAs all take it. Ordered by significance: 404 is a shrug,
+/// 403 a warning, 500 an error. See the kit's docs/spec/accents.md.
+///
+/// The tables spell out every rung because Tailwind scans for literal class
+/// names; `bg-accent-{rung}` would compile to nothing.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum StatusAccent {
-	Teal,
-	Gold,
-	Red,
-	Blue,
+pub enum Accent {
+	Trace,
+	Debug,
+	Info,
+	Warn,
+	Error,
 }
 
-impl StatusAccent {
+impl Accent {
 	/// Accent text colour — threads through the logo, eyebrow, code and headline.
 	fn text(self) -> &'static str {
 		match self {
-			StatusAccent::Teal => "text-accent-debug",
-			StatusAccent::Gold => "text-accent-warn",
-			StatusAccent::Red => "text-accent-error",
-			StatusAccent::Blue => "text-accent-info",
+			Accent::Trace => "text-accent-trace",
+			Accent::Debug => "text-accent-debug",
+			Accent::Info => "text-accent-info",
+			Accent::Warn => "text-accent-warn",
+			Accent::Error => "text-accent-error",
 		}
 	}
 
 	fn filled(self) -> &'static str {
 		match self {
-			StatusAccent::Teal => "bg-accent-debug text-background hover:bg-accent-debug/90",
-			StatusAccent::Gold => "bg-accent-warn text-background hover:bg-accent-warn/90",
-			StatusAccent::Red => "bg-accent-error text-on-accent-error hover:bg-accent-error/90",
-			StatusAccent::Blue => "bg-accent-info text-on-accent-info hover:bg-accent-info/90",
+			Accent::Trace => "bg-accent-trace text-on-accent-trace hover:bg-accent-trace/90",
+			Accent::Debug => "bg-accent-debug text-background hover:bg-accent-debug/90",
+			Accent::Info => "bg-accent-info text-on-accent-info hover:bg-accent-info/90",
+			Accent::Warn => "bg-accent-warn text-background hover:bg-accent-warn/90",
+			Accent::Error => "bg-accent-error text-on-accent-error hover:bg-accent-error/90",
 		}
 	}
 
 	fn outline(self) -> &'static str {
 		match self {
-			StatusAccent::Teal => "border border-accent-debug/40 text-accent-debug hover:bg-accent-debug/10",
-			StatusAccent::Gold => "border border-accent-warn/40 text-accent-warn hover:bg-accent-warn/10",
-			StatusAccent::Red => "border border-accent-error/40 text-accent-error hover:bg-accent-error/10",
-			StatusAccent::Blue => "border border-accent-info/40 text-accent-info hover:bg-accent-info/10",
+			Accent::Trace => "border border-accent-trace/40 text-accent-trace hover:bg-accent-trace/10",
+			Accent::Debug => "border border-accent-debug/40 text-accent-debug hover:bg-accent-debug/10",
+			Accent::Info => "border border-accent-info/40 text-accent-info hover:bg-accent-info/10",
+			Accent::Warn => "border border-accent-warn/40 text-accent-warn hover:bg-accent-warn/10",
+			Accent::Error => "border border-accent-error/40 text-accent-error hover:bg-accent-error/10",
 		}
 	}
 }
@@ -72,7 +79,7 @@ pub struct StatusLinkData {
 /// `children` leading slot, e.g. the 500 client retry).
 #[component]
 pub fn StatusScreen(
-	accent: StatusAccent,
+	accent: Accent,
 	eyebrow: String,
 	code: String,
 	headline_lead: String,
@@ -126,7 +133,7 @@ pub fn StatusScreen(
 pub fn NotFound(#[props(default = "/".to_string())] home_href: String, #[props(default = "/contact".to_string())] contact_href: String) -> Element {
 	rsx! {
 		StatusScreen {
-			accent: StatusAccent::Teal,
+			accent: Accent::Debug,
 			eyebrow: "Page not found",
 			code: "404",
 			headline_lead: "You've reached ",
@@ -136,7 +143,7 @@ pub fn NotFound(#[props(default = "/".to_string())] home_href: String, #[props(d
 				StatusLinkData {
 					label: "Back to home".to_string(),
 					href: home_href,
-					variant: ButtonVariant::Default,
+					variant: ButtonVariant::Primary,
 					leading_arrow: true,
 				},
 				StatusLinkData {
@@ -154,7 +161,7 @@ pub fn NotFound(#[props(default = "/".to_string())] home_href: String, #[props(d
 pub fn Forbidden(#[props(default = "/".to_string())] home_href: String, #[props(default = "/contact".to_string())] contact_href: String) -> Element {
 	rsx! {
 		StatusScreen {
-			accent: StatusAccent::Gold,
+			accent: Accent::Warn,
 			eyebrow: "Access forbidden",
 			code: "403",
 			headline_lead: "This harbour is ",
@@ -164,7 +171,7 @@ pub fn Forbidden(#[props(default = "/".to_string())] home_href: String, #[props(
 				StatusLinkData {
 					label: "Back to home".to_string(),
 					href: home_href,
-					variant: ButtonVariant::Default,
+					variant: ButtonVariant::Primary,
 					leading_arrow: true,
 				},
 				StatusLinkData {
@@ -182,7 +189,7 @@ pub fn Forbidden(#[props(default = "/".to_string())] home_href: String, #[props(
 pub fn ServerError(#[props(default = "/".to_string())] home_href: String, reset: Option<EventHandler<()>>) -> Element {
 	rsx! {
 		StatusScreen {
-			accent: StatusAccent::Red,
+			accent: Accent::Error,
 			eyebrow: "Server error",
 			code: "500",
 			headline_lead: "Our systems are ",
@@ -198,7 +205,7 @@ pub fn ServerError(#[props(default = "/".to_string())] home_href: String, reset:
 			],
 			button {
 				r#type: "button",
-				class: status_cta_class(StatusAccent::Red, ButtonVariant::Default),
+				class: status_cta_class(Accent::Error, ButtonVariant::Primary),
 				onclick: move |_| {
 					if let Some(cb) = reset {
 						cb.call(());
@@ -218,7 +225,7 @@ pub fn ServerError(#[props(default = "/".to_string())] home_href: String, reset:
 /// Public because a host that renders its own action into [`StatusScreen`]'s
 /// slot — a retry button wired to a framework's `reset`, say — has to be able to
 /// match the CTAs beside it, and the accent colour maps are ours.
-pub fn status_cta_class(accent: StatusAccent, variant: ButtonVariant) -> String {
+pub fn status_cta_class(accent: Accent, variant: ButtonVariant) -> String {
 	cn!(
 		button_classes(&variant, Size::Lg, false, ""),
 		"font-mono text-xs uppercase tracking-widest",
@@ -277,7 +284,7 @@ mod tests {
 		fn app() -> Element {
 			rsx! {
 				StatusScreen {
-					accent: StatusAccent::Teal,
+					accent: Accent::Debug,
 					eyebrow: "Page not found",
 					code: "404",
 					headline_lead: "You've reached ",
@@ -286,7 +293,7 @@ mod tests {
 					links: vec![StatusLinkData {
 						label: "Back to home".to_string(),
 						href: "/".to_string(),
-						variant: ButtonVariant::Default,
+						variant: ButtonVariant::Primary,
 						leading_arrow: true,
 					}],
 				}

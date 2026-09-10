@@ -23,8 +23,8 @@ export interface ButtonVariantsOptions {
  * `button_classes`.
  */
 export function buttonVariants({
-  variant = "default",
-  size = "default",
+  variant = "primary",
+  size = "md",
   className,
 }: ButtonVariantsOptions = {}): string {
   return cn(BUTTON_BASE, buttonVariantClasses[variant], buttonSizeClasses[size], className);
@@ -41,8 +41,8 @@ export interface ButtonProps extends React.ComponentProps<"button"> {
 
 export function Button({
   className,
-  variant = "default",
-  size = "default",
+  variant = "primary",
+  size = "md",
   asChild = false,
   href,
   ...props

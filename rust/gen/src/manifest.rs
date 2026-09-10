@@ -3,7 +3,6 @@
 //! use [`table`]; the few key-quirk tables are hand-built `Ts::Table` recipes.
 
 use ev_lib_classes::*;
-use tailwind_fuse::AsTailwindClass;
 
 use crate::{Ts, table};
 
@@ -108,7 +107,7 @@ fn sidebar() -> Vec<Ts> {
 		Ts::Table {
 			name: "sidebarMenuButtonSizeClasses",
 			ty: "SidebarMenuButtonSize",
-			entries: [(Size::Xs, "xs"), (Size::Sm, "default"), (Size::Lg, "lg")]
+			entries: [(Size::Xs, "xs"), (Size::Sm, "sm"), (Size::Lg, "lg")]
 				.into_iter()
 				.map(|(s, k)| (k.to_string(), sidebar_menu_button_size_class(s).to_string()))
 				.collect(),
@@ -191,15 +190,7 @@ fn item() -> Vec<Ts> {
 			value: ITEM_BASE,
 		},
 		table::<ItemVariant>("itemVariants", "ItemVariant"),
-		// Md → `default` key quirk (shared with button/toggle).
-		Ts::Table {
-			name: "itemSizes",
-			ty: "ItemSize",
-			entries: [(ItemSize::Md, "default"), (ItemSize::Sm, "sm")]
-				.into_iter()
-				.map(|(s, k)| (k.to_string(), s.as_class().to_string()))
-				.collect(),
-		},
+		table::<ItemSize>("itemSizes", "ItemSize"),
 		Ts::Const {
 			name: "ITEM_MEDIA_BASE",
 			value: ITEM_MEDIA_BASE,
@@ -1306,7 +1297,7 @@ fn toggle() -> Vec<Ts> {
 		Ts::Table {
 			name: "toggleSizeClasses",
 			ty: "ToggleSize",
-			entries: [(Size::Md, "default"), (Size::Xs, "xs"), (Size::Sm, "sm"), (Size::Lg, "lg"), (Size::Xl, "xl")]
+			entries: [(Size::Md, "md"), (Size::Xs, "xs"), (Size::Sm, "sm"), (Size::Lg, "lg"), (Size::Xl, "xl")]
 				.into_iter()
 				.map(|(s, k)| (k.to_string(), toggle_size_class(s).to_string()))
 				.collect(),
@@ -1321,12 +1312,11 @@ fn button() -> Vec<Ts> {
 			value: BUTTON_BASE,
 		},
 		table::<ButtonVariant>("buttonVariantClasses", "ButtonVariant"),
-		// Size×icon → shadcn's flat size keys (Md→`default`, icon variants).
 		Ts::Table {
 			name: "buttonSizeClasses",
 			ty: "ButtonSize",
 			entries: [
-				(Size::Md, "default"),
+				(Size::Md, "md"),
 				(Size::Xs, "xs"),
 				(Size::Sm, "sm"),
 				(Size::Lg, "lg"),

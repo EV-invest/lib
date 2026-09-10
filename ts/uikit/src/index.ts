@@ -180,7 +180,7 @@ export {
   statusCtaClass,
 } from "./components/status-screen";
 export type {
-  StatusAccent,
+  Accent,
   StatusLinkData,
   StatusScreenProps,
   StatusPageProps,

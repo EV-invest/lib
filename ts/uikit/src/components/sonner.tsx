@@ -73,7 +73,7 @@ const store = (() => {
       message,
       description: opts.description,
       duration: opts.duration ?? DEFAULT_DURATION,
-      variant: opts.variant ?? "default",
+      variant: opts.variant ?? "neutral",
       state: "open",
     };
     toasts = [...toasts, next];
@@ -114,29 +114,29 @@ const store = (() => {
 
 export interface ToastFn {
   (message: React.ReactNode, opts?: ToastOptions): number;
-  success: (message: React.ReactNode, opts?: ToastOptions) => number;
+  positive: (message: React.ReactNode, opts?: ToastOptions) => number;
   error: (message: React.ReactNode, opts?: ToastOptions) => number;
   info: (message: React.ReactNode, opts?: ToastOptions) => number;
-  warning: (message: React.ReactNode, opts?: ToastOptions) => number;
+  warn: (message: React.ReactNode, opts?: ToastOptions) => number;
   dismiss: (id: number) => void;
 }
 
 /**
- * Global toast handle. `toast(msg)` enqueues a neutral toast; the `.success`,
- * `.error`, `.info` and `.warning` helpers pin the variant; `toast.dismiss(id)`
+ * Global toast handle. `toast(msg)` enqueues a neutral toast; the `.positive`,
+ * `.error`, `.info` and `.warn` helpers pin the variant; `toast.dismiss(id)`
  * removes one early. Mirrors Rust's `use_toaster()` handle methods.
  */
 export const toast: ToastFn = Object.assign(
   (message: React.ReactNode, opts?: ToastOptions) => store.add(message, opts),
   {
-    success: (message: React.ReactNode, opts?: ToastOptions) =>
-      store.add(message, { ...opts, variant: "success" }),
+    positive: (message: React.ReactNode, opts?: ToastOptions) =>
+      store.add(message, { ...opts, variant: "positive" }),
     error: (message: React.ReactNode, opts?: ToastOptions) =>
       store.add(message, { ...opts, variant: "error" }),
     info: (message: React.ReactNode, opts?: ToastOptions) =>
       store.add(message, { ...opts, variant: "info" }),
-    warning: (message: React.ReactNode, opts?: ToastOptions) =>
-      store.add(message, { ...opts, variant: "warning" }),
+    warn: (message: React.ReactNode, opts?: ToastOptions) =>
+      store.add(message, { ...opts, variant: "warn" }),
     dismiss: (id: number) => store.dismiss(id),
   },
 );

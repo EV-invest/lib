@@ -54,17 +54,17 @@ fn Gallery() -> Element {
 					CardContent { class: "space-y-4",
 						div { class: "flex flex-wrap gap-2",
 							Button { size: ButtonSize::Sm, variant: ButtonVariant::Secondary,
-								onclick: move |_| { toaster.toast("Default toast"); }, "default" }
+								onclick: move |_| { toaster.toast("Neutral toast"); }, "neutral" }
 							Button { size: ButtonSize::Sm, variant: ButtonVariant::Secondary,
-								onclick: move |_| { toaster.success("Success toast"); }, "success" }
+								onclick: move |_| { toaster.positive("Positive toast"); }, "positive" }
 							Button { size: ButtonSize::Sm, variant: ButtonVariant::Destructive,
 								onclick: move |_| { toaster.error("Error toast"); }, "error" }
 							Button { size: ButtonSize::Sm, variant: ButtonVariant::Secondary,
 								onclick: move |_| { toaster.info("Info toast"); }, "info" }
 							Button { size: ButtonSize::Sm, variant: ButtonVariant::Secondary,
-								onclick: move |_| { toaster.warning("Warning toast"); }, "warning" }
+								onclick: move |_| { toaster.warn("Warn toast"); }, "warn" }
 							Button { size: ButtonSize::Sm, variant: ButtonVariant::Outline,
-								onclick: move |_| { toaster.show("Persistent — won't auto-close", ToastVariant::Default, None); }, "persistent" }
+								onclick: move |_| { toaster.show("Persistent — won't auto-close", ToastVariant::Neutral, None); }, "persistent" }
 						}
 						Separator {}
 						div { class: "space-y-2",
@@ -74,7 +74,7 @@ fn Gallery() -> Element {
 									Button {
 										key: "{label}",
 										size: ButtonSize::Sm,
-										variant: if position() == pos { ButtonVariant::Default } else { ButtonVariant::Outline },
+										variant: if position() == pos { ButtonVariant::Primary } else { ButtonVariant::Outline },
 										onclick: move |_| position.set(pos),
 										"{label}"
 									}

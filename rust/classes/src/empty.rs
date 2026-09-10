@@ -16,7 +16,7 @@ pub const EMPTY_MEDIA_BASE: &str = "flex shrink-0 items-center justify-center mb
 #[strum(serialize_all = "kebab-case")]
 pub enum EmptyMediaVariant {
 	#[tw(default, class = "bg-transparent")]
-	Default,
+	Bare,
 	#[tw(class = "bg-muted text-ink flex size-10 shrink-0 items-center justify-center rounded-lg [&_svg:not([class*='size-'])]:size-6")]
 	Icon,
 }

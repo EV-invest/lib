@@ -104,7 +104,7 @@ mod tests {
 		}
 		let html = render(app);
 		assert!(html.contains("data-slot=\"item\""), "{html}");
-		assert!(html.contains("data-variant=\"default\""), "{html}");
+		assert!(html.contains("data-variant=\"bare\""), "{html}");
 		assert!(html.contains("data-size=\"md\""), "{html}");
 		assert!(html.contains("rounded-md"), "{html}");
 	}

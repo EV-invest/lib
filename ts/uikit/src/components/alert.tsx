@@ -14,7 +14,7 @@ export interface AlertProps extends React.ComponentProps<"div"> {
   variant?: AlertVariant;
 }
 
-export function Alert({ className, variant = "default", ...props }: AlertProps) {
+export function Alert({ className, variant = "neutral", ...props }: AlertProps) {
   return (
     <div
       data-slot="alert"

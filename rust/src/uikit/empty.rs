@@ -83,7 +83,7 @@ mod tests {
 		}
 		let html = render(app);
 		assert!(html.contains("data-slot=\"empty-icon\""), "{html}");
-		assert!(html.contains("data-variant=\"default\""), "{html}");
+		assert!(html.contains("data-variant=\"bare\""), "{html}");
 		assert!(html.contains("bg-transparent"), "{html}");
 	}
 

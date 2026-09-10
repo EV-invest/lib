@@ -12,7 +12,7 @@ export interface BadgeProps extends React.ComponentProps<"span"> {
 
 export function Badge({
   className,
-  variant = "default",
+  variant = "primary",
   asChild = false,
   ...props
 }: BadgeProps) {

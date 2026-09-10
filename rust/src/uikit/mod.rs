@@ -167,4 +167,4 @@ mod footer;
 mod status_screen;
 
 pub use footer::{Footer, FooterLink, FooterLinkGroup, FooterOffice};
-pub use status_screen::{Forbidden, NotFound, ServerError, StatusAccent, StatusLinkData, StatusScreen, status_cta_class};
+pub use status_screen::{Accent, Forbidden, NotFound, ServerError, StatusLinkData, StatusScreen, status_cta_class};

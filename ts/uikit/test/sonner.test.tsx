@@ -81,10 +81,10 @@ describe("Toaster", () => {
   it("pins the variant via the helper methods", () => {
     const { getByText } = render(<Toaster />);
     act(() => {
-      toast.success("Done", { duration: Infinity });
+      toast.positive("Done", { duration: Infinity });
     });
     const item = getByText("Done").closest('[data-slot="toast"]')!;
-    expect(item).toHaveAttribute("data-variant", "success");
+    expect(item).toHaveAttribute("data-variant", "positive");
   });
 
   it("slides out on the close button, then unmounts on transitionend", () => {

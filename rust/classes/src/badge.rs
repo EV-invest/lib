@@ -11,7 +11,7 @@ pub const BADGE_BASE: &str = "inline-flex items-center justify-center rounded-md
 #[strum(serialize_all = "kebab-case")]
 pub enum BadgeVariant {
 	#[tw(default, class = "border-transparent bg-primary text-on-primary [a&]:hover:bg-primary/90")]
-	Default,
+	Primary,
 	#[tw(class = "border-transparent bg-secondary text-on-secondary [a&]:hover:bg-secondary/90")]
 	Secondary,
 	#[tw(class = "border-transparent bg-accent-error text-on-accent-error [a&]:hover:bg-accent-error/90 focus-visible:ring-accent-error/20")]

@@ -31,7 +31,7 @@ pub const ITEM_FOOTER: &str = "flex basis-full items-center justify-between gap-
 #[strum(serialize_all = "kebab-case")]
 pub enum ItemVariant {
 	#[tw(default, class = "bg-transparent")]
-	Default,
+	Bare,
 	#[tw(class = "border-border")]
 	Outline,
 	#[tw(class = "bg-muted/50")]
@@ -51,7 +51,7 @@ pub enum ItemSize {
 #[strum(serialize_all = "kebab-case")]
 pub enum ItemMediaVariant {
 	#[tw(default, class = "bg-transparent")]
-	Default,
+	Bare,
 	#[tw(class = "size-8 border rounded-sm bg-muted [&_svg:not([class*='size-'])]:size-4")]
 	Icon,
 	#[tw(class = "size-10 rounded-sm overflow-hidden [&_img]:size-full [&_img]:object-cover")]

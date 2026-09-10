@@ -14,7 +14,7 @@ use crate::{
 #[strum(serialize_all = "kebab-case")]
 pub enum MenubarItemVariant {
 	#[default]
-	Default,
+	Neutral,
 	Destructive,
 }
 

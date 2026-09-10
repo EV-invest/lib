@@ -38,7 +38,7 @@ export interface EmptyMediaProps extends React.ComponentProps<"div"> {
 
 export function EmptyMedia({
   className,
-  variant = "default",
+  variant = "bare",
   ...props
 }: EmptyMediaProps) {
   return (

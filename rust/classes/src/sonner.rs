@@ -18,15 +18,15 @@ pub const TOASTER_BASE: &str = "pointer-events-none fixed z-100 w-[calc(100%-2re
 #[strum(serialize_all = "kebab-case")]
 pub enum ToastVariant {
 	#[tw(default, class = "bg-popover text-ink border-border")]
-	Default,
+	Neutral,
 	#[tw(class = "bg-popover text-ink border-positive/40")]
-	Success,
-	#[tw(class = "bg-popover text-ink border-accent-error/50")]
-	Error,
+	Positive,
 	#[tw(class = "bg-popover text-ink border-border")]
 	Info,
 	#[tw(class = "bg-popover text-ink border-border")]
-	Warning,
+	Warn,
+	#[tw(class = "bg-popover text-ink border-accent-error/50")]
+	Error,
 }
 
 #[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]

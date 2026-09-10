@@ -138,14 +138,14 @@ export function ContextMenuContent({ className, children, ...props }: React.Comp
 
 export interface ContextMenuItemProps extends React.ComponentProps<"div"> {
   inset?: boolean;
-  variant?: "default" | "destructive";
+  variant?: "neutral" | "destructive";
   disabled?: boolean;
 }
 
 export function ContextMenuItem({
   className,
   inset,
-  variant = "default",
+  variant = "neutral",
   disabled,
   onClick,
   onKeyDown,

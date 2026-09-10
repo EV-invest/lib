@@ -20,8 +20,8 @@ describe("Item", () => {
     expect(el.tagName).toBe("DIV");
     expect(el).toHaveClass("rounded-md");
     expect(el).toHaveAttribute("data-slot", "item");
-    expect(el).toHaveAttribute("data-variant", "default");
-    expect(el).toHaveAttribute("data-size", "default");
+    expect(el).toHaveAttribute("data-variant", "bare");
+    expect(el).toHaveAttribute("data-size", "md");
   });
 
   it("applies outline variant and sm size (canon parity with Rust)", () => {

@@ -86,6 +86,7 @@ bg-accent-debug text-background hover:bg-accent-debug/90
 bg-accent-error text-on-accent-error hover:bg-accent-error/90
 bg-accent-error text-on-accent-error hover:bg-accent-error/90 focus-visible:ring-accent-error/20
 bg-accent-info text-on-accent-info hover:bg-accent-info/90
+bg-accent-trace text-on-accent-trace hover:bg-accent-trace/90
 bg-accent-warn text-background hover:bg-accent-warn/90
 bg-background border-t border-ink/10 py-16
 bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg
@@ -715,6 +716,7 @@ text-accent-error bg-card [&>svg]:text-current *:data-[slot=alert-description]:t
 text-accent-error text-sm
 text-accent-error text-sm font-normal
 text-accent-info
+text-accent-trace
 text-accent-warn
 text-base
 text-ink

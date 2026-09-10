@@ -30,7 +30,7 @@ describe("Button", () => {
   });
 
   it("buttonVariants helper fuses variant, size and className override", () => {
-    const cls = buttonVariants({ variant: "ghost", size: "default", className: "px-10" });
+    const cls = buttonVariants({ variant: "ghost", size: "md", className: "px-10" });
     expect(cls).toContain("hover:bg-hover");
     expect(cls).toContain("h-9");
     expect(cls).toContain("px-10");

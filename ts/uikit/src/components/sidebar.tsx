@@ -330,7 +330,7 @@ export function SidebarMenuButton({
   asChild = false,
   isActive = false,
   variant = "ghost",
-  size = "default",
+  size = "sm",
   className,
   ...props
 }: SidebarMenuButtonProps) {

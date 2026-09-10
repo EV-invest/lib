@@ -68,8 +68,8 @@ describe("Select", () => {
     expect(option).toHaveAttribute("aria-selected", "true");
   });
 
-  it("supports the sm trigger size", () => {
+  it("defaults the trigger to the md size", () => {
     render(tree());
-    expect(screen.getByRole("combobox")).toHaveAttribute("data-size", "default");
+    expect(screen.getByRole("combobox")).toHaveAttribute("data-size", "md");
   });
 });

@@ -13,7 +13,7 @@ pub const TOGGLE_BASE: &str = "inline-flex items-center justify-center gap-2 rou
 #[strum(serialize_all = "kebab-case")]
 pub enum ToggleVariant {
 	#[tw(default, class = "bg-transparent")]
-	Default,
+	Bare,
 	#[tw(class = "border border-input bg-transparent shadow-xs hover:bg-hover hover:text-ink")]
 	Outline,
 }

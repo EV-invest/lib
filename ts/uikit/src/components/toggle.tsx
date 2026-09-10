@@ -22,8 +22,8 @@ export interface ToggleVariantsOptions {
  * its items adopt the same styling, mirroring Rust's `toggle_classes`.
  */
 export function toggleVariants({
-  variant = "default",
-  size = "default",
+  variant = "bare",
+  size = "md",
   className,
 }: ToggleVariantsOptions = {}): string {
   return cn(TOGGLE_BASE, toggleVariantClasses[variant], toggleSizeClasses[size], className);
@@ -40,8 +40,8 @@ export interface ToggleProps
 
 export function Toggle({
   className,
-  variant = "default",
-  size = "default",
+  variant = "bare",
+  size = "md",
   pressed,
   defaultPressed = false,
   onPressedChange,

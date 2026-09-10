@@ -9,12 +9,12 @@ use crate::{
 	},
 };
 
-/// Default vs destructive item styling; mirrors the TS `variant` union.
+/// Neutral vs destructive item styling; mirrors the TS `variant` union.
 #[derive(Clone, Copy, Default, PartialEq, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum DropdownMenuItemVariant {
 	#[default]
-	Default,
+	Neutral,
 	Destructive,
 }
 

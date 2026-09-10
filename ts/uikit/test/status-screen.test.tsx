@@ -6,7 +6,7 @@ describe("StatusScreen", () => {
   it("renders the code, eyebrow, headline and CTAs as plain <a> by default", () => {
     const { getByText } = render(
       <StatusScreen
-        accent="teal"
+        accent="debug"
         eyebrow="Page not found"
         code="404"
         headlineLead="You've reached "
