@@ -91,9 +91,18 @@ keeps from the repo's discipline:
   Tailwind class strings are identical per element across Rust and TS. Variants
   are the **superset** of the two original sources.
 - **`tokens.css` is the contract:** the design tokens (CSS custom properties +
-  Tailwind `@theme inline`) live once at the repo root; the npm package copies
-  the file in from its `prepare` script, so both ports ship it. Every
-  component class references a token; a consumer must `@import` `tokens.css`.
+  Tailwind `@theme inline`) live once at the repo root. `nix run .#gen`
+  flattens them into both ports — `ts/uikit/styles/` for npm and
+  `rust/classes/css/` for the crate, the latter because Tailwind can neither
+  scan nor `@import` a crates.io checkout. Every component class references a
+  token; a consumer must `@import` the sheet.
+- **Nothing derived is hand-written or copied:** `nix run .#gen` is the only
+  producer of the TS class tables, the Tailwind class inventory and the two
+  token sheets, and the `generated` pre-commit hook re-runs it and re-stages.
+  A committed artefact therefore cannot disagree with its source — which
+  matters because the failure is silent: Tailwind answers an undefined token by
+  emitting no rule, so a drifted sheet is a colour quietly going missing on a
+  consumer, not a build error.
 - **CSS is generated at runtime by the v4 browser CDN**, which DOM-scans the
   live page — so class strings may be composed dynamically (`format!("h-{}", n)`),
   e.g. the shared `Size` whose `scale()` magnitude each component applies on its

@@ -18,8 +18,39 @@
 
         pname = "ev";
 
+        # `nix run .#gen`: the one way to produce anything generated in this repo
+        # — the TS class tables, the Tailwind class inventory, and the flattened
+        # token sheets for both ports. See rust/gen/src/main.rs for the map.
+        gen = pkgs.writeShellApplication {
+          name = "gen";
+          runtimeInputs = [ rust pkgs.git ];
+          text = ''
+            cd "$(git rev-parse --show-toplevel)"
+            exec cargo run -q -p ev_lib_gen "$@"
+          '';
+        };
+
         # Local git hooks (treefmt etc.) — installed into .git/hooks at shell entry.
-        pre-commit-check = pre-commit-hooks.lib.${system}.run (v_flakes.files.preCommit { inherit pkgs; });
+        pre-commit-check = pre-commit-hooks.lib.${system}.run (
+          let base = v_flakes.files.preCommit { inherit pkgs; }; in
+          base // {
+            hooks = base.hooks // {
+              # Regenerate and re-stage, rather than assert-and-fail. CI is off in
+              # this repo (see the `github` module below), so an assertion would
+              # have nothing to run it — and a stale generated file is silent:
+              # Tailwind answers an undefined token by emitting no rule at all, so
+              # a token sheet that drifted from its source shows up as a colour
+              # quietly going missing on a consumer, not as a build error.
+              generated = {
+                enable = true;
+                name = "regenerate derived files";
+                entry = "bash -c '${gen}/bin/gen && git add -A rust/classes/css rust/classes/uikit-classes.txt ts/uikit/src/generated ts/uikit/styles'";
+                pass_filenames = false;
+                require_serial = true;
+              };
+            };
+          }
+        );
 
         # The crate's sources live in `rust/`, but the org tooling drives cargo
         # from the repo root (anchored by the thin workspace in ./Cargo.toml), so
@@ -81,6 +112,11 @@
         apps.publish = {
           type = "app";
           program = "${publish}/bin/publish";
+        };
+
+        apps.gen = {
+          type = "app";
+          program = "${gen}/bin/gen";
         };
 
         devShells.default =
