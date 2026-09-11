@@ -17,8 +17,7 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./styles/tokens.css": "./styles/tokens.css",
-    "./styles/tokens-legacy.css": "./styles/tokens-legacy.css"
+    "./styles/tokens.css": "./styles/tokens.css"
   },
   "types": "./dist/index.d.ts",
   "main": "./dist/index.js",

@@ -78,7 +78,6 @@ state, never its appearance (`Red`) and never its selection (`Default`); see
 and carries EV's values: a single dark palette on `:root, .dark`. A consumer
 with two polarities writes its own sheet against the same names.
 
-`styles/tokens-legacy.css` is the pre-0.11 vocabulary layered on top —
 `text-main-mist`, `bg-sidebar`, `text-muted-foreground` and the rest keep
 working, and the current tokens are re-pointed at the old values so rendered
 colour is unchanged. Import it instead while migrating; it goes away once every

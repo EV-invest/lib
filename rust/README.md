@@ -31,27 +31,14 @@ two ports cannot drift. `uikit` re-exports only the types a caller has to *name*
 to build a prop (`ButtonVariant`, `Size`, `Polarity`, `Surface`, …) — the class
 constants are an implementation detail.
 
-`legacy` (the consumer imported `tokens-legacy.css`) and `modern` (`tokens.css`)
-say which token vocabulary the Tailwind entrypoint speaks. `default = ["legacy"]`,
-so bumping the version changes nothing; both at once is a build error. `modern`
-therefore reads:
-
-```toml
-ev_lib = { version = "0.10", default-features = false, features = ["uikit", "modern"] }
-```
-
-Tailwind can neither scan nor `@import` a crate unpacked from crates.io, so
-`ev_lib_classes` carries both halves as data: `CLASS_INVENTORY` is every class
-literal the kit can emit, and `TOKENS_CSS` / `TOKENS_LEGACY_CSS` are the token
-sheets, flattened. Write them out from `build.rs`:
+`tokens.css` is the only token stylesheet. Tailwind can neither scan nor `@import` a crate unpacked from crates.io, so `ev_lib_classes` carries the sheet as data. Write it out from `build.rs`:
 
 ```rust
 std::fs::write("uikit-classes.txt", ev_lib_classes::CLASS_INVENTORY).unwrap();
-std::fs::write("assets/tokens.css", ev_lib_classes::TOKENS_LEGACY_CSS).unwrap();
+std::fs::write("assets/tokens.css", ev_lib_classes::TOKENS_CSS).unwrap();
 ```
 
-then `@source` the first and `@import` the second. A hand-kept copy of either is
-a file that drifts silently on the next bump.
+then `@source` the first and `@import` the second. A hand-kept copy is a file that drifts silently on the next bump.
 
 `analytics`, `error_monitoring`, and `experiments` likewise carry runtime deps
 and **do network I/O** (PostHog / Sentry), gated per-target so native and browser
