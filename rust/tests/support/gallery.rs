@@ -36,7 +36,7 @@ const GALLERY: &[(&str, fn() -> Element)] = &[
 	("Select", d_select), ("Dialog", d_dialog), ("AlertDialog", d_alert_dialog),
 	("Sheet", d_sheet), ("Drawer", d_drawer), ("Command", d_command), ("NavigationMenu", d_navigation_menu),
 	("Sidebar", d_sidebar), ("Resizable", d_resizable), ("ScrollArea", d_scroll_area),
-	("Form", d_form), ("Container", d_container),
+	("Form", d_form), ("Container", d_container), ("Terminal", d_terminal),
 ];
 fn render_fragment(app: fn() -> Element) -> String {
 	let mut dom = VirtualDom::new(app);
@@ -825,6 +825,61 @@ fn d_container() -> Element {
 	rsx! {
 		Container { class: "border border-dashed border-border py-4",
 			"Centered max-width container"
+		}
+	}
+}
+
+fn d_terminal() -> Element {
+	rsx! {
+		Terminal {
+			TerminalTicker {
+				TickerStat { label: "Ha Long", value: "1.024" }
+				TickerStat { label: "24h", value: "+2.4%", class: "text-positive" }
+				TickerStat { label: "Volume", value: "12 400" }
+			}
+			TerminalPane { area: TerminalArea::Chart,
+				TerminalPaneHeader { "Price" }
+				TerminalPaneBody {
+					TerminalChart {}
+				}
+			}
+			TerminalPane { area: TerminalArea::Book,
+				TerminalPaneHeader { "Order book" }
+				TerminalPaneBody {
+					OrderBook {
+						OrderBookHead { price: "Price", size: "Size", total: "Total" }
+						OrderBookRow { side: BookSide::Ask, price: "1.030", size: "120", total: "360", depth: 0.9 }
+						OrderBookRow { side: BookSide::Ask, price: "1.028", size: "80", total: "240", depth: 0.6 }
+						OrderBookRow { side: BookSide::Ask, price: "1.026", size: "160", total: "160", depth: 0.4 }
+						OrderBookSpread {
+							span { "1.025" }
+							span { "0.002" }
+						}
+						OrderBookRow { side: BookSide::Bid, price: "1.024", size: "140", total: "140", depth: 0.35 }
+						OrderBookRow { side: BookSide::Bid, price: "1.022", size: "90", total: "230", depth: 0.55 }
+						OrderBookRow { side: BookSide::Bid, price: "1.020", size: "200", total: "430", depth: 1.0 }
+					}
+				}
+			}
+			TerminalPane { area: TerminalArea::Form,
+				TerminalPaneHeader { "Buy / Sell" }
+				TerminalPaneBody {
+					OrderForm {
+						Input { placeholder: "Price" }
+						Input { placeholder: "Size" }
+						OrderFormRow { label: "Cost", value: "143.36" }
+						OrderFormRow { label: "Fee", value: "0.14" }
+						OrderFormSubmit { "Buy" }
+						OrderFormSubmit { side: OrderSide::Sell, "Sell" }
+					}
+				}
+			}
+			TerminalPane { area: TerminalArea::Orders,
+				TerminalPaneHeader { "Open orders" }
+				TerminalPaneBody {
+					OpenOrdersEmpty { "No open orders" }
+				}
+			}
 		}
 	}
 }
