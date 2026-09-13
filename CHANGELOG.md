@@ -61,17 +61,20 @@ Rust crate and its TypeScript mirror at once.
   because `before_send` never sees transactions, which need the name just as
   much. **Breaking:** `Config` gains a public field, so struct literals must add
   `service` (`None` keeps the old behaviour).
-- **`uikit` — `terminal`** (Rust; the class tables are generated for TS, the
-  React components follow): a trading terminal over an investment product's
-  shares — ticker, chart slot | order book | order form, open orders — the way
-  a spot exchange lays it out. `Terminal` is a viewport-bound grid from `lg`
-  (a phone stacks the panes) that places each `TerminalPane` by `TerminalArea`,
-  so the desktop layout does not depend on DOM order. `OrderBook` rows carry a
-  depth bar behind the figures and colour the price by `BookSide` (bids
-  positive, asks loud); `TradesTapeRow` reads the same enum; `OrderFormSubmit`
-  fills by `OrderSide`. The chart is a sized `relative` slot and nothing more —
-  the plotting engine stays the consumer's — and the open-orders pane reuses
-  `Table` and `Tabs`, contributing only `OpenOrdersEmpty`.
+- **`uikit` — `terminal`** (both ports; the class tables are generated from
+  Rust): a trading terminal over an investment product's shares — ticker,
+  chart slot | order book | order form, open orders — the way a spot exchange
+  lays it out. `Terminal` is a viewport-bound grid from `lg` (a phone stacks
+  the panes) that places each `TerminalPane` by `TerminalArea`, so the desktop
+  layout does not depend on DOM order. `OrderBook` rows carry a depth bar
+  behind the figures and colour the price by `BookSide` (bids positive, asks
+  loud); `TradesTapeRow` reads the same enum; `OrderFormSubmit` fills by
+  `OrderSide`. The chart is a sized `relative` slot and nothing more — the
+  plotting engine stays the consumer's (React hands the element out through a
+  `ref`, Dioxus through an `id`) — and the open-orders pane reuses `Table` and
+  `Tabs`, contributing only `OpenOrdersEmpty`. Same `data-slot` / `data-area` /
+  `data-side` attributes on both sides, so one stylesheet or test selector
+  reads either port.
 
 ### Fixed
 
