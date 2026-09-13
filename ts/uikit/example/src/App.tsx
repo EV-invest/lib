@@ -38,6 +38,7 @@ import {
   type ToastPosition,
   type ToastVariant,
 } from "@evinvest/uikit";
+import { TerminalDemo } from "./TerminalDemo";
 
 const POSITIONS: ToastPosition[] = [
   "top-left",
@@ -282,6 +283,12 @@ export default function App() {
             <span className="text-sm">
               Press <Kbd>⌘</Kbd> <Kbd>K</Kbd>
             </span>
+          </Section>
+
+          <Section title="Terminal" hint="fake data; the chart host is empty on purpose">
+            <div className="w-full">
+              <TerminalDemo />
+            </div>
           </Section>
         </div>
 
