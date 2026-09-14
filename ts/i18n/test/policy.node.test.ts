@@ -64,7 +64,9 @@ describe("rule 1.2 — a translation that drifted from its source is not used", 
     });
     for (const key of Object.keys(moved)) expect(r.messages[key]).toBeDefined();
     // A page cannot break because a translation went stale.
-    expect(translator(r.messages, "ru")("hero.title")).toBe("Something else");
+    expect(translator(r.messages, "ru")("hero.title", "Something else")).toBe(
+      "Something else",
+    );
   });
 
   it("refuses a blank translation", () => {
@@ -157,9 +159,9 @@ describe("rule 1.2 — structural equivalence", () => {
     });
     expect(r.rejected).toEqual([]);
     const t = translator(r.messages, "ru");
-    expect(t("cart.items", { n: 1 })).toBe("1 товар");
-    expect(t("cart.items", { n: 3 })).toBe("3 товара");
-    expect(t("cart.items", { n: 8 })).toBe("8 товаров");
+    expect(t("cart.items", en["cart.items"]!, { n: 1 })).toBe("1 товар");
+    expect(t("cart.items", en["cart.items"]!, { n: 3 })).toBe("3 товара");
+    expect(t("cart.items", en["cart.items"]!, { n: 8 })).toBe("8 товаров");
   });
 
   it("does not mistake an escaped brace for a placeholder", () => {

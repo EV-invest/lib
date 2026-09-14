@@ -230,12 +230,6 @@ fn depth_percent(depth: f64) -> u8 {
 	(depth.clamp(0.0, 1.0) * 100.0).round() as u8
 }
 
-
-
-
-
-
-
 #[cfg(test)]
 mod tests {
 	use super::*;

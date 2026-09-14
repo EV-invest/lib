@@ -221,29 +221,40 @@ export type Messages = Readonly<Record<string, string>>;
 /** Values interpolated into a message pattern. */
 export type MessageValues = Readonly<Record<string, string | number>>;
 
-/** Looks up `key`, formats it against `values`, and returns display text. */
-export type Translate = (key: string, values?: MessageValues) => string;
+/**
+ * Renders one string: `en` is the English as authored at this call site, `key`
+ * is what a translated catalogue files it under.
+ *
+ * ```ts
+ * t("hero.title", "Invest in the China+1 narrative")
+ * ```
+ */
+export type Translate = (key: string, en: string, values?: MessageValues) => string;
 
 /**
  * Build a {@link Translate} bound to one catalogue and locale.
  *
- * A missing key returns the key itself. That is deliberate: a blank or throwing
- * lookup turns a translation gap into either an invisible hole or a white
- * screen, whereas the raw key is self-describing on screen, greppable, and
- * survives to a screenshot in a bug report. The build-time checker is what
- * *finds* missing keys — the runtime's job is only to degrade legibly.
+ * English is authored at the call site and the catalogue is generated back out
+ * of the code (`evinvest-i18n-extract`), so the catalogue is a build artefact
+ * and `en` is the source. Two consequences the signature makes unavoidable:
+ * copy cannot be edited in one place and read from another, and a key the
+ * catalogue lacks renders the sentence the component asked for rather than a
+ * dotted key.
+ *
+ * For {@link DEFAULT_LOCALE} the catalogue is never consulted — there is
+ * nothing left to look up.
  *
  * @param messages - The catalogue for `locale`.
  * @param locale   - The locale, used for plural rules.
- * @param onMissing - Optional hook fired on a missing key (wire it to Sentry in production).
+ * @param onMissing - Fired for a key the catalogue has never heard of, which
+ *   means the extractor was not re-run. Wire it to Sentry in production.
  * @returns A translate function.
  *
  * @example
  * ```ts
- * const t = translator({ "cart.items": "{n, plural, one {# item} other {# items}}" }, "en");
- * t("cart.items", { n: 1 });  // "1 item"
- * t("cart.items", { n: 5 });  // "5 items"
- * t("nope");                  // "nope"
+ * const t = translator({ "cart.items": "{n, plural, one {# товар} few {# товара} many {# товаров}}" }, "ru");
+ * t("cart.items", "{n, plural, one {# item} other {# items}}", { n: 2 });  // "2 товара"
+ * t("nope", "Fallback copy");                                             // "Fallback copy"
  * ```
  */
 export function translator(
@@ -251,14 +262,41 @@ export function translator(
   locale: Locale,
   onMissing?: (key: string, locale: Locale) => void,
 ): Translate {
-  return (key, values) => {
-    const pattern = messages[key];
-    if (pattern === undefined) {
-      onMissing?.(key, locale);
-      return key;
-    }
-    return formatMessage(pattern, locale, values);
+  const source = locale === DEFAULT_LOCALE ? null : messages;
+  return (key, en, values) => {
+    if (source === null) return formatMessage(en, locale, values);
+    const pattern = source[key];
+    if (pattern === undefined) onMissing?.(key, locale);
+    return formatMessage(pattern ?? en, locale, values);
   };
+}
+
+/**
+ * The structural slice of `Element` {@link localeOfElement} reads. Spelled out
+ * rather than imported from the DOM lib so the core keeps type-checking — and
+ * shipping — without one.
+ */
+export interface LangScope {
+  getAttribute(name: string): string | null;
+  closest(selectors: string): LangScope | null;
+}
+
+/**
+ * The locale a DOM subtree is written in, per `lang` inheritance.
+ *
+ * This is how an element remote — a custom element the host composes into its
+ * own page — learns what language to render in. Not a prop and not an
+ * attribute: a host mounts the element before it applies attributes, so
+ * anything pushed in reads as `null` at `connectedCallback` time. `lang` is the
+ * platform's own answer to "what language is this subtree", it is already set
+ * correctly by every host that serves more than one, and it is readable the
+ * instant the node is attached.
+ *
+ * A regional tag resolves to its base language (`ru-RU` → `ru`); an absent or
+ * unpublished `lang` reads as {@link DEFAULT_LOCALE}.
+ */
+export function localeOfElement(node: LangScope): Locale {
+  return negotiate(node.closest("[lang]")?.getAttribute("lang"));
 }
 
 /**

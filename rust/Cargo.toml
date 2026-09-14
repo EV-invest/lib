@@ -1,6 +1,6 @@
 [package]
 name = "ev_lib"
-version = "0.12.0"
+version = "0.13.0"
 edition = "2024"
 description = "EV-invest shared Rust libraries, one per feature"
 license = "BlueOak-1.0.0"
@@ -76,18 +76,20 @@ otel = [
 # sink, so it never imports `analytics` (no cross-library coupling).
 experiments = ["dep:dioxus", "dep:js-sys", "dep:web-sys", "dep:wasm-bindgen"]
 
+# Five-locale i18n (mirrors `@evinvest/i18n`): locale registry, URL contract,
+# Accept-Language negotiation, an ICU-subset formatter, the translation policy,
+# and the `t!` macro. Wasm-safe and zero-dep *there* — the CLDR plural rules and
+# number grouping for EV's five locales are hand-written rather than pulling in
+# ICU4X, which would add megabytes of locale data to a Dioxus wasm bundle. The
+# one dep, `inventory`, is native-only: it is how `t!` sites become a catalogue,
+# and a shipped bundle extracts nothing.
+i18n = ["dep:inventory"]
+
 # Typed env settings (mirrors `@evinvest/settings`). The `settings!` macro reads
 # env vars into a validated struct: aggregate error reporting, `= "literal"`
 # defaults, `Option` = optional, `#[secret]` redaction. Env-only by design — no
 # config files, no hot reload; sops/age decrypt at the shell/CI boundary and this
 # library only reads the already-injected environment. Zero runtime deps.
-# Five-locale i18n (mirrors `@evinvest/i18n`): locale registry, URL contract,
-# Accept-Language negotiation, an ICU-subset formatter and the translation
-# policy. Zero deps and wasm-safe — the CLDR plural rules and number grouping
-# for EV's five locales are hand-written rather than pulling in ICU4X, which
-# would add megabytes of locale data to a Dioxus wasm bundle.
-i18n = []
-
 settings = []
 
 # Shared domain TypeObjects — PhoneNumber, Email, … — with validation.
@@ -100,12 +102,16 @@ types = []
 # `wasm` pulls `dioxus?/web` + `web-sys`; `document` is for the bundle's `<link>`;
 # `launch` is the `LaunchBuilder` behind `launch_into`, which a producer crate
 # would otherwise have to enable itself for this feature to compile.
+# `i18n` is not optional here: a producer declares its catalogue in the `mfe!`
+# invocation, so an element remote cannot ship without having resolved its
+# locale — which is the failure this pairing exists to make impossible.
 mfe = [
     "dep:dioxus",
     "dep:wasm-bindgen",
     "dep:js-sys",
     "dioxus?/document",
     "dioxus?/launch",
+    "i18n",
     "wasm",
 ]
 
@@ -130,6 +136,11 @@ uuid = { workspace = true, features = ["serde", "v4"], optional = true }
 # Native (non-wasm) backends for the I/O libraries. Kept out of wasm builds so the
 # browser target never links a native TLS stack or the `sentry` crate.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+
+# How `t!` sites become a catalogue (the `i18n` feature): the linker collects
+# them, so a site that compiles is registered whether or not it ever renders.
+# Native-only — a shipped wasm bundle extracts nothing, and stays zero-dep.
+inventory = { version = "0.3", optional = true }
 
 # OpenTelemetry (the `otel` feature). Native-only, pinned to a mutually-consistent
 # 0.31-era set; `tracing-opentelemetry` tracks one minor ahead of the core crates.

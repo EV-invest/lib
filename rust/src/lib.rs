@@ -37,10 +37,13 @@
 //!   interceptors for W3C trace propagation. See [`otel`].
 //! - **`i18n`** — five-locale internationalisation (mirrors `@evinvest/i18n`):
 //!   the locale registry, the `/<locale>` URL contract, `Accept-Language`
-//!   negotiation, an ICU-subset message formatter, and the translation policy
-//!   that refuses a translation whose English source has moved. Zero deps,
-//!   wasm-safe. Reads the same `messages/<locale>/*.json` as the TypeScript
-//!   half, so a catalogue is portable between them. See [`i18n`].
+//!   negotiation, an ICU-subset message formatter, the translation policy that
+//!   refuses a translation whose English source has moved, and the [`t!`] macro
+//!   — English written where it renders, with the catalogue generated back out
+//!   of the code. Wasm-safe and zero-dep there; natively it carries `inventory`,
+//!   which is what turns `t!` sites into that catalogue. Reads the same
+//!   `messages/<locale>/*.json` as the TypeScript half, so a catalogue is
+//!   portable between them. See [`i18n`].
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 

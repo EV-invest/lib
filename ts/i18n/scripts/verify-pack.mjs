@@ -28,6 +28,13 @@ const ENTRIES = [
   "dist/next.cjs",
   "dist/policy.js",
   "dist/policy.cjs",
+  "dist/extract.js",
+  "dist/extract.cjs",
+  // The `cli` launchers are hand-written, not built, so nothing but this list
+  // would notice them dropping out of the tarball — and a missing bin fails at
+  // `npm run i18n:check`, i.e. in the consumer's CI, not here.
+  "cli/extract.mjs",
+  "cli/check.mjs",
 ];
 const REQUIRED = [
   "package.json",
@@ -39,6 +46,8 @@ const REQUIRED = [
   "dist/next.d.cts",
   "dist/policy.d.ts",
   "dist/policy.d.cts",
+  "dist/extract.d.ts",
+  "dist/extract.d.cts",
 ];
 
 const out = execFileSync("npm", ["pack", "--dry-run", "--json"], {

@@ -259,11 +259,46 @@ fn a_malformed_pattern_degrades_to_the_text_as_written() {
 }
 
 #[test]
-fn a_missing_key_renders_as_itself() {
+fn a_missing_key_renders_the_inline_english() {
+	let t = Translator::new(Messages::new(), Locale::Ru);
+	// The call site has the correct sentence in hand — a dotted key on screen
+	// would be strictly worse.
+	assert_eq!(t.t("hero.title", "Invest in the China+1 narrative"), "Invest in the China+1 narrative");
+}
+
+#[test]
+fn the_default_locale_never_consults_the_catalogue() {
+	// English is the authored source: the catalogue is generated back out of
+	// these very strings, so a lookup could only return what was passed in.
+	let mut stale = Messages::new();
+	stale.insert("hero.title".to_owned(), "STALE".to_owned());
+	let t = Translator::new(stale, Locale::En);
+	assert_eq!(t.t("hero.title", "Invest in the China+1 narrative"), "Invest in the China+1 narrative");
+}
+
+#[test]
+fn a_translated_key_wins_over_the_inline_english() {
+	let mut ru = Messages::new();
+	ru.insert("hero.title".to_owned(), "Инвестируйте в нарратив «Китай+1»".to_owned());
+	let t = Translator::new(ru, Locale::Ru);
+	assert_eq!(t.t("hero.title", "Invest in the China+1 narrative"), "Инвестируйте в нарратив «Китай+1»");
+}
+
+#[test]
+fn the_macro_registers_every_site_it_renders() {
 	let t = Translator::new(Messages::new(), Locale::En);
-	// Self-describing on screen, greppable, and survives to a screenshot.
-	assert_eq!(t.t("hero.title"), "hero.title");
-	assert!(!t.has("hero.title"));
+	assert_eq!(crate::t!(t, "tests.macro.plain", "Plain"), "Plain");
+	assert_eq!(crate::t!(t, "tests.macro.values", "{n, plural, one {# item} other {# items}}", n = 4), "4 items");
+
+	// Extraction is linking, not parsing: the branch below never runs, and its
+	// key is in the catalogue anyway. That is the whole reason for `inventory`.
+	if std::hint::black_box(false) {
+		let _ = crate::t!(t, "tests.macro.never_rendered", "Never rendered");
+	}
+
+	let catalogue = super::catalogue().expect("no key is registered with two different Englishes");
+	assert_eq!(catalogue.get("tests.macro.plain").map(String::as_str), Some("Plain"));
+	assert_eq!(catalogue.get("tests.macro.never_rendered").map(String::as_str), Some("Never rendered"));
 }
 
 // ── policy ───────────────────────────────────────────────────────────────────
@@ -531,6 +566,27 @@ fn renders_the_real_site_catalogue_plurals_identically_to_intl() {
 			assert_eq!(got, expected, "{locale} at n={n}");
 		}
 	}
+}
+
+#[test]
+fn the_key_en_fallback_resolves_the_same_way_in_both_halves() {
+	// `translator()` in @evinvest/i18n serves `messages[key] ?? en`, and skips
+	// the catalogue entirely for `en`. Pinned here because the two halves render
+	// the same catalogues: a producer that translated in Rust and a host that
+	// translated in TypeScript must put the same sentence on the same page.
+	let en = "{n, plural, one {# role} other {# roles}}";
+	let mut ru = Messages::new();
+	ru.insert("roles".to_owned(), "{n, plural, one {# вакансия} few {# вакансии} many {# вакансий}}".to_owned());
+
+	let tr = Translator::new(ru, Locale::Ru);
+	assert_eq!(tr.count("roles", en, "n", 3.0), "3 вакансии");
+	// Absent from the catalogue → the inline English, rendered under ru's rules.
+	assert_eq!(tr.count("shifts", en, "n", 3.0), "3 roles");
+
+	// `en` ignores even a catalogue that disagrees with the call site.
+	let mut stale = Messages::new();
+	stale.insert("roles".to_owned(), "{n, plural, other {# STALE}}".to_owned());
+	assert_eq!(Translator::new(stale, Locale::En).count("roles", en, "n", 3.0), "3 roles");
 }
 
 #[test]

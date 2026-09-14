@@ -1398,7 +1398,7 @@ dependencies = [
 
 [[package]]
 name = "ev_lib"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "async-trait",
  "axum",
@@ -1407,6 +1407,7 @@ dependencies = [
  "dioxus-ssr",
  "ev_lib",
  "ev_lib_classes",
+ "inventory",
  "jiff",
  "js-sys",
  "opentelemetry",

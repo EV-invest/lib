@@ -7,6 +7,7 @@ import {
   formatMessage,
   isLocale,
   localeAlternates,
+  localeOfElement,
   localePath,
   negotiate,
   splitLocalePath,
@@ -260,27 +261,73 @@ describe("formatMessage — select", () => {
 
 describe("translator", () => {
   const messages = {
-    "hero.title": "Invest in the China+1 narrative",
-    "cart.items": "{n, plural, one {# item} other {# items}}",
+    "hero.title": "Инвестируйте в нарратив «Китай+1»",
+    "cart.items": "{n, plural, one {# товар} few {# товара} many {# товаров} other {# товара}}",
   };
 
   it("looks up and formats", () => {
-    const t = translator(messages, "en");
-    expect(t("hero.title")).toBe("Invest in the China+1 narrative");
-    expect(t("cart.items", { n: 2 })).toBe("2 items");
+    const t = translator(messages, "ru");
+    expect(t("hero.title", "Invest in the China+1 narrative")).toBe(
+      "Инвестируйте в нарратив «Китай+1»",
+    );
+    expect(t("cart.items", "{n, plural, one {# item} other {# items}}", { n: 2 })).toBe(
+      "2 товара",
+    );
   });
 
-  it("returns the key itself when missing, and reports it", () => {
+  it("renders the inline English when the key is missing, and reports it", () => {
     const onMissing = vi.fn();
     const t = translator(messages, "ru", onMissing);
-    // A greppable, self-describing on-screen value beats a blank or a crash.
-    expect(t("hero.subtitle")).toBe("hero.subtitle");
+    expect(t("hero.subtitle", "Five hundred years of compounding")).toBe(
+      "Five hundred years of compounding",
+    );
     expect(onMissing).toHaveBeenCalledWith("hero.subtitle", "ru");
   });
 
   it("does not report a key that exists", () => {
     const onMissing = vi.fn();
-    translator(messages, "en", onMissing)("hero.title");
+    translator(messages, "ru", onMissing)("hero.title", "Invest in the China+1 narrative");
     expect(onMissing).not.toHaveBeenCalled();
+  });
+
+  it("never consults the catalogue for the default locale", () => {
+    const onMissing = vi.fn();
+    // English is the authored source: the catalogue is generated back out of
+    // these very strings, so a lookup could only ever return what was passed in.
+    const t = translator({ "hero.title": "STALE" }, "en", onMissing);
+    expect(t("hero.title", "Invest in the China+1 narrative")).toBe(
+      "Invest in the China+1 narrative",
+    );
+    expect(t("anything", "{n, plural, one {# item} other {# items}}", { n: 5 })).toBe("5 items");
+    expect(onMissing).not.toHaveBeenCalled();
+  });
+});
+
+describe("localeOfElement", () => {
+  // The structural stand-in for a DOM subtree: `closest` walks up to the
+  // nearest ancestor carrying `lang`, exactly as the platform's does.
+  const mount = (...langs: (string | null)[]): Parameters<typeof localeOfElement>[0] => {
+    const node = (i: number): Parameters<typeof localeOfElement>[0] => ({
+      getAttribute: name => (name === "lang" ? (langs[i] ?? null) : null),
+      closest: () => {
+        for (let up = i; up < langs.length; up++) if (langs[up] != null) return node(up);
+        return null;
+      },
+    });
+    return node(0);
+  };
+
+  it("reads the nearest lang", () => {
+    expect(localeOfElement(mount("ru"))).toBe("ru");
+    expect(localeOfElement(mount(null, null, "de"))).toBe("de");
+  });
+
+  it("takes the base language of a regional tag", () => {
+    expect(localeOfElement(mount("ru-RU"))).toBe("ru");
+  });
+
+  it("falls back to the default when there is no lang, or an unpublished one", () => {
+    expect(localeOfElement(mount(null))).toBe("en");
+    expect(localeOfElement(mount("ja"))).toBe("en");
   });
 });

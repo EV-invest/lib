@@ -210,6 +210,23 @@ unnoticed.
 
 ## Translating
 
+**English is written where it renders.** `t` takes the key *and* the English
+sentence, and `messages/en/common.json` is generated back out of the code.
+
+```tsx
+t("hero.title", "Invest in the China+1 narrative")
+```
+
+Two things follow, and the signature is what makes them unavoidable. Copy cannot
+be edited in one place and read from another — there is only one place. And a
+key a translated catalogue lacks renders **the sentence the component asked
+for**, not a dotted key: the call site has the correct English in hand, so
+showing `hero.title` on screen instead would be strictly worse. `onMissing`
+still fires, and means one thing — the extractor was not re-run.
+
+For `en` the catalogue is never consulted at all; there is nothing left to look
+up.
+
 Server Components call `translator()` directly — the locale is already in their
 props, and there is no re-render to memoise against:
 
@@ -220,7 +237,7 @@ import { translator } from "@evinvest/i18n";
 export default async function TeamPage({ params }) {
   const { locale } = await params;
   const t = translator(await loadMessages(locale, "team"), locale);
-  return <h1>{t("team.title")}</h1>;
+  return <h1>{t("team.title", "The people behind the fund")}</h1>;
 }
 ```
 
@@ -236,11 +253,55 @@ import { useT } from "@evinvest/i18n/react";
 </I18nProvider>
 ```
 
-A **missing key returns the key itself** and fires the optional `onMissing`
-hook. That is deliberate: a blank or throwing lookup turns a translation gap into
-an invisible hole or a white screen, whereas the raw key is self-describing on
-screen, greppable, and survives to a screenshot in a bug report. Finding missing
-keys is the build-time checker's job; the runtime's job is to degrade legibly.
+## Extracting
+
+Two bins, same arguments, so a check and the extract that fixes it cannot be
+pointed at different trees:
+
+```sh
+evinvest-i18n-extract --root frontend --exclude public,messages,tests
+evinvest-i18n-check   --root frontend --exclude public,messages,tests
+```
+
+`--exclude` names what is **not** source, rather than what is. A list of source
+directories is a hole that opens the day someone adds a slice, and an unscanned
+call site produces no error — just English forever in five locales.
+`--messages` defaults to `<root>/messages`.
+
+`extract` writes `messages/en/common.json` and prunes every translated catalogue
+down to the keys the code still asks for. The prune is unconditional because the
+scan cannot see a *deleted* call site — only what remains.
+
+`check` is the CI gate. Fatal: a committed English catalogue that no longer
+matches the code (it would hand `resolveCatalogue` a stale source to compare
+every translation against), and policy drift. Reported but not fatal:
+untranslated keys — a locale is filled in over time, and blocking CI on an
+unfinished translation would just get the check disabled.
+
+Both refuse a `t()` whose key or English is not a literal. The point of inlining
+is that the copy is visible where it renders, and a runtime-assembled key is
+neither visible nor greppable.
+
+`typescript` is an optional peer dependency: needed to run the extractor, never
+to render a string.
+
+## An element remote's locale
+
+A microfrontend mounted as a custom element gets its locale from the DOM it is
+mounted *into*:
+
+```ts
+import { localeOfElement } from "@evinvest/i18n";
+
+connectedCallback() { mount(this, localeOfElement(this)); }
+```
+
+Not a prop and not an attribute. A host mounts the element before it applies
+attributes, so anything pushed in reads as `null` at `connectedCallback` time.
+`lang` is the platform's own answer to "what language is this subtree", it is
+already set correctly by every host that serves more than one, and it is
+readable the instant the node is attached. `ev_lib::mfe::host_locale` is the
+Rust mirror.
 
 ## Message patterns
 
@@ -279,11 +340,13 @@ reader who deliberately chose English should not be bounced out of it.
 
 ## Rust counterpart
 
-Unlike the other packages here, this one currently has **no** Rust mirror. The
-planned `i18n` Cargo feature reads the *same* `messages/<locale>/*.json`
-catalogues via `include_str!` to localise transactional email, so there is one
-translation source across TS and Rust rather than two that drift. Until that
-lands, this package is the sole implementation.
+`ev_lib`'s `i18n` feature mirrors this package: the same registry, the same URL
+contract, the same formatter, the same policy, and the same `(key, en)` call
+shape via the `t!` macro. It reads the *same* `messages/<locale>/common.json`
+files, so a catalogue is portable between the two halves and neither can drift
+alone. Its extractor is the linker rather than a parser — a `t!` site that
+compiles is registered — which is why the Rust half needs no equivalent of the
+bins above.
 
 ## Scripts
 

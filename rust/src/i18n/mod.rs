@@ -26,16 +26,22 @@
 //! exception is `#` inside a plural branch, which is the count itself — see
 //! [`Locale::format_number`].
 //!
+//! **English is written where it renders.** Every lookup carries the English
+//! sentence as authored at the call site, and `messages/en/common.json` is
+//! generated back out of the code — so copy cannot be edited in one place and
+//! read from another, and a key a translated catalogue lacks renders the
+//! sentence the component asked for. Use the [`t!`](crate::t) macro, which makes
+//! the compiler the literal-ness gate and registers the pair for extraction.
+//!
 //! ```
-//! use ev_lib::i18n::{Locale, Messages, Translator};
+//! use ev_lib::{i18n::{Locale, Messages, Translator}, t};
 //!
 //! let mut messages = Messages::new();
-//! messages.insert("cart.items".into(), "{n, plural, one {# item} other {# items}}".into());
+//! messages.insert("cart.items".into(), "{n, plural, one {# товар} few {# товара} many {# товаров}}".into());
+//! let tr = Translator::new(messages, Locale::Ru);
 //!
-//! let t = Translator::new(messages, Locale::En);
-//! assert_eq!(t.count("cart.items", "n", 1.0), "1 item");
-//! assert_eq!(t.count("cart.items", "n", 5.0), "5 items");
-//! assert_eq!(t.t("nope"), "nope"); // a missing key renders as itself
+//! assert_eq!(t!(tr, "cart.items", "{n, plural, one {# item} other {# items}}", n = 3.0), "3 товара");
+//! assert_eq!(t!(tr, "nope", "Five hundred years of compounding"), "Five hundred years of compounding");
 //! ```
 
 use std::collections::BTreeMap;
@@ -65,20 +71,6 @@ pub const DEFAULT_LOCALE: Locale = Locale::En;
 /// `HashMap` so a report's key order is deterministic — a CI diff that reorders
 /// itself between runs is not a diff.
 pub type Messages = BTreeMap<String, String>;
-/// One of the five locales EV publishes.
-///
-/// Note `Vi` — Vietnamese — is the ISO 639-1 *language* code. `vn` is the ISO
-/// 3166 *country* code for Vietnam and is not a valid `hreflang` / `lang` value;
-/// Google silently discards invalid values, so the distinction is load-bearing.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum Locale {
-	#[default]
-	En,
-	Ru,
-	Vi,
-	Fr,
-	De,
-}
 
 impl Locale {
 	/// The BCP 47 language subtag — what goes in `<html lang>` and a URL prefix.
@@ -133,10 +125,6 @@ impl std::str::FromStr for Locale {
 	}
 }
 
-/// The error [`Locale::from_str`] returns for a tag EV does not publish.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct UnknownLocale(pub String);
-
 impl std::fmt::Display for UnknownLocale {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		write!(f, "unknown locale {:?} — EV publishes en, ru, vi, fr, de", self.0)
@@ -158,57 +146,133 @@ impl std::error::Error for UnknownLocale {}
 // that asymmetry may be expressed — hand-built locale URLs elsewhere drift
 // immediately.
 
-/// The path `locale` serves `path` at.
-///
-/// ```
-/// use ev_lib::i18n::{Locale, locale_path};
-/// assert_eq!(locale_path(Locale::En, "/team"), "/team");
-/// assert_eq!(locale_path(Locale::Ru, "/team"), "/ru/team");
-/// assert_eq!(locale_path(Locale::Ru, "/"), "/ru");
-/// ```
-pub fn locale_path(locale: Locale, path: &str) -> String {
-	let clean = if path.starts_with('/') { path.to_owned() } else { format!("/{path}") };
-	if locale == DEFAULT_LOCALE {
-		return clean;
+// ── Messages ─────────────────────────────────────────────────────────────────
+
+impl Translator {
+	/// Bind `messages` to `locale`.
+	pub fn new(messages: Messages, locale: Locale) -> Self {
+		Self { messages, locale }
 	}
-	// "/" would otherwise yield "/ru/", and a trailing slash is a distinct URL to
-	// a crawler — one canonical shape per page, so strip it.
-	if clean == "/" { format!("/{locale}") } else { format!("/{locale}{clean}") }
+
+	/// The locale this translator renders in.
+	pub fn locale(&self) -> Locale {
+		self.locale
+	}
+
+	/// Render `key`, falling back to `en`, with no interpolation.
+	pub fn t(&self, key: &str, en: &str) -> String {
+		self.render(key, en, &MessageValues::new())
+	}
+
+	/// Render `key`, falling back to `en`, interpolating `values`.
+	pub fn tv(&self, key: &str, en: &str, values: &MessageValues) -> String {
+		self.render(key, en, values)
+	}
+
+	/// Render `key` with a single numeric argument — the common plural case.
+	///
+	/// ```
+	/// use ev_lib::i18n::{Locale, Messages, Translator};
+	/// let en = "{count, plural, one {# role} other {# roles}}";
+	/// let mut m = Messages::new();
+	/// m.insert("roles".into(), "{count, plural, one {# вакансия} few {# вакансии} many {# вакансий}}".into());
+	/// let t = Translator::new(m, Locale::Ru);
+	/// assert_eq!(t.count("roles", en, "count", 3.0), "3 вакансии");
+	/// assert_eq!(t.count("nope", en, "count", 2.0), "2 roles");
+	/// ```
+	pub fn count(&self, key: &str, en: &str, name: &str, n: f64) -> String {
+		let mut values = MessageValues::new();
+		values.insert(name.to_owned(), MessageValue::Num(n));
+		self.render(key, en, &values)
+	}
+
+	fn render(&self, key: &str, en: &str, values: &MessageValues) -> String {
+		let pattern = if self.locale == DEFAULT_LOCALE {
+			en
+		} else {
+			self.messages.get(key).map_or(en, String::as_str)
+		};
+		format_message(pattern, self.locale, values)
+	}
 }
 
-/// The inverse of [`locale_path`]: split a request path into its locale and the
-/// locale-free path beneath it. An absent or unrecognised prefix reads as
-/// [`DEFAULT_LOCALE`], so this never fails on arbitrary input.
+/// Look up one string, and register it for extraction.
 ///
 /// ```
-/// use ev_lib::i18n::{Locale, split_locale_path};
-/// assert_eq!(split_locale_path("/ru/team"), (Locale::Ru, "/team".to_owned()));
-/// assert_eq!(split_locale_path("/team"), (Locale::En, "/team".to_owned()));
-/// assert_eq!(split_locale_path("/ru"), (Locale::Ru, "/".to_owned()));
+/// use ev_lib::{i18n::{Locale, Messages, Translator}, t};
+/// let tr = Translator::new(Messages::new(), Locale::En);
+///
+/// t!(tr, "hero.title", "Invest in the China+1 narrative");
+/// t!(tr, "cart.items", "{n, plural, one {# item} other {# items}}", n = 2);
 /// ```
-pub fn split_locale_path(pathname: &str) -> (Locale, String) {
-	let clean = if pathname.starts_with('/') { pathname.to_owned() } else { format!("/{pathname}") };
-	let after = &clean[1..];
-	let (head, rest) = match after.find('/') {
-		Some(idx) => (&after[..idx], &after[idx..]),
-		None => (after, ""),
+///
+/// `$key` and `$en` are `literal` fragments, so **the compiler is the
+/// literal-ness gate** — the TypeScript extractor has to enforce that by hand,
+/// and a key assembled at runtime is neither visible where it renders nor
+/// greppable.
+///
+/// Natively, each site also registers its pair with [`i18n::catalogue`](catalogue).
+/// Extraction is therefore *linking*, not parsing: a site that compiles is
+/// registered whether or not it ever renders, which is what a recording
+/// translator driven by one SSR pass could never promise — it would silently
+/// drop every string behind a branch that did not run. The corollary, and the
+/// ceiling: **copy must live in natively-compilable code.** For a microfrontend
+/// the component-MFE snapshot contract already requires exactly that.
+#[cfg(feature = "i18n")]
+#[macro_export]
+macro_rules! t {
+	($tr:expr, $key:literal, $en:literal) => {{
+		$crate::__i18n_register!($key, $en);
+		$tr.t($key, $en)
+	}};
+	($tr:expr, $key:literal, $en:literal, $($name:ident = $value:expr),+ $(,)?) => {{
+		$crate::__i18n_register!($key, $en);
+		let mut values = $crate::i18n::MessageValues::new();
+		$(values.insert(stringify!($name).to_owned(), $crate::i18n::MessageValue::from($value));)+
+		$tr.tv($key, $en, &values)
+	}};
+}
+
+/// The registration half of [`t!`], which is a no-op on `wasm32` so the shipped
+/// bundle carries no extraction machinery.
+#[cfg(all(feature = "i18n", not(target_arch = "wasm32")))]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __i18n_register {
+	($key:literal, $en:literal) => {
+		$crate::i18n::inventory::submit! { $crate::i18n::Source { key: $key, en: $en } }
 	};
-	match Locale::parse(head) {
-		Some(locale) if locale != DEFAULT_LOCALE => (locale, if rest.is_empty() { "/".to_owned() } else { rest.to_owned() }),
-		_ => (DEFAULT_LOCALE, clean),
-	}
 }
 
-/// Every locale's URL for one page — the shape an `hreflang` cluster wants.
+#[cfg(all(feature = "i18n", target_arch = "wasm32"))]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __i18n_register {
+	($key:literal, $en:literal) => {};
+}
+
+// ── Extraction ───────────────────────────────────────────────────────────────
+
+#[cfg(not(target_arch = "wasm32"))]
+pub use inventory;
+
+/// A catalogue bound to one locale, ready to render.
 ///
-/// ```
-/// use ev_lib::i18n::{LOCALES, locale_alternates};
-/// let alts = locale_alternates("/team", &LOCALES);
-/// assert_eq!(alts[0].1, "/team");
-/// assert_eq!(alts[1].1, "/ru/team");
-/// ```
-pub fn locale_alternates(path: &str, locales: &[Locale]) -> Vec<(Locale, String)> {
-	locales.iter().map(|&l| (l, locale_path(l, path))).collect()
+/// `en` is the English as authored at the call site; `key` is what a translated
+/// catalogue files it under. A key the catalogue lacks renders `en` — the call
+/// site has the correct sentence in hand, so putting a dotted key on screen
+/// instead would be strictly worse. [`policy::audit`] is what *finds* missing
+/// keys; the runtime's job is only to degrade legibly.
+///
+/// For [`Locale::En`] the catalogue is never consulted: it is generated back out
+/// of these very strings, so there is nothing left to look up.
+///
+/// Prefer the [`t!`](crate::t) macro over calling these directly — it gates the
+/// literal-ness the extractor needs, at compile time.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Translator {
+	messages: Messages,
+	locale: Locale,
 }
 
 /// Pick the best locale for an `Accept-Language` header, honouring q-values and
@@ -264,67 +328,126 @@ pub fn negotiate(header: Option<&str>, locales: &[Locale]) -> Locale {
 	DEFAULT_LOCALE
 }
 
-// ── Messages ─────────────────────────────────────────────────────────────────
-
-/// A catalogue bound to one locale, ready to render.
+/// Every locale's URL for one page — the shape an `hreflang` cluster wants.
 ///
-/// A missing key renders as the key itself. That is deliberate: a blank or
-/// panicking lookup turns a translation gap into either an invisible hole or a
-/// crashed view, whereas the raw key is self-describing on screen, greppable,
-/// and survives to a screenshot in a bug report. [`policy::audit`] is what
-/// *finds* missing keys — the runtime's job is only to degrade legibly.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Translator {
-	messages: Messages,
-	locale: Locale,
+/// ```
+/// use ev_lib::i18n::{LOCALES, locale_alternates};
+/// let alts = locale_alternates("/team", &LOCALES);
+/// assert_eq!(alts[0].1, "/team");
+/// assert_eq!(alts[1].1, "/ru/team");
+/// ```
+pub fn locale_alternates(path: &str, locales: &[Locale]) -> Vec<(Locale, String)> {
+	locales.iter().map(|&l| (l, locale_path(l, path))).collect()
 }
 
-impl Translator {
-	/// Bind `messages` to `locale`.
-	pub fn new(messages: Messages, locale: Locale) -> Self {
-		Self { messages, locale }
+/// The inverse of [`locale_path`]: split a request path into its locale and the
+/// locale-free path beneath it. An absent or unrecognised prefix reads as
+/// [`DEFAULT_LOCALE`], so this never fails on arbitrary input.
+///
+/// ```
+/// use ev_lib::i18n::{Locale, split_locale_path};
+/// assert_eq!(split_locale_path("/ru/team"), (Locale::Ru, "/team".to_owned()));
+/// assert_eq!(split_locale_path("/team"), (Locale::En, "/team".to_owned()));
+/// assert_eq!(split_locale_path("/ru"), (Locale::Ru, "/".to_owned()));
+/// ```
+pub fn split_locale_path(pathname: &str) -> (Locale, String) {
+	let clean = if pathname.starts_with('/') { pathname.to_owned() } else { format!("/{pathname}") };
+	let after = &clean[1..];
+	let (head, rest) = match after.find('/') {
+		Some(idx) => (&after[..idx], &after[idx..]),
+		None => (after, ""),
+	};
+	match Locale::parse(head) {
+		Some(locale) if locale != DEFAULT_LOCALE => (locale, if rest.is_empty() { "/".to_owned() } else { rest.to_owned() }),
+		_ => (DEFAULT_LOCALE, clean),
 	}
+}
 
-	/// The locale this translator renders in.
-	pub fn locale(&self) -> Locale {
-		self.locale
+/// The path `locale` serves `path` at.
+///
+/// ```
+/// use ev_lib::i18n::{Locale, locale_path};
+/// assert_eq!(locale_path(Locale::En, "/team"), "/team");
+/// assert_eq!(locale_path(Locale::Ru, "/team"), "/ru/team");
+/// assert_eq!(locale_path(Locale::Ru, "/"), "/ru");
+/// ```
+pub fn locale_path(locale: Locale, path: &str) -> String {
+	let clean = if path.starts_with('/') { path.to_owned() } else { format!("/{path}") };
+	if locale == DEFAULT_LOCALE {
+		return clean;
 	}
+	// "/" would otherwise yield "/ru/", and a trailing slash is a distinct URL to
+	// a crawler — one canonical shape per page, so strip it.
+	if clean == "/" { format!("/{locale}") } else { format!("/{locale}{clean}") }
+}
 
-	/// Render `key` with no interpolation.
-	pub fn t(&self, key: &str) -> String {
-		self.render(key, &MessageValues::new())
+/// The error [`Locale::from_str`] returns for a tag EV does not publish.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UnknownLocale(pub String);
+
+/// One of the five locales EV publishes.
+///
+/// Note `Vi` — Vietnamese — is the ISO 639-1 *language* code. `vn` is the ISO
+/// 3166 *country* code for Vietnam and is not a valid `hreflang` / `lang` value;
+/// Google silently discards invalid values, so the distinction is load-bearing.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum Locale {
+	#[default]
+	En,
+	Ru,
+	Vi,
+	Fr,
+	De,
+}
+
+/// One `t!` call site, as the linker collected it.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Source {
+	pub key: &'static str,
+	pub en: &'static str,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+inventory::collect!(Source);
+
+/// A key registered twice with different English. The catalogue can hold only
+/// one of them, so which one shipped would be decided by link order.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct KeyConflict {
+	pub key: String,
+	pub first: String,
+	pub second: String,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl std::fmt::Display for KeyConflict {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "{:?} is registered as {:?} and as {:?}", self.key, self.first, self.second)
 	}
+}
 
-	/// Render `key`, interpolating `values`.
-	pub fn tv(&self, key: &str, values: &MessageValues) -> String {
-		self.render(key, values)
-	}
+#[cfg(not(target_arch = "wasm32"))]
+impl std::error::Error for KeyConflict {}
 
-	/// Render `key` with a single numeric argument — the common plural case.
-	///
-	/// ```
-	/// use ev_lib::i18n::{Locale, Messages, Translator};
-	/// let mut m = Messages::new();
-	/// m.insert("roles".into(), "{count, plural, one {# role} other {# roles}}".into());
-	/// let t = Translator::new(m, Locale::En);
-	/// assert_eq!(t.count("roles", "count", 2.0), "2 roles");
-	/// ```
-	pub fn count(&self, key: &str, name: &str, n: f64) -> String {
-		let mut values = MessageValues::new();
-		values.insert(name.to_owned(), MessageValue::Num(n));
-		self.render(key, &values)
-	}
-
-	/// Whether the catalogue defines `key` — for a caller that wants to branch
-	/// rather than render the key back as placeholder text.
-	pub fn has(&self, key: &str) -> bool {
-		self.messages.contains_key(key)
-	}
-
-	fn render(&self, key: &str, values: &MessageValues) -> String {
-		match self.messages.get(key) {
-			Some(pattern) => format_message(pattern, self.locale, values),
-			None => key.to_owned(),
+/// The English catalogue, read out of every [`t!`] site linked into this binary.
+///
+/// Write it to `messages/en/common.json` and compare the committed file against
+/// it in a test — that pair is the Rust half of `evinvest-i18n-{extract,check}`.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn catalogue() -> Result<Messages, Vec<KeyConflict>> {
+	let mut messages = Messages::new();
+	let mut conflicts = Vec::new();
+	for source in inventory::iter::<Source> {
+		match messages.insert(source.key.to_owned(), source.en.to_owned()) {
+			Some(first) if first != source.en => conflicts.push(KeyConflict {
+				key: source.key.to_owned(),
+				first,
+				second: source.en.to_owned(),
+			}),
+			_ => {}
 		}
 	}
+	if conflicts.is_empty() { Ok(messages) } else { Err(conflicts) }
 }

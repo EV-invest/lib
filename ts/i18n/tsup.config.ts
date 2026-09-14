@@ -26,13 +26,17 @@ export default defineConfig([
       index: 'src/index.ts',
       next: 'src/next/index.ts',
       policy: 'src/policy/index.ts',
+      // The extractor. Node-only and tool-only — `bin/*.mjs` are three-line
+      // launchers around it — but bundled the same way as everything else so
+      // `typescript` stays an optional peer dep rather than being inlined.
+      extract: 'src/extract/index.ts',
     },
     format: ['esm', 'cjs'],
     dts: true,
     clean: true,
     sourcemap: true,
     target: 'es2022',
-    external: ['next', 'next/headers', 'next/server'],
+    external: ['next', 'next/headers', 'next/server', 'typescript'],
   },
   // Config #2 — the client subpath. `"use client"` banner so it can be imported
   // from React Server Components / the Next App Router without `createContext`

@@ -19,7 +19,7 @@ afterEach(() => {
 });
 
 const MESSAGES = {
-  "hero.title": "Invest in the China+1 narrative",
+  "hero.title": "Инвестируйте в нарратив «Китай+1»",
   "roles.count": "{n, plural, one {# вакансия} few {# вакансии} many {# вакансий}}",
 };
 
@@ -28,7 +28,8 @@ function Probe() {
   const locale = useLocale();
   return (
     <span data-testid="out">
-      {locale}:{t("hero.title")}:{t("roles.count", { n: 3 })}
+      {locale}:{t("hero.title", "Invest in the China+1 narrative")}:
+      {t("roles.count", "{n, plural, one {# role} other {# roles}}", { n: 3 })}
     </span>
   );
 }
@@ -43,24 +44,24 @@ describe("I18nProvider", () => {
       );
     });
     expect(container.textContent).toBe(
-      "ru:Invest in the China+1 narrative:3 вакансии",
+      "ru:Инвестируйте в нарратив «Китай+1»:3 вакансии",
     );
   });
 
-  it("reports missing keys through onMissing and renders the key", () => {
+  it("reports an unknown key through onMissing and renders the inline English", () => {
     const onMissing = vi.fn();
     function Missing() {
-      return <span>{useT()("nope.key")}</span>;
+      return <span>{useT()("nope.key", "Five hundred years of compounding")}</span>;
     }
     act(() => {
       root.render(
-        <I18nProvider locale="en" messages={MESSAGES} onMissing={onMissing}>
+        <I18nProvider locale="ru" messages={MESSAGES} onMissing={onMissing}>
           <Missing />
         </I18nProvider>,
       );
     });
-    expect(container.textContent).toBe("nope.key");
-    expect(onMissing).toHaveBeenCalledWith("nope.key", "en");
+    expect(container.textContent).toBe("Five hundred years of compounding");
+    expect(onMissing).toHaveBeenCalledWith("nope.key", "ru");
   });
 });
 

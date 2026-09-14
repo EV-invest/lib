@@ -3,10 +3,11 @@
 Five-locale internationalisation — the Rust half of `@evinvest/i18n`.
 
 ```toml
-ev_lib = { version = "0.8", default-features = false, features = ["i18n"] }
+ev_lib = { version = "0.13", default-features = false, features = ["i18n"] }
 ```
 
-Zero dependencies, `wasm32`-safe, no I/O.
+`wasm32`-safe, no I/O, and zero dependencies *there*. Natively it carries one,
+`inventory` — see [Extraction is linking](#extraction-is-linking).
 
 ## Why a Rust half exists
 
@@ -28,8 +29,53 @@ in the browser.
 | [`Locale`] | the five locales, their codes and their native labels |
 | [`locale_path`] / [`split_locale_path`] | the `/<locale>` URL contract — default unprefixed, everything else prefixed |
 | [`negotiate`] | `Accept-Language`, with q-values and regional-tag matching |
-| [`Translator`] / [`format_message`] | ICU-subset formatter: `{name}`, `plural`, `select`, `#`, `'` quoting |
+| [`t!`] / [`Translator`] / [`format_message`] | ICU-subset formatter: `{name}`, `plural`, `select`, `#`, `'` quoting |
+| [`catalogue`] | every `t!` site linked into this binary, as `messages/en/common.json` |
 | [`policy`] | rules 1.1–1.3: English is canonical, stale translations are refused, untranslated content is hidden |
+
+## English is written where it renders
+
+```rust
+t!(tr, "portfolio.why.title", "Why Quy Nhon?")
+```
+
+The key *and* the English sentence, at the call site;
+`messages/en/common.json` is generated back out of the code. A key a translated
+catalogue lacks renders the sentence the component asked for.
+
+This reverses what this module used to document. Rendering the dotted key was
+defensible while the catalogue was the only place the English lived — it was
+greppable and survived to a screenshot. Under the new contract the call site has
+the correct sentence in hand, so a dotted key on screen is strictly worse.
+`Translator::has` went with it: its only purpose was branching around that
+placeholder.
+
+`$key` and `$en` are `literal` fragments, so **the compiler is the literal-ness
+gate** — the TypeScript extractor has to enforce that by hand.
+
+## Extraction is linking
+
+`t!` also registers its pair, so [`catalogue`] returns every site linked into the
+binary — whether or not it ever renders. The alternative, a recording
+`Translator` driven by one SSR pass, would silently drop every string behind a
+branch that did not run, which is the exact failure class this is here to catch.
+
+That is what `inventory` buys, and it is native-only: a shipped wasm bundle
+extracts nothing and stays zero-dep.
+
+**The ceiling: copy must live in natively-compilable code.** For a microfrontend
+the component-MFE snapshot contract already requires exactly that — the same
+`view` components render the live bundle and the static snapshot — so the
+constraint costs a producer nothing it was not already paying.
+
+Wire the two halves of the TypeScript `evinvest-i18n-{extract,check}` pair as
+one example and one test:
+
+```rust
+// examples/dump_messages.rs — writes messages/en/common.json
+// tests/catalogue.rs        — asserts the committed file still matches, and
+//                             runs policy::audit over the translated locales
+```
 
 ## The two things worth knowing before you change this
 
@@ -56,6 +102,8 @@ string; a second, competing number policy hiding inside message catalogues is
 precisely the drift that rule exists to prevent. The one exception is `#` inside
 a plural branch, which *is* the count — see [`Locale::format_number`].
 
+[`t!`]: https://docs.rs/ev_lib/latest/ev_lib/macro.t.html
+[`catalogue`]: https://docs.rs/ev_lib/latest/ev_lib/i18n/fn.catalogue.html
 [`Locale`]: https://docs.rs/ev_lib/latest/ev_lib/i18n/enum.Locale.html
 [`Locale::format_number`]: https://docs.rs/ev_lib/latest/ev_lib/i18n/enum.Locale.html#method.format_number
 [`Translator`]: https://docs.rs/ev_lib/latest/ev_lib/i18n/struct.Translator.html

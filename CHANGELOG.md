@@ -22,7 +22,53 @@ Rust crate and its TypeScript mirror at once.
 
 ## [Unreleased]
 
+### Changed
+
+- **`i18n` — English is written where it renders** (breaking, both ports;
+  `@evinvest/i18n` 0.7.0, `ev_lib` 0.13.0). `t` takes the key *and* the English
+  sentence — `t("hero.title", "Invest in …")` / `t!(tr, "hero.title", "Invest
+  in …")` — and `messages/en/common.json` is generated back out of the code. The
+  contract was already running in site_conductor, as ~90 lines of app-local
+  code that had to fork `@evinvest/i18n/react` because the package's `Translate`
+  could not express it; this moves it to the one place both apps and both
+  languages read from. A key a translated catalogue lacks now renders the
+  sentence the call site asked for, not the raw key: **this reverses a
+  documented decision**, and reverses it because its premise is gone. Rendering
+  a dotted key was defensible while the catalogue was the only place the English
+  lived. `Translator::has` went with it — its only purpose was branching around
+  that placeholder. For `en` the catalogue is not consulted at all.
+- **`mfe!` — `messages:` is a required arm** (breaking, `ev_lib` 0.13.0). A
+  producer declares a `fn(Locale) -> Messages`; the macro resolves the host's
+  locale at mount and provides a `Translator` as context above the root. Not
+  optional: a producer with no copy passes an empty catalogue as one deliberate,
+  reviewable line, and a producer *with* copy cannot forget the locale — which
+  is exactly what the second element remote did. `mfe` now implies `i18n`.
+
 ### Added
+
+- **`i18n::t!`** (Rust): `$key` and `$en` are `literal` fragments, so the
+  compiler is the literal-ness gate the TypeScript extractor has to enforce by
+  hand. Natively each site also registers its pair with `i18n::catalogue()`, so
+  **extraction is linking, not parsing** — a site that compiles is in the
+  catalogue whether or not it ever renders. A recording `Translator` driven by
+  one SSR pass would silently drop every string behind a branch that did not
+  run, which is the failure class this exists to catch. One new dependency,
+  `inventory`, declared native-only so a shipped wasm bundle stays zero-dep. The
+  ceiling it buys: copy must live in natively-compilable code — which the
+  component-MFE snapshot contract already required of a producer.
+- **`localeOfElement` / `mfe::host_locale`**: the locale a DOM subtree is
+  written in, via `closest("[lang]")`. This is how an element remote learns its
+  language, and the reason it is read from the DOM rather than taken as a prop
+  is mechanical: a host mounts the element before it applies attributes, so
+  anything pushed in reads as absent at `connectedCallback` time. Previously
+  each host solved this privately — or, in the second case, forgot to.
+- **`evinvest-i18n-extract` / `evinvest-i18n-check`**: the extractor, moved out
+  of site_conductor and generalised over `--root` / `--exclude` / `--messages`.
+  `--exclude` names what is *not* source, because a list of source directories
+  is a hole that opens the day someone adds a slice, and an unscanned call site
+  produces no error — just English forever in five locales. Both refuse a `t()`
+  whose key or English is not a literal. `typescript` is an optional peer
+  dependency: needed to run the extractor, never to render a string.
 
 - **`settings` — deployment-profile guards (both ports)**: `#[required_in("production")]`
   (Rust) / `requiredIn(v, 'production')` (TS) turns an optional or defaulted

@@ -36,7 +36,7 @@ export interface I18nProviderProps {
   locale: Locale;
   /** The catalogue for `locale`, loaded on the server and serialised in. */
   messages: Messages;
-  /** Fired on a missing key — wire to Sentry in production. */
+  /** Fired for a key the catalogue has never heard of — wire to Sentry in production. */
   onMissing?: (key: string, locale: Locale) => void;
   children: ReactNode;
 }
@@ -102,7 +102,7 @@ export function useLocale(): Locale {
  * @example
  * ```tsx
  * const t = useT();
- * return <button>{t("wallet.deposit.cta")}</button>;
+ * return <button>{t("wallet.deposit.cta", "Deposit")}</button>;
  * ```
  */
 export function useT(): Translate {

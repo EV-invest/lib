@@ -1,6 +1,6 @@
 {
   "name": "@evinvest/i18n",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Dep-light internationalisation toolkit for EV's five locales: a zero-dep server-safe core (locale registry, URL contract, Accept-Language negotiation, ICU-subset formatter) plus React and Next.js subpaths. Owns no number or currency policy — consuming apps keep one policy per unit of measure.",
   "license": "BlueOak-1.0.0",
   "publishConfig": {
@@ -46,13 +46,28 @@
         "types": "./dist/policy.d.cts",
         "default": "./dist/policy.cjs"
       }
+    },
+    "./extract": {
+      "import": {
+        "types": "./dist/extract.d.ts",
+        "default": "./dist/extract.js"
+      },
+      "require": {
+        "types": "./dist/extract.d.cts",
+        "default": "./dist/extract.cjs"
+      }
     }
+  },
+  "bin": {
+    "evinvest-i18n-extract": "./cli/extract.mjs",
+    "evinvest-i18n-check": "./cli/check.mjs"
   },
   "types": "./dist/index.d.ts",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "files": [
-    "dist"
+    "dist",
+    "cli"
   ],
   "sideEffects": false,
   "engines": {
@@ -68,13 +83,17 @@
   },
   "peerDependencies": {
     "next": "^14 || ^15 || ^16",
-    "react": "^18 || ^19"
+    "react": "^18 || ^19",
+    "typescript": "^5"
   },
   "peerDependenciesMeta": {
     "next": {
       "optional": true
     },
     "react": {
+      "optional": true
+    },
+    "typescript": {
       "optional": true
     }
   },
