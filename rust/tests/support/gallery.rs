@@ -8,6 +8,8 @@
 // own tokens.css, so the emitted classes actually paint. Playwright screenshots
 // the result for visual regression; a human opens dist/index.html as the board.
 
+use std::path::Path;
+
 use dioxus::prelude::*;
 use ev_lib::uikit::*;
 
@@ -15,6 +17,11 @@ use ev_lib::uikit::*;
 /// `@theme`/`:root` tokens drive the utilities. Absolute path via the manifest
 /// dir so it resolves identically from the example crate and the test crate.
 const TOKENS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../tokens.css"));
+/// `@tailwindcss/browser` rejects relative `@import` outright (not a resolver
+/// gap — copying the file next to the page does not help), and one rejected
+/// rule aborts the whole compile, leaving every page unstyled.
+const MOTION: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../motion.css"));
+const MOTION_IMPORT: &str = "@import \"./motion.css\";";
 const DIST: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/visual/dist");
 /// The board. One line per primitive — the only place to edit when adding one.
 #[rustfmt::skip]
@@ -45,9 +52,8 @@ fn render_fragment(app: fn() -> Element) -> String {
 }
 
 fn head(title: &str) -> String {
-	// ponytail: Tailwind browser CDN, pinned to the repo's tailwind version.
-	// Self-contained and zero-build; the upgrade path if offline/byte-exact
-	// determinism is ever needed is a vendored precompiled tailwind.css.
+	assert!(TOKENS.contains(MOTION_IMPORT), "tokens.css no longer imports motion.css — drop the splice");
+	let tokens = TOKENS.replace(MOTION_IMPORT, MOTION);
 	format!(
 		r#"<!doctype html>
 <html class="dark">
@@ -55,10 +61,10 @@ fn head(title: &str) -> String {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
-<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.14/dist/index.global.js"></script>
+<script src="./tailwind.js"></script>
 <style type="text/tailwindcss">
 @import "tailwindcss";
-{TOKENS}
+{tokens}
 </style>
 <style>
   html, body {{ background: var(--background); color: var(--ink); }}
@@ -110,7 +116,18 @@ fn slug(name: &str) -> String {
 /// Render every primitive to `tests/visual/dist/`: one standalone page each (for
 /// screenshots), a `manifest.json` the spec iterates, and the combined board.
 fn write_dist() {
+	// Cleared, not merged into: a primitive dropped from GALLERY otherwise keeps
+	// its page here and its baseline forever. That is how `aspectratio` outlived
+	// the component it screenshotted.
+	if Path::new(DIST).exists() {
+		std::fs::remove_dir_all(DIST).expect("clear dist dir");
+	}
 	std::fs::create_dir_all(DIST).expect("create dist dir");
+	// The pages load Tailwind's browser engine from `./tailwind.js`, not a CDN:
+	// the snapshot derivation builds with no network, and a CDN is one more input
+	// that can move under a baseline. Pinned in flake.nix, handed over by path.
+	let tailwind = std::env::var("TAILWIND_BROWSER_JS").expect("set by the devShell; enter it with `nix develop`");
+	std::fs::copy(&tailwind, format!("{DIST}/tailwind.js")).expect("copy tailwind browser engine");
 	let mut cells = String::new();
 	let mut names = Vec::new();
 	for (name, f) in GALLERY {

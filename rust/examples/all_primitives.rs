@@ -12,7 +12,7 @@
 
 include!("../tests/support/gallery.rs");
 
-use axum::{Router, extract::ws::WebSocketUpgrade, response::Html, routing::get};
+use axum::{Router, extract::ws::WebSocketUpgrade, http::header, response::Html, routing::get};
 use dioxus_liveview::{LiveViewPool, axum_socket, interpreter_glue};
 
 const PORT: u16 = 52414;
@@ -28,14 +28,18 @@ async fn main() {
 		interpreter_glue("/ws"),
 	));
 
-	let router = Router::new().route("/", get(move || async move { index.clone() })).route(
-		"/ws",
-		get(move |ws: WebSocketUpgrade| async move {
-			ws.on_upgrade(move |socket| async move {
-				_ = pool.launch(axum_socket(socket), app).await;
-			})
-		}),
-	);
+	let tailwind = std::fs::read_to_string(format!("{DIST}/tailwind.js")).expect("written by write_dist");
+	let router = Router::new()
+		.route("/", get(move || async move { index.clone() }))
+		.route("/tailwind.js", get(move || async move { ([(header::CONTENT_TYPE, "text/javascript")], tailwind) }))
+		.route(
+			"/ws",
+			get(move |ws: WebSocketUpgrade| async move {
+				ws.on_upgrade(move |socket| async move {
+					_ = pool.launch(axum_socket(socket), app).await;
+				})
+			}),
+		);
 
 	let addr = std::net::SocketAddr::from(([127, 0, 0, 1], PORT));
 	println!("EV UIKit live on http://{addr}");

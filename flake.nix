@@ -70,7 +70,9 @@
           lastSupportedVersion = "nightly-2026-05-12";
           gitignore.extra = ''
             ## Node / TypeScript
-            **/node_modules/
+            # No trailing slash: rust/tests/visual/node_modules is a symlink into
+            # the store, and a dir-only pattern does not match a symlink.
+            **/node_modules
             **/dist/
             **/*.tsbuildinfo
             ## LLMs
@@ -112,6 +114,117 @@
             exec cargo -Zscript -q scripts/publish.rs "$@"
           '';
         };
+
+        # ── Visual regression (rust/tests/visual) ───────────────────────────
+        # Every input the render reads is pinned here. The suite compares byte
+        # for byte, so an unpinned input is not slack — it is a baseline that
+        # moves under whoever runs next. See rust/tests/visual/README.md.
+        visual =
+          let
+            fonts = pkgs.google-fonts.override { fonts = [ "Inter" "PlayfairDisplay" ]; };
+          in
+          rec {
+            # Not `makeFontsConf`: that helper emits
+            # `<include>/etc/fonts/conf.d</include>`, so the host's font set is
+            # back in scope and the pin is decorative. Only `<dir>` here.
+            fontsConf = pkgs.writeText "ev-visual-fonts.conf" ''
+              <?xml version="1.0"?>
+              <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+              <fontconfig>
+                <dir>${fonts}/share/fonts</dir>
+                <cachedir prefix="xdg">fontconfig</cachedir>
+              </fontconfig>
+            '';
+
+            # Served out of dist/ as `tailwind.js`, not fetched at capture time:
+            # the snapshot derivation builds without network.
+            tailwind = pkgs.fetchurl {
+              url = "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.14/dist/index.global.js";
+              hash = "sha256-A4qFxQabLpAsXaQEn91022pgUy99EQcn+kWhVrYQ64U=";
+            };
+
+            # `playwright-test` carries the browser revision it was built
+            # against, so runner and browsers cannot drift apart. The spec
+            # imports `@playwright/test` from an ESM config, which node resolves
+            # by walking `node_modules` upward — NODE_PATH is never consulted.
+            nodeModules = "${pkgs.playwright-test}/lib/node_modules";
+
+            env = {
+              FONTCONFIG_FILE = "${fontsConf}";
+              PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
+              PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
+              TAILWIND_BROWSER_JS = "${tailwind}";
+            };
+          };
+
+        # The render is arch-insensitive and OS-sensitive (measured: 0 px across
+        # x86_64/aarch64 linux, >1 % linux vs darwin), so capture is always a
+        # *-linux derivation. On darwin nix routes it to `nix.linux-builder`,
+        # which defaults to the host's arch — native, no emulation.
+        linuxSystem = builtins.replaceStrings [ "darwin" ] [ "linux" ] system;
+
+        # `dist/` is generated on the host rather than in here, so this needs no
+        # cargo vendoring. If that ever made the HTML host-dependent it would
+        # surface as a snapshot diff, which is the thing the suite is for.
+        snapshotsFrom =
+          dist:
+          pkgs.runCommand "ev-visual-snapshots"
+            (
+              visual.env
+              // {
+                nativeBuildInputs = [ pkgs.playwright-test pkgs.python3 ];
+              }
+            )
+            ''
+              mkdir -p "$out" "$NIX_BUILD_TOP/run"
+              cd "$NIX_BUILD_TOP/run"
+              cp -r ${dist} dist
+              cp ${./rust/tests/visual/gallery.spec.ts} gallery.spec.ts
+              cp ${./rust/tests/visual/playwright.config.ts} playwright.config.ts
+              cp ${./rust/tests/visual/package.json} package.json
+              ln -s ${visual.nodeModules} node_modules
+              export HOME="$NIX_BUILD_TOP" EV_SNAPSHOT_OUT="$out"
+              playwright test
+            '';
+
+        # Set by `visual` below, via `nix store add-path`. Impure by necessity:
+        # a host-built directory has to reach a sandboxed build somehow.
+        distPath = builtins.getEnv "EV_VISUAL_DIST";
+
+        visual-app = pkgs.writeShellApplication {
+          name = "visual";
+          # `mold` because .cargo/config.toml links through it on linux; without
+          # it every cargo invocation here dies at link time.
+          runtimeInputs = [
+            rust
+            pkgs.git
+            pkgs.diffutils
+          ]
+          ++ pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.mold ];
+          text = ''
+            cd "$(git rev-parse --show-toplevel)"
+            shots=rust/tests/visual/__screenshots__
+
+            export TAILWIND_BROWSER_JS="${visual.tailwind}"
+            # .cargo/config.toml routes cc through sccache, which needs a server
+            # this one-shot generator has no reason to depend on — and which
+            # fails outright on some hosts. Same opt-out as `publish`.
+            export RUSTC_WRAPPER=""
+            cargo test -q --test gallery --features uikit
+
+            dist=$(nix store add-path rust/tests/visual/dist --name ev-visual-dist)
+            out=$(EV_VISUAL_DIST="$dist" nix build --impure --no-link --print-out-paths \
+              ".#packages.${linuxSystem}.visual-snapshots")
+
+            if [ "''${1-}" = "--update" ]; then
+              rm -f "$shots"/*.png
+              install -m644 "$out"/*.png "$shots"/
+              echo "baselines updated from $out"
+            else
+              diff -rq "$out" "$shots"
+            fi
+          '';
+        };
       in
       {
         apps.publish = {
@@ -123,6 +236,22 @@
           type = "app";
           program = "${gen}/bin/gen";
         };
+
+        # `nix run .#visual [-- --update]`: regenerate dist/, capture all
+        # baselines on linux, and compare byte for byte.
+        apps.visual = {
+          type = "app";
+          program = "${visual-app}/bin/visual";
+        };
+
+        packages.visual-snapshots =
+          if distPath == "" then
+            pkgs.runCommand "ev-visual-snapshots-no-dist" { } ''
+              echo "EV_VISUAL_DIST is unset — this is built through \`nix run .#visual\`, which generates dist/ first." >&2
+              exit 1
+            ''
+          else
+            snapshotsFrom (builtins.storePath distPath);
 
         devShells.default =
           with pkgs;
@@ -138,30 +267,26 @@
                 # (wasm32); without this they abort on missing LLVM symbols. The
                 # var is macOS-only, so this is a no-op on Linux.
                 export DYLD_FALLBACK_LIBRARY_PATH="${rust}/lib''${DYLD_FALLBACK_LIBRARY_PATH:+:$DYLD_FALLBACK_LIBRARY_PATH}"
+
+                ln -sfn ${visual.nodeModules} "$(git rev-parse --show-toplevel)/rust/tests/visual/node_modules"
               '';
 
             packages = [
               nodejs
               rust
               playwright-driver.browsers
+              playwright-test
+              python3
               sccache
             ]
             ++ lib.optionals stdenv.isLinux [ mold ]
             ++ pre-commit-check.enabledPackages
             ++ combined.enabledPackages;
 
-            env.RUST_BACKTRACE = 1;
-
-            # Playwright (uikit visual-regression, rust/tests/visual): drive the
-            # nixpkgs-provided browsers instead of the npm-downloaded ones (those
-            # are dynamically linked against libs absent on NixOS). The npm
-            # @playwright/test version MUST match playwright-driver's or the
-            # browser revisions won't line up.
-            env.PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
-            env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
-            env.PLAYWRIGHT_HOST_PLATFORM_OVERRIDE = "nixos";
-
-            env.RUSTC_WRAPPER = "sccache";
+            env = visual.env // {
+              RUST_BACKTRACE = 1;
+              RUSTC_WRAPPER = "sccache";
+            };
           };
       }
     );
