@@ -379,7 +379,7 @@ flex h-9 shrink-0 items-center gap-2 border-b border-border px-3 text-xs font-me
 flex h-full w-full data-[panel-group-direction=vertical]:flex-col
 flex items-center
 flex items-center gap-2
-flex items-center gap-2 border-t px-3 py-2
+flex items-center gap-2 border-t border-border px-3 py-2
 flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50
 flex items-center gap-[7px] whitespace-nowrap
 flex items-center justify-between gap-1 w-full px-1

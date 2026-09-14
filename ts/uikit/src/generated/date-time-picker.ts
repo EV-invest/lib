@@ -4,7 +4,7 @@ export const DATE_TIME_PICKER_TRIGGER = "w-full justify-start gap-2 text-left fo
 
 export const DATE_TIME_PICKER_CONTENT = "w-auto p-0";
 
-export const DATE_TIME_PICKER_TIME = "flex items-center gap-2 border-t px-3 py-2";
+export const DATE_TIME_PICKER_TIME = "flex items-center gap-2 border-t border-border px-3 py-2";
 
 export const DATE_TIME_PICKER_TIME_INPUT = "w-14 text-center tabular-nums";
 
