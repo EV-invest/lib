@@ -203,7 +203,9 @@ export function Calendar({
         >
           <Chevron d={CHEVRON_LEFT} />
         </button>
-        <div className={CALENDAR_CAPTION}>{caption}</div>
+        <div data-slot="calendar-caption" className={CALENDAR_CAPTION}>
+          {caption}
+        </div>
         <button
           type="button"
           className={navClass}

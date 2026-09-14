@@ -192,7 +192,7 @@ describe("DateTimePicker", () => {
     expect(text).toContain("июн");
     expect(text).toContain("09:05");
     fireEvent.click(trigger(container));
-    const caption = document.querySelector("[data-slot=calendar] > div > div")!;
+    const caption = document.querySelector("[data-slot=calendar-caption]")!;
     expect(caption.textContent!.toLowerCase()).toContain("июн");
   });
 

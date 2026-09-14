@@ -121,7 +121,7 @@ describe("Calendar bounds and locale", () => {
     const { container, queryByText } = render(
       <Calendar defaultMonth={new Date(2026, 5, 1)} locale="ru" />,
     );
-    const caption = container.querySelector("[data-slot=calendar] > div > div")!;
+    const caption = container.querySelector("[data-slot=calendar-caption]")!;
     expect(caption.textContent).toContain("2026");
     expect(caption.textContent!.toLowerCase()).toContain("июн");
     expect(queryByText("June 2026")).toBeNull();
