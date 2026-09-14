@@ -35,6 +35,7 @@ import {
   Separator,
   Spinner,
   Kbd,
+  DateTimePicker,
   type ToastPosition,
   type ToastVariant,
 } from "@evinvest/uikit";
@@ -92,6 +93,7 @@ export default function App() {
   const [wifi, setWifi] = useState(true);
   const [agree, setAgree] = useState(false);
   const [progress, setProgress] = useState(66);
+  const [moment, setMoment] = useState<Date | null>(null);
 
   return (
     <TooltipProvider>
@@ -226,6 +228,23 @@ export default function App() {
                 <SelectItem value="gold">Rice Gold</SelectItem>
               </SelectContent>
             </Select>
+          </Section>
+
+          <Section title="Date & time" hint="controlled; bounded below by now">
+            <div className="w-full max-w-xs space-y-2">
+              <Label htmlFor="moment">Starts at</Label>
+              <DateTimePicker
+                id="moment"
+                value={moment}
+                onChange={setMoment}
+                locale="en-GB"
+                min={new Date()}
+                placeholder="Pick a moment"
+              />
+              <p className="text-ink-soft text-sm">
+                {moment ? moment.toISOString() : "nothing picked yet"}
+              </p>
+            </div>
           </Section>
 
           <Section title="Tabs">
