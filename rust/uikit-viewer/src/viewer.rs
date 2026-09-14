@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use ev_lib::uikit::{
-	Alert, AlertDescription, AlertTitle, AlertVariant, Badge, BadgeVariant, Button, ButtonSize, ButtonVariant, Card, CardContent, CardDescription, CardHeader, CardTitle, Separator, Spinner,
+	Alert, AlertDescription, AlertTitle, AlertVariant, Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, CardDescription, CardHeader, CardTitle, Separator, Size, Spinner,
 	ToastPosition, ToastVariant, Toaster, ToasterProvider, use_toaster,
 };
 
@@ -53,17 +53,17 @@ fn Gallery() -> Element {
 					}
 					CardContent { class: "space-y-4",
 						div { class: "flex flex-wrap gap-2",
-							Button { size: ButtonSize::Sm, variant: ButtonVariant::Secondary,
+							Button { size: Size::Sm, variant: ButtonVariant::Secondary,
 								onclick: move |_| { toaster.toast("Neutral toast"); }, "neutral" }
-							Button { size: ButtonSize::Sm, variant: ButtonVariant::Secondary,
+							Button { size: Size::Sm, variant: ButtonVariant::Secondary,
 								onclick: move |_| { toaster.positive("Positive toast"); }, "positive" }
-							Button { size: ButtonSize::Sm, variant: ButtonVariant::Destructive,
+							Button { size: Size::Sm, variant: ButtonVariant::Destructive,
 								onclick: move |_| { toaster.error("Error toast"); }, "error" }
-							Button { size: ButtonSize::Sm, variant: ButtonVariant::Secondary,
+							Button { size: Size::Sm, variant: ButtonVariant::Secondary,
 								onclick: move |_| { toaster.info("Info toast"); }, "info" }
-							Button { size: ButtonSize::Sm, variant: ButtonVariant::Secondary,
+							Button { size: Size::Sm, variant: ButtonVariant::Secondary,
 								onclick: move |_| { toaster.warn("Warn toast"); }, "warn" }
-							Button { size: ButtonSize::Sm, variant: ButtonVariant::Outline,
+							Button { size: Size::Sm, variant: ButtonVariant::Outline,
 								onclick: move |_| { toaster.show("Persistent — won't auto-close", ToastVariant::Neutral, None); }, "persistent" }
 						}
 						Separator {}
@@ -73,7 +73,7 @@ fn Gallery() -> Element {
 								for (label , pos) in positions {
 									Button {
 										key: "{label}",
-										size: ButtonSize::Sm,
+										size: Size::Sm,
 										variant: if position() == pos { ButtonVariant::Primary } else { ButtonVariant::Outline },
 										onclick: move |_| position.set(pos),
 										"{label}"
