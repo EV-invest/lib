@@ -16,4 +16,8 @@ pub enum AlertVariant {
 	Neutral,
 	#[tw(class = "text-accent-error bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-accent-error/90")]
 	Destructive,
+	#[tw(class = "text-positive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-positive/90")]
+	Success,
+	#[tw(class = "text-accent-info bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-accent-info/90")]
+	Info,
 }

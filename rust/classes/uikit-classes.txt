@@ -765,6 +765,7 @@ text-accent-error bg-card [&>svg]:text-current *:data-[slot=alert-description]:t
 text-accent-error text-sm
 text-accent-error text-sm font-normal
 text-accent-info
+text-accent-info bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-accent-info/90
 text-accent-trace
 text-accent-warn
 text-base
@@ -802,6 +803,7 @@ text-lg font-semibold
 text-lg leading-none font-semibold
 text-on-positive
 text-positive
+text-positive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-positive/90
 text-primary underline-offset-4 hover:underline
 text-sm
 text-sm font-medium select-none
