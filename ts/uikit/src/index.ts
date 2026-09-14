@@ -234,6 +234,7 @@ export * from "./components/command";
 // Tier D — heavy engines (dep-light: see README Limitations).
 export * from "./components/chart";
 export * from "./components/calendar";
+export * from "./components/date-time-picker";
 export * from "./components/sonner";
 export * from "./components/form";
 export * from "./components/resizable";
