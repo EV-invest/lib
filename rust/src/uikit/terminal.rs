@@ -137,16 +137,6 @@ pub fn OrderBookRow(
 	}
 }
 
-/// The bar is a CSS percentage, so the fraction is clamped and rounded once
-/// here; a NaN from an empty book reads as no depth rather than as `NaN%`.
-fn depth_percent(depth: f64) -> u8 {
-	if depth.is_nan() {
-		return 0;
-	}
-	// Truncation is the point: the value is clamped to 0..=100 first.
-	(depth.clamp(0.0, 1.0) * 100.0).round() as u8
-}
-
 /// The line between asks and bids: the consumer passes the mid and the spread
 /// as it wants them formatted.
 #[component]
@@ -156,7 +146,6 @@ pub fn OrderBookSpread(#[props(default)] class: String, children: Element) -> El
 		div { class: cls, "data-slot": "order-book-spread", {children} }
 	}
 }
-
 /// One print in the tape: price coloured by the aggressor's side, then size
 /// and time.
 #[component]
@@ -171,7 +160,6 @@ pub fn TradesTapeRow(side: BookSide, price: String, size: String, time: String, 
 		}
 	}
 }
-
 /// The order form. Owns no state: the consumer wires the inputs and handles
 /// `onsubmit`; the default is prevented here so a submit never navigates.
 #[component]
@@ -191,7 +179,6 @@ pub fn OrderForm(#[props(default)] class: String, onsubmit: Option<EventHandler<
 		}
 	}
 }
-
 /// A label / figure line in the order summary — cost, fee, what is available.
 #[component]
 pub fn OrderFormRow(label: String, value: String, #[props(default)] class: String) -> Element {
@@ -203,7 +190,6 @@ pub fn OrderFormRow(label: String, value: String, #[props(default)] class: Strin
 		}
 	}
 }
-
 /// The submit, filled in the colour of the intent.
 #[component]
 pub fn OrderFormSubmit(
@@ -226,7 +212,6 @@ pub fn OrderFormSubmit(
 		}
 	}
 }
-
 /// The open-orders pane with nothing in it.
 #[component]
 pub fn OpenOrdersEmpty(#[props(default)] class: String, children: Element) -> Element {
@@ -235,6 +220,21 @@ pub fn OpenOrdersEmpty(#[props(default)] class: String, children: Element) -> El
 		div { class: cls, "data-slot": "open-orders-empty", {children} }
 	}
 }
+/// The bar is a CSS percentage, so the fraction is clamped and rounded once
+/// here; a NaN from an empty book reads as no depth rather than as `NaN%`.
+fn depth_percent(depth: f64) -> u8 {
+	if depth.is_nan() {
+		return 0;
+	}
+	// Truncation is the point: the value is clamped to 0..=100 first.
+	(depth.clamp(0.0, 1.0) * 100.0).round() as u8
+}
+
+
+
+
+
+
 
 #[cfg(test)]
 mod tests {
