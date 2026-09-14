@@ -42,6 +42,7 @@ pub fn manifest() -> Vec<(&'static str, Vec<Ts>)> {
 		("input-otp", input_otp()),
 		("chart", chart()),
 		("calendar", calendar()),
+		("date-time-picker", date_time_picker()),
 		("drawer", drawer()),
 		("slider", slider()),
 		("tabs", tabs()),
@@ -759,6 +760,35 @@ fn calendar() -> Vec<Ts> {
 		Ts::Const {
 			name: "CALENDAR_DAY_TODAY",
 			value: CALENDAR_DAY_TODAY,
+		},
+	]
+}
+
+fn date_time_picker() -> Vec<Ts> {
+	vec![
+		Ts::Const {
+			name: "DATE_TIME_PICKER_TRIGGER",
+			value: DATE_TIME_PICKER_TRIGGER,
+		},
+		Ts::Const {
+			name: "DATE_TIME_PICKER_CONTENT",
+			value: DATE_TIME_PICKER_CONTENT,
+		},
+		Ts::Const {
+			name: "DATE_TIME_PICKER_TIME",
+			value: DATE_TIME_PICKER_TIME,
+		},
+		Ts::Const {
+			name: "DATE_TIME_PICKER_TIME_INPUT",
+			value: DATE_TIME_PICKER_TIME_INPUT,
+		},
+		Ts::Const {
+			name: "DATE_TIME_PICKER_TIME_SEPARATOR",
+			value: DATE_TIME_PICKER_TIME_SEPARATOR,
+		},
+		Ts::Const {
+			name: "DATE_TIME_PICKER_CLEAR",
+			value: DATE_TIME_PICKER_CLEAR,
 		},
 	]
 }
