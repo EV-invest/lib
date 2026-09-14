@@ -74,3 +74,62 @@ describe("Calendar", () => {
     expect(onMonthChange).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("Calendar bounds and locale", () => {
+  it("disables days outside [min, max] and never fires onSelect for them", () => {
+    const onSelect = vi.fn();
+    const { getByText, container } = render(
+      <Calendar
+        defaultMonth={new Date(2026, 5, 1)}
+        min={new Date(2026, 5, 10, 9, 30)}
+        max={new Date(2026, 5, 20, 18, 0)}
+        onSelect={onSelect}
+      />,
+    );
+    // 9 days before `min` + 10 days after `max`.
+    expect(container.querySelectorAll("[data-disabled=true]").length).toBe(19);
+    expect(getByText("9")).toBeDisabled();
+    expect(getByText("21")).toBeDisabled();
+    // Day granularity: the day at `min` stays enabled even though the time is later.
+    expect(getByText("10")).not.toBeDisabled();
+    expect(getByText("10")).not.toHaveAttribute("data-disabled");
+    fireEvent.click(getByText("9"));
+    expect(onSelect).not.toHaveBeenCalled();
+    fireEvent.click(getByText("10"));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders no data-disabled attribute at all when unbounded", () => {
+    const { container } = render(<Calendar defaultMonth={new Date(2026, 5, 1)} />);
+    expect(container.querySelector("[data-disabled]")).toBeNull();
+    expect(container.querySelectorAll("button:disabled").length).toBe(0);
+  });
+
+  it("takes custom nav labels", () => {
+    const { getByLabelText } = render(
+      <Calendar
+        defaultMonth={new Date(2026, 5, 1)}
+        previousMonthLabel="Предыдущий месяц"
+        nextMonthLabel="Следующий месяц"
+      />,
+    );
+    expect(getByLabelText("Предыдущий месяц")).toBeTruthy();
+    expect(getByLabelText("Следующий месяц")).toBeTruthy();
+  });
+
+  it("localises the caption and weekday headers through Intl (Monday-first)", () => {
+    const { container, queryByText } = render(
+      <Calendar defaultMonth={new Date(2026, 5, 1)} locale="ru" />,
+    );
+    const caption = container.querySelector("[data-slot=calendar] > div > div")!;
+    expect(caption.textContent).toContain("2026");
+    expect(caption.textContent!.toLowerCase()).toContain("июн");
+    expect(queryByText("June 2026")).toBeNull();
+    const headers = Array.from(container.querySelectorAll("th")).map(
+      th => th.textContent!.toLowerCase(),
+    );
+    expect(headers.length).toBe(7);
+    expect(headers[0]).toContain("пн");
+    expect(headers[6]).toContain("вс");
+  });
+});

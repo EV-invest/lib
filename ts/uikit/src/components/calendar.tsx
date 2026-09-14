@@ -76,6 +76,29 @@ function sameDay(a: Date | undefined, b: Date): boolean {
   );
 }
 
+// Day-granular: `min`/`max` may carry a time, but the grid only knows days.
+function startOfDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function outOfRange(day: Date, min: Date | undefined, max: Date | undefined): boolean {
+  const t = day.getTime();
+  return (
+    (!!min && t < startOfDay(min).getTime()) ||
+    (!!max && t > startOfDay(max).getTime())
+  );
+}
+
+// Intl reads the weekday off the reference date; 2024-01-01 is a Monday.
+const MONDAY = new Date(2024, 0, 1);
+
+function localisedWeekdays(locale: string): string[] {
+  const fmt = new Intl.DateTimeFormat(locale, { weekday: "short" });
+  return Array.from({ length: 7 }, (_, i) =>
+    fmt.format(new Date(MONDAY.getFullYear(), MONDAY.getMonth(), MONDAY.getDate() + i)),
+  );
+}
+
 export interface CalendarProps {
   /** The currently selected day, if any. */
   selected?: Date;
@@ -89,6 +112,19 @@ export interface CalendarProps {
   onMonthChange?: (month: Date) => void;
   /** "Today", highlighted in the grid; defaults to the real current date. */
   today?: Date;
+  /** Earliest selectable day (inclusive, day granularity); earlier days render disabled. */
+  min?: Date;
+  /** Latest selectable day (inclusive, day granularity); later days render disabled. */
+  max?: Date;
+  /** `aria-label` of the previous-month button; "Previous month" by default. */
+  previousMonthLabel?: string;
+  /** `aria-label` of the next-month button; "Next month" by default. */
+  nextMonthLabel?: string;
+  /**
+   * BCP-47 tag for the month caption and weekday headers via `Intl`
+   * (Monday-first). Absent → the English constants, byte-identical to Rust.
+   */
+  locale?: string;
   className?: string;
 }
 
@@ -99,8 +135,8 @@ export interface CalendarProps {
  * math; the Rust mirror does the same math by hand.
  *
  * Simplifications versus the source: one month only (no multi-month), a single
- * selected date (no range/multi), and none of the locale/dropdown/caption
- * features — see the package README.
+ * selected date (no range/multi), no dropdown captions; `locale` only swaps the
+ * caption and weekday strings through `Intl` — see the package README.
  */
 export function Calendar({
   selected,
@@ -109,6 +145,11 @@ export function Calendar({
   defaultMonth,
   onMonthChange,
   today = new Date(),
+  min,
+  max,
+  previousMonthLabel = "Previous month",
+  nextMonthLabel = "Next month",
+  locale,
   className,
 }: CalendarProps) {
   const [internal, setInternal] = React.useState(() =>
@@ -124,7 +165,10 @@ export function Calendar({
 
   const year = view.getFullYear();
   const monthIndex = view.getMonth();
-  const caption = `${MONTHS[monthIndex]} ${year}`;
+  const caption = locale
+    ? new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(view)
+    : `${MONTHS[monthIndex]} ${year}`;
+  const weekdays: readonly string[] = locale ? localisedWeekdays(locale) : WEEKDAYS;
 
   const lead = mondayIndex(view);
   const total = new Date(year, monthIndex + 1, 0).getDate();
@@ -154,7 +198,7 @@ export function Calendar({
         <button
           type="button"
           className={navClass}
-          aria-label="Previous month"
+          aria-label={previousMonthLabel}
           onClick={() => go(-1)}
         >
           <Chevron d={CHEVRON_LEFT} />
@@ -163,7 +207,7 @@ export function Calendar({
         <button
           type="button"
           className={navClass}
-          aria-label="Next month"
+          aria-label={nextMonthLabel}
           onClick={() => go(1)}
         >
           <Chevron d={CHEVRON_RIGHT} />
@@ -172,9 +216,9 @@ export function Calendar({
       <table className={CALENDAR_GRID} role="grid">
         <thead>
           <tr className={CALENDAR_WEEKDAY_ROW}>
-            {WEEKDAYS.map(wd => (
+            {weekdays.map((wd, i) => (
               <th
-                key={wd}
+                key={i}
                 scope="col"
                 className={CALENDAR_WEEKDAY}
               >
@@ -198,6 +242,7 @@ export function Calendar({
                 const date = new Date(year, monthIndex, cell);
                 const isSelected = sameDay(selected, date);
                 const isToday = sameDay(today, date);
+                const isDisabled = outOfRange(date, min, max);
                 return (
                   <td
                     key={ci}
@@ -210,7 +255,11 @@ export function Calendar({
                       data-slot="calendar-day"
                       data-selected={isSelected}
                       data-today={isToday}
-                      onClick={() => onSelect?.(date)}
+                      // Absent rather than "false", so the unbounded grid renders as before.
+                      {...(isDisabled ? { "data-disabled": "true", disabled: true } : {})}
+                      onClick={() => {
+                        if (!isDisabled) onSelect?.(date);
+                      }}
                       className={cn(
                         buttonVariants({
                           variant: "ghost",
