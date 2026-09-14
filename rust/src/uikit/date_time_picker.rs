@@ -107,7 +107,9 @@ pub fn DateTimePicker(
 ) -> Element {
 	let open = use_controllable(open, default_open, on_open_change);
 	let is_open = open.get();
-	let mut month = use_signal(|| value.map(|v| v.date).or(today).or(min.map(|m| m.date)).unwrap_or(CalendarDate::new(2026, 6, 1)));
+	// `min` before `today`: a bound in the future would otherwise open on a fully
+	// disabled grid.
+	let mut month = use_signal(|| value.map(|v| v.date).or(min.map(|m| m.date)).or(today).unwrap_or(CalendarDate::new(2026, 6, 1)));
 
 	let emit = move |next: Option<LocalDateTime>| {
 		if let Some(h) = on_change {
@@ -251,6 +253,7 @@ pub fn DateTimePicker(
 							r#type: "button",
 							class: clear_class,
 							"data-slot": "date-time-picker-clear",
+							disabled,
 							onclick: on_clear,
 							{clear_label}
 						}
@@ -437,7 +440,25 @@ mod tests {
 		assert!(html.contains("aria-label=\"Минуты\""), "{html}");
 		assert!(html.contains(">Сбросить<"), "{html}");
 		assert!(html.contains("disabled=true"), "{html}");
+		// Trigger, both time fields and Clear.
+		assert_eq!(html.matches(" disabled=true").count(), 4, "{html}");
 		// Empty value: the time inputs show midnight.
 		assert_eq!(html.matches("value=\"00\"").count(), 2, "{html}");
+	}
+
+	#[test]
+	fn empty_value_opens_on_the_bound_month_before_today() {
+		fn app() -> Element {
+			rsx! {
+				DateTimePicker {
+					default_open: true,
+					today: CalendarDate::new(2026, 6, 15),
+					min: LocalDateTime::new(CalendarDate::new(2026, 8, 1), 0, 0),
+				}
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("August 2026"), "{html}");
+		assert!(!html.contains("June 2026"), "{html}");
 	}
 }
