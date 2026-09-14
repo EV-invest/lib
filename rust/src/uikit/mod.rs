@@ -26,8 +26,8 @@ mod test_util;
 // prop are re-exported.
 pub(crate) use ev_lib_classes::*;
 pub use ev_lib_classes::{
-	AlertVariant, BadgeVariant, ButtonGroupOrientation, ButtonVariant, DrawerDirection, EmptyMediaVariant, FieldOrientation, InputGroupAddonAlign, InputGroupButtonSize, ItemMediaVariant,
-	ItemSize, ItemVariant, Orientation, Polarity, ScrollBarOrientation, Size, Surface, ToastPosition, ToastVariant, ToggleVariant,
+	AlertVariant, BadgeVariant, BookSide, ButtonGroupOrientation, ButtonVariant, DrawerDirection, EmptyMediaVariant, FieldOrientation, InputGroupAddonAlign, InputGroupButtonSize,
+	ItemMediaVariant, ItemSize, ItemVariant, OrderSide, Orientation, Polarity, ScrollBarOrientation, Size, Surface, TerminalArea, ToastPosition, ToastVariant, ToggleVariant,
 };
 
 mod accordion;
@@ -64,6 +64,7 @@ mod spinner;
 mod switch;
 mod table;
 mod tabs;
+mod terminal;
 mod textarea;
 mod toggle;
 mod toggle_group;
@@ -108,6 +109,10 @@ pub use spinner::Spinner;
 pub use switch::Switch;
 pub use table::{Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow};
 pub use tabs::{Tabs, TabsContent, TabsList, TabsOrientation, TabsTrigger};
+pub use terminal::{
+	OpenOrdersEmpty, OrderBook, OrderBookHead, OrderBookRow, OrderBookSpread, OrderForm, OrderFormRow, OrderFormSubmit, Terminal, TerminalChart, TerminalPane, TerminalPaneBody,
+	TerminalPaneHeader, TerminalTicker, TickerStat, TradesTapeRow,
+};
 pub use textarea::Textarea;
 pub use toggle::{Toggle, toggle_classes};
 pub use toggle_group::{ToggleGroup, ToggleGroupItem};

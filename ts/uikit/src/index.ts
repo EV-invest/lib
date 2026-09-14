@@ -237,3 +237,6 @@ export * from "./components/calendar";
 export * from "./components/sonner";
 export * from "./components/form";
 export * from "./components/resizable";
+
+// Features — screens composed from the bricks above.
+export * from "./components/terminal";

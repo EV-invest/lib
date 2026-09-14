@@ -130,7 +130,7 @@ element across the two ports.
 | overlay placement | inline `position:fixed` + `data-side` | `Portal` + `useFloating` |
 | dismiss / focus trap | full-screen backdrop / native order | `useDismissableLayer` / `useFocusScope` |
 
-### Component inventory (all 60 bricks)
+### Component inventory (all 61 bricks)
 
 - **Tier A — static (22):** badge, button, button-group, card, input, textarea,
   label, field, separator, skeleton, spinner, kbd, table, container, alert,
@@ -145,6 +145,13 @@ element across the two ports.
 - **Brand chrome — site shell (7):** header (marketing / compact density, plus
   `hideNav`), footer, logo, and the shared status pages — `StatusScreen` with the
   `NotFound` / `Forbidden` / `ServerError` presets (404 / 403 / 500).
+- **Features — composed screens (1):** terminal — a trading terminal over an
+  investment product's shares (`Terminal` grid placing each `TerminalPane` by
+  `TerminalArea`; `TerminalTicker` / `TickerStat`; `OrderBook` with
+  `OrderBookHead` / `OrderBookRow` / `OrderBookSpread`; `TradesTapeRow`;
+  `OrderForm` / `OrderFormRow` / `OrderFormSubmit`; `OpenOrdersEmpty`). Column
+  captions and every figure are the consumer's strings — the kit knows no
+  locale and no number format.
 
 The canonical variant set is the **superset** of the original cabinet (Rust) and
 landing (TS) sources — e.g. `Badge` keeps cabinet's `success` variant, `Button`
@@ -166,6 +173,11 @@ measuring needs host-only `web-sys`). Known gaps:
   themed SVG host (emits `--color-*` from its config); `ChartTooltipContent` /
   `ChartLegendContent` are presentational and take explicit items. Draw series
   yourself inside the container.
+- **terminal:** no plotting engine and no state. `TerminalChart` is a sized
+  `relative` host that hands its element out (`ref` in TS, `id` in Rust) for a
+  consumer-chosen charting library to mount into; `OrderForm` only prevents the
+  submit's default — inputs, validation and the order itself are the
+  consumer's. The open-orders pane reuses `Table` and `Tabs`.
 - **calendar:** single month, single-date selection (no range/multi-month, no
   locale/dropdown features). Rust does manual date math; TS uses the built-in
   `Date`.
