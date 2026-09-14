@@ -136,6 +136,12 @@ pub fn DateTimePicker(
 		emit(None);
 		open.set(false);
 	};
+	// A focused field is replaced, not appended to: with the whole value
+	// selected, "1" then "5" reads as 15. `eval` is a no-op without a document
+	// (SSR, tests), so the result is not worth surfacing.
+	let select_all = move |_: FocusEvent| {
+		let _ = document::eval("document.activeElement?.select?.();");
+	};
 	let toggle = move |_| {
 		// Reopening lands on the value's month, not wherever the grid was left.
 		if !open.get()
@@ -217,13 +223,13 @@ pub fn DateTimePicker(
 						input {
 							r#type: "text",
 							inputmode: "numeric",
-							maxlength: 2i64,
 							class: time_input_class.clone(),
 							"data-slot": "date-time-picker-hours",
 							"aria-label": hours_label,
 							value: hours,
 							disabled,
 							oninput: on_hours,
+							onfocus: select_all,
 						}
 						span {
 							class: DATE_TIME_PICKER_TIME_SEPARATOR,
@@ -233,13 +239,13 @@ pub fn DateTimePicker(
 						input {
 							r#type: "text",
 							inputmode: "numeric",
-							maxlength: 2i64,
 							class: time_input_class,
 							"data-slot": "date-time-picker-minutes",
 							"aria-label": minutes_label,
 							value: minutes,
 							disabled,
 							oninput: on_minutes,
+							onfocus: select_all,
 						}
 						button {
 							r#type: "button",
@@ -256,13 +262,18 @@ pub fn DateTimePicker(
 }
 /// Parses the digits an operator typed into an hours/minutes field. `None`
 /// (nothing typed, or no digit at all) keeps the last value.
+///
+/// The LAST two digits win: the field is controlled, so what the browser hands
+/// over is the old value plus the keystroke ("01" + "5" = "015"), and the
+/// freshest digits are the ones the operator meant.
 fn parse_field(raw: &str, max: u32) -> Option<u32> {
-	let digits: String = raw.chars().filter(char::is_ascii_digit).take(2).collect();
+	let digits: Vec<char> = raw.chars().filter(char::is_ascii_digit).collect();
 	if digits.is_empty() {
 		return None;
 	}
+	let tail = String::from_iter(&digits[digits.len().saturating_sub(2)..]);
 	// Two ASCII digits always parse; the `unwrap_or` is for the type, not a path.
-	Some(digits.parse::<u32>().unwrap_or(0).min(max))
+	Some(tail.parse::<u32>().unwrap_or(0).min(max))
 }
 
 #[component]
@@ -314,7 +325,11 @@ mod tests {
 		assert_eq!(parse_field("09", 23), Some(9));
 		assert_eq!(parse_field("31", 23), Some(23));
 		assert_eq!(parse_field("75", 59), Some(59));
-		assert_eq!(parse_field("123", 59), Some(12));
+		// Sequential typing over a controlled field: "0" + "1", then "01" + "5".
+		assert_eq!(parse_field("01", 23), Some(1));
+		assert_eq!(parse_field("015", 23), Some(15));
+		assert_eq!(parse_field("123", 59), Some(23));
+		assert_eq!(parse_field("1a5", 59), Some(15));
 		assert_eq!(parse_field("", 23), None);
 		assert_eq!(parse_field("ab", 23), None);
 	}
