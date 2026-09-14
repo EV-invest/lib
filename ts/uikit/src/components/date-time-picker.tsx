@@ -98,7 +98,9 @@ export interface DateTimePickerLabels {
   clear?: string;
 }
 
-export interface DateTimePickerProps extends React.AriaAttributes {
+export interface DateTimePickerProps
+  extends React.AriaAttributes,
+    Pick<React.ComponentProps<"button">, "onFocus" | "onBlur"> {
   /** Controlled value; `null` = empty. Local-zone `Date` (seconds/ms are zeroed on every change). */
   value?: Date | null;
   /** Uncontrolled seed; default `null`. */
@@ -143,8 +145,10 @@ export interface DateTimePickerProps extends React.AriaAttributes {
  * `datetime-local`, so the browser's locale popup never appears.
  *
  * Every edit reports through `onChange`; the popover stays open after a day
- * click (the operator still sets the time) and closes on clear. Any other
- * `aria-*` / `data-*` prop lands on the trigger.
+ * click (the operator still sets the time) and closes on clear. Opening moves
+ * focus into the hours field; closing hands it back to the trigger unless the
+ * operator already focused something else. Any other `aria-*` prop, `onFocus`
+ * and `onBlur` land on the trigger.
  */
 export function DateTimePicker({
   value: valueProp,
@@ -177,6 +181,24 @@ export function DateTimePicker({
     defaultValue: defaultOpen,
     ...(onOpenChange ? { onChange: onOpenChange } : {}),
   });
+
+  const rootRef = React.useRef<HTMLDivElement | null>(null);
+  const hoursRef = React.useRef<HTMLInputElement | null>(null);
+  // The content lives in a Portal, so the native tab order would skip it.
+  React.useEffect(() => {
+    if (!isOpen) return;
+    hoursRef.current?.focus();
+    return () => {
+      const active = document.activeElement;
+      const content = hoursRef.current?.closest("[data-slot=date-time-picker-content]");
+      const lost = !active || active === document.body || !!content?.contains(active);
+      if (lost) {
+        rootRef.current
+          ?.querySelector<HTMLElement>("[data-slot=date-time-picker-trigger]")
+          ?.focus();
+      }
+    };
+  }, [isOpen]);
 
   const emit = (next: Date) => setValue(clampMoment(atMinute(next), min, max));
   // A fresh copy of the moment a typed time edits: the value, or midnight of
@@ -224,7 +246,7 @@ export function DateTimePicker({
     : placeholder;
 
   return (
-    <div data-slot="date-time-picker">
+    <div data-slot="date-time-picker" ref={rootRef}>
       <Popover open={isOpen} onOpenChange={setOpen}>
         <PopoverTrigger
           type="button"
@@ -252,6 +274,7 @@ export function DateTimePicker({
         )}
         <PopoverContent
           data-slot="date-time-picker-content"
+          role="dialog"
           align={align}
           className={DATE_TIME_PICKER_CONTENT}
         >
@@ -275,6 +298,7 @@ export function DateTimePicker({
               inputMode="numeric"
               onFocus={selectAll}
               className={DATE_TIME_PICKER_TIME_INPUT}
+              ref={hoursRef}
               data-slot="date-time-picker-hours"
               aria-label={labels.hours ?? "Hours"}
               value={pad(value?.getHours() ?? 0)}
@@ -299,6 +323,7 @@ export function DateTimePicker({
               type="button"
               className={buttonVariants({ variant: "ghost", size: "sm", className: DATE_TIME_PICKER_CLEAR })}
               data-slot="date-time-picker-clear"
+              disabled={disabled}
               onClick={onClear}
             >
               {labels.clear ?? "Clear"}

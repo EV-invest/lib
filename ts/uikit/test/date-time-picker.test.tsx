@@ -45,6 +45,7 @@ describe("DateTimePicker", () => {
     fireEvent.click(btn);
     expect(btn).toHaveAttribute("aria-expanded", "true");
     expect(slot(container, "content")).toHaveClass("w-auto", "p-0");
+    expect(slot(container, "content")).toHaveAttribute("role", "dialog");
     expect(document.querySelector("[data-slot=calendar]")).toBeTruthy();
     expect(document.querySelector("[data-selected=true]")).toHaveTextContent("10");
     const hours = slot(container, "hours") as HTMLInputElement;
@@ -56,6 +57,16 @@ describe("DateTimePicker", () => {
     expect(minutes).toHaveAttribute("aria-label", "Minutes");
     expect(slot(container, "time")).toBeTruthy();
     expect(slot(container, "clear")).toHaveTextContent("Clear");
+  });
+
+  it("moves focus into the hours field on open and back to the trigger on close", () => {
+    const { container } = render(<DateTimePicker value={june(10, 9, 5)} today={TODAY} />);
+    const btn = trigger(container);
+    btn.focus();
+    fireEvent.click(btn);
+    expect(document.activeElement).toBe(slot(container, "hours"));
+    fireEvent.click(slot(container, "clear")!);
+    expect(document.activeElement).toBe(btn);
   });
 
   it("selects the whole field on focus, so typing replaces rather than appends", () => {
@@ -228,6 +239,7 @@ describe("DateTimePicker", () => {
     expect(getByLabelText("Вперёд")).toBeTruthy();
     expect(getByLabelText("Часы")).toBeDisabled();
     expect(getByLabelText("Минуты")).toBeDisabled();
+    expect(slot(container, "clear")).toBeDisabled();
     expect(slot(container, "clear")).toHaveTextContent("Сбросить");
   });
 });
