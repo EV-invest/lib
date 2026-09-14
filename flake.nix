@@ -64,9 +64,15 @@
         github = v_flakes.github {
           inherit pkgs pname rs;
           enable = true;
-          # CI workflows intentionally left off for now (no `jobs.default`), so
-          # nothing is generated under .github/workflows. The rest of the github
-          # module (gitignore/gitattributes, pre-commit hook) still applies.
+          # The default job set stays off — the only thing CI enforces here is the
+          # visual suite, because a stale baseline is otherwise invisible: `nix run
+          # .#visual` is a command someone has to remember, and nobody does.
+          jobs.errors.augment = [{ name = "flake-app"; args.app = "visual"; }];
+          # Not the default `nix-action`: that tarballs the whole ~5 GB store into
+          # the 10 GB per-repo budget, and the browser closure alone would thrash it.
+          # `lean` persists only locally-built paths — the toolchain and this repo's
+          # own outputs — and re-fetches the rest from cache.nixos.org.
+          cache.lean = true;
           lastSupportedVersion = "nightly-2026-05-12";
           gitignore.extra = ''
             ## Node / TypeScript
@@ -88,8 +94,10 @@
           defaults = true;
           lastSupportedVersion = "nightly-1.92";
           rootDir = ./.;
-          # No `ci` badge (CI off) and no `loc` badge (its gist isn't created
-          # without CI, so the endpoint 404s as "custom badge / resource not found").
+          # No `ci` badge — it emits an errors *and* a warnings one, and only
+          # `errors` is generated here, so the second would sit at "no status"
+          # advertising a check that does not exist. No `loc` badge either: its
+          # gist isn't created, so that endpoint 404s.
           badges = [ "msrv" "crates_io" "docs_rs" ];
         };
 
