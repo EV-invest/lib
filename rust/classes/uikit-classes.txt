@@ -263,6 +263,7 @@ data-collapsible
 data-collapsible=\
 data-content
 data-disabled
+data-disabled=\
 data-front
 data-front=\
 data-inset

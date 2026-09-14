@@ -16,7 +16,10 @@ const CHEVRON_LEFT: &str = "m15 18-6-6 6-6";
 const CHEVRON_RIGHT: &str = "m9 18 6-6-6-6";
 /// A calendar date as plain `(year, month 1-12, day 1-31)`. The kernel does its
 /// own date math (no `chrono`/`jiff`): `wasm32`-safe and dependency-free.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+///
+/// Fields are declared in `year, month, day` order, so the derived ordering is
+/// chronological.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub struct CalendarDate {
 	pub year: i32,
 	pub month: u32,
@@ -92,6 +95,14 @@ pub fn Calendar(
 	on_month_change: Option<EventHandler<CalendarDate>>,
 	/// "Today", highlighted in the grid.
 	today: Option<CalendarDate>,
+	/// Earliest selectable day (inclusive); earlier days render disabled.
+	min: Option<CalendarDate>,
+	/// Latest selectable day (inclusive); later days render disabled.
+	max: Option<CalendarDate>,
+	/// `aria-label` of the previous-month button; "Previous month" by default.
+	previous_month_label: Option<String>,
+	/// `aria-label` of the next-month button; "Next month" by default.
+	next_month_label: Option<String>,
 	#[props(default)] class: String,
 ) -> Element {
 	let view = use_controllable(month, default_month, on_month_change);
@@ -103,6 +114,8 @@ pub fn Calendar(
 
 	let nav_class = button_classes(&ButtonVariant::Ghost, Size::Md, true, CALENDAR_NAV_BUTTON);
 	let caption = format!("{} {}", MONTHS[(current.month - 1) as usize], current.year);
+	let previous_label = previous_month_label.unwrap_or_else(|| String::from("Previous month"));
+	let next_label = next_month_label.unwrap_or_else(|| String::from("Next month"));
 
 	let lead = CalendarDate::first_weekday_monday0(current.year, current.month);
 	let total = CalendarDate::days_in_month(current.year, current.month);
@@ -122,7 +135,7 @@ pub fn Calendar(
 				button {
 					r#type: "button",
 					class: nav_class.clone(),
-					"aria-label": "Previous month",
+					"aria-label": previous_label,
 					onclick: move |_| go(-1),
 					Chevron { d: CHEVRON_LEFT }
 				}
@@ -130,7 +143,7 @@ pub fn Calendar(
 				button {
 					r#type: "button",
 					class: nav_class.clone(),
-					"aria-label": "Next month",
+					"aria-label": next_label,
 					onclick: move |_| go(1),
 					Chevron { d: CHEVRON_RIGHT }
 				}
@@ -156,6 +169,8 @@ pub fn Calendar(
 									date: current,
 									selected,
 									today,
+									min,
+									max,
 									on_select,
 								}
 							}
@@ -168,7 +183,15 @@ pub fn Calendar(
 }
 
 #[component]
-fn DayCell(cell: Option<u32>, date: CalendarDate, selected: Option<CalendarDate>, today: Option<CalendarDate>, on_select: Option<EventHandler<CalendarDate>>) -> Element {
+fn DayCell(
+	cell: Option<u32>,
+	date: CalendarDate,
+	selected: Option<CalendarDate>,
+	today: Option<CalendarDate>,
+	min: Option<CalendarDate>,
+	max: Option<CalendarDate>,
+	on_select: Option<EventHandler<CalendarDate>>,
+) -> Element {
 	let Some(day) = cell else {
 		return rsx! {
 			td { class: CALENDAR_DAY_EMPTY }
@@ -178,6 +201,7 @@ fn DayCell(cell: Option<u32>, date: CalendarDate, selected: Option<CalendarDate>
 	let this = CalendarDate::new(date.year, date.month, day);
 	let is_selected = selected == Some(this);
 	let is_today = today == Some(this);
+	let is_disabled = min.is_some_and(|lo| this < lo) || max.is_some_and(|hi| this > hi);
 	let aria_selected = if is_selected { "true" } else { "false" };
 
 	let mut day_class = button_classes(&ButtonVariant::Ghost, Size::Md, true, CALENDAR_DAY);
@@ -198,7 +222,13 @@ fn DayCell(cell: Option<u32>, date: CalendarDate, selected: Option<CalendarDate>
 				"data-slot": "calendar-day",
 				"data-selected": if is_selected { "true" } else { "false" },
 				"data-today": if is_today { "true" } else { "false" },
+				// Absent rather than "false", so the unbounded grid renders as before.
+				"data-disabled": if is_disabled { Some("true") } else { None },
+				disabled: is_disabled,
 				onclick: move |_| {
+					if is_disabled {
+						return;
+					}
 					if let Some(h) = on_select {
 						h.call(this);
 					}
@@ -296,5 +326,63 @@ mod tests {
 		assert!(html.contains("bg-primary"), "{html}");
 		assert!(html.contains("bg-hover"), "{html}");
 		assert!(html.contains("data-selected=\"true\""), "{html}");
+	}
+
+	#[test]
+	fn unbounded_grid_has_no_disabled_days_and_english_nav_labels() {
+		fn app() -> Element {
+			rsx! {
+				Calendar { default_month: CalendarDate::new(2026, 6, 1) }
+			}
+		}
+		let html = render(app);
+		assert!(!html.contains(" disabled=true"), "{html}");
+		assert!(!html.contains("data-disabled"), "{html}");
+		assert!(html.contains("aria-label=\"Previous month\""), "{html}");
+		assert!(html.contains("aria-label=\"Next month\""), "{html}");
+	}
+
+	#[test]
+	fn days_outside_min_max_render_disabled() {
+		fn app() -> Element {
+			rsx! {
+				Calendar {
+					default_month: CalendarDate::new(2026, 6, 1),
+					min: CalendarDate::new(2026, 6, 10),
+					max: CalendarDate::new(2026, 6, 20),
+				}
+			}
+		}
+		let html = render(app);
+		// 9 days before `min` + 10 days after `max`.
+		assert_eq!(html.matches("data-disabled=\"true\"").count(), 19, "{html}");
+		assert_eq!(html.matches(" disabled=true").count(), 19, "{html}");
+		let tenth = html.find(">10<").expect("day 10 rendered");
+		let tag_start = html[..tenth].rfind("<button").expect("day 10 button");
+		assert!(!html[tag_start..tenth].contains(" disabled=true"), "day at `min` stays enabled: {html}");
+	}
+
+	#[test]
+	fn nav_labels_are_overridable() {
+		fn app() -> Element {
+			rsx! {
+				Calendar {
+					default_month: CalendarDate::new(2026, 6, 1),
+					previous_month_label: "Предыдущий месяц",
+					next_month_label: "Следующий месяц",
+				}
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("aria-label=\"Предыдущий месяц\""), "{html}");
+		assert!(html.contains("aria-label=\"Следующий месяц\""), "{html}");
+		assert!(!html.contains("Previous month"), "{html}");
+	}
+
+	#[test]
+	fn calendar_date_orders_chronologically() {
+		assert!(CalendarDate::new(2026, 6, 10) < CalendarDate::new(2026, 6, 11));
+		assert!(CalendarDate::new(2026, 6, 30) < CalendarDate::new(2026, 7, 1));
+		assert!(CalendarDate::new(2025, 12, 31) < CalendarDate::new(2026, 1, 1));
 	}
 }
