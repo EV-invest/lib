@@ -185,6 +185,7 @@ breadcrumb-page
 breadcrumb-separator
 button-group
 button-group-separator
+calendar-caption
 calendar-day
 card-action
 card-content

@@ -139,7 +139,7 @@ pub fn Calendar(
 					onclick: move |_| go(-1),
 					Chevron { d: CHEVRON_LEFT }
 				}
-				div { class: CALENDAR_CAPTION, {caption} }
+				div { class: CALENDAR_CAPTION, "data-slot": "calendar-caption", {caption} }
 				button {
 					r#type: "button",
 					class: nav_class.clone(),
@@ -340,6 +340,7 @@ mod tests {
 		assert!(!html.contains("data-disabled"), "{html}");
 		assert!(html.contains("aria-label=\"Previous month\""), "{html}");
 		assert!(html.contains("aria-label=\"Next month\""), "{html}");
+		assert!(html.contains("data-slot=\"calendar-caption\""), "{html}");
 	}
 
 	#[test]
