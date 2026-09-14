@@ -81,14 +81,6 @@ pub enum TerminalArea {
 	Orders,
 }
 
-
-
-
-
-
-
-
-
 /// Which side of the book a level or a print belongs to. Bids read positive,
 /// asks read loud — the row's text colour; the depth bar takes its tint from
 /// [`book_depth_class`].
@@ -110,18 +102,6 @@ pub fn book_depth_class(side: BookSide) -> &'static str {
 	}
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 /// The intent behind the submit: filled positive for a buy, filled loud for a
 /// sell, each with the ink that reads on that fill.
 #[derive(Debug, PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
@@ -132,4 +112,3 @@ pub enum OrderSide {
 	#[tw(class = "bg-accent-error text-on-accent-error hover:bg-accent-error/90")]
 	Sell,
 }
-
