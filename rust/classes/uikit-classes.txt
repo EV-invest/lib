@@ -8,6 +8,7 @@
 -mt-4 flex-col
 -top-12 left-1/2 -translate-x-1/2 rotate-90
 12:00:01
+2026-06-10 09:05
 @container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-2 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6
 [&>*:not(:first-child)]:rounded-l-none [&>*:not(:first-child)]:border-l-0 [&>*:not(:last-child)]:rounded-r-none
 [&>svg]:size-3.5
@@ -52,6 +53,7 @@ aria-disabled
 aria-expanded
 aria-expanded=\
 aria-haspopup
+aria-haspopup=\
 aria-hidden
 aria-invalid
 aria-invalid=\
@@ -272,6 +274,7 @@ data-orientation=\
 data-panel-group-direction
 data-panel-group-direction=\
 data-placeholder
+data-placeholder=\
 data-position
 data-position=\
 data-selected
@@ -297,6 +300,13 @@ data-visible
 data-visible=\
 data-y-position
 data-y-position=\
+date-time-picker
+date-time-picker-clear
+date-time-picker-content
+date-time-picker-hours
+date-time-picker-minutes
+date-time-picker-time
+date-time-picker-trigger
 dialog-close
 dialog-content
 dialog-description
