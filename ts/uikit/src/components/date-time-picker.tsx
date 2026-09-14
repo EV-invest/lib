@@ -63,12 +63,20 @@ function clampMoment(d: Date, min: Date | undefined, max: Date | undefined): Dat
 /**
  * Parses the digits an operator typed into an hours/minutes field. `null`
  * (nothing typed, or no digit at all) keeps the last value.
+ *
+ * The LAST two digits win: the field is controlled, so what the browser hands
+ * over is the old value plus the keystroke ("01" + "5" = "015"), and the
+ * freshest digits are the ones the operator meant.
  */
 function parseField(raw: string, max: number): number | null {
-  const digits = raw.replace(/\D/g, "").slice(0, 2);
+  const digits = raw.replace(/\D/g, "").slice(-2);
   if (digits === "") return null;
   return Math.min(Number(digits), max);
 }
+
+// A focused field is replaced, not appended to: with the whole value selected,
+// "1" then "5" reads as 15.
+const selectAll = (e: React.FocusEvent<HTMLInputElement>) => e.currentTarget.select();
 
 function isoLabel(d: Date): string {
   return `${d.getFullYear().toString().padStart(4, "0")}-${pad(d.getMonth() + 1)}-${pad(
@@ -265,7 +273,7 @@ export function DateTimePicker({
             <Input
               type="text"
               inputMode="numeric"
-              maxLength={2}
+              onFocus={selectAll}
               className={DATE_TIME_PICKER_TIME_INPUT}
               data-slot="date-time-picker-hours"
               aria-label={labels.hours ?? "Hours"}
@@ -279,7 +287,7 @@ export function DateTimePicker({
             <Input
               type="text"
               inputMode="numeric"
-              maxLength={2}
+              onFocus={selectAll}
               className={DATE_TIME_PICKER_TIME_INPUT}
               data-slot="date-time-picker-minutes"
               aria-label={labels.minutes ?? "Minutes"}

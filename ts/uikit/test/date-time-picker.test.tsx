@@ -52,11 +52,18 @@ describe("DateTimePicker", () => {
     expect(hours.value).toBe("09");
     expect(minutes.value).toBe("05");
     expect(hours).toHaveAttribute("inputmode", "numeric");
-    expect(hours).toHaveAttribute("maxlength", "2");
     expect(hours).toHaveAttribute("aria-label", "Hours");
     expect(minutes).toHaveAttribute("aria-label", "Minutes");
     expect(slot(container, "time")).toBeTruthy();
     expect(slot(container, "clear")).toHaveTextContent("Clear");
+  });
+
+  it("selects the whole field on focus, so typing replaces rather than appends", () => {
+    const { container } = render(<DateTimePicker value={june(10, 9, 5)} defaultOpen today={TODAY} />);
+    const hours = slot(container, "hours") as HTMLInputElement;
+    hours.focus();
+    expect(hours.selectionStart).toBe(0);
+    expect(hours.selectionEnd).toBe(2);
   });
 
   it("keeps the time on a day click and leaves the popover open", () => {
@@ -82,6 +89,12 @@ describe("DateTimePicker", () => {
     fireEvent.change(slot(container, "minutes")!, { target: { value: "7" } });
     // Uncontrolled: the hours just typed stick.
     expect(lastArg(onChange)!.getTime()).toBe(june(15, 14, 7).getTime());
+    // Sequential typing over the controlled field: "1", then the browser hands
+    // over "01" + "5" — the last two digits win.
+    fireEvent.change(slot(container, "hours")!, { target: { value: "1" } });
+    expect(lastArg(onChange)!.getHours()).toBe(1);
+    fireEvent.change(slot(container, "hours")!, { target: { value: "015" } });
+    expect(lastArg(onChange)!.getHours()).toBe(15);
     // Overflow clamps to the field's range; empty input keeps the last value.
     fireEvent.change(slot(container, "hours")!, { target: { value: "31" } });
     expect(lastArg(onChange)!.getHours()).toBe(23);
