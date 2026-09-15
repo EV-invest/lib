@@ -9,6 +9,10 @@ pub const ALERT_TITLE: &str = "col-start-2 line-clamp-1 min-h-4 font-medium trac
 
 pub const ALERT_DESCRIPTION: &str = "text-ink-soft col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed";
 
+/// Tinted variants colour only the root (so the icon and title inherit it); the
+/// description is lifted to `text-ink-mid` instead of a `/90` role tint, which
+/// composited onto `bg-card` sits at ~4.0:1 — under the 4.5:1 body-text floor —
+/// and bleeds into any control nested in the description.
 #[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum AlertVariant {
@@ -16,8 +20,8 @@ pub enum AlertVariant {
 	Neutral,
 	#[tw(class = "text-accent-error bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-accent-error/90")]
 	Destructive,
-	#[tw(class = "text-positive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-positive/90")]
+	#[tw(class = "text-positive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-ink-mid")]
 	Success,
-	#[tw(class = "text-accent-info bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-accent-info/90")]
+	#[tw(class = "text-accent-info bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-ink-mid")]
 	Info,
 }

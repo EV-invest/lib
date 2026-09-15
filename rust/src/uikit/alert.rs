@@ -79,6 +79,22 @@ mod tests {
 		assert!(html.contains("text-accent-info"), "{html}");
 	}
 
+	/// The role tint stays on the root (icon + title inherit it); the description
+	/// child is lifted to ink so body copy and nested controls hold the contrast floor.
+	#[test]
+	fn tinted_variants_keep_description_in_ink() {
+		fn app() -> Element {
+			rsx! {
+				Alert { variant: AlertVariant::Success, AlertDescription { "s" } }
+				Alert { variant: AlertVariant::Info, AlertDescription { "i" } }
+			}
+		}
+		let html = render(app);
+		assert_eq!(html.matches("*:data-[slot=alert-description]:text-ink-mid").count(), 2, "{html}");
+		assert!(!html.contains("text-positive/90"), "{html}");
+		assert!(!html.contains("text-accent-info/90"), "{html}");
+	}
+
 	#[test]
 	fn title_and_description_slots() {
 		fn app() -> Element {

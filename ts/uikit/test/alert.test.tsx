@@ -26,6 +26,22 @@ describe("Alert", () => {
     expect(getByRole("alert")).toHaveClass("text-accent-info");
   });
 
+  // the role tint stays on the root (icon + title inherit it); the description
+  // child is lifted to ink so body copy and nested controls hold the contrast floor
+  it.each(["success", "info"] as const)(
+    "keeps the %s description in ink",
+    (variant) => {
+      const { getByRole } = render(
+        <Alert variant={variant}>
+          <AlertDescription>d</AlertDescription>
+        </Alert>,
+      );
+      const el = getByRole("alert");
+      expect(el).toHaveClass("*:data-[slot=alert-description]:text-ink-mid");
+      expect(el.className).not.toMatch(/\/90/);
+    },
+  );
+
   it("renders title and description slots", () => {
     const { getByText } = render(
       <Alert>
