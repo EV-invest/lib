@@ -8,6 +8,7 @@
 -mt-4 flex-col
 -top-12 left-1/2 -translate-x-1/2 rotate-90
 12:00:01
+2026-06-10 09:05
 @container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-2 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6
 [&>*:not(:first-child)]:rounded-l-none [&>*:not(:first-child)]:border-l-0 [&>*:not(:last-child)]:rounded-r-none
 [&>svg]:size-3.5
@@ -52,6 +53,7 @@ aria-disabled
 aria-expanded
 aria-expanded=\
 aria-haspopup
+aria-haspopup=\
 aria-hidden
 aria-invalid
 aria-invalid=\
@@ -193,6 +195,7 @@ breadcrumb-page
 breadcrumb-separator
 button-group
 button-group-separator
+calendar-caption
 calendar-day
 card-action
 card-content
@@ -273,6 +276,7 @@ data-collapsible
 data-collapsible=\
 data-content
 data-disabled
+data-disabled=\
 data-front
 data-front=\
 data-inset
@@ -281,6 +285,7 @@ data-orientation=\
 data-panel-group-direction
 data-panel-group-direction=\
 data-placeholder
+data-placeholder=\
 data-position
 data-position=\
 data-selected
@@ -307,6 +312,13 @@ data-visible=\
 data-y-position
 data-y-position=\
 data:image/svg+xml
+date-time-picker
+date-time-picker-clear
+date-time-picker-content
+date-time-picker-hours
+date-time-picker-minutes
+date-time-picker-time
+date-time-picker-trigger
 dialog-close
 dialog-content
 dialog-description
@@ -378,6 +390,7 @@ flex h-9 shrink-0 items-center gap-2 border-b border-border px-3 text-xs font-me
 flex h-full w-full data-[panel-group-direction=vertical]:flex-col
 flex items-center
 flex items-center gap-2
+flex items-center gap-2 border-t border-border px-3 py-2
 flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50
 flex items-center gap-[7px] whitespace-nowrap
 flex items-center justify-between gap-1 w-full px-1
@@ -804,6 +817,7 @@ text-ink-soft mt-4 text-sm
 text-ink-soft pointer-events-none size-4 shrink-0 translate-y-0.5 transition-transform duration-200
 text-ink-soft px-2 py-1.5 text-xs
 text-ink-soft rounded-md flex-1 font-normal text-[0.8rem] select-none
+text-ink-soft select-none
 text-ink-soft text-sm
 text-ink-soft text-sm leading-normal font-normal group-has-[[data-orientation=horizontal]]/field:text-balance last:mt-0 nth-last-2:-mt-1 [[data-variant=legend]+&]:-mt-1.5 [&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4
 text-ink/20
@@ -844,13 +858,16 @@ translateX(-40%)
 w-(--sidebar-width)
 w-10
 w-10 h-10 text-white
+w-14 text-center tabular-nums
 w-16
 w-16 h-16 rounded-md
 w-2.5
 w-24
 w-3/5 h-3/5
 w-40
+w-auto p-0
 w-full border-collapse mt-4
 w-full caption-bottom text-sm
+w-full justify-start gap-2 text-left font-normal data-[placeholder]:text-ink-soft [&>svg]:text-ink-soft
 w-full px-[var(--page-px)]
 w-full text-sm

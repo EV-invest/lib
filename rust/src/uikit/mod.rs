@@ -156,16 +156,19 @@ pub use sheet::*;
 pub use tooltip::*;
 
 // Tier D — heavy engines, hand-rolled dep-light (chart without recharts,
-// calendar with manual date math, sonner toaster, form without rhf, resizable).
+// calendar with manual date math, date-time-picker over it without a native
+// `datetime-local`, sonner toaster, form without rhf, resizable).
 // See the package README "Limitations" for the fidelity gaps vs the originals.
 mod calendar;
 mod chart;
+mod date_time_picker;
 mod form;
 mod resizable;
 mod sonner;
 
 pub use calendar::*;
 pub use chart::*;
+pub use date_time_picker::*;
 pub use form::*;
 pub use resizable::*;
 pub use sonner::*;

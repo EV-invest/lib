@@ -1,8 +1,9 @@
 use std::rc::Rc;
 
 use dioxus::{
+	dioxus_core::{Mutation, Mutations},
 	html::{
-		PlatformEventData,
+		PlatformEventData, SerializedFormData,
 		input_data::keyboard_types::{Code, Location, Modifiers},
 	},
 	prelude::*,
@@ -68,6 +69,19 @@ pub fn render_after_keydown(app: fn() -> Element, key: Key) -> String {
 	});
 	dom.render_immediate(&mut dioxus::dioxus_core::NoOpMutations);
 	dioxus_ssr::render(&dom)
+}
+
+/// Fires an `input` carrying `value` at every mounted element, then renders and
+/// returns the mutations that render produced — so a test can assert what a
+/// controlled field writes back to the DOM, which the SSR string cannot show
+/// (the string is the same whether or not the DOM was patched).
+pub fn mutations_after_input(app: fn() -> Element, value: &str) -> Vec<Mutation> {
+	let mut dom = mount(app);
+	let value = value.to_owned();
+	sweep(&mut dom, "input", move || Box::new(SerializedFormData::new(value.clone(), Vec::new())));
+	let mut mutations = Mutations::default();
+	dom.render_immediate(&mut mutations);
+	mutations.edits
 }
 
 fn mount(app: fn() -> Element) -> VirtualDom {

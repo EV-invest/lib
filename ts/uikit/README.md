@@ -129,7 +129,7 @@ element across the two ports.
 | overlay placement | inline `position:fixed` + `data-side` | `Portal` + `useFloating` |
 | dismiss / focus trap | full-screen backdrop / native order | `useDismissableLayer` / `useFocusScope` |
 
-### Component inventory (all 61 bricks)
+### Component inventory (all 62 bricks)
 
 - **Tier A — static (22):** badge, button, button-group, card, input, textarea,
   label, field, separator, skeleton, spinner, kbd, table, container, alert,
@@ -140,7 +140,8 @@ element across the two ports.
 - **Tier C — overlay (13):** tooltip, popover, hover-card, dropdown-menu,
   context-menu, menubar, navigation-menu, dialog, alert-dialog, sheet, drawer,
   select, command.
-- **Tier D — engines (5):** chart, calendar, sonner (toaster), form, resizable.
+- **Tier D — engines (6):** chart, calendar, date-time-picker, sonner (toaster),
+  form, resizable.
 - **Site chrome (7):** header (marketing / compact density, plus `hideNav`),
   footer, logo, and the shared status pages — `StatusScreen` with the `NotFound`
   / `Forbidden` / `ServerError` presets (404 / 403 / 500). The kit ships no
@@ -181,8 +182,21 @@ measuring needs host-only `web-sys`). Known gaps:
   submit's default — inputs, validation and the order itself are the
   consumer's. The open-orders pane reuses `Table` and `Tabs`.
 - **calendar:** single month, single-date selection (no range/multi-month, no
-  locale/dropdown features). Rust does manual date math; TS uses the built-in
-  `Date`.
+  dropdown captions). `min`/`max` bound the grid at day granularity (days outside
+  render `disabled` + `data-disabled="true"`); `disabled` freezes the
+  whole grid and the nav the same way; the nav buttons take label overrides. TS-only `locale` renders the caption and weekday headers through
+  `Intl` (Monday-first); Rust has no `Intl`, so its captions stay English. Rust
+  does manual date math; TS uses the built-in `Date`.
+- **date-time-picker:** the kit's own bricks only — an outline trigger, a
+  `Popover` with the `Calendar` and two numeric 24-hour hours/minutes fields (no
+  native `datetime-local` / `time` input, so the browser's locale popup never
+  appears). Its ARIA and button strings are `labels` overrides with English
+  defaults — the nav buttons, the hours/minutes `aria-label`s, the clear button
+  and the popover's own accessible name (`labels.dialog`). TS formats the trigger label through `Intl` when `locale` is set,
+  else `YYYY-MM-DD HH:MM`; Rust has no `Intl`: the ISO-like label or the
+  `format` callback, English month/weekday captions. The hidden form value is
+  unix seconds in TS and `YYYY-MM-DDTHH:MM` in Rust (no zone there). The Rust
+  overlay is the inline popover described above.
 - **sonner:** both ports stack toasts Sonner-style — a collapsed pile (front
   three peeking, scaled by depth) that spreads into a list on hover / keyboard
   focus, via the shared `data-stack` CSS in `tokens.css`. The enter is a CSS
