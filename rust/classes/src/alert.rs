@@ -18,7 +18,7 @@ pub const ALERT_DESCRIPTION: &str = "text-ink-soft col-start-2 grid justify-item
 pub enum AlertVariant {
 	#[tw(default, class = "bg-card text-ink")]
 	Neutral,
-	#[tw(class = "text-accent-error bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-accent-error/90")]
+	#[tw(class = "text-accent-error bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-ink-mid")]
 	Destructive,
 	#[tw(class = "text-positive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-ink-mid")]
 	Success,

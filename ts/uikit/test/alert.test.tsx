@@ -28,7 +28,7 @@ describe("Alert", () => {
 
   // the role tint stays on the root (icon + title inherit it); the description
   // child is lifted to ink so body copy and nested controls hold the contrast floor
-  it.each(["success", "info"] as const)(
+  it.each(["destructive", "success", "info"] as const)(
     "keeps the %s description in ink",
     (variant) => {
       const { getByRole } = render(

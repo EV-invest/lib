@@ -789,7 +789,7 @@ text-[11px] uppercase tracking-wide text-ink-soft
 text-[14px] md:text-[15px] leading-[1.62] text-ink-soft
 text-accent-debug
 text-accent-error
-text-accent-error bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-accent-error/90
+text-accent-error bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-ink-mid
 text-accent-error text-sm
 text-accent-error text-sm font-normal
 text-accent-info

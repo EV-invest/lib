@@ -85,14 +85,14 @@ mod tests {
 	fn tinted_variants_keep_description_in_ink() {
 		fn app() -> Element {
 			rsx! {
+				Alert { variant: AlertVariant::Destructive, AlertDescription { "d" } }
 				Alert { variant: AlertVariant::Success, AlertDescription { "s" } }
 				Alert { variant: AlertVariant::Info, AlertDescription { "i" } }
 			}
 		}
 		let html = render(app);
-		assert_eq!(html.matches("*:data-[slot=alert-description]:text-ink-mid").count(), 2, "{html}");
-		assert!(!html.contains("text-positive/90"), "{html}");
-		assert!(!html.contains("text-accent-info/90"), "{html}");
+		assert_eq!(html.matches("*:data-[slot=alert-description]:text-ink-mid").count(), 3, "{html}");
+		assert!(!html.contains("/90"), "{html}");
 	}
 
 	#[test]
