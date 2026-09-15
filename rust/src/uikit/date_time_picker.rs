@@ -63,6 +63,8 @@ pub struct DateTimePickerLabels {
 	pub minutes: Option<String>,
 	/// Text of the clear button; "Clear".
 	pub clear: Option<String>,
+	/// `aria-label` of the popover dialog; "Choose date and time".
+	pub dialog: Option<String>,
 }
 
 /// A date + time field over the kit's own bricks: an outline trigger opening a
@@ -177,6 +179,7 @@ pub fn DateTimePicker(
 	let hours_label = labels.hours.unwrap_or_else(|| String::from("Hours"));
 	let minutes_label = labels.minutes.unwrap_or_else(|| String::from("Minutes"));
 	let clear_label = labels.clear.unwrap_or_else(|| String::from("Clear"));
+	let dialog_label = labels.dialog.unwrap_or_else(|| String::from("Choose date and time"));
 
 	rsx! {
 		div {
@@ -215,6 +218,7 @@ pub fn DateTimePicker(
 				div {
 					class: content_class,
 					role: "dialog",
+					"aria-label": dialog_label,
 					"data-slot": "date-time-picker-content",
 					"data-state": "open",
 					"data-side": "bottom",
@@ -378,6 +382,7 @@ mod tests {
 		}
 		let html = render(app);
 		assert!(html.contains("data-slot=\"date-time-picker-content\""), "{html}");
+		assert!(html.contains("aria-label=\"Choose date and time\""), "{html}");
 		assert!(html.contains("data-slot=\"calendar\""), "{html}");
 		assert!(html.contains("June 2026"), "{html}");
 		assert!(html.contains("data-selected=\"true\""), "{html}");
@@ -440,6 +445,7 @@ mod tests {
 						hours: Some("Часы".into()),
 						minutes: Some("Минуты".into()),
 						clear: Some("Сбросить".into()),
+						dialog: Some("Выберите дату и время".into()),
 					},
 				}
 			}
@@ -450,6 +456,8 @@ mod tests {
 		assert!(html.contains("aria-label=\"Часы\""), "{html}");
 		assert!(html.contains("aria-label=\"Минуты\""), "{html}");
 		assert!(html.contains(">Сбросить<"), "{html}");
+		assert!(html.contains("aria-label=\"Выберите дату и время\""), "{html}");
+		assert!(!html.contains("Choose date and time"), "{html}");
 		assert!(html.contains("disabled=true"), "{html}");
 		// Trigger, both time fields and Clear.
 		assert_eq!(html.matches(" disabled=true").count(), 4, "{html}");
