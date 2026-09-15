@@ -591,7 +591,7 @@ menubar-sub-trigger
 menubar-trigger
 min-h-16
 min-h-40
-min-w-0 flex-1 shrink-0 rounded-none shadow-none first:rounded-l-md last:rounded-r-md focus:z-10 focus-visible:z-10 data-[variant=outline]:border-l-0 data-[variant=outline]:first:border-l
+min-w-0 flex-auto shrink-0 rounded-none shadow-none first:rounded-l-md last:rounded-r-md focus:z-10 focus-visible:z-10 data-[variant=outline]:border-l-0 data-[variant=outline]:first:border-l
 min-w-0 shrink-0 grow-0 basis-full
 ml-auto
 ml-auto h-4 w-4
