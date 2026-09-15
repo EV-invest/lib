@@ -68,11 +68,6 @@
           # visual suite, because a stale baseline is otherwise invisible: `nix run
           # .#visual` is a command someone has to remember, and nobody does.
           jobs.errors.augment = [{ name = "flake-app"; args.app = "visual"; }];
-          # Not the default `nix-action`: that tarballs the whole ~5 GB store into
-          # the 10 GB per-repo budget, and the browser closure alone would thrash it.
-          # `lean` persists only locally-built paths — the toolchain and this repo's
-          # own outputs — and re-fetches the rest from cache.nixos.org.
-          cache.lean = true;
           lastSupportedVersion = "nightly-2026-05-12";
           gitignore.extra = ''
             ## Node / TypeScript
