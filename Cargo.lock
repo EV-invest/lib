@@ -1398,7 +1398,7 @@ dependencies = [
 
 [[package]]
 name = "ev_lib"
-version = "0.16.0"
+version = "0.16.1"
 dependencies = [
  "async-trait",
  "axum",
@@ -1434,7 +1434,7 @@ dependencies = [
 
 [[package]]
 name = "ev_lib_classes"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "strum",
  "tailwind_fuse",
