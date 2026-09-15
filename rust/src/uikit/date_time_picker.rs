@@ -1,4 +1,4 @@
-use dioxus::prelude::*;
+use dioxus::{dioxus_core::needs_update, prelude::*};
 
 use crate::{
 	cn,
@@ -124,15 +124,24 @@ pub fn DateTimePicker(
 		let (hour, minute) = value.map_or((0, 0), |v| (v.hour, v.minute));
 		emit(Some(LocalDateTime::new(day, hour, minute).clamp_to(min, max)));
 	};
+	// The time fields are controlled, so every keystroke must leave the DOM on
+	// the canonical "HH"/"MM" (as React does). Dioxus rewrites `input.value` on
+	// every render — the attribute is volatile — but nothing re-renders the picker
+	// when the emitted value did not change ("9" typed over "09") or when nothing
+	// parsed (the field backspaced to empty): the parent sees the same props and
+	// the picker is memoised, so the DOM would keep the raw keystrokes. Ask for
+	// the render explicitly.
 	let on_hours = move |e: FormEvent| {
 		if let Some(hour) = parse_field(&e.value(), 23) {
 			emit(Some(LocalDateTime { hour, ..base() }.clamp_to(min, max)));
 		}
+		needs_update();
 	};
 	let on_minutes = move |e: FormEvent| {
 		if let Some(minute) = parse_field(&e.value(), 59) {
 			emit(Some(LocalDateTime { minute, ..base() }.clamp_to(min, max)));
 		}
+		needs_update();
 	};
 	let on_clear = move |_| {
 		emit(None);
@@ -303,8 +312,10 @@ fn CalendarIcon() -> Element {
 
 #[cfg(test)]
 mod tests {
+	use dioxus::dioxus_core::{AttributeValue, Mutation};
+
 	use super::*;
-	use crate::uikit::test_util::render;
+	use crate::uikit::test_util::{mutations_after_input, render};
 
 	fn june(day: u32, hour: u32, minute: u32) -> LocalDateTime {
 		LocalDateTime::new(CalendarDate::new(2026, 6, day), hour, minute)
@@ -444,6 +455,45 @@ mod tests {
 		assert_eq!(html.matches(" disabled=true").count(), 4, "{html}");
 		// Empty value: the time inputs show midnight.
 		assert_eq!(html.matches("value=\"00\"").count(), 2, "{html}");
+	}
+
+	/// The `value` strings a render wrote back to the DOM.
+	fn written_values(mutations: &[Mutation]) -> Vec<String> {
+		mutations
+			.iter()
+			.filter_map(|m| match m {
+				Mutation::SetAttribute {
+					name: "value",
+					value: AttributeValue::Text(v),
+					..
+				} => Some(v.clone()),
+				_ => None,
+			})
+			.collect()
+	}
+
+	fn open_at_nine_oh_five() -> Element {
+		rsx! {
+			DateTimePicker { default_open: true, value: june(10, 9, 5) }
+		}
+	}
+
+	#[test]
+	fn typing_the_same_hour_writes_the_padded_value_back() {
+		// "9" over a selected "09" emits the unchanged value, so no prop moves;
+		// the field must still be patched back from the raw "9" to "09".
+		let written = written_values(&mutations_after_input(open_at_nine_oh_five, "9"));
+		assert!(written.contains(&String::from("09")), "{written:?}");
+		assert!(written.contains(&String::from("05")), "{written:?}");
+	}
+
+	#[test]
+	fn emptying_a_field_writes_the_last_value_back() {
+		// Backspace to "": nothing parses, nothing is emitted — the field snaps
+		// back to the value it shows in the trigger label instead of staying blank.
+		let written = written_values(&mutations_after_input(open_at_nine_oh_five, ""));
+		assert!(written.contains(&String::from("09")), "{written:?}");
+		assert!(written.contains(&String::from("05")), "{written:?}");
 	}
 
 	#[test]
