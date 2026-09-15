@@ -27,7 +27,7 @@ const DIST: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/visual/dist");
 #[rustfmt::skip]
 #[allow(clippy::type_complexity)] // a `(label, demo fn)` table reads fine as-is
 const GALLERY: &[(&str, fn() -> Element)] = &[
-	("Button", d_button), ("Badge", d_badge), ("Label", d_label), ("Kbd", d_kbd),
+	("Button", d_button), ("ButtonAccent", d_button_accent), ("Badge", d_badge), ("Label", d_label), ("Kbd", d_kbd),
 	("Avatar", d_avatar), ("Separator", d_separator), ("Skeleton", d_skeleton),
 	("Spinner", d_spinner), ("Progress", d_progress),
 	("Alert", d_alert), ("Card", d_card), ("Table", d_table), ("Breadcrumb", d_breadcrumb),
@@ -155,6 +155,20 @@ fn d_button() -> Element {
 		Button { size: Size::Lg, "Large" }
 		Button { size: Size::Md, icon: true, "+" }
 		Button { disabled: true, "Disabled" }
+	}
+}
+
+// The accent axis, at both faces the variant can give it: a filled button
+// repaints, an outlined one tints what it already has. Its own cell so the
+// plain `Button` board above keeps its baseline.
+fn d_button_accent() -> Element {
+	rsx! {
+		for accent in [Accent::Trace, Accent::Debug, Accent::Info, Accent::Warn, Accent::Error] {
+			Button { accent, "{accent.as_ref()}" }
+		}
+		for accent in [Accent::Trace, Accent::Debug, Accent::Info, Accent::Warn, Accent::Error] {
+			Button { variant: ButtonVariant::Outline, accent, "{accent.as_ref()}" }
+		}
 	}
 }
 

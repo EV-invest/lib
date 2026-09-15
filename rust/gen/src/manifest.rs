@@ -10,6 +10,7 @@ use crate::{Ts, table};
 pub fn manifest() -> Vec<(&'static str, Vec<Ts>)> {
 	vec![
 		("button", button()),
+		("accent", accent()),
 		("alert", alert()),
 		("toggle", toggle()),
 		("badge", badge()),
@@ -60,6 +61,12 @@ pub fn manifest() -> Vec<(&'static str, Vec<Ts>)> {
 	]
 }
 
+/// Registries shared by more than the uikit: `(package, module, exports)` into
+/// `ts/{package}/src/generated/{module}.ts`. Not class tables — these are the
+/// same data the Rust libraries own, which the TS ports used to re-type by hand.
+pub fn shared() -> Vec<(&'static str, &'static str, Vec<Ts>)> {
+	vec![("i18n", "locales", locales()), ("types", "e164", e164())]
+}
 fn band() -> Vec<Ts> {
 	vec![
 		table::<Polarity>("polarityClasses", "Polarity"),
@@ -1314,26 +1321,37 @@ fn button() -> Vec<Ts> {
 			value: BUTTON_BASE,
 		},
 		table::<ButtonVariant>("buttonVariantClasses", "ButtonVariant"),
-		Ts::Table {
-			name: "buttonSizeClasses",
-			ty: "ButtonSize",
-			entries: [
-				(Size::Md, "md"),
-				(Size::Xs, "xs"),
-				(Size::Sm, "sm"),
-				(Size::Lg, "lg"),
-				(Size::Xl, "xl"),
-				(Size::Md, "icon"),
-				(Size::Xs, "icon-xs"),
-				(Size::Sm, "icon-sm"),
-				(Size::Lg, "icon-lg"),
-				(Size::Xl, "icon-xl"),
-			]
-			.into_iter()
-			.map(|(size, key)| (key.to_string(), button_size_class(size, key.starts_with("icon")).to_string()))
-			.collect(),
-		},
+		// Size and shape are two axes, so they are two tables over the same keys —
+		// not one table whose keys fuse them (`"icon-sm"`) and elide the default
+		// (`"icon"` meaning icon-at-Md). See docs/spec/variants.md.
+		size_table("buttonSizeClasses", "ButtonSize", |s| button_size_class(s, false)),
+		size_table("buttonIconSizeClasses", "ButtonIconSize", |s| button_size_class(s, true)),
 	]
+}
+
+/// Any `fn(Size) -> &str` over the whole control scale, keyed by the size name.
+fn size_table(name: &'static str, ty: &'static str, class: fn(Size) -> &'static str) -> Ts {
+	Ts::Table {
+		name,
+		ty,
+		entries: Size::iter().map(|s| (s.as_ref().to_string(), class(s).to_string())).collect(),
+	}
+}
+
+fn accent() -> Vec<Ts> {
+	vec![
+		accent_table("accentTextClasses", "Accent", accent_text_class),
+		accent_table("accentFillClasses", "AccentFill", accent_fill_class),
+		accent_table("accentOutlineClasses", "AccentOutline", accent_outline_class),
+	]
+}
+
+fn accent_table(name: &'static str, ty: &'static str, class: fn(Accent) -> &'static str) -> Ts {
+	Ts::Table {
+		name,
+		ty,
+		entries: Accent::iter().map(|a| (a.as_ref().to_string(), class(a).to_string())).collect(),
+	}
 }
 
 fn terminal() -> Vec<Ts> {
@@ -1435,6 +1453,46 @@ fn terminal() -> Vec<Ts> {
 		Ts::Const {
 			name: "OPEN_ORDERS_EMPTY",
 			value: OPEN_ORDERS_EMPTY,
+		},
+	]
+}
+
+
+fn locales() -> Vec<Ts> {
+	use ev_lib::i18n::{DEFAULT_LOCALE, LOCALES};
+	vec![
+		Ts::Array {
+			name: "LOCALES",
+			items: LOCALES.iter().map(|l| l.code().to_string()).collect(),
+		},
+		// `Locale` derives off this one, so the labels table is what carries the
+		// union — a locale nobody can name in a switcher does not exist.
+		Ts::Table {
+			name: "LOCALE_LABELS",
+			ty: "Locale",
+			entries: LOCALES.iter().map(|l| (l.code().to_string(), l.label().to_string())).collect(),
+		},
+		Ts::Const {
+			name: "DEFAULT_LOCALE",
+			value: DEFAULT_LOCALE.code(),
+		},
+	]
+}
+
+fn e164() -> Vec<Ts> {
+	use ev_lib::types::{COUNTRY_CODES, PhoneNumber};
+	vec![
+		Ts::Array {
+			name: "COUNTRY_CODES",
+			items: COUNTRY_CODES.iter().map(|c| c.to_string()).collect(),
+		},
+		Ts::Scalar {
+			name: "MIN_DIGITS",
+			value: PhoneNumber::MIN_DIGITS.to_string(),
+		},
+		Ts::Scalar {
+			name: "MAX_DIGITS",
+			value: PhoneNumber::MAX_DIGITS.to_string(),
 		},
 	]
 }

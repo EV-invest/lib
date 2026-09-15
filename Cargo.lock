@@ -1444,6 +1444,7 @@ dependencies = [
 name = "ev_lib_gen"
 version = "0.4.0"
 dependencies = [
+ "ev_lib",
  "ev_lib_classes",
  "strum",
  "tailwind_fuse",

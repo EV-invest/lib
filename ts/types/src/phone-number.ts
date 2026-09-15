@@ -10,6 +10,7 @@
  */
 
 import { Brand, type Branded } from './brand';
+import { COUNTRY_CODES, MAX_DIGITS, MIN_DIGITS } from './generated/e164';
 
 // ── Error ─────────────────────────────────────────────────────────────────────
 
@@ -43,57 +44,16 @@ export type PhoneNumber = Branded<string, 'PhoneNumber'>;
 
 // ── Country-code table ────────────────────────────────────────────────────────
 
-// Country codes and their digit lengths (shared by e.g. US+Canada under 1,
-// Russia+Kazakhstan under 7). Codes are stored as strings so "1" doesn't match
-// "+1" prefix-interpreted-as-integer. The table is ordered longest-first so a
-// prefix lookup finds the most specific match first (e.g. "1242" before "1").
+// Codes are strings so "1" doesn't match "+1" prefix-interpreted-as-integer; the
+// prefix lookup below tries longest-first so the most specific match wins (e.g.
+// "1242" before "1").
 //
 // This is NOT an exhaustive dial-code table — it covers the 1–3 digit country
 // codes defined by ITU-T. Exhaustive validation would require a full numbering
 // plan database, which is out of scope for a zero-dep library.
-const COUNTRY_CODES: ReadonlySet<string> = new Set([
-  // Zone 1 — North American Numbering Plan
-  '1',
-  // Zone 2 — Africa (selected)
-  '20', '211', '212', '213', '216', '218', '220', '221', '222', '223', '224', '225',
-  '226', '227', '228', '229', '230', '231', '232', '233', '234', '235', '236', '237',
-  '238', '239', '240', '241', '242', '243', '244', '245', '246', '247', '248', '249',
-  '250', '251', '252', '253', '254', '255', '256', '257', '258', '260', '261', '262',
-  '263', '264', '265', '266', '267', '268', '269',
-  // Zone 3 — Europe
-  '30', '31', '32', '33', '34', '350', '351', '352', '353', '354', '355', '356',
-  '357', '358', '359',
-  // Zone 4 — Europe (cont.)
-  '36', '370', '371', '372', '373', '374', '375', '376', '377', '378', '379',
-  '380', '381', '382', '383', '385', '386', '387', '389',
-  '40', '41', '42', '43', '44', '45', '46', '47', '48', '49',
-  // Zone 5 — South/Latin America
-  '500', '501', '502', '503', '504', '505', '506', '507', '508', '509',
-  '51', '52', '53', '54', '55', '56', '57', '58',
-  '590', '591', '592', '593', '594', '595', '596', '597', '598', '599',
-  // Zone 6 — Southeast Asia / Oceania
-  '60', '61', '62', '63', '64', '65', '66',
-  '670', '672', '673', '674', '675', '676', '677', '678', '679',
-  '680', '681', '682', '683', '685', '686', '687', '688', '689',
-  '690', '691', '692',
-  // Zone 7 — Russia, Kazakhstan
-  '7',
-  // Zone 8 — East Asia / Special services
-  '81', '82', '83', '84', '850', '852', '853', '855', '856',
-  '86', '870', '872', '873', '874', '878', '879',
-  '880', '881', '882', '883', '886', '888',
-  // Zone 9 — West/South Asia
-  '90', '91', '92', '93', '94', '95', '960', '961', '962', '963', '964', '965',
-  '966', '967', '968', '969', '970', '971', '972', '973', '974', '975', '976',
-  '977', '979',
-  '98', '992', '993', '994', '995', '996', '998',
-]);
+const COUNTRY_CODE_SET: ReadonlySet<string> = new Set(COUNTRY_CODES);
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-
-const E164_REGEX = /^\+(\d{1,3})(\d+)$/;
-const MIN_DIGITS = 7; // shortest national number + country code
-const MAX_DIGITS = 15; // ITU-T E.164 limit
 
 // Non-digit characters that are commonly used in user input and are safe to
 // strip during `parseInput`.
@@ -147,7 +107,7 @@ export function validatePhoneNumber(value: string): PhoneNumberValidation {
   }
 
   const cc = extractCountryCode(afterPlus);
-  if (cc === undefined || !COUNTRY_CODES.has(cc)) {
+  if (cc === undefined || !COUNTRY_CODE_SET.has(cc)) {
     return {
       ok: false,
       code: 'invalid_country_code',
@@ -163,14 +123,14 @@ function extractCountryCode(digits: string): string | undefined {
   // Try 3-digit, then 2, then 1 — longest match wins.
   if (digits.length >= 3) {
     const three = digits.slice(0, 3);
-    if (COUNTRY_CODES.has(three)) return three;
+    if (COUNTRY_CODE_SET.has(three)) return three;
   }
   if (digits.length >= 2) {
     const two = digits.slice(0, 2);
-    if (COUNTRY_CODES.has(two)) return two;
+    if (COUNTRY_CODE_SET.has(two)) return two;
   }
   const one = digits.slice(0, 1);
-  if (COUNTRY_CODES.has(one)) return one;
+  if (COUNTRY_CODE_SET.has(one)) return one;
   return undefined;
 }
 

@@ -23,37 +23,26 @@
  */
 
 /**
- * The locales EV publishes, in the order they are offered to a reader.
- * `en` is first because it is both the default and the authored source.
+ * The locale registry — generated from `ev_lib::i18n::Locale`, which is where
+ * the five locales, their endonyms and the default are decided. Plain consts, so
+ * this stays zero-dep and server-safe.
  *
- * Note `vi` — Vietnamese — is the ISO 639-1 *language* code. `vn` is the ISO
- * 3166 *country* code for Vietnam and is not a valid `hreflang` / `lang` value;
- * Google silently discards invalid values, so the distinction is load-bearing.
+ * - `LOCALES` — in the order they are offered to a reader; `en` first because it
+ *   is both the default and the authored source. Note `vi` — Vietnamese — is the
+ *   ISO 639-1 *language* code. `vn` is the ISO 3166 *country* code for Vietnam
+ *   and is not a valid `hreflang` / `lang` value; Google silently discards
+ *   invalid values, so the distinction is load-bearing.
+ * - `LOCALE_LABELS` — each locale's name **in that locale**, what a language
+ *   switcher must show: a reader who cannot read the current language cannot
+ *   read "Russian" either. `Locale` derives off it.
+ * - `DEFAULT_LOCALE` — the fallback for any reader we cannot place, and the only
+ *   locale whose URLs carry no prefix (see {@link localePath}).
  */
-export const LOCALES = ["en", "ru", "vi", "fr", "de"] as const;
+export { DEFAULT_LOCALE, LOCALES, LOCALE_LABELS } from "./generated/locales";
+export type { Locale } from "./generated/locales";
 
-/** One of the five locales EV publishes. */
-export type Locale = (typeof LOCALES)[number];
-
-/**
- * The authored source locale, and the fallback for any reader we cannot place.
- * Also the only locale whose URLs carry no prefix — see {@link localePath}.
- */
-export const DEFAULT_LOCALE: Locale = "en";
-
-/**
- * Each locale's name **in that locale** — what a language switcher must show.
- * A reader who cannot read the current language cannot read "Russian" either,
- * so a switcher that localises its own option labels is unusable to the very
- * person reaching for it.
- */
-export const LOCALE_LABELS: Readonly<Record<Locale, string>> = {
-  en: "English",
-  ru: "Русский",
-  vi: "Tiếng Việt",
-  fr: "Français",
-  de: "Deutsch",
-};
+import { DEFAULT_LOCALE, LOCALES } from "./generated/locales";
+import type { Locale } from "./generated/locales";
 
 /**
  * Narrowing guard for untrusted input — a URL segment, a cookie, a query param.

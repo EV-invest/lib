@@ -7,6 +7,7 @@ license = "BlueOak-1.0.0"
 repository = "https://github.com/EV-invest/lib"
 
 [dependencies]
+ev_lib = { workspace = true, features = ["i18n", "types"] }
 ev_lib_classes.workspace = true
 strum.workspace = true
 tailwind_fuse = { workspace = true, features = ["variant"] }

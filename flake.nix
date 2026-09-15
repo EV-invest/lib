@@ -44,7 +44,7 @@
               generated = {
                 enable = true;
                 name = "regenerate derived files";
-                entry = "bash -c '${gen}/bin/gen && git add -A rust/classes/css rust/classes/uikit-classes.txt ts/uikit/src/generated ts/uikit/styles'";
+                entry = "bash -c '${gen}/bin/gen && git add -A rust/classes/css rust/classes/uikit-classes.txt ts/uikit/src/generated ts/uikit/styles ts/i18n/src/generated ts/types/src/generated'";
                 pass_filenames = false;
                 require_serial = true;
               };

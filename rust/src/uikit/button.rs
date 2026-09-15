@@ -2,14 +2,22 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::{BUTTON_BASE, ButtonVariant, Size, button_size_class},
+	uikit::{Accent, BUTTON_BASE, ButtonVariant, Size, button_accent_class, button_size_class},
 };
 
-/// Fuses the base, variant and size classes with a caller override, last wins.
-/// Mirrors the TS `buttonVariants` helper so consumers (e.g. pagination) can
-/// reuse the same canonical class string without rendering a `Button`.
-pub fn button_classes(variant: &ButtonVariant, size: Size, icon: bool, class: &str) -> String {
-	cn!(BUTTON_BASE, variant.as_class(), button_size_class(size, icon), class)
+/// Fuses the base, variant, size and accent classes with a caller override, last
+/// wins. Mirrors the TS `buttonVariants` helper so consumers (e.g. pagination)
+/// can reuse the same canonical class string without rendering a `Button`.
+///
+/// The accent fuses after the variant so it recolours whatever the variant set.
+pub fn button_classes(variant: &ButtonVariant, size: Size, icon: bool, accent: Option<Accent>, class: &str) -> String {
+	cn!(
+		BUTTON_BASE,
+		variant.as_class(),
+		button_size_class(size, icon),
+		accent.map_or("", |a| button_accent_class(a, variant)),
+		class
+	)
 }
 /// With `href` this is an `<a>` wearing the button's classes — a link that looks
 /// like a call to action is still a link, and the kit has no `asChild` slot to
@@ -19,6 +27,8 @@ pub fn Button(
 	#[props(default)] variant: ButtonVariant,
 	#[props(default)] size: Size,
 	#[props(default)] icon: bool,
+	/// Recolours the button at an [`Accent`] rung; unset is the normal case.
+	accent: Option<Accent>,
 	#[props(default)] class: String,
 	#[props(default)] disabled: bool,
 	href: Option<String>,
@@ -29,7 +39,7 @@ pub fn Button(
 	onclick: Option<EventHandler<MouseEvent>>,
 	children: Element,
 ) -> Element {
-	let cls = button_classes(&variant, size, icon, &class);
+	let cls = button_classes(&variant, size, icon, accent, &class);
 	if let Some(href) = href {
 		return rsx! {
 			a {
@@ -111,6 +121,27 @@ mod tests {
 		}
 		let html = render(app);
 		assert!(html.contains("type=\"button\""), "{html}");
+	}
+
+	#[test]
+	fn accent_recolours_per_variant() {
+		fn filled() -> Element {
+			rsx! {
+				Button { accent: Accent::Warn, "x" }
+			}
+		}
+		let html = render(filled);
+		assert!(html.contains("bg-accent-warn"), "{html}");
+		assert!(!html.contains("bg-primary"), "the accent replaces the variant's fill: {html}");
+
+		fn outlined() -> Element {
+			rsx! {
+				Button { variant: ButtonVariant::Outline, accent: Accent::Warn, "x" }
+			}
+		}
+		let html = render(outlined);
+		assert!(html.contains("border-accent-warn/40"), "{html}");
+		assert!(!html.contains("bg-accent-warn "), "an outlined button stays outlined: {html}");
 	}
 
 	#[test]

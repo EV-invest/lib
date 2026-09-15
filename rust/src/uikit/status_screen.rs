@@ -1,5 +1,6 @@
 //! The shared 404 / 403 / 500 status surface, ported from site_conductor so every
-//! EV app (landing, cabinet) shows the same branded error pages.
+//! app hosting the kit shows the same error pages. The mark is
+//! [`Logo`](crate::uikit::Logo)'s, i.e. the consumer's.
 //!
 //! [`StatusScreen`] is the generic shell; [`NotFound`] / [`Forbidden`] /
 //! [`ServerError`] are the ready-made pages with their copy baked in — a host
@@ -13,56 +14,8 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::{ButtonVariant, Size, button_classes},
+	uikit::{Accent, ButtonVariant, Logo, Size, accent_text_class, button_classes},
 };
-
-/// Which accent rung a surface wears — for a status page, the mark, eyebrow,
-/// code, headline and CTAs all take it. Ordered by significance: 404 is a shrug,
-/// 403 a warning, 500 an error. See the kit's docs/spec/accents.md.
-///
-/// The tables spell out every rung because Tailwind scans for literal class
-/// names; `bg-accent-{rung}` would compile to nothing.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Accent {
-	Trace,
-	Debug,
-	Info,
-	Warn,
-	Error,
-}
-
-impl Accent {
-	/// Accent text colour — threads through the logo, eyebrow, code and headline.
-	fn text(self) -> &'static str {
-		match self {
-			Accent::Trace => "text-accent-trace",
-			Accent::Debug => "text-accent-debug",
-			Accent::Info => "text-accent-info",
-			Accent::Warn => "text-accent-warn",
-			Accent::Error => "text-accent-error",
-		}
-	}
-
-	fn filled(self) -> &'static str {
-		match self {
-			Accent::Trace => "bg-accent-trace text-on-accent-trace hover:bg-accent-trace/90",
-			Accent::Debug => "bg-accent-debug text-background hover:bg-accent-debug/90",
-			Accent::Info => "bg-accent-info text-on-accent-info hover:bg-accent-info/90",
-			Accent::Warn => "bg-accent-warn text-background hover:bg-accent-warn/90",
-			Accent::Error => "bg-accent-error text-on-accent-error hover:bg-accent-error/90",
-		}
-	}
-
-	fn outline(self) -> &'static str {
-		match self {
-			Accent::Trace => "border border-accent-trace/40 text-accent-trace hover:bg-accent-trace/10",
-			Accent::Debug => "border border-accent-debug/40 text-accent-debug hover:bg-accent-debug/10",
-			Accent::Info => "border border-accent-info/40 text-accent-info hover:bg-accent-info/10",
-			Accent::Warn => "border border-accent-warn/40 text-accent-warn hover:bg-accent-warn/10",
-			Accent::Error => "border border-accent-error/40 text-accent-error hover:bg-accent-error/10",
-		}
-	}
-}
 
 /// One CTA in a [`StatusScreen`]'s action row.
 #[derive(Clone, Debug, PartialEq)]
@@ -90,7 +43,7 @@ pub fn StatusScreen(
 	/// Leading action slot, rendered before `links` (e.g. the 500 client retry).
 	children: Element,
 ) -> Element {
-	let accent_text = accent.text();
+	let accent_text = accent_text_class(accent);
 	rsx! {
 		section { class: "relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-6 py-32 text-center",
 			div {
@@ -101,7 +54,7 @@ pub fn StatusScreen(
 				),
 			}
 			div { class: "relative z-10 flex w-full max-w-2xl flex-col items-center",
-				{logo_mark(cn!("mb-7 h-10 w-auto", accent_text))}
+				Logo { class: cn!("mb-7 h-10 w-auto", accent_text) }
 				p { class: cn!("mb-6 font-mono text-[11px] uppercase tracking-[0.34em]", accent_text), {eyebrow} }
 				p { class: cn!("font-serif text-[110px] font-medium leading-[0.9] sm:text-[180px]", accent_text), {code} }
 				h1 { class: "mt-4 font-serif text-3xl font-light leading-tight text-ink sm:text-5xl",
@@ -219,40 +172,14 @@ pub fn ServerError(#[props(default = "/".to_string())] home_href: String, reset:
 	}
 }
 /// A status CTA is a [`Button`](crate::uikit::Button) at the page's accent: the
-/// canonical button string, then the mono/uppercase treatment the error pages
-/// wear, then the accent colour.
+/// canonical button string for that variant and rung, then the mono/uppercase
+/// treatment the error pages wear.
 ///
 /// Public because a host that renders its own action into [`StatusScreen`]'s
 /// slot — a retry button wired to a framework's `reset`, say — has to be able to
-/// match the CTAs beside it, and the accent colour maps are ours.
+/// match the CTAs beside it.
 pub fn status_cta_class(accent: Accent, variant: ButtonVariant) -> String {
-	cn!(
-		button_classes(&variant, Size::Lg, false, ""),
-		"font-mono text-xs uppercase tracking-widest",
-		match variant {
-			ButtonVariant::Outline => accent.outline(),
-			_ => accent.filled(),
-		}
-	)
-}
-
-// The EV skyline crown — the rooftop silhouette of the brand logo (Figma uikit
-// node 17:3, wordmark omitted), filled with `currentColor` so it takes the accent.
-fn logo_mark(class: String) -> Element {
-	rsx! {
-		svg {
-			xmlns: "http://www.w3.org/2000/svg",
-			view_box: "0 0 140 48",
-			class,
-			"aria-hidden": "true",
-			g { fill: "currentColor",
-				path { d: "M0.0437012 47.3326L50.9499 40.5805V22.3378L56.4881 23.6408V37.9071L59.1984 37.5005V24.1147L64.6189 25.1808V37.0269L67.2113 36.553V22.1009L56.606 17.481L43.408 21.864V36.553L0.0437012 47.3326Z" }
-				path { d: "M77.2277 40.5804L85.9478 41.4099L85.8299 0.304321L73.1033 7.17499V26.3654L77.2277 28.2608V40.5804Z" }
-				path { d: "M87.126 0.304321L99.9705 7.29343V42.5943L94.3141 41.8835V9.54417L87.126 5.75347V0.304321Z" }
-				path { d: "M103.034 42.9496L139.682 46.0296L110.104 39.7513V26.8393L103.034 23.0486V42.9496Z" }
-			}
-		}
-	}
+	cn!(button_classes(&variant, Size::Lg, false, Some(accent), ""), "font-mono text-xs uppercase tracking-widest")
 }
 
 // lucide `arrow-left`, inlined so the kit keeps its zero-icon-dep footprint.

@@ -82,6 +82,7 @@ aspect-square p-[var(--control-py)]
 aspect-square size-full
 avatar-fallback
 avatar-image
+background-color:currentColor
 basis-full
 bg-accent-debug text-background hover:bg-accent-debug/90
 bg-accent-error
@@ -90,6 +91,8 @@ bg-accent-error text-on-accent-error hover:bg-accent-error/90 focus-visible:ring
 bg-accent-error/15
 bg-accent-info text-on-accent-info hover:bg-accent-info/90
 bg-accent-trace text-on-accent-trace hover:bg-accent-trace/90
+bg-accent-warn
+bg-accent-warn 
 bg-accent-warn text-background hover:bg-accent-warn/90
 bg-background border-t border-ink/10 py-16
 bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg
@@ -109,6 +112,7 @@ bg-border pointer-events-none -mx-1 my-1 h-px
 bg-border relative flex-1 rounded-full
 bg-border shrink-0
 bg-border z-10 flex h-4 w-3 items-center justify-center rounded-xs border
+bg-brand
 bg-card
 bg-card text-ink
 bg-card text-ink flex flex-col gap-6 rounded-xl border py-6 shadow-sm
@@ -156,7 +160,13 @@ bg-secondary text-on-secondary hover:bg-secondary/80
 bg-transparent
 body-a
 border bg-transparent shadow-xs hover:bg-hover hover:text-ink
+border border-accent-debug/40 text-accent-debug hover:bg-accent-debug/10
+border border-accent-error/40 text-accent-error hover:bg-accent-error/10
+border border-accent-info/40 text-accent-info hover:bg-accent-info/10
+border border-accent-trace/40 text-accent-trace hover:bg-accent-trace/10
+border border-accent-warn/40 text-accent-warn hover:bg-accent-warn/10
 border border-input bg-transparent shadow-xs hover:bg-hover hover:text-ink
+border-accent-warn/40
 border-b last:border-b-0
 border-border
 border-border/50
@@ -296,6 +306,7 @@ data-visible
 data-visible=\
 data-y-position
 data-y-position=\
+data:image/svg+xml
 dialog-close
 dialog-content
 dialog-description
@@ -501,9 +512,11 @@ info-tip-
 info-tip-content
 info-tip-trigger
 info-tip-{}
+inline-block
 inline-flex h-10 w-full shrink-0 cursor-pointer items-center justify-center rounded-[var(--control-radius)] text-sm font-semibold transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50
 inline-flex items-center gap-1
 inline-flex items-center gap-1.5
+inline-flex items-center justify-center bg-brand
 inline-flex items-center justify-center gap-2 rounded-[var(--control-radius)] text-sm font-medium hover:bg-muted hover:text-ink-soft disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-hover data-[state=on]:text-ink [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none transition-[color,box-shadow] aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error whitespace-nowrap
 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--control-radius)] text-sm font-medium transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error
 inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 gap-1 overflow-hidden [&>svg]:size-3 [&>svg]:pointer-events-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error
@@ -538,6 +551,8 @@ lg:col-start-2 lg:row-start-2
 lg:col-start-3
 lg:col-start-3 lg:row-start-2
 light
+logo-background
+mask-image:var(--brand-mark)
 max-h-96
 max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto
 max-w-3xl
@@ -825,8 +840,13 @@ transform: translateX(-{}%)
 translateX(-100%)
 translateX(-40%)
 w-(--sidebar-width)
+w-10
+w-10 h-10 text-white
+w-16
+w-16 h-16 rounded-md
 w-2.5
 w-24
+w-3/5 h-3/5
 w-40
 w-full border-collapse mt-4
 w-full caption-bottom text-sm

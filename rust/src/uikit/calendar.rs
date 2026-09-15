@@ -101,7 +101,7 @@ pub fn Calendar(
 		view.set(current.add_months(delta));
 	};
 
-	let nav_class = button_classes(&ButtonVariant::Ghost, Size::Md, true, CALENDAR_NAV_BUTTON);
+	let nav_class = button_classes(&ButtonVariant::Ghost, Size::Md, true, None, CALENDAR_NAV_BUTTON);
 	let caption = format!("{} {}", MONTHS[(current.month - 1) as usize], current.year);
 
 	let lead = CalendarDate::first_weekday_monday0(current.year, current.month);
@@ -180,7 +180,7 @@ fn DayCell(cell: Option<u32>, date: CalendarDate, selected: Option<CalendarDate>
 	let is_today = today == Some(this);
 	let aria_selected = if is_selected { "true" } else { "false" };
 
-	let mut day_class = button_classes(&ButtonVariant::Ghost, Size::Md, true, CALENDAR_DAY);
+	let mut day_class = button_classes(&ButtonVariant::Ghost, Size::Md, true, None, CALENDAR_DAY);
 	if is_selected {
 		day_class = cn!(day_class, CALENDAR_DAY_SELECTED);
 	} else if is_today {

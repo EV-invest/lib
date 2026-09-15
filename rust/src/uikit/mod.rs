@@ -26,7 +26,7 @@ mod test_util;
 // prop are re-exported.
 pub(crate) use ev_lib_classes::*;
 pub use ev_lib_classes::{
-	AlertVariant, BadgeVariant, BookSide, ButtonGroupOrientation, ButtonVariant, DrawerDirection, EmptyMediaVariant, FieldOrientation, InputGroupAddonAlign, InputGroupButtonSize,
+	Accent, AlertVariant, BadgeVariant, BookSide, ButtonGroupOrientation, ButtonVariant, DrawerDirection, EmptyMediaVariant, FieldOrientation, InputGroupAddonAlign, InputGroupButtonSize,
 	ItemMediaVariant, ItemSize, ItemVariant, OrderSide, Orientation, Polarity, ScrollBarOrientation, Size, Surface, TerminalArea, ToastPosition, ToastVariant, ToggleVariant,
 };
 
@@ -52,6 +52,7 @@ mod input_otp;
 mod item;
 mod kbd;
 mod label;
+mod logo;
 mod pagination;
 mod progress;
 mod radio_group;
@@ -94,6 +95,7 @@ pub use input_otp::{InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot};
 pub use item::{Item, ItemActions, ItemContent, ItemDescription, ItemFooter, ItemGroup, ItemHeader, ItemMedia, ItemSeparator, ItemTitle};
 pub use kbd::{Kbd, KbdGroup};
 pub use label::Label;
+pub use logo::Logo;
 pub use pagination::{Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious};
 pub use progress::Progress;
 pub use radio_group::{RadioGroup, RadioGroupItem};
@@ -174,4 +176,4 @@ mod footer;
 mod status_screen;
 
 pub use footer::{Footer, FooterLink, FooterLinkGroup, FooterOffice};
-pub use status_screen::{Accent, Forbidden, NotFound, ServerError, StatusLinkData, StatusScreen, status_cta_class};
+pub use status_screen::{Forbidden, NotFound, ServerError, StatusLinkData, StatusScreen, status_cta_class};
