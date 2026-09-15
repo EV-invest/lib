@@ -37,7 +37,7 @@ const GALLERY: &[(&str, fn() -> Element)] = &[
 	("Switch", d_switch), ("RadioGroup", d_radio_group), ("Slider", d_slider),
 	("Toggle", d_toggle), ("ToggleGroup", d_toggle_group), ("Tabs", d_tabs),
 	("Accordion", d_accordion), ("Collapsible", d_collapsible), ("InputGroup", d_input_group),
-	("InputOTP", d_input_otp), ("Carousel", d_carousel), ("Calendar", d_calendar), ("Chart", d_chart),
+	("InputOTP", d_input_otp), ("Carousel", d_carousel), ("Calendar", d_calendar), ("DateTimePicker", d_date_time_picker), ("Chart", d_chart),
 	("Tooltip", d_tooltip), ("Popover", d_popover), ("HoverCard", d_hover_card),
 	("DropdownMenu", d_dropdown_menu), ("ContextMenu", d_context_menu), ("Menubar", d_menubar),
 	("Select", d_select), ("Dialog", d_dialog), ("AlertDialog", d_alert_dialog),
@@ -249,6 +249,14 @@ fn d_alert() -> Element {
 			Alert { variant: AlertVariant::Destructive,
 				AlertTitle { "Something failed" }
 				AlertDescription { "Your changes could not be saved." }
+			}
+			Alert { variant: AlertVariant::Success,
+				AlertTitle { "Order filled" }
+				AlertDescription { "120 units bought at 1.024." }
+			}
+			Alert { variant: AlertVariant::Info,
+				AlertTitle { "Valuation pending" }
+				AlertDescription { "The next NAV mark lands on Monday." }
 			}
 		}
 	}
@@ -561,7 +569,47 @@ fn d_carousel() -> Element {
 }
 
 fn d_calendar() -> Element {
-	rsx! { Calendar {} }
+	rsx! {
+		div { class: "flex flex-wrap items-start gap-3",
+			Calendar {}
+			Calendar {
+				selected: CalendarDate::new(2026, 6, 15),
+				today: CalendarDate::new(2026, 6, 10),
+				min: CalendarDate::new(2026, 6, 3),
+				max: CalendarDate::new(2026, 6, 25),
+			}
+			Calendar { disabled: true }
+		}
+	}
+}
+
+fn d_date_time_picker() -> Element {
+	let value = LocalDateTime::new(CalendarDate::new(2026, 6, 15), 9, 30);
+	rsx! {
+		// The open popover drops ~400px below its trigger while the standalone
+		// stage is vertically centred in a 720px viewport — the spacer pushes the
+		// row up so the calendar stays inside the screenshot.
+		div { class: "flex flex-col",
+			div { class: "flex items-start gap-3",
+				div { class: "w-56",
+					DateTimePicker { placeholder: "Pick a moment" }
+				}
+				div { class: "w-56",
+					DateTimePicker { value }
+				}
+				div { class: "w-56",
+					DateTimePicker {
+						default_open: true,
+						value,
+						today: CalendarDate::new(2026, 6, 10),
+						min: LocalDateTime::new(CalendarDate::new(2026, 6, 3), 0, 0),
+						max: LocalDateTime::new(CalendarDate::new(2026, 6, 25), 23, 59),
+					}
+				}
+			}
+			div { class: "h-96" }
+		}
+	}
 }
 
 fn d_chart() -> Element {
