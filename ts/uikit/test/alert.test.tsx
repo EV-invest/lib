@@ -16,6 +16,16 @@ describe("Alert", () => {
     expect(getByRole("alert")).toHaveClass("text-accent-error");
   });
 
+  it("renders the success variant", () => {
+    const { getByRole } = render(<Alert variant="success">x</Alert>);
+    expect(getByRole("alert")).toHaveClass("text-positive");
+  });
+
+  it("renders the info variant", () => {
+    const { getByRole } = render(<Alert variant="info">x</Alert>);
+    expect(getByRole("alert")).toHaveClass("text-accent-info");
+  });
+
   it("renders title and description slots", () => {
     const { getByText } = render(
       <Alert>

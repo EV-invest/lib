@@ -187,7 +187,8 @@ export function Calendar({
 
   const navClass = buttonVariants({
     variant: "ghost",
-    size: "icon",
+    size: "md",
+    icon: true,
     className: CALENDAR_NAV_BUTTON,
   });
 
@@ -270,7 +271,8 @@ export function Calendar({
                       className={cn(
                         buttonVariants({
                           variant: "ghost",
-                          size: "icon",
+                          size: "md",
+                          icon: true,
                           className: CALENDAR_DAY,
                         }),
                         isSelected

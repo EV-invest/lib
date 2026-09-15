@@ -20,7 +20,10 @@ use core::fmt;
 
 // ── Branded ────────────────────────────────────────────────────────────────────
 
-const COUNTRY_CODES: &[&str] = &[
+/// Every ITU-T country code (zones 1–9), 1–3 digits. Public because it is the
+/// source `ev_lib_gen` writes `@evinvest/types`' copy from — the TS port used to
+/// hand-maintain the same list.
+pub const COUNTRY_CODES: &[&str] = &[
 	// Zone 1 — North American Numbering Plan
 	"1", // Zone 2 — Africa
 	"20", "211", "212", "213", "216", "218", "220", "221", "222", "223", "224", "225", "226", "227", "228", "229", "230", "231", "232", "233", "234", "235", "236", "237", "238", "239",

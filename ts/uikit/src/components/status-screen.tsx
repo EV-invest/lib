@@ -1,76 +1,33 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
+import { accentTextClasses, type Accent } from "../generated/accent";
 import { buttonVariants, type ButtonVariant } from "./button";
+import { Logo } from "./logo";
 
 /**
  * The shared 404 / 403 / 500 status surface.
  *
  * `StatusScreen` is the generic shell; `NotFound` / `Forbidden` / `ServerError`
  * are the ready-made pages with their copy baked in — a host renders those with
- * its own hrefs. Links default to a plain `<a>` (a full document load, which is
- * what you want off an error page); pass `linkComponent` (e.g. `next/link`) for
- * soft navigation from a client boundary.
+ * its own hrefs. The mark is `Logo`'s, i.e. the consumer's. Links default to a
+ * plain `<a>` (a full document load, which is what you want off an error page);
+ * pass `linkComponent` (e.g. `next/link`) for soft navigation from a client
+ * boundary.
  */
-export type Accent = "trace" | "debug" | "info" | "warn" | "error";
-
-// Which accent rung a surface wears — for a status page, the mark, eyebrow,
-// code, headline and CTAs all take it. Ordered by significance: 404 is a shrug,
-// 403 a warning, 500 an error. See the kit's docs/spec/accents.md.
-//
-// The tables spell out every rung because Tailwind scans for literal class
-// names; `bg-accent-${rung}` would compile to nothing.
-const ACCENT_TEXT: Record<Accent, string> = {
-  trace: "text-accent-trace",
-  debug: "text-accent-debug",
-  info: "text-accent-info",
-  warn: "text-accent-warn",
-  error: "text-accent-error",
-};
-
-const BTN_FILLED: Record<Accent, string> = {
-  trace: "bg-accent-trace text-on-accent-trace hover:bg-accent-trace/90",
-  debug: "bg-accent-debug text-background hover:bg-accent-debug/90",
-  info: "bg-accent-info text-on-accent-info hover:bg-accent-info/90",
-  warn: "bg-accent-warn text-background hover:bg-accent-warn/90",
-  error: "bg-accent-error text-on-accent-error hover:bg-accent-error/90",
-};
-
-const BTN_OUTLINE: Record<Accent, string> = {
-  trace: "border border-accent-trace/40 text-accent-trace hover:bg-accent-trace/10",
-  debug: "border border-accent-debug/40 text-accent-debug hover:bg-accent-debug/10",
-  info: "border border-accent-info/40 text-accent-info hover:bg-accent-info/10",
-  warn: "border border-accent-warn/40 text-accent-warn hover:bg-accent-warn/10",
-  error: "border border-accent-error/40 text-accent-error hover:bg-accent-error/10",
-};
+export type { Accent };
 
 /**
- * A status CTA is a Button at the page's accent: the canonical button string,
- * then the mono/uppercase treatment the error pages wear, then the accent.
+ * A status CTA is a Button at the page's accent: the canonical button string for
+ * that variant and rung, then the mono/uppercase treatment the error pages wear.
  *
  * Exported because a host that renders its own action into `StatusScreen`'s
  * slot — a retry button wired to Next's `reset`, say — has to be able to match
- * the CTAs beside it, and the accent colour maps are ours.
+ * the CTAs beside it.
  */
 export function statusCtaClass(accent: Accent, variant: ButtonVariant) {
   return cn(
-    buttonVariants({ variant, size: "lg" }),
+    buttonVariants({ variant, size: "lg", accent }),
     "font-mono text-xs uppercase tracking-widest",
-    variant === "outline" ? BTN_OUTLINE[accent] : BTN_FILLED[accent],
-  );
-}
-
-// The EV skyline crown — the rooftop silhouette of the brand logo (Figma uikit
-// node 17:3, wordmark omitted), filled with `currentColor` so it takes the accent.
-function LogoMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 140 48" className={className} aria-hidden>
-      <g fill="currentColor">
-        <path d="M0.0437012 47.3326L50.9499 40.5805V22.3378L56.4881 23.6408V37.9071L59.1984 37.5005V24.1147L64.6189 25.1808V37.0269L67.2113 36.553V22.1009L56.606 17.481L43.408 21.864V36.553L0.0437012 47.3326Z" />
-        <path d="M77.2277 40.5804L85.9478 41.4099L85.8299 0.304321L73.1033 7.17499V26.3654L77.2277 28.2608V40.5804Z" />
-        <path d="M87.126 0.304321L99.9705 7.29343V42.5943L94.3141 41.8835V9.54417L87.126 5.75347V0.304321Z" />
-        <path d="M103.034 42.9496L139.682 46.0296L110.104 39.7513V26.8393L103.034 23.0486V42.9496Z" />
-      </g>
-    </svg>
   );
 }
 
@@ -135,7 +92,7 @@ export function StatusScreen({
   linkComponent,
 }: StatusScreenProps) {
   const L = linkComponent ?? "a";
-  const accentText = ACCENT_TEXT[accent];
+  const accentText = accentTextClasses[accent];
   return (
     <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-6 py-32 text-center">
       <div
@@ -146,7 +103,7 @@ export function StatusScreen({
         )}
       />
       <div className="relative z-10 flex w-full max-w-2xl flex-col items-center">
-        <LogoMark className={cn("mb-7 h-10 w-auto", accentText)} />
+        <Logo className={cn("mb-7 h-10 w-auto", accentText)} />
         <p className={cn("mb-6 font-mono text-[11px] uppercase tracking-[0.34em]", accentText)}>{eyebrow}</p>
         <p className={cn("font-serif text-[110px] font-medium leading-[0.9] sm:text-[180px]", accentText)}>{code}</p>
         <h1 className="mt-4 font-serif text-3xl font-light leading-tight text-ink sm:text-5xl">

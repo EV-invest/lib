@@ -211,7 +211,8 @@ export function CarouselEdgeFade({
 export function CarouselPrevious({
   className,
   variant = "outline",
-  size = "icon",
+  size = "md",
+  icon = true,
   ...props
 }: ButtonProps) {
   const { orientation, scrollPrev, canScrollPrev } = useCarousel();
@@ -221,6 +222,7 @@ export function CarouselPrevious({
       data-slot="carousel-previous"
       variant={variant}
       size={size}
+      icon={icon}
       className={cn(
         CAROUSEL_NAV,
         orientation === "horizontal"
@@ -252,7 +254,8 @@ export function CarouselPrevious({
 export function CarouselNext({
   className,
   variant = "outline",
-  size = "icon",
+  size = "md",
+  icon = true,
   ...props
 }: ButtonProps) {
   const { orientation, scrollNext, canScrollNext } = useCarousel();
@@ -262,6 +265,7 @@ export function CarouselNext({
       data-slot="carousel-next"
       variant={variant}
       size={size}
+      icon={icon}
       className={cn(
         CAROUSEL_NAV,
         orientation === "horizontal"

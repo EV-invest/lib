@@ -48,6 +48,7 @@ export type { BreadcrumbLinkProps } from "./components/breadcrumb";
 
 export { Button, buttonVariants } from "./components/button";
 export type {
+  Accent,
   ButtonProps,
   ButtonVariant,
   ButtonSize,
@@ -113,6 +114,9 @@ export type {
 export { Input } from "./components/input";
 export { Textarea } from "./components/textarea";
 export { Label } from "./components/label";
+
+export { Logo } from "./components/logo";
+export type { LogoProps } from "./components/logo";
 
 export {
   InputGroup,
@@ -180,7 +184,6 @@ export {
   statusCtaClass,
 } from "./components/status-screen";
 export type {
-  Accent,
   StatusLinkData,
   StatusScreenProps,
   StatusPageProps,

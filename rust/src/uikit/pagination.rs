@@ -47,7 +47,7 @@ pub fn PaginationLink(
 	children: Element,
 ) -> Element {
 	let variant = if is_active { ButtonVariant::Outline } else { ButtonVariant::Ghost };
-	let cls = button_classes(&variant, size, icon, &class);
+	let cls = button_classes(&variant, size, icon, None, &class);
 	rsx! {
 		a {
 			"aria-current": if is_active { "page" },

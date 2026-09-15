@@ -1,6 +1,6 @@
 [package]
 name = "ev_lib"
-version = "0.13.0"
+version = "0.15.0"
 edition = "2024"
 description = "EV-invest shared Rust libraries, one per feature"
 license = "BlueOak-1.0.0"
@@ -24,6 +24,9 @@ uikit = [
     "dep:tailwind_fuse",
     "tailwind_fuse?/variant",
     "dep:strum",
+    # `asset` is what puts `asset!` in scope for `Fonts`; `document` is how it
+    # and the sonner toaster inject their CSS.
+    "dioxus?/asset",
     "dioxus?/document",
 ]
 

@@ -17,6 +17,7 @@
  *              accent-trace · accent-debug · accent-info · accent-warn · accent-error
  *   SCALARS    radius · control-* · display-scale · page-* · shadows · fonts
  *   CHARTS     chart-1 … chart-5
+ *   MARK       brand-mark · brand-aspect       — supplied, never defined here
  *
  * Custom properties inherit, so a scope class on a `<section>` re-themes its
  * subtree: `bg-card text-ink` is correct on both polarities with no prop. EV is
@@ -350,6 +351,17 @@
   /* page container — responsive gutter + max width (uikit <Container>) */
   --page-max: 90rem; /* 1440px */
   --page-px: 1rem; /* 16px — mobile gutter, scales up below */
+
+  /* ── the mark ────────────────────────────────────────────────── *
+   * `--brand-mark` (a url() at your own SVG) and `--brand-aspect` (its ratio)
+   * are what `<Logo>` masks. Deliberately undefined: the kit ships no artwork,
+   * and a default here would put EV's crown on somebody else's 404. Undeclared,
+   * `mask-image` is invalid at computed-value time and the mark paints as a
+   * solid block — loud, which is the point. Declare both beside the palette:
+   *
+   *   --brand-mark: url("/assets/logo.svg");
+   *   --brand-aspect: 387 / 335;
+   */
 
   /* shell offset — viewport space reserved by whatever shell hosts the app.
      Standalone apps get 0; a hosting shell overrides on :root. Size

@@ -12,10 +12,24 @@ describe("Button", () => {
     expect(el).toHaveAttribute("data-slot", "button");
   });
 
-  it("applies the icon-sm size (canon parity with Rust)", () => {
-    const { getByText } = render(<Button size="icon-sm">x</Button>);
+  it("squares a small icon button (canon parity with Rust)", () => {
+    const { getByText } = render(
+      <Button size="sm" icon>
+        x
+      </Button>,
+    );
     expect(getByText("x")).toHaveClass("h-8");
     expect(getByText("x")).toHaveClass("aspect-square");
+  });
+
+  it("recolours at an accent rung, per the variant's face", () => {
+    const { getByText } = render(<Button accent="warn">x</Button>);
+    expect(getByText("x")).toHaveClass("bg-accent-warn");
+    expect(getByText("x")).not.toHaveClass("bg-primary");
+
+    const outlined = buttonVariants({ variant: "outline", accent: "warn" });
+    expect(outlined).toContain("border-accent-warn/40");
+    expect(outlined).not.toContain("bg-accent-warn ");
   });
 
   it("renders as child when asChild", () => {

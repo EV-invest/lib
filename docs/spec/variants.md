@@ -32,6 +32,11 @@ emits `impl Default`, so a variant marked with it needs no name saying so.
 `Sm` while `buttonSizeClasses["default"]` was `Md`, and nothing surfaced the
 discrepancy because the key carried no information to contradict.
 
+**A table key names one axis.** A multi-axis table is multiple tables, never a
+product flattened into strings: `buttonSizeClasses` over the sizes and
+`buttonIconSizeClasses` over the same sizes, not one table keyed `"icon-sm"` —
+which fuses magnitude with shape and, in `"icon"`, elides the default as well.
+
 **There is one severity vocabulary.** A toast is `{Neutral, Positive, Info,
 Warn, Error}` — the [accent rungs](./accents.md) plus the valence — not a second
 ladder written in different words.

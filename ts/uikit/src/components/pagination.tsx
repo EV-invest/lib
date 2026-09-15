@@ -34,12 +34,15 @@ export function PaginationItem(props: React.ComponentProps<"li">) {
 export type PaginationLinkProps = {
   isActive?: boolean;
   size?: ButtonSize;
+  /** Page numbers are square glyphs; a "Previous"/"Next" label is not. */
+  icon?: boolean;
 } & React.ComponentProps<"a">;
 
 export function PaginationLink({
   className,
   isActive,
-  size = "icon",
+  size = "md",
+  icon = true,
   ...props
 }: PaginationLinkProps) {
   return (
@@ -51,6 +54,7 @@ export function PaginationLink({
         buttonVariants({
           variant: isActive ? "outline" : "ghost",
           size,
+          icon,
         }),
         className,
       )}

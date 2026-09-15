@@ -115,7 +115,7 @@ pub fn Calendar(
 		view.set(current.add_months(delta));
 	};
 
-	let nav_class = button_classes(&ButtonVariant::Ghost, Size::Md, true, CALENDAR_NAV_BUTTON);
+	let nav_class = button_classes(&ButtonVariant::Ghost, Size::Md, true, None, CALENDAR_NAV_BUTTON);
 	let caption = format!("{} {}", MONTHS[(current.month - 1) as usize], current.year);
 	let previous_label = previous_month_label.unwrap_or_else(|| String::from("Previous month"));
 	let next_label = next_month_label.unwrap_or_else(|| String::from("Next month"));
@@ -211,7 +211,7 @@ fn DayCell(
 	let is_disabled = disabled || min.is_some_and(|lo| this < lo) || max.is_some_and(|hi| this > hi);
 	let aria_selected = if is_selected { "true" } else { "false" };
 
-	let mut day_class = button_classes(&ButtonVariant::Ghost, Size::Md, true, CALENDAR_DAY);
+	let mut day_class = button_classes(&ButtonVariant::Ghost, Size::Md, true, None, CALENDAR_DAY);
 	if is_selected {
 		day_class = cn!(day_class, CALENDAR_DAY_SELECTED);
 	} else if is_today {

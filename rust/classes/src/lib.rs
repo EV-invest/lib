@@ -3,6 +3,7 @@
 //! the `cn!` fuse macro. Carries no Dioxus — it's the single source of truth that
 //! both the Rust components (`ev_lib`) and the TS codegen (`ev_lib_gen`) read from.
 
+mod accent;
 mod accordion;
 mod alert;
 mod alert_dialog;
@@ -54,6 +55,7 @@ mod textarea;
 mod toggle;
 mod tooltip;
 
+pub use accent::{Accent, accent_fill_class, accent_outline_class, accent_text_class, button_accent_class};
 pub use accordion::{ACCORDION_CONTENT, ACCORDION_CONTENT_INNER, ACCORDION_HEADER, ACCORDION_ITEM, ACCORDION_TRIGGER};
 pub use alert::{ALERT_BASE, ALERT_DESCRIPTION, ALERT_TITLE, AlertVariant};
 pub use alert_dialog::{ALERT_DIALOG_CONTENT, ALERT_DIALOG_DESCRIPTION, ALERT_DIALOG_FOOTER, ALERT_DIALOG_HEADER, ALERT_DIALOG_OVERLAY, ALERT_DIALOG_TITLE};

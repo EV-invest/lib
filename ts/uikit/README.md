@@ -142,9 +142,11 @@ element across the two ports.
   select, command.
 - **Tier D — engines (6):** chart, calendar, date-time-picker, sonner (toaster),
   form, resizable.
-- **Brand chrome — site shell (7):** header (marketing / compact density, plus
-  `hideNav`), footer, logo, and the shared status pages — `StatusScreen` with the
-  `NotFound` / `Forbidden` / `ServerError` presets (404 / 403 / 500).
+- **Site chrome (7):** header (marketing / compact density, plus `hideNav`),
+  footer, logo, and the shared status pages — `StatusScreen` with the `NotFound`
+  / `Forbidden` / `ServerError` presets (404 / 403 / 500). The kit ships no
+  artwork: `Logo` masks whatever `--brand-mark` / `--brand-aspect` the consumer
+  declares beside the palette, and the status pages use it for their mark.
 - **Features — composed screens (1):** terminal — a trading terminal over an
   investment product's shares (`Terminal` grid placing each `TerminalPane` by
   `TerminalArea`; `TerminalTicker` / `TickerStat`; `OrderBook` with
@@ -154,8 +156,9 @@ element across the two ports.
   locale and no number format.
 
 The canonical variant set is the **superset** of the original cabinet (Rust) and
-landing (TS) sources — e.g. `Badge` keeps cabinet's `success` variant, `Button`
-keeps landing's `icon-sm`/`icon-lg` sizes.
+landing (TS) sources — e.g. `Badge` keeps cabinet's `success` variant, and
+`Button` keeps landing's square icon shape at every size, as the separate `icon`
+boolean it always was in Rust (see [docs/spec/variants.md](../../docs/spec/variants.md)).
 
 ## Limitations
 

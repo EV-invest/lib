@@ -44,7 +44,7 @@
               generated = {
                 enable = true;
                 name = "regenerate derived files";
-                entry = "bash -c '${gen}/bin/gen && git add -A rust/classes/css rust/classes/uikit-classes.txt ts/uikit/src/generated ts/uikit/styles'";
+                entry = "bash -c '${gen}/bin/gen && git add -A rust/classes/css rust/classes/uikit-classes.txt ts/uikit/src/generated ts/uikit/styles ts/i18n/src/generated ts/types/src/generated'";
                 pass_filenames = false;
                 require_serial = true;
               };
@@ -68,11 +68,6 @@
           # visual suite, because a stale baseline is otherwise invisible: `nix run
           # .#visual` is a command someone has to remember, and nobody does.
           jobs.errors.augment = [{ name = "flake-app"; args.app = "visual"; }];
-          # Not the default `nix-action`: that tarballs the whole ~5 GB store into
-          # the 10 GB per-repo budget, and the browser closure alone would thrash it.
-          # `lean` persists only locally-built paths — the toolchain and this repo's
-          # own outputs — and re-fetches the rest from cache.nixos.org.
-          cache.lean = true;
           lastSupportedVersion = "nightly-2026-05-12";
           gitignore.extra = ''
             ## Node / TypeScript
