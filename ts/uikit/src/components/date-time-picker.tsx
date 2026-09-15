@@ -238,6 +238,15 @@ export function DateTimePicker({
     setValue(null);
     setOpen(false);
   };
+  // Tabbing past the last field would leave the dialog open behind the
+  // operator; the dismissable layer only watches Escape and outside pointers.
+  // A null `relatedTarget` is the window losing focus, not the operator leaving.
+  const onContentBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    const next = e.relatedTarget;
+    if (!(next instanceof Node)) return;
+    if (e.currentTarget.contains(next) || rootRef.current?.contains(next)) return;
+    setOpen(false);
+  };
 
   const label = value
     ? format
@@ -285,6 +294,7 @@ export function DateTimePicker({
           role="dialog"
           aria-label={labels.dialog ?? "Choose date and time"}
           align={align}
+          onBlur={onContentBlur}
           className={DATE_TIME_PICKER_CONTENT}
         >
           <Calendar

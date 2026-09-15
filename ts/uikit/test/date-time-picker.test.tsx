@@ -70,6 +70,24 @@ describe("DateTimePicker", () => {
     expect(document.activeElement).toBe(btn);
   });
 
+  it("closes when focus tabs out of the popover and hands it back to the trigger", () => {
+    const { container } = render(<DateTimePicker value={june(10, 9, 5)} today={TODAY} />);
+    const btn = trigger(container);
+    btn.focus();
+    fireEvent.click(btn);
+    const clear = slot(container, "clear")!;
+    clear.focus();
+    // Moving between the dialog's own controls keeps it open.
+    fireEvent.blur(clear, { relatedTarget: slot(container, "minutes") });
+    expect(btn).toHaveAttribute("aria-expanded", "true");
+    // The window losing focus is not the operator leaving.
+    fireEvent.blur(clear, { relatedTarget: null });
+    expect(btn).toHaveAttribute("aria-expanded", "true");
+    fireEvent.blur(clear, { relatedTarget: document.body });
+    expect(btn).toHaveAttribute("aria-expanded", "false");
+    expect(document.activeElement).toBe(btn);
+  });
+
   it("selects the whole field on focus, so typing replaces rather than appends", () => {
     const { container } = render(<DateTimePicker value={june(10, 9, 5)} defaultOpen today={TODAY} />);
     const hours = slot(container, "hours") as HTMLInputElement;
