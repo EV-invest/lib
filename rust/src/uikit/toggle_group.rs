@@ -23,6 +23,9 @@ pub fn ToggleGroup(#[props(default)] variant: ToggleVariant, #[props(default)] s
 }
 /// A single selectable item. Reuses [`toggle_classes`] then layers the group
 /// adjacency utilities. Controllable `pressed` mirrors [`Toggle`].
+///
+/// `flex-auto`, not shadcn's `flex-1`: the group is `w-fit`, and basis-0 items make
+/// Chrome split it into equal columns, so a longer label overflows its cell.
 #[component]
 pub fn ToggleGroupItem(
 	#[props(default)] variant: ToggleVariant,
@@ -38,7 +41,7 @@ pub fn ToggleGroupItem(
 	let on = state.get();
 	let cls = cn!(
 		toggle_classes(&variant, size, ""),
-		"min-w-0 flex-1 shrink-0 rounded-none shadow-none first:rounded-l-md last:rounded-r-md focus:z-10 focus-visible:z-10 data-[variant=outline]:border-l-0 data-[variant=outline]:first:border-l",
+		"min-w-0 flex-auto shrink-0 rounded-none shadow-none first:rounded-l-md last:rounded-r-md focus:z-10 focus-visible:z-10 data-[variant=outline]:border-l-0 data-[variant=outline]:first:border-l",
 		class
 	);
 	rsx! {
