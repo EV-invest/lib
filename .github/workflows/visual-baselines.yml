@@ -3,6 +3,7 @@
 # publishes them as the `visual-snapshots` artifact, so a dev without a linux
 # builder can refresh `rust/tests/visual/__screenshots__/` honestly:
 #
+#   rm -f rust/tests/visual/__screenshots__/*.png
 #   gh run download <run-id> -n visual-snapshots -D rust/tests/visual/__screenshots__
 #
 # The gate in errors.yml stays the arbiter; this job only produces the PNGs.
@@ -15,6 +16,10 @@ name: Visual baselines
       - motion.css
       - flake.nix
       - flake.lock
+      - Cargo.toml
+      - Cargo.lock
+      - rust-toolchain.toml
+      - .cargo/**
   workflow_dispatch: {}
 permissions:
   contents: read

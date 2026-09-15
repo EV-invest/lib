@@ -50,10 +50,11 @@ capture is the `*-linux` derivation either way.
 **Through CI (no local builder needed).** `.github/workflows/visual-baselines.yml`
 renders the suite on the same ubuntu image the gate uses and publishes the PNGs
 as the `visual-snapshots` artifact. It runs on every pull request that touches
-`rust/`, the token/motion CSS or the flake, and on `workflow_dispatch`:
+`rust/`, the token/motion CSS, the flake or the cargo manifests/toolchain, and on `workflow_dispatch`:
 
 ```sh
 gh run list --workflow "Visual baselines" --branch "$(git branch --show-current)"
+rm -f rust/tests/visual/__screenshots__/*.png   # a board removed from GALLERY must not leave its PNG behind
 gh run download <run-id> -n visual-snapshots -D rust/tests/visual/__screenshots__
 git add rust/tests/visual/__screenshots__ && git commit -m "test(uikit): refresh visual baselines (run <run-id>)"
 ```
