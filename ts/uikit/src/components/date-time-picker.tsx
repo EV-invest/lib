@@ -243,7 +243,13 @@ export function DateTimePicker({
     ? format
       ? format(value)
       : locale
-        ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(value)
+        ? // The fields are 24-hour, so the label is too — even where the locale
+          // would default to 12-hour ("2:05 PM" over a "14" hours field).
+          new Intl.DateTimeFormat(locale, {
+            dateStyle: "medium",
+            timeStyle: "short",
+            hourCycle: "h23",
+          }).format(value)
         : isoLabel(value)
     : placeholder;
 

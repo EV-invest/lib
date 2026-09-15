@@ -197,6 +197,17 @@ describe("DateTimePicker", () => {
     expect(caption.textContent!.toLowerCase()).toContain("июн");
   });
 
+  it("keeps the Intl label on the 24-hour clock in a 12-hour locale", () => {
+    const { container } = render(
+      <DateTimePicker value={june(10, 14, 5)} locale="en-US" today={TODAY} />,
+    );
+    const text = trigger(container).textContent!;
+    expect(text).toContain("14:05");
+    expect(text).not.toMatch(/PM/i);
+    fireEvent.click(trigger(container));
+    expect((slot(container, "hours") as HTMLInputElement).value).toBe("14");
+  });
+
   it("re-renders a controlled value and the time inputs", () => {
     const { container, rerender } = render(
       <DateTimePicker value={june(10, 9, 5)} defaultOpen today={TODAY} />,
