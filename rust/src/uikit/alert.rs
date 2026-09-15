@@ -58,6 +58,28 @@ mod tests {
 	}
 
 	#[test]
+	fn success_variant() {
+		fn app() -> Element {
+			rsx! {
+				Alert { variant: AlertVariant::Success, "x" }
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("text-positive"), "{html}");
+	}
+
+	#[test]
+	fn info_variant() {
+		fn app() -> Element {
+			rsx! {
+				Alert { variant: AlertVariant::Info, "x" }
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("text-accent-info"), "{html}");
+	}
+
+	#[test]
 	fn title_and_description_slots() {
 		fn app() -> Element {
 			rsx! {
