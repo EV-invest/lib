@@ -22,6 +22,18 @@ Rust crate and its TypeScript mirror at once.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`uikit::Fonts` is back.** #105 cut it on the argument that brand assets are
+  not a UI kit's business. The argument is sound; the move was not, because
+  nothing else shipped the faces. `tokens.css` kept naming `"Inter"` and
+  `"Playfair Display"` in its `--font-*` chains with no `@font-face` behind
+  them, so every Dioxus consumer fell silently through to `ui-sans-serif` — a
+  typography regression with no error and no log line. `real_estate_allocation`
+  was insulated only by its `^0.9.0` pin and hit it the moment that moved. The
+  `dioxus?/asset` feature comes back with it; that is what puts `asset!` in
+  scope. It stays here until there is somewhere for it to go.
+
 ### Changed
 
 - **`i18n` — English is written where it renders** (breaking, both ports;

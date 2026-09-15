@@ -24,6 +24,9 @@ uikit = [
     "dep:tailwind_fuse",
     "tailwind_fuse?/variant",
     "dep:strum",
+    # `asset` is what puts `asset!` in scope for `Fonts`; `document` is how it
+    # and the sonner toaster inject their CSS.
+    "dioxus?/asset",
     "dioxus?/document",
 ]
 
