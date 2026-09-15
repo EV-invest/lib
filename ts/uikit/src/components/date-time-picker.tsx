@@ -96,6 +96,8 @@ export interface DateTimePickerLabels {
   minutes?: string;
   /** Text of the clear button; "Clear". */
   clear?: string;
+  /** `aria-label` of the popover dialog; "Choose date and time". */
+  dialog?: string;
 }
 
 export interface DateTimePickerProps
@@ -275,6 +277,7 @@ export function DateTimePicker({
         <PopoverContent
           data-slot="date-time-picker-content"
           role="dialog"
+          aria-label={labels.dialog ?? "Choose date and time"}
           align={align}
           className={DATE_TIME_PICKER_CONTENT}
         >

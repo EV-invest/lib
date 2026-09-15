@@ -33,7 +33,7 @@ describe("DateTimePicker", () => {
   });
 
   it("opens on click and shows the calendar plus zero-padded time inputs", () => {
-    const { container } = render(
+    const { container, getByRole } = render(
       <DateTimePicker value={june(10, 9, 5)} name="starts_at" today={TODAY} />,
     );
     const btn = trigger(container);
@@ -46,6 +46,7 @@ describe("DateTimePicker", () => {
     expect(btn).toHaveAttribute("aria-expanded", "true");
     expect(slot(container, "content")).toHaveClass("w-auto", "p-0");
     expect(slot(container, "content")).toHaveAttribute("role", "dialog");
+    expect(getByRole("dialog", { name: "Choose date and time" })).toBe(slot(container, "content"));
     expect(document.querySelector("[data-slot=calendar]")).toBeTruthy();
     expect(document.querySelector("[data-selected=true]")).toHaveTextContent("10");
     const hours = slot(container, "hours") as HTMLInputElement;
@@ -212,7 +213,7 @@ describe("DateTimePicker", () => {
   });
 
   it("puts labels, id, disabled and aria-* where they belong", () => {
-    const { container, getByLabelText } = render(
+    const { container, getByLabelText, getByRole } = render(
       <DateTimePicker
         id="starts"
         disabled
@@ -225,6 +226,7 @@ describe("DateTimePicker", () => {
           hours: "Часы",
           minutes: "Минуты",
           clear: "Сбросить",
+          dialog: "Выбор даты и времени",
         }}
         today={TODAY}
       />,
@@ -235,6 +237,7 @@ describe("DateTimePicker", () => {
     expect(btn).toHaveAttribute("aria-invalid", "true");
     expect(btn).toHaveAttribute("aria-describedby", "starts-hint");
     expect(btn).toHaveClass("w-full", "justify-start");
+    expect(getByRole("dialog", { name: "Выбор даты и времени" })).toBe(slot(container, "content"));
     expect(getByLabelText("Назад")).toBeTruthy();
     expect(getByLabelText("Вперёд")).toBeTruthy();
     expect(getByLabelText("Часы")).toBeDisabled();

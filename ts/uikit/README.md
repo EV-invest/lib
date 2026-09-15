@@ -187,7 +187,9 @@ measuring needs host-only `web-sys`). Known gaps:
 - **date-time-picker:** the kit's own bricks only — an outline trigger, a
   `Popover` with the `Calendar` and two numeric 24-hour hours/minutes fields (no
   native `datetime-local` / `time` input, so the browser's locale popup never
-  appears). TS formats the trigger label through `Intl` when `locale` is set,
+  appears). Its ARIA and button strings are `labels` overrides with English
+  defaults — the nav buttons, the hours/minutes `aria-label`s, the clear button
+  and the popover's own accessible name (`labels.dialog`). TS formats the trigger label through `Intl` when `locale` is set,
   else `YYYY-MM-DD HH:MM`; Rust has no `Intl`: the ISO-like label or the
   `format` callback, English month/weekday captions. The hidden form value is
   unix seconds in TS and `YYYY-MM-DDTHH:MM` in Rust (no zone there). The Rust
