@@ -231,6 +231,7 @@ pub fn DateTimePicker(
 						today,
 						min: min.map(|m| m.date),
 						max: max.map(|m| m.date),
+						disabled,
 						previous_month_label: labels.previous_month,
 						next_month_label: labels.next_month,
 					}
@@ -458,9 +459,10 @@ mod tests {
 		assert!(html.contains(">Сбросить<"), "{html}");
 		assert!(html.contains("aria-label=\"Выберите дату и время\""), "{html}");
 		assert!(!html.contains("Choose date and time"), "{html}");
-		assert!(html.contains("disabled=true"), "{html}");
-		// Trigger, both time fields and Clear.
-		assert_eq!(html.matches(" disabled=true").count(), 4, "{html}");
+		// Trigger, both time fields, Clear, the two nav buttons and every day
+		// of the 30-day month the empty picker opens on.
+		assert_eq!(html.matches(" disabled=true").count(), 4 + 2 + 30, "{html}");
+		assert_eq!(html.matches("data-disabled=\"true\"").count(), 30, "{html}");
 		// Empty value: the time inputs show midnight.
 		assert_eq!(html.matches("value=\"00\"").count(), 2, "{html}");
 	}

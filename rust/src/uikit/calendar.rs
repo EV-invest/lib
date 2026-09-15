@@ -99,6 +99,9 @@ pub fn Calendar(
 	min: Option<CalendarDate>,
 	/// Latest selectable day (inclusive); later days render disabled.
 	max: Option<CalendarDate>,
+	/// Disables the whole grid and the nav buttons; every day renders `data-disabled`.
+	#[props(default)]
+	disabled: bool,
 	/// `aria-label` of the previous-month button; "Previous month" by default.
 	previous_month_label: Option<String>,
 	/// `aria-label` of the next-month button; "Next month" by default.
@@ -136,6 +139,7 @@ pub fn Calendar(
 					r#type: "button",
 					class: nav_class.clone(),
 					"aria-label": previous_label,
+					disabled,
 					onclick: move |_| go(-1),
 					Chevron { d: CHEVRON_LEFT }
 				}
@@ -144,6 +148,7 @@ pub fn Calendar(
 					r#type: "button",
 					class: nav_class.clone(),
 					"aria-label": next_label,
+					disabled,
 					onclick: move |_| go(1),
 					Chevron { d: CHEVRON_RIGHT }
 				}
@@ -171,6 +176,7 @@ pub fn Calendar(
 									today,
 									min,
 									max,
+									disabled,
 									on_select,
 								}
 							}
@@ -190,6 +196,7 @@ fn DayCell(
 	today: Option<CalendarDate>,
 	min: Option<CalendarDate>,
 	max: Option<CalendarDate>,
+	disabled: bool,
 	on_select: Option<EventHandler<CalendarDate>>,
 ) -> Element {
 	let Some(day) = cell else {
@@ -201,7 +208,7 @@ fn DayCell(
 	let this = CalendarDate::new(date.year, date.month, day);
 	let is_selected = selected == Some(this);
 	let is_today = today == Some(this);
-	let is_disabled = min.is_some_and(|lo| this < lo) || max.is_some_and(|hi| this > hi);
+	let is_disabled = disabled || min.is_some_and(|lo| this < lo) || max.is_some_and(|hi| this > hi);
 	let aria_selected = if is_selected { "true" } else { "false" };
 
 	let mut day_class = button_classes(&ButtonVariant::Ghost, Size::Md, true, CALENDAR_DAY);
@@ -361,6 +368,24 @@ mod tests {
 		let tenth = html.find(">10<").expect("day 10 rendered");
 		let tag_start = html[..tenth].rfind("<button").expect("day 10 button");
 		assert!(!html[tag_start..tenth].contains(" disabled=true"), "day at `min` stays enabled: {html}");
+	}
+
+	#[test]
+	fn disabled_freezes_every_day_and_the_nav() {
+		fn app() -> Element {
+			rsx! {
+				Calendar {
+					default_month: CalendarDate::new(2026, 6, 1),
+					disabled: true,
+					min: CalendarDate::new(2026, 6, 10),
+				}
+			}
+		}
+		let html = render(app);
+		// All 30 days of June, `min` notwithstanding.
+		assert_eq!(html.matches("data-disabled=\"true\"").count(), 30, "{html}");
+		// 30 days + the two nav buttons.
+		assert_eq!(html.matches(" disabled=true").count(), 32, "{html}");
 	}
 
 	#[test]
