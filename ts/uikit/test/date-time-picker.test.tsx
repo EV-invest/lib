@@ -224,7 +224,7 @@ describe("DateTimePicker", () => {
   });
 
   it("puts labels, id, disabled and aria-* where they belong", () => {
-    const { container, getByLabelText, getByRole } = render(
+    const { container, getByLabelText, getByRole, getByText } = render(
       <DateTimePicker
         id="starts"
         disabled
@@ -251,6 +251,9 @@ describe("DateTimePicker", () => {
     expect(getByRole("dialog", { name: "Выбор даты и времени" })).toBe(slot(container, "content"));
     expect(getByLabelText("Назад")).toBeTruthy();
     expect(getByLabelText("Вперёд")).toBeTruthy();
+    expect(getByLabelText("Назад")).toBeDisabled();
+    expect(getByText("12")).toBeDisabled();
+    expect(getByText("12")).toHaveAttribute("data-disabled", "true");
     expect(getByLabelText("Часы")).toBeDisabled();
     expect(getByLabelText("Минуты")).toBeDisabled();
     expect(slot(container, "clear")).toBeDisabled();

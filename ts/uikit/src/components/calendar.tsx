@@ -116,6 +116,8 @@ export interface CalendarProps {
   min?: Date;
   /** Latest selectable day (inclusive, day granularity); later days render disabled. */
   max?: Date;
+  /** Disables the whole grid and the nav buttons; every day renders `data-disabled`. */
+  disabled?: boolean;
   /** `aria-label` of the previous-month button; "Previous month" by default. */
   previousMonthLabel?: string;
   /** `aria-label` of the next-month button; "Next month" by default. */
@@ -147,6 +149,7 @@ export function Calendar({
   today = new Date(),
   min,
   max,
+  disabled = false,
   previousMonthLabel = "Previous month",
   nextMonthLabel = "Next month",
   locale,
@@ -199,6 +202,7 @@ export function Calendar({
           type="button"
           className={navClass}
           aria-label={previousMonthLabel}
+          disabled={disabled}
           onClick={() => go(-1)}
         >
           <Chevron d={CHEVRON_LEFT} />
@@ -210,6 +214,7 @@ export function Calendar({
           type="button"
           className={navClass}
           aria-label={nextMonthLabel}
+          disabled={disabled}
           onClick={() => go(1)}
         >
           <Chevron d={CHEVRON_RIGHT} />
@@ -244,7 +249,7 @@ export function Calendar({
                 const date = new Date(year, monthIndex, cell);
                 const isSelected = sameDay(selected, date);
                 const isToday = sameDay(today, date);
-                const isDisabled = outOfRange(date, min, max);
+                const isDisabled = disabled || outOfRange(date, min, max);
                 return (
                   <td
                     key={ci}

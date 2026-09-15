@@ -105,6 +105,26 @@ describe("Calendar bounds and locale", () => {
     expect(container.querySelectorAll("button:disabled").length).toBe(0);
   });
 
+  it("disables every day and both nav buttons when `disabled`", () => {
+    const onSelect = vi.fn();
+    const onMonthChange = vi.fn();
+    const { container, getByText, getByLabelText } = render(
+      <Calendar
+        defaultMonth={new Date(2026, 5, 1)}
+        disabled
+        onSelect={onSelect}
+        onMonthChange={onMonthChange}
+      />,
+    );
+    expect(container.querySelectorAll("[data-disabled=true]").length).toBe(30);
+    expect(getByLabelText("Previous month")).toBeDisabled();
+    expect(getByLabelText("Next month")).toBeDisabled();
+    fireEvent.click(getByText("12"));
+    fireEvent.click(getByLabelText("Next month"));
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(onMonthChange).not.toHaveBeenCalled();
+  });
+
   it("takes custom nav labels", () => {
     const { getByLabelText } = render(
       <Calendar

@@ -293,6 +293,7 @@ export function DateTimePicker({
             // The content remounts on every open, so this lands on the value's month.
             defaultMonth={value ?? min ?? today}
             today={today}
+            disabled={disabled}
             {...(min ? { min } : {})}
             {...(max ? { max } : {})}
             {...(locale !== undefined ? { locale } : {})}

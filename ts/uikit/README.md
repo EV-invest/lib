@@ -180,8 +180,8 @@ measuring needs host-only `web-sys`). Known gaps:
   consumer's. The open-orders pane reuses `Table` and `Tabs`.
 - **calendar:** single month, single-date selection (no range/multi-month, no
   dropdown captions). `min`/`max` bound the grid at day granularity (days outside
-  render `disabled` + `data-disabled="true"`); the nav buttons take label
-  overrides. TS-only `locale` renders the caption and weekday headers through
+  render `disabled` + `data-disabled="true"`); `disabled` freezes the
+  whole grid and the nav the same way; the nav buttons take label overrides. TS-only `locale` renders the caption and weekday headers through
   `Intl` (Monday-first); Rust has no `Intl`, so its captions stay English. Rust
   does manual date math; TS uses the built-in `Date`.
 - **date-time-picker:** the kit's own bricks only — an outline trigger, a
