@@ -14,14 +14,14 @@ pub const FIELD_CONTENT: &str = "group/field-content flex flex-1 flex-col gap-1.
 pub const FIELD_LABEL: &str = "group/field-label peer/field-label flex w-fit gap-2 leading-snug \
          group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:w-full \
          has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border \
-         [&>*]:data-[slot=field]:p-4 has-data-[state=checked]:bg-primary/5 has-data-[state=checked]:border-primary";
+         [&>*]:data-[slot=field]:p-4 has-data-[state=checked]:bg-primary-ink/5 has-data-[state=checked]:border-primary-ink";
 
 pub const FIELD_TITLE: &str = "flex w-fit items-center gap-2 text-sm leading-snug font-medium \
          group-data-[disabled=true]/field:opacity-50";
 
 pub const FIELD_DESCRIPTION: &str = "text-ink-soft text-sm leading-normal font-normal \
          group-has-[[data-orientation=horizontal]]/field:text-balance last:mt-0 nth-last-2:-mt-1 \
-         [[data-variant=legend]+&]:-mt-1.5 [&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4";
+         [[data-variant=legend]+&]:-mt-1.5 [&>a:hover]:text-primary-ink [&>a]:underline [&>a]:underline-offset-4";
 
 pub const FIELD_SEPARATOR: &str = "relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2";
 

@@ -22,7 +22,7 @@ export const SECTION_PY_TIGHT = "py-[var(--band-py-tight)]";
 
 export const SECTION_HEAD = "flex flex-col gap-2 md:gap-3.5";
 
-export const EYEBROW = "font-medium text-[10px] md:text-[11.5px] tracking-[0.15em] md:tracking-[0.16em] text-primary";
+export const EYEBROW = "font-medium text-[10px] md:text-[11.5px] tracking-[0.15em] md:tracking-[0.16em] text-primary-ink";
 
 export const DISPLAY_BASE = "font-display [font-weight:700] max-w-[54rem] tracking-[-0.005em] leading-[1.16] md:leading-[1.14] text-[calc(1.5625rem*var(--display-scale))] md:text-[calc(2.625rem*var(--display-scale))]";
 

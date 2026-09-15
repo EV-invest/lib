@@ -14,6 +14,6 @@ export type EmptyMediaVariant = keyof typeof emptyMediaVariants;
 
 export const EMPTY_TITLE = "text-lg font-medium tracking-tight";
 
-export const EMPTY_DESCRIPTION = "text-ink-soft [&>a:hover]:text-primary text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4";
+export const EMPTY_DESCRIPTION = "text-ink-soft [&>a:hover]:text-primary-ink text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4";
 
 export const EMPTY_CONTENT = "flex w-full max-w-sm min-w-0 flex-col items-center gap-4 text-sm text-balance";

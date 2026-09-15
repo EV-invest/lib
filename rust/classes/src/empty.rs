@@ -6,7 +6,7 @@ pub const EMPTY_HEADER: &str = "flex max-w-sm flex-col items-center gap-2 text-c
 
 pub const EMPTY_TITLE: &str = "text-lg font-medium tracking-tight";
 
-pub const EMPTY_DESCRIPTION: &str = "text-ink-soft [&>a:hover]:text-primary text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4";
+pub const EMPTY_DESCRIPTION: &str = "text-ink-soft [&>a:hover]:text-primary-ink text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4";
 
 pub const EMPTY_CONTENT: &str = "flex w-full max-w-sm min-w-0 flex-col items-center gap-4 text-sm text-balance";
 

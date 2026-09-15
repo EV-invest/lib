@@ -8,7 +8,7 @@ export const buttonVariantClasses = {
   "outline": "border bg-transparent shadow-xs hover:bg-hover hover:text-ink",
   "ghost": "hover:bg-hover hover:text-ink",
   "destructive": "bg-accent-error text-on-accent-error hover:bg-accent-error/90 focus-visible:ring-accent-error/20",
-  "link": "text-primary underline-offset-4 hover:underline",
+  "link": "text-primary-ink underline-offset-4 hover:underline",
 } as const;
 export type ButtonVariant = keyof typeof buttonVariantClasses;
 

@@ -14,6 +14,8 @@
  *   ROLES      {role} and on-{role} for the ones that get filled:
  *              brand · primary · secondary · positive ·
  *              accent-trace · accent-debug · accent-info · accent-warn · accent-error
+ *              primary-ink — the primary role as ink on a surface, where the
+ *              fill and the readable value are different colours
  *   SCALARS    radius · control-* · display-scale · page-* · shadows · fonts
  *   CHARTS     chart-1 … chart-5
  *   MARK       brand-mark · brand-aspect       — supplied, never defined here
@@ -84,6 +86,7 @@
   --color-brand: var(--brand);
   --color-primary: var(--primary);
   --color-on-primary: var(--on-primary);
+  --color-primary-ink: var(--primary-ink);
   --color-secondary: var(--secondary);
   --color-on-secondary: var(--on-secondary);
   --color-positive: var(--positive);
@@ -126,15 +129,27 @@
   /* ── lines ───────────────────────────────────────────────────── */
   --border: color-mix(in srgb, var(--ink) 14%, transparent);
   --input: color-mix(in srgb, var(--ink) 20%, transparent);
-  --ring: #2a9d8f;
+  --ring: var(--primary-ink);
 
   /* ── roles ───────────────────────────────────────────────────── */
   --brand: #001e4e;
   /* teal, not the brand navy: navy filled a Button/Switch at ~1.1:1 against
    * these surfaces, i.e. an invisible control, and consumers hardcoded teal to
-   * get around it. The brand navy still lives in --brand. */
-  --primary: #2a9d8f;
-  --on-primary: #070d18;
+   * get around it. The brand navy still lives in --brand.
+   *
+   * A fill and an ink are different jobs, so the primary role carries two
+   * values (docs/spec/accents.md). --primary-ink is the teal tuned to read on
+   * the surfaces: 5.85:1 on background, 4.72:1 on card — and therefore too
+   * light to carry a label, and loud as a solid CTA. --primary is the same hue
+   * darkened for the fill: white reads on it at 4.90:1, and the fill itself
+   * clears the 3:1 non-text floor against background (3.97:1), secondary
+   * (3.72:1) and card (3.20:1), so a checked Switch on a Card still reads as
+   * one. Darkening the single value instead would have dropped every teal
+   * label below AA. Popover sits under the floor (2.84:1): no fill can hold
+   * both 3:1 there and 4.5:1 under white text. */
+  --primary: #2b7d74;
+  --on-primary: #ffffff;
+  --primary-ink: #2a9d8f;
   --secondary: #0d1526;
   --on-secondary: var(--ink);
   /* valence, not significance: a success reads as good while staying quiet */

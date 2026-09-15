@@ -27,3 +27,18 @@ as a sixth rung would break the ordering.
 
 **Charts are neither.** `chart-1 … chart-5` are distinguishable hues carrying no
 significance. A decorative colour that is not ordered belongs there.
+
+**A fill is not an ink.** A role is one colour worn two ways — as a solid fill
+with `on-{role}` reading on it, and as ink on a surface — and the two jobs pull
+in opposite directions on a dark palette: a value light enough to read as text
+on a card (≥ 4.5:1) is too light to carry a label, and loud as a filled call to
+action. Where a role's two values diverge it names its ink separately, as
+`{role}-ink`; today that is only `primary` / `primary-ink`. `bg-primary`,
+`text-on-primary` and the checked state of a control are the fill; a link, an
+eyebrow, a radio dot and a checked outline are the ink. Retuning one value for
+both jobs is how the split was found: calming the CTA by darkening `primary`
+alone dropped every teal label below AA. Floors to hold when retuning either
+value — the label on the fill ≥ 4.5:1, the fill against the surfaces it sits
+on ≥ 3:1 (a checked switch has no label to identify it by), the ink on
+`background` and `card` ≥ 4.5:1. The measured values live beside the tokens in
+`tokens.css`.

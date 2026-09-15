@@ -19,7 +19,7 @@ pub const ITEM_CONTENT: &str = "flex flex-1 flex-col gap-1 [&+[data-slot=item-co
 pub const ITEM_TITLE: &str = "flex w-fit items-center gap-2 text-sm leading-snug font-medium";
 
 pub const ITEM_DESCRIPTION: &str = "text-ink-soft line-clamp-2 text-sm leading-normal font-normal text-balance \
-                                    [&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4";
+                                    [&>a:hover]:text-primary-ink [&>a]:underline [&>a]:underline-offset-4";
 
 pub const ITEM_ACTIONS: &str = "flex items-center gap-2";
 

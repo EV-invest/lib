@@ -51,7 +51,7 @@ your Tailwind v4 entrypoint — this is the load-bearing part of the kit:
 | surfaces | `background` `card` `popover` `muted` `hover` |
 | ink | `ink` `ink-mid` `ink-soft` — hierarchy, loudest first |
 | lines | `border` `input` `ring` |
-| roles | `brand` `primary` `secondary` `positive` `accent-trace` `accent-debug` `accent-info` `accent-warn` `accent-error`, each with `on-*` where it gets filled |
+| roles | `brand` `primary` `secondary` `positive` `accent-trace` `accent-debug` `accent-info` `accent-warn` `accent-error`, each with `on-*` where it gets filled; `primary-ink` — the primary role as ink on a surface |
 | scalars | `radius` `control-radius` `control-py` `display-scale` `band-py` `page-max` `page-px` `shadow-*` `font-*` |
 | charts | `chart-1` … `chart-5` |
 
@@ -62,6 +62,13 @@ what `<Section polarity="dark">` does.
 A surface takes its ink from the scope, so it carries no `-foreground`. A
 **filled role** does not — gold wants black and navy wants white regardless of
 polarity — so `on-{role}` exists exactly there.
+
+A fill and an ink are different jobs: the teal that reads as text on a card is
+too light to carry a label and too loud as a solid CTA. So `primary` is the
+fill (`bg-primary text-on-primary`, a checked switch or checkbox) and
+`primary-ink` is the same role as ink (`text-primary-ink` on a link or eyebrow,
+`border-primary-ink` on a checked outline, the focus `ring`); see
+[`docs/spec/accents.md`](../../docs/spec/accents.md).
 
 Accents are decorative and **ordered by significance**, quiet to loud. Pick a
 rung by how loud the thing should be, never by what it means; see
