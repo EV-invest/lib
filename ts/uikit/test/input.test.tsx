@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
+import * as React from "react";
 import { Input } from "../src/components/input";
 
 describe("Input", () => {
@@ -23,5 +24,11 @@ describe("Input", () => {
     const el = container.querySelector("input")!;
     expect(el).toHaveClass("h-12");
     expect(el).not.toHaveClass("h-9");
+  });
+
+  it("hands the ref the DOM node (forwardRef, so React 18 keeps it too)", () => {
+    const ref = React.createRef<HTMLInputElement>();
+    const { container } = render(<Input ref={ref} />);
+    expect(ref.current).toBe(container.querySelector("input"));
   });
 });
