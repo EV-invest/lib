@@ -171,10 +171,10 @@ pub fn DateTimePicker(
 		(None, _) => placeholder,
 	};
 	let is_empty = value.is_none();
-	let trigger_class = button_classes(&ButtonVariant::Outline, Size::Md, false, &cn!(DATE_TIME_PICKER_TRIGGER, class));
+	let trigger_class = button_classes(&ButtonVariant::Outline, Size::Md, false, None, &cn!(DATE_TIME_PICKER_TRIGGER, class));
 	let content_class = cn!(POPOVER_CONTENT, cn!("absolute top-full left-0 mt-1", DATE_TIME_PICKER_CONTENT));
 	let time_input_class = cn!(INPUT_BASE, DATE_TIME_PICKER_TIME_INPUT);
-	let clear_class = button_classes(&ButtonVariant::Ghost, Size::Sm, false, DATE_TIME_PICKER_CLEAR);
+	let clear_class = button_classes(&ButtonVariant::Ghost, Size::Sm, false, None, DATE_TIME_PICKER_CLEAR);
 	let (hours, minutes) = value.map_or_else(|| (String::from("00"), String::from("00")), |v| (format!("{:02}", v.hour), format!("{:02}", v.minute)));
 	let hours_label = labels.hours.unwrap_or_else(|| String::from("Hours"));
 	let minutes_label = labels.minutes.unwrap_or_else(|| String::from("Minutes"));
