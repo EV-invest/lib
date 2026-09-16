@@ -184,9 +184,10 @@ measuring needs host-only `web-sys`). Known gaps:
 - **calendar:** single month, single-date selection (no range/multi-month, no
   dropdown captions). The grid is always six fixed weeks of 36px cells, so its
   size never changes with the month or the locale's weekday labels, and it
-  paints no background of its own (the host does). `min`/`max` bound the grid at day granularity (days outside
-  render `disabled` + `data-disabled="true"`); `disabled` freezes the
-  whole grid and the nav the same way; the nav buttons take label overrides. TS-only `locale` renders the caption and weekday headers through
+  paints no background of its own (the host does). `min`/`max` bound the grid
+  at day granularity (days outside render `disabled` + `data-disabled="true"`);
+  `disabled` freezes the whole grid and the nav the same way; the nav buttons
+  take label overrides. TS-only `locale` renders the caption and weekday headers through
   `Intl` (Monday-first); Rust has no `Intl`, so its captions stay English. Rust
   does manual date math; TS uses the built-in `Date`.
 - **date-time-picker:** the kit's own bricks only — an outline trigger, a
