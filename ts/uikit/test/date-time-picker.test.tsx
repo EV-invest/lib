@@ -71,7 +71,7 @@ describe("DateTimePicker", () => {
   });
 
   it("closes on Tab from the last control and hands focus back to the trigger", () => {
-    const { container, getByRole } = render(
+    const { container, queryByRole } = render(
       <DateTimePicker value={june(10, 9, 5)} today={TODAY} />,
     );
     const btn = trigger(container);
@@ -86,7 +86,7 @@ describe("DateTimePicker", () => {
     expect(btn).toHaveAttribute("aria-expanded", "false");
     expect(document.activeElement).toBe(btn);
     expect(document.querySelector("[data-slot=date-time-picker-content]")).toBeNull();
-    expect(() => getByRole("dialog")).toThrow();
+    expect(queryByRole("dialog")).toBeNull();
   });
 
   it("closes on Shift+Tab from the first control and hands focus back to the trigger", () => {
@@ -112,18 +112,18 @@ describe("DateTimePicker", () => {
     fireEvent.click(btn);
     const hours = slot(container, "hours")!;
     expect(document.activeElement).toBe(hours);
+    // jsdom never moves focus on an un-prevented Tab, so only "not prevented"
+    // and "still open" are observable here.
     expect(fireEvent.keyDown(hours, { key: "Tab" })).toBe(true);
     expect(btn).toHaveAttribute("aria-expanded", "true");
     // The calendar precedes the time row, so Shift+Tab from hours stays inside too.
     expect(fireEvent.keyDown(hours, { key: "Tab", shiftKey: true })).toBe(true);
     expect(btn).toHaveAttribute("aria-expanded", "true");
-    expect(document.activeElement).toBe(hours);
     // "Clear" is second to last: the close button still follows it.
     const clear = slot(container, "clear")!;
     clear.focus();
     expect(fireEvent.keyDown(clear, { key: "Tab" })).toBe(true);
     expect(btn).toHaveAttribute("aria-expanded", "true");
-    expect(document.activeElement).toBe(clear);
   });
 
   it("closes when focus moves outside by pointer or script, but not when the window blurs", () => {

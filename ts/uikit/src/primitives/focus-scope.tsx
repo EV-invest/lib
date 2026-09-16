@@ -1,12 +1,24 @@
 import * as React from "react";
 
-const FOCUSABLE =
-  'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+// `tabindex="-1"` opts an element out of Tab order whatever its tag, so the
+// exclusion goes on every branch — otherwise a roving-tabindex grid's parked
+// cells would count as tab stops.
+const FOCUSABLE = [
+  "a[href]",
+  "button:not([disabled])",
+  "textarea:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "[tabindex]",
+]
+  .map(sel => `${sel}:not([tabindex="-1"])`)
+  .join(",");
 
 /**
- * Every enabled focus candidate under `root` in DOM (= Tab) order, before the
- * layout-based visibility filter; for content that is fully visible while it
- * exists (a popover), this is the tab order itself. Internal to the kit.
+ * Every enabled, Tab-reachable candidate under `root` in DOM (= Tab) order,
+ * before the layout-based visibility filter; `tabindex="-1"` is skipped on any
+ * tag. For content that is fully visible while it exists (a popover), this is
+ * the tab order itself. Internal to the kit.
  */
 export function focusCandidates(root: HTMLElement): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE));
