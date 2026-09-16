@@ -149,12 +149,12 @@ bg-positive
 bg-positive text-on-positive hover:bg-positive/90
 bg-positive/15
 bg-primary
-bg-primary absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full
-bg-primary h-full w-full flex-1 transition-all
 bg-primary text-on-primary
 bg-primary text-on-primary hover:bg-primary/90
-bg-primary/20
-bg-primary/20 relative h-2 w-full overflow-hidden rounded-full
+bg-primary-ink absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full
+bg-primary-ink h-full w-full flex-1 transition-all
+bg-primary-ink/20
+bg-primary-ink/20 relative h-2 w-full overflow-hidden rounded-full
 bg-secondary group-data-[variant=floating]:border-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm
 bg-secondary text-ink flex h-full w-(--sidebar-width) flex-col
 bg-secondary text-on-secondary hover:bg-secondary/80
@@ -176,7 +176,7 @@ border-dashed
 border-input
 border-input placeholder:text-ink-soft focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error flex field-sizing-content min-h-16 w-full rounded-[var(--control-radius)] border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm
 border-input text-primary-ink focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error aspect-square size-4 shrink-0 rounded-full border shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50
-border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-ink shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50
+border-primary-ink ring-ring/50 block size-4 shrink-0 rounded-full border bg-ink shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50
 border-t
 border-t border-ink/10 pt-8 text-[10px] font-mono text-ink/40
 border-transparent bg-accent-error text-on-accent-error [a&]:hover:bg-accent-error/90 focus-visible:ring-accent-error/20
@@ -437,7 +437,7 @@ focus:bg-hover focus:text-ink relative flex cursor-default items-center gap-2 ro
 focus:bg-hover focus:text-ink relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4
 font-display [font-weight:700] max-w-[54rem] tracking-[-0.005em] leading-[1.16] md:leading-[1.14] text-[calc(1.5625rem*var(--display-scale))] md:text-[calc(2.625rem*var(--display-scale))]
 font-medium
-font-medium text-[10px] md:text-[11.5px] tracking-[0.15em] md:tracking-[0.16em] text-primary-ink
+font-medium text-[10px] md:text-[11.5px] tracking-[0.15em] md:tracking-[0.16em] text-primary-ink [.bg-primary_&]:text-on-primary
 font-mono tabular-nums text-ink
 font-mono text-sm tabular-nums text-ink
 font-semibold
