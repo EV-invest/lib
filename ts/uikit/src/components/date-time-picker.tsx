@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
+import { focusCandidates } from "../primitives/focus-scope";
 import { useControllableState } from "../primitives/use-controllable-state";
 import { buttonVariants } from "./button";
 import { Calendar } from "./calendar";
@@ -40,6 +41,27 @@ function CalendarIcon() {
       {CALENDAR_ICON.map(d => (
         <path key={d} d={d} />
       ))}
+    </svg>
+  );
+}
+
+// lucide `x`, inlined like every other icon in the kit.
+function XIcon() {
+  return (
+    <svg
+      className="size-4"
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M18 6 6 18M6 6l12 12" />
     </svg>
   );
 }
@@ -98,6 +120,8 @@ export interface DateTimePickerLabels {
   clear?: string;
   /** `aria-label` of the popover dialog; "Choose date and time". */
   dialog?: string;
+  /** `aria-label` of the close button; "Close". */
+  close?: string;
 }
 
 export interface DateTimePickerProps
@@ -147,10 +171,11 @@ export interface DateTimePickerProps
  * `datetime-local`, so the browser's locale popup never appears.
  *
  * Every edit reports through `onChange`; the popover stays open after a day
- * click (the operator still sets the time) and closes on clear. Opening moves
- * focus into the hours field; closing hands it back to the trigger unless the
- * operator already focused something else. Any other `aria-*` prop, `onFocus`
- * and `onBlur` land on the trigger.
+ * click (the operator still sets the time) and closes on clear or on the close
+ * button (which keeps the value). Opening moves focus into the hours field;
+ * closing hands it back to the trigger unless the operator already focused
+ * something else. Any other `aria-*` prop, `onFocus` and `onBlur` land on the
+ * trigger.
  */
 export function DateTimePicker({
   value: valueProp,
@@ -186,6 +211,8 @@ export function DateTimePicker({
 
   const rootRef = React.useRef<HTMLDivElement | null>(null);
   const hoursRef = React.useRef<HTMLInputElement | null>(null);
+  const focusTrigger = () =>
+    rootRef.current?.querySelector<HTMLElement>("[data-slot=date-time-picker-trigger]")?.focus();
   // The content lives in a Portal, so the native tab order would skip it.
   React.useEffect(() => {
     if (!isOpen) return;
@@ -194,11 +221,7 @@ export function DateTimePicker({
       const active = document.activeElement;
       const content = hoursRef.current?.closest("[data-slot=date-time-picker-content]");
       const lost = !active || active === document.body || !!content?.contains(active);
-      if (lost) {
-        rootRef.current
-          ?.querySelector<HTMLElement>("[data-slot=date-time-picker-trigger]")
-          ?.focus();
-      }
+      if (lost) focusTrigger();
     };
   }, [isOpen]);
 
@@ -238,9 +261,26 @@ export function DateTimePicker({
     setValue(null);
     setOpen(false);
   };
-  // Tabbing past the last field would leave the dialog open behind the
-  // operator; the dismissable layer only watches Escape and outside pointers.
-  // A null `relatedTarget` is the window losing focus, not the operator leaving.
+  // The content is portalled to the end of <body>, so Tab from its last
+  // control (and Shift+Tab from its first) has nowhere to go: focus falls out
+  // of the document and the dialog stays open over the page. Those two edges
+  // close the popover and hand focus back to the trigger — the document's tab
+  // order then continues from where the operator started. Middle controls keep
+  // the browser's default. Not a trap: the popover is non-modal.
+  const onContentKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Tab") return;
+    const items = focusCandidates(e.currentTarget);
+    const edge = e.shiftKey ? items[0] : items[items.length - 1];
+    if (!edge || e.target !== edge) return;
+    e.preventDefault();
+    setOpen(false);
+    focusTrigger();
+  };
+  // Focus moving elsewhere by pointer or script (the dismissable layer only
+  // watches Escape and outside pointerdown). A null `relatedTarget` is the
+  // window losing focus (alt-tab), not the operator leaving: keep the popover
+  // for their return. Tab-out never reaches here — `onContentKeyDown` closes
+  // first.
   const onContentBlur = (e: React.FocusEvent<HTMLDivElement>) => {
     const next = e.relatedTarget;
     if (!(next instanceof Node)) return;
@@ -295,6 +335,7 @@ export function DateTimePicker({
           aria-label={labels.dialog ?? "Choose date and time"}
           align={align}
           onBlur={onContentBlur}
+          onKeyDown={onContentKeyDown}
           className={DATE_TIME_PICKER_CONTENT}
         >
           <Calendar
@@ -347,6 +388,16 @@ export function DateTimePicker({
               onClick={onClear}
             >
               {labels.clear ?? "Clear"}
+            </button>
+            <button
+              type="button"
+              className={buttonVariants({ variant: "ghost", size: "sm", icon: true })}
+              data-slot="date-time-picker-close"
+              aria-label={labels.close ?? "Close"}
+              disabled={disabled}
+              onClick={() => setOpen(false)}
+            >
+              <XIcon />
             </button>
           </div>
         </PopoverContent>

@@ -177,8 +177,8 @@ measuring needs host-only `web-sys`). Known gaps:
 - **Rust overlays** (dialog, popover, dropdown, select, menus, tooltip, …) render
   inline with `position:fixed` + a backdrop and CSS-only placement — no portal,
   no viewport-measured floating, native focus order (no trap). TS overlays use a
-  real `Portal`, single-flip `useFloating`, `useDismissableLayer`, and
-  `useFocusScope`.
+  real `Portal`, single-flip `useFloating` (absolute in the document, so it
+  scrolls with the page natively), `useDismissableLayer`, and `useFocusScope`.
 - **chart:** the recharts plotting engine is not bundled. `ChartContainer` is a
   themed SVG host (emits `--color-*` from its config); `ChartTooltipContent` /
   `ChartLegendContent` are presentational and take explicit items. Draw series
@@ -189,17 +189,23 @@ measuring needs host-only `web-sys`). Known gaps:
   submit's default — inputs, validation and the order itself are the
   consumer's. The open-orders pane reuses `Table` and `Tabs`.
 - **calendar:** single month, single-date selection (no range/multi-month, no
-  dropdown captions). `min`/`max` bound the grid at day granularity (days outside
-  render `disabled` + `data-disabled="true"`); `disabled` freezes the
-  whole grid and the nav the same way; the nav buttons take label overrides. TS-only `locale` renders the caption and weekday headers through
-  `Intl` (Monday-first); Rust has no `Intl`, so its captions stay English. Rust
-  does manual date math; TS uses the built-in `Date`.
+  dropdown captions). The grid is always six fixed weeks of 36px cells, so its
+  size never changes with the month or the locale's weekday labels, and it
+  paints no background of its own (the host does). `min`/`max` bound the grid
+  at day granularity (days outside render `disabled` + `data-disabled="true"`);
+  `disabled` freezes the whole grid and the nav the same way; the nav buttons
+  take label overrides. TS-only `locale` renders the caption and weekday headers through
+  `Intl` (Monday-first): `weekday: "short"`, falling back to `"narrow"` for a
+  locale whose short form contains whitespace (vi's "Thứ 2" → "T2", he's
+  "יום ב׳" → "ב׳") as long as narrow still yields seven distinct labels. Rust has no `Intl`, so its captions
+  stay English. Rust does manual date math; TS uses the built-in `Date`.
 - **date-time-picker:** the kit's own bricks only — an outline trigger, a
   `Popover` with the `Calendar` and two numeric 24-hour hours/minutes fields (no
   native `datetime-local` / `time` input, so the browser's locale popup never
   appears). Its ARIA and button strings are `labels` overrides with English
-  defaults — the nav buttons, the hours/minutes `aria-label`s, the clear button
-  and the popover's own accessible name (`labels.dialog`). TS formats the trigger label through `Intl` when `locale` is set,
+  defaults — the nav buttons, the hours/minutes `aria-label`s, the clear button,
+  the close button (`labels.close`, which keeps the value) and the popover's own
+  accessible name (`labels.dialog`). TS formats the trigger label through `Intl` when `locale` is set,
   else `YYYY-MM-DD HH:MM`; Rust has no `Intl`: the ISO-like label or the
   `format` callback, English month/weekday captions. The hidden form value is
   unix seconds in TS and `YYYY-MM-DDTHH:MM` in Rust (no zone there). The Rust
@@ -222,9 +228,19 @@ measuring needs host-only `web-sys`). Known gaps:
   onto an arbitrary child (no `Slot`), so it publishes them as a
   `FormControlContext` that `Input`/`Textarea` consume; wrap a bare element and
   you wire them yourself.
-- **resizable / carousel / drawer:** pointer-drag physics are TS-only (keyboard
-  in Rust for resizable; prev/next + keyboard for carousel; click-to-dismiss for
-  drawer). Embla momentum / vaul drag-to-dismiss are not reproduced.
+- **resizable / carousel:** pointer-drag physics are TS-only (keyboard in Rust
+  for resizable; prev/next + keyboard for carousel). Embla momentum is not
+  reproduced.
+- **drawer:** the Vaul-style enter/exit motion is shared by both ports via
+  `motion.css` (inlined into `tokens.css`), keyed on `data-slot` +
+  `data-vaul-drawer-direction` + `data-state`; the panel stays mounted on close
+  until its exit `transitionend`. Drag-to-dismiss (Vaul's pointer physics, from
+  any of the four edges; opt a region out with `data-vaul-no-drag`) is TS-only;
+  Rust dismisses on scrim click / Escape / `DrawerClose`. The panel is
+  `touch-action: none` so a touch never turns into a page pan, which also means
+  the panel itself must not scroll: the kit renders children inside a
+  `data-slot="drawer-body"` scroller (`overflow-y-auto`), so cap the sheet with
+  `max-h-*` on `DrawerContent` and let the body scroll by itself.
 - **sidebar:** the mobile-sheet integration, cookie persistence, and keyboard
   shortcut are omitted.
 - **brand chrome (header / footer / status pages):** TS routes links through an

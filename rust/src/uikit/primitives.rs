@@ -212,6 +212,33 @@ struct RovingItem {
 	el: Option<Rc<MountedData>>,
 }
 
+/// Whether a `transitionend` is the element's own exit `transform` finishing.
+///
+/// Every exiting overlay (toast, drawer) stays mounted with
+/// `data-state="closed"` until its slide-out transition ends, then drops the
+/// node. But `transitionend` bubbles, so the closing element also sees its
+/// descendants' — a button's 150ms `transition-colors`, a child's opacity fade —
+/// and dropping on those cuts the slide-out short. Mirrors the TS guard
+/// (`e.propertyName === "transform"`).
+///
+/// Dioxus 0.7's `TransitionData` exposes no `property_name` accessor, so the name
+/// is read off the concrete web event. Web-only: another renderer can't report it
+/// and falls through to accepting the event, which is at worst the unguarded
+/// behaviour — never a node stranded on screen.
+#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+pub(crate) fn is_transform_transition(e: &Event<TransitionData>) -> bool {
+	e.downcast::<web_sys::TransitionEvent>().is_none_or(|t| {
+		// transitionend bubbles: a descendant's own transform (a progress bar,
+		// a hovered button) must not pass for the node's exit
+		let own = t.target().is_some_and(|target| t.current_target().is_some_and(|current| current == target));
+		own && t.property_name() == "transform"
+	})
+}
+#[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
+pub(crate) fn is_transform_transition(_: &Event<TransitionData>) -> bool {
+	true
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;

@@ -70,22 +70,83 @@ describe("DateTimePicker", () => {
     expect(document.activeElement).toBe(btn);
   });
 
-  it("closes when focus tabs out of the popover and hands it back to the trigger", () => {
+  it("closes on Tab from the last control and hands focus back to the trigger", () => {
+    const { container, queryByRole } = render(
+      <DateTimePicker value={june(10, 9, 5)} today={TODAY} />,
+    );
+    const btn = trigger(container);
+    btn.focus();
+    fireEvent.click(btn);
+    // The content is the last child of <body>, so this Tab has no next element:
+    // it must close instead of dropping focus out of the document.
+    const close = slot(container, "close")!;
+    close.focus();
+    const tab = fireEvent.keyDown(close, { key: "Tab" });
+    expect(tab).toBe(false);
+    expect(btn).toHaveAttribute("aria-expanded", "false");
+    expect(document.activeElement).toBe(btn);
+    expect(document.querySelector("[data-slot=date-time-picker-content]")).toBeNull();
+    expect(queryByRole("dialog")).toBeNull();
+  });
+
+  it("closes on Shift+Tab from the first control and hands focus back to the trigger", () => {
+    const { container, getByLabelText } = render(
+      <DateTimePicker value={june(10, 9, 5)} today={TODAY} />,
+    );
+    const btn = trigger(container);
+    btn.focus();
+    fireEvent.click(btn);
+    const first = getByLabelText("Previous month");
+    first.focus();
+    const tab = fireEvent.keyDown(first, { key: "Tab", shiftKey: true });
+    expect(tab).toBe(false);
+    expect(btn).toHaveAttribute("aria-expanded", "false");
+    expect(document.activeElement).toBe(btn);
+    expect(document.querySelector("[data-slot=date-time-picker-content]")).toBeNull();
+  });
+
+  it("leaves Tab between the popover's own controls to the browser", () => {
     const { container } = render(<DateTimePicker value={june(10, 9, 5)} today={TODAY} />);
     const btn = trigger(container);
     btn.focus();
     fireEvent.click(btn);
+    const hours = slot(container, "hours")!;
+    expect(document.activeElement).toBe(hours);
+    // jsdom never moves focus on an un-prevented Tab, so only "not prevented"
+    // and "still open" are observable here.
+    expect(fireEvent.keyDown(hours, { key: "Tab" })).toBe(true);
+    expect(btn).toHaveAttribute("aria-expanded", "true");
+    // The calendar precedes the time row, so Shift+Tab from hours stays inside too.
+    expect(fireEvent.keyDown(hours, { key: "Tab", shiftKey: true })).toBe(true);
+    expect(btn).toHaveAttribute("aria-expanded", "true");
+    // "Clear" is second to last: the close button still follows it.
     const clear = slot(container, "clear")!;
     clear.focus();
-    // Moving between the dialog's own controls keeps it open.
-    fireEvent.blur(clear, { relatedTarget: slot(container, "minutes") });
+    expect(fireEvent.keyDown(clear, { key: "Tab" })).toBe(true);
     expect(btn).toHaveAttribute("aria-expanded", "true");
-    // The window losing focus is not the operator leaving.
-    fireEvent.blur(clear, { relatedTarget: null });
-    expect(btn).toHaveAttribute("aria-expanded", "true");
-    fireEvent.blur(clear, { relatedTarget: document.body });
-    expect(btn).toHaveAttribute("aria-expanded", "false");
-    expect(document.activeElement).toBe(btn);
+  });
+
+  it("closes when focus moves outside by pointer or script, but not when the window blurs", () => {
+    const outside = document.createElement("button");
+    document.body.appendChild(outside);
+    try {
+      const { container } = render(<DateTimePicker value={june(10, 9, 5)} today={TODAY} />);
+      const btn = trigger(container);
+      btn.focus();
+      fireEvent.click(btn);
+      const clear = slot(container, "clear")!;
+      clear.focus();
+      // Moving between the dialog's own controls keeps it open.
+      fireEvent.blur(clear, { relatedTarget: slot(container, "minutes") });
+      expect(btn).toHaveAttribute("aria-expanded", "true");
+      // Alt-tab: the window losing focus is not the operator leaving.
+      fireEvent.blur(clear, { relatedTarget: null });
+      expect(btn).toHaveAttribute("aria-expanded", "true");
+      fireEvent.blur(clear, { relatedTarget: outside });
+      expect(btn).toHaveAttribute("aria-expanded", "false");
+    } finally {
+      outside.remove();
+    }
   });
 
   it("selects the whole field on focus, so typing replaces rather than appends", () => {
@@ -190,6 +251,28 @@ describe("DateTimePicker", () => {
     expect(trigger(container)).toHaveAttribute("aria-expanded", "false");
   });
 
+  it("closes on the close button without touching the value", () => {
+    const onChange = vi.fn();
+    const onOpenChange = vi.fn();
+    const { container, getByLabelText } = render(
+      <DateTimePicker
+        defaultValue={june(10, 9, 5)}
+        onChange={onChange}
+        onOpenChange={onOpenChange}
+        today={TODAY}
+      />,
+    );
+    fireEvent.click(trigger(container));
+    const close = slot(container, "close")!;
+    expect(getByLabelText("Close")).toBe(close);
+    expect(close).toHaveAttribute("type", "button");
+    fireEvent.click(close);
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(trigger(container)).toHaveTextContent("2026-06-10 09:05");
+    expect(trigger(container)).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("lets `format` drive the trigger label", () => {
     const { container } = render(
       <DateTimePicker
@@ -256,6 +339,7 @@ describe("DateTimePicker", () => {
           minutes: "Минуты",
           clear: "Сбросить",
           dialog: "Выбор даты и времени",
+          close: "Закрыть",
         }}
         today={TODAY}
       />,
@@ -276,5 +360,7 @@ describe("DateTimePicker", () => {
     expect(getByLabelText("Минуты")).toBeDisabled();
     expect(slot(container, "clear")).toBeDisabled();
     expect(slot(container, "clear")).toHaveTextContent("Сбросить");
+    expect(getByLabelText("Закрыть")).toBe(slot(container, "close"));
+    expect(slot(container, "close")).toBeDisabled();
   });
 });

@@ -14,6 +14,10 @@ const MONTHS: [&str; 12] = [
 const WEEKDAYS: [&str; 7] = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 const CHEVRON_LEFT: &str = "m15 18-6-6 6-6";
 const CHEVRON_RIGHT: &str = "m9 18 6-6-6-6";
+/// Always six weeks: a popover host must not jump in height when the month
+/// changes, and six rows is the most any month needs with a Monday-first week
+/// (31 days starting on a Sunday).
+const GRID_CELLS: usize = 6 * 7;
 /// A calendar date as plain `(year, month 1-12, day 1-31)`. The kernel does its
 /// own date math (no `chrono`/`jiff`): `wasm32`-safe and dependency-free.
 ///
@@ -122,12 +126,10 @@ pub fn Calendar(
 
 	let lead = CalendarDate::first_weekday_monday0(current.year, current.month);
 	let total = CalendarDate::days_in_month(current.year, current.month);
-	// Pad leading blanks then the days, padded out to whole weeks of 7.
+	// Leading blanks, the days, then trailing blanks up to the fixed 42 cells.
 	let mut cells: Vec<Option<u32>> = (0..lead).map(|_| None).collect();
 	cells.extend((1..=total).map(Some));
-	while !cells.len().is_multiple_of(7) {
-		cells.push(None);
-	}
+	cells.resize(GRID_CELLS, None);
 	let weeks: Vec<Vec<Option<u32>>> = cells.chunks(7).map(<[Option<u32>]>::to_vec).collect();
 
 	let root = cn!(CALENDAR_ROOT, class);
@@ -403,6 +405,29 @@ mod tests {
 		assert!(html.contains("aria-label=\"Предыдущий месяц\""), "{html}");
 		assert!(html.contains("aria-label=\"Следующий месяц\""), "{html}");
 		assert!(!html.contains("Previous month"), "{html}");
+	}
+
+	#[test]
+	fn grid_always_renders_six_weeks() {
+		fn short_month() -> Element {
+			// 1 Feb 2027 is a Monday and the month has 28 days: exactly four
+			// weeks before the grid was fixed at six.
+			rsx! {
+				Calendar { default_month: CalendarDate::new(2027, 2, 1) }
+			}
+		}
+		fn long_month() -> Element {
+			// 1 Aug 2026 is a Saturday and the month has 31 days: six weeks.
+			rsx! {
+				Calendar { default_month: CalendarDate::new(2026, 8, 1) }
+			}
+		}
+		for (app, days) in [(short_month as fn() -> Element, 28usize), (long_month, 31)] {
+			let html = render(app);
+			assert_eq!(html.matches(CALENDAR_WEEK).count(), 6, "{html}");
+			assert_eq!(html.matches("role=\"gridcell\"").count(), days, "{html}");
+			assert_eq!(html.matches(CALENDAR_DAY_EMPTY).count(), GRID_CELLS - days, "{html}");
+		}
 	}
 
 	#[test]

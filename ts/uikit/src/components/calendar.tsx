@@ -92,11 +92,24 @@ function outOfRange(day: Date, min: Date | undefined, max: Date | undefined): bo
 // Intl reads the weekday off the reference date; 2024-01-01 is a Monday.
 const MONDAY = new Date(2024, 0, 1);
 
-function localisedWeekdays(locale: string): string[] {
-  const fmt = new Intl.DateTimeFormat(locale, { weekday: "short" });
+function formatWeekdays(locale: string, weekday: "short" | "narrow"): string[] {
+  const fmt = new Intl.DateTimeFormat(locale, { weekday });
   return Array.from({ length: 7 }, (_, i) =>
     fmt.format(new Date(MONDAY.getFullYear(), MONDAY.getMonth(), MONDAY.getDate() + i)),
   );
+}
+
+// `short` is what every locale wants, except where CLDR spells it as two words
+// ("Thứ 2" in Chrome/CLDR, "Th 2" in Node ICU 76 — vi either way) and the fixed
+// 36px column wraps it onto a second line. There the `narrow` form ("T2") is
+// used, but only while it still tells the days apart: en/ru/de/fr narrow
+// collapses to repeated single letters, and a locale like that keeps `short`
+// (which `whitespace-nowrap` on the header cell holds on one line anyway).
+function localisedWeekdays(locale: string): string[] {
+  const short = formatWeekdays(locale, "short");
+  if (!short.some(label => /\s/.test(label))) return short;
+  const narrow = formatWeekdays(locale, "narrow");
+  return new Set(narrow).size === narrow.length ? narrow : short;
 }
 
 export interface CalendarProps {
@@ -176,11 +189,14 @@ export function Calendar({
   const lead = mondayIndex(view);
   const total = new Date(year, monthIndex + 1, 0).getDate();
 
-  // Pad leading blanks then the days, padded out to whole weeks of 7.
+  // Pad leading blanks then the days, then pad out to a fixed 6 weeks (42
+  // cells): 6 rows is the most any month needs with a Monday-first week, and a
+  // constant row count keeps the popover height from jumping as the user
+  // flips months. Mirrors Rust.
   const cells: (number | null)[] = [];
   for (let i = 0; i < lead; i += 1) cells.push(null);
   for (let day = 1; day <= total; day += 1) cells.push(day);
-  while (cells.length % 7 !== 0) cells.push(null);
+  while (cells.length < 42) cells.push(null);
 
   const weeks: (number | null)[][] = [];
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));

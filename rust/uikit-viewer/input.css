@@ -1,8 +1,15 @@
 @import "tailwindcss";
+/* enter/exit utilities (animate-in, zoom-in-95, fade-out-0, …) for the overlay
+   components — not core Tailwind. The toaster ships its own keyframes in
+   tokens.css, so it animates without this. */
+@import "tw-animate-css";
 /* the kit's theme contract (dark palette + @theme tokens + toast keyframes) */
 @import "../../tokens.css";
 
-/* the kit's class strings live as string literals in the Rust sources, plus this
-   viewer's own RSX — scan both so Tailwind generates the utilities they use */
+/* the kit's class strings live as string literals in the Dioxus-free `classes`
+   crate (the single source the components consume), a few more in the uikit
+   components themselves, plus this viewer's own RSX — scan all three so
+   Tailwind generates the utilities they use */
+@source "../classes/src";
 @source "../src/uikit";
 @source "./src";
