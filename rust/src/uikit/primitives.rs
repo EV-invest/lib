@@ -227,7 +227,12 @@ struct RovingItem {
 /// behaviour — never a node stranded on screen.
 #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
 pub(crate) fn is_transform_transition(e: &Event<TransitionData>) -> bool {
-	e.downcast::<web_sys::TransitionEvent>().is_none_or(|t| t.property_name() == "transform")
+	e.downcast::<web_sys::TransitionEvent>().is_none_or(|t| {
+		// transitionend bubbles: a descendant's own transform (a progress bar,
+		// a hovered button) must not pass for the node's exit
+		let own = t.target().is_some_and(|target| t.current_target().is_some_and(|current| current == target));
+		own && t.property_name() == "transform"
+	})
 }
 #[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
 pub(crate) fn is_transform_transition(_: &Event<TransitionData>) -> bool {

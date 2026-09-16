@@ -232,21 +232,31 @@ function useDrawerDrag(opts: {
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const panel = panelRef.current;
-    if (!panel || e.button > 0 || !open) return;
-    if ((e.target as HTMLElement).closest('[data-slot="drawer-close"]')) return;
+    // one gesture at a time: a second finger must not reset the first one's
+    // state and leave the panel stranded mid-drag
+    if (!panel || e.button > 0 || !open || dragRef.current) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-slot="drawer-close"]')) return;
+    // React bubbles portal events (a Select's listbox, a Popover) through the
+    // tree; a drag can only start from the panel's own DOM
+    if (!panel.contains(target)) return;
     const rect = panel.getBoundingClientRect();
     dragRef.current = {
       pointerId: e.pointerId,
-      target: e.target,
+      target,
       start: axisPos(e),
       time: Date.now(),
       size: isVertical(direction) ? rect.height : rect.width,
       allowed: null,
       delta: 0,
     };
-    // no preventDefault: inputs inside the sheet must still focus on tap
+    // Capture on the element under the finger, not the panel (Vaul does the
+    // same): a click's target is the common ancestor of pointerdown and
+    // pointerup, so capturing on the panel would steal every click from the
+    // buttons and links inside. No preventDefault either — inputs inside the
+    // sheet must still focus on tap.
     try {
-      panel.setPointerCapture?.(e.pointerId);
+      target.setPointerCapture?.(e.pointerId);
     } catch {
       // jsdom / unsupported — capture is a nice-to-have, the drag works without it
     }
@@ -283,13 +293,13 @@ function useDrawerDrag(opts: {
   // data-dragging cleared in the same frame, the restored transition carries
   // the panel from wherever the finger left it — home on a snap-back, or (with
   // data-state=closed committed by `onClose` in the same frame) straight off.
-  const endGesture = (cancelled: boolean) => {
+  const endGesture = (e: React.PointerEvent<HTMLDivElement>, cancelled: boolean) => {
     const drag = dragRef.current;
     const panel = panelRef.current;
-    if (!drag || !panel) return;
+    if (!drag || !panel || e.pointerId !== drag.pointerId) return;
     dragRef.current = null;
     try {
-      panel.releasePointerCapture?.(drag.pointerId);
+      (drag.target as HTMLElement).releasePointerCapture?.(drag.pointerId);
     } catch {
       // jsdom / unsupported
     }
@@ -312,8 +322,8 @@ function useDrawerDrag(opts: {
   return {
     onPointerDown,
     onPointerMove,
-    onPointerUp: () => endGesture(false),
-    onPointerCancel: () => endGesture(true),
+    onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => endGesture(e, false),
+    onPointerCancel: (e: React.PointerEvent<HTMLDivElement>) => endGesture(e, true),
   };
 }
 

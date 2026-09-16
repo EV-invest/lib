@@ -37,9 +37,10 @@ const scrim = () => document.querySelector('[data-slot="drawer-overlay"]');
 function firePointer(
   el: HTMLElement,
   type: "pointerDown" | "pointerMove" | "pointerUp" | "pointerCancel",
-  pos: { x?: number; y?: number },
+  pos: { x?: number; y?: number; id?: number },
 ) {
-  const event = createEvent[type](el, { button: 0, pointerId: 1 });
+  const event = createEvent[type](el, { button: 0 });
+  Object.defineProperty(event, "pointerId", { value: pos.id ?? 1 });
   Object.defineProperty(event, "clientX", { value: pos.x ?? 0 });
   Object.defineProperty(event, "clientY", { value: pos.y ?? 0 });
   fireEvent(el, event);
@@ -313,6 +314,53 @@ describe("Drawer", () => {
     expect(panel).not.toHaveAttribute("data-dragging");
     firePointer(panel, "pointerUp", { y: 300 });
     expect(panel).toHaveAttribute("data-state", "open");
+  });
+
+  // A click's target is the common ancestor of pointerdown and pointerup; had
+  // the panel captured the pointer, every pointerup would land on it and no
+  // button inside the sheet could ever be clicked.
+  it("captures the pointer on the pressed element, not the panel", () => {
+    const { panel } = openForDrag({}, <button data-testid="inner">Inner</button>);
+    const inner = screen.getByTestId("inner");
+    const onInner = vi.fn();
+    const onPanel = vi.fn();
+    (inner as HTMLElement & { setPointerCapture: unknown }).setPointerCapture = onInner;
+    (panel as HTMLElement & { setPointerCapture: unknown }).setPointerCapture = onPanel;
+    firePointer(inner, "pointerDown", { y: 100 });
+    expect(onInner).toHaveBeenCalledWith(1);
+    expect(onPanel).not.toHaveBeenCalled();
+  });
+
+  it("ignores a second pointer while a gesture is in flight", () => {
+    const { panel } = openForDrag();
+    firePointer(panel, "pointerDown", { y: 100 });
+    firePointer(panel, "pointerMove", { y: 150 });
+    expect(panel.style.transform).toBe("translate3d(0, 50px, 0)");
+    // second finger: down + up without moving must not reset the first gesture
+    firePointer(panel, "pointerDown", { y: 300, id: 2 });
+    firePointer(panel, "pointerUp", { y: 300, id: 2 });
+    expect(panel).toHaveAttribute("data-dragging", "true");
+    expect(panel.style.transform).toBe("translate3d(0, 50px, 0)");
+    firePointer(panel, "pointerUp", { y: 150 });
+    expect(panel).not.toHaveAttribute("data-dragging");
+  });
+
+  // React bubbles events from a portal (a Select's listbox rendered under
+  // document.body) through the component tree, so the panel's handlers see
+  // pointers that never touched its DOM.
+  it("does not start a drag from a portaled child", () => {
+    const { panel } = openForDrag();
+    const outside = document.createElement("div");
+    document.body.appendChild(outside);
+    const down = createEvent.pointerDown(panel, { button: 0 });
+    Object.defineProperty(down, "pointerId", { value: 1 });
+    Object.defineProperty(down, "target", { value: outside });
+    Object.defineProperty(down, "clientY", { value: 100 });
+    fireEvent(panel, down);
+    firePointer(panel, "pointerMove", { y: 300 });
+    expect(panel).not.toHaveAttribute("data-dragging");
+    expect(panel.style.transform).toBe("");
+    outside.remove();
   });
 
   it("locks body scroll while open and restores it on close", () => {
