@@ -819,7 +819,7 @@ text-ink-soft ml-auto text-xs tracking-widest
 text-ink-soft mt-4 text-sm
 text-ink-soft pointer-events-none size-4 shrink-0 translate-y-0.5 transition-transform duration-200
 text-ink-soft px-2 py-1.5 text-xs
-text-ink-soft rounded-md w-9 shrink-0 font-normal text-[0.8rem] select-none
+text-ink-soft rounded-md w-9 shrink-0 font-normal text-[0.8rem] select-none whitespace-nowrap
 text-ink-soft select-none
 text-ink-soft text-sm
 text-ink-soft text-sm leading-normal font-normal group-has-[[data-orientation=horizontal]]/field:text-balance last:mt-0 nth-last-2:-mt-1 [[data-variant=legend]+&]:-mt-1.5 [&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4

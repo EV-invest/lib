@@ -14,8 +14,9 @@ pub const CALENDAR_WEEKDAY_ROW: &str = "flex";
 
 // Columns are a fixed 36px (`size-9`) so the width never depends on the
 // locale's weekday labels; the height is fixed by the six-week grid both
-// components always render.
-pub const CALENDAR_WEEKDAY: &str = "text-ink-soft rounded-md w-9 shrink-0 font-normal text-[0.8rem] select-none";
+// components always render. `whitespace-nowrap` keeps the header row one line
+// tall even if a locale's label ever carries a space (lib#122).
+pub const CALENDAR_WEEKDAY: &str = "text-ink-soft rounded-md w-9 shrink-0 font-normal text-[0.8rem] select-none whitespace-nowrap";
 
 pub const CALENDAR_WEEK: &str = "flex w-full mt-2";
 

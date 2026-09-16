@@ -12,7 +12,7 @@ export const CALENDAR_GRID = "w-full border-collapse mt-4";
 
 export const CALENDAR_WEEKDAY_ROW = "flex";
 
-export const CALENDAR_WEEKDAY = "text-ink-soft rounded-md w-9 shrink-0 font-normal text-[0.8rem] select-none";
+export const CALENDAR_WEEKDAY = "text-ink-soft rounded-md w-9 shrink-0 font-normal text-[0.8rem] select-none whitespace-nowrap";
 
 export const CALENDAR_WEEK = "flex w-full mt-2";
 
