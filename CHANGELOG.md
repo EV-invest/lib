@@ -33,6 +33,20 @@ Rust crate and its TypeScript mirror at once.
   was insulated only by its `^0.9.0` pin and hit it the moment that moved. The
   `dioxus?/asset` feature comes back with it; that is what puts `asset!` in
   scope. It stays here until there is somewhere for it to go.
+- **`uikit` overlays scroll with the page and get their exit animation back**
+  (`@evinvest/uikit`). `useFloating` moves from `position: fixed` plus a
+  scroll-driven React state — always a frame or two behind the compositor — to
+  `position: absolute` at the containing block's origin, moved with the CSS
+  `translate` property written straight to the DOM. A document scroll carries
+  the overlay natively; the side is chosen on open and resize, never on scroll.
+  Sizes come from the layout box, not the rect the `zoom-in-95` enter animation
+  reports scaled on its first frame. `usePresence` defers unmount to the end
+  of the exit animation again; the flicker that made `0.1.2` drop it was the
+  `fill-mode: none` snap-back frame, now skipped by unmounting synchronously
+  (`flushSync`) inside `animationend`. The `Calendar` paints no background of
+  its own, always renders six 36px-cell weeks (the popover never changes size
+  with the month or the locale's weekday labels), and the `DateTimePicker`
+  grows a close button (`labels.close`) beside Clear, both ports.
 
 ### Changed
 
