@@ -5,6 +5,8 @@ import { useFloating, type Side } from "../src/primitives/use-floating";
 
 const OFFSET = 4;
 const FLOATING = { width: 200, height: 100 };
+// jsdom's viewport.
+const VIEWPORT = { width: 1024, height: 768 };
 
 // Viewport-relative anchor box, mutated by the tests to simulate scrolling.
 const anchor = { top: 100, left: 300, width: 80, height: 40 };
@@ -21,6 +23,12 @@ function rect(top: number, left: number, width: number, height: number): DOMRect
     y: top,
     toJSON: () => ({}),
   };
+}
+
+// The hook moves the box with `translate: <x>px <y>px`, never `top`/`left`.
+function offset(el: HTMLElement): { x: number; y: number } {
+  const [x, y] = el.style.getPropertyValue("translate").split(" ").map(v => parseInt(v, 10));
+  return { x: x ?? NaN, y: y ?? NaN };
 }
 
 function Harness({ side = "bottom" }: { side?: Side }) {
@@ -53,9 +61,10 @@ function scrollDocumentBy(dy: number) {
   window.dispatchEvent(new Event("scroll"));
 }
 
-function scrollNestedBy(dy: number) {
+function scrollNestedBy(dy: number, dx = 0) {
   // A nested scroll container moves the anchor without touching `scrollY`.
   anchor.top -= dy;
+  anchor.left -= dx;
   window.dispatchEvent(new Event("scroll"));
 }
 
@@ -88,50 +97,54 @@ describe("useFloating", () => {
     Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
   });
 
-  it("positions absolutely in document coordinates below the anchor", () => {
+  it("positions absolutely at the origin and translates into document coordinates", () => {
     scroll = { x: 0, y: 250 };
     const { getByTestId } = render(<Harness />);
     const floating = getByTestId("floating");
     expect(floating.style.position).toBe("absolute");
+    expect(floating.style.top).toBe("0px");
+    expect(floating.style.left).toBe("0px");
     expect(floating).toHaveAttribute("data-side", "bottom");
-    expect(floating.style.top).toBe(`${anchor.top + anchor.height + scroll.y + OFFSET}px`);
-    // Centre-aligned: anchor centre minus half the floating width.
-    expect(floating.style.left).toBe(`${anchor.left + anchor.width / 2 - FLOATING.width / 2}px`);
+    expect(offset(floating)).toEqual({
+      // Centre-aligned: anchor centre minus half the floating width.
+      x: anchor.left + anchor.width / 2 - FLOATING.width / 2,
+      y: anchor.top + anchor.height + scroll.y + OFFSET,
+    });
   });
 
   it("keeps the same coordinates on a document scroll (page moves it natively)", () => {
     const { getByTestId } = render(<Harness />);
     const floating = getByTestId("floating");
-    const before = floating.style.top;
+    const before = offset(floating);
     scrollDocumentBy(100);
-    expect(floating.style.top).toBe(before);
+    expect(offset(floating)).toEqual(before);
   });
 
   it("follows the anchor on a nested scroll", () => {
     const { getByTestId } = render(<Harness />);
     const floating = getByTestId("floating");
-    const before = parseInt(floating.style.top, 10);
+    const before = offset(floating);
     scrollNestedBy(100);
-    expect(parseInt(floating.style.top, 10)).toBe(before - 100);
+    expect(offset(floating)).toEqual({ x: before.x, y: before.y - 100 });
   });
 
   it("flips to the top when the anchor sits at the viewport bottom, and keeps the side on scroll", () => {
-    // jsdom's viewport is 1024x768: no room for 100px below, plenty above.
-    Object.assign(anchor, { top: 700, height: 40 });
+    // No room for 100px below the anchor, plenty above.
+    Object.assign(anchor, { top: VIEWPORT.height - 68, height: 40 });
     const { getByTestId } = render(<Harness />);
     const floating = getByTestId("floating");
     expect(floating).toHaveAttribute("data-side", "top");
-    expect(floating.style.top).toBe(`${anchor.top - OFFSET - FLOATING.height}px`);
+    expect(offset(floating).y).toBe(anchor.top - OFFSET - FLOATING.height);
 
     // Scrolling the anchor back into the middle would allow "bottom" again,
     // but the side is only revisited on a full placement, never on scroll.
     act(() => scrollNestedBy(400));
     expect(floating).toHaveAttribute("data-side", "top");
-    expect(floating.style.top).toBe(`${anchor.top - OFFSET - FLOATING.height}px`);
+    expect(offset(floating).y).toBe(anchor.top - OFFSET - FLOATING.height);
   });
 
   it("re-runs the full placement on window resize", () => {
-    Object.assign(anchor, { top: 700, height: 40 });
+    Object.assign(anchor, { top: VIEWPORT.height - 68, height: 40 });
     const { getByTestId } = render(<Harness />);
     const floating = getByTestId("floating");
     expect(floating).toHaveAttribute("data-side", "top");
@@ -142,7 +155,29 @@ describe("useFloating", () => {
     expect(floating).toHaveAttribute("data-side", "bottom");
   });
 
-  it("does not reach into React state for top/left (style prop is stable)", () => {
+  it("keeps the viewport clamp shift chosen at placement while scrolling", () => {
+    // Centred under this anchor the box would end at 1040: clamped 20px left.
+    Object.assign(anchor, { left: VIEWPORT.width - 100, width: 80 });
+    const ideal = anchor.left + anchor.width / 2 - FLOATING.width / 2;
+    const clamped = VIEWPORT.width - FLOATING.width - OFFSET;
+    const { getByTestId } = render(<Harness />);
+    const floating = getByTestId("floating");
+    expect(offset(floating).x).toBe(clamped);
+
+    // A nested scroll re-derives from the anchor with the same shift: no jump.
+    scrollNestedBy(0, 50);
+    expect(offset(floating).x).toBe(ideal - 50 + (clamped - ideal));
+  });
+
+  it("never lets a nested scroll push the box past the document's edges", () => {
+    const { getByTestId } = render(<Harness />);
+    const floating = getByTestId("floating");
+    // The anchor is scrolled far right and up, out of its container.
+    scrollNestedBy(500, -2000);
+    expect(offset(floating)).toEqual({ x: VIEWPORT.width - FLOATING.width, y: 0 });
+  });
+
+  it("does not reach into React state for the offset (style prop is stable)", () => {
     const seen: React.CSSProperties[] = [];
     function Probe() {
       const anchorRef = React.useRef<HTMLButtonElement>(null);
@@ -159,6 +194,6 @@ describe("useFloating", () => {
     rerender(<Probe />);
     expect(seen.length).toBeGreaterThanOrEqual(2);
     expect(new Set(seen).size).toBe(1);
-    expect(seen[0]).toEqual({ position: "absolute" });
+    expect(seen[0]).toEqual({ position: "absolute", top: 0, left: 0 });
   });
 });

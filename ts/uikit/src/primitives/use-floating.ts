@@ -10,9 +10,15 @@ export interface FloatingResult {
   align: Align;
 }
 
-// `top`/`left` never go through React: `update()` writes them straight to the
-// element, so the style prop stays one frozen object and never re-renders.
-const ABSOLUTE: React.CSSProperties = Object.freeze({ position: "absolute" });
+// The element sits at its containing block's origin and is moved with the
+// `translate` property, never with `top`/`left`: an absolute box's
+// shrink-to-fit width is "containing block minus `left`", so a `w-fit` surface
+// pushed past the viewport's right edge (horizontal scroll, a nested scroller)
+// would collapse to one word per line. `translate` composes with `transform`,
+// so the enter animations (which animate `transform`) are unaffected. The
+// offset never goes through React: `place()` / `sync()` write it straight to
+// the element, so this style prop stays one frozen object.
+const ABSOLUTE: React.CSSProperties = Object.freeze({ position: "absolute", top: 0, left: 0 });
 
 const POSITIONED = new Set(["relative", "absolute", "fixed", "sticky"]);
 
@@ -25,7 +31,7 @@ function toContainingBlock(
   floating: HTMLElement,
   x: number,
   y: number,
-): { x: number; y: number } {
+): { x: number; y: number; root: boolean } {
   const parent = floating.offsetParent;
   const doc = floating.ownerDocument;
   const root = parent === doc.body || parent === doc.documentElement || parent === null;
@@ -36,12 +42,13 @@ function toContainingBlock(
     (!root || POSITIONED.has(doc.defaultView?.getComputedStyle(parent).position ?? ""));
   if (!positioned) {
     const win = doc.defaultView;
-    return { x: x + (win?.scrollX ?? 0), y: y + (win?.scrollY ?? 0) };
+    return { x: x + (win?.scrollX ?? 0), y: y + (win?.scrollY ?? 0), root: true };
   }
   const p = parent.getBoundingClientRect();
   return {
     x: x - p.left - parent.clientLeft + parent.scrollLeft,
     y: y - p.top - parent.clientTop + parent.scrollTop,
+    root: false,
   };
 }
 
@@ -87,6 +94,9 @@ function viewport(): { vw: number; vh: number } {
  * numbers and is a no-op — so the overlay never lags behind the compositor.
  * Only a nested scroll container changes the coordinates, and there a frame
  * of lag is acceptable. The side is never revisited on scroll: no jumping.
+ * A page that scrolls `body` instead of the document (`html { overflow:
+ * hidden } body { overflow: auto }`) is such a nested scroller: correct, but
+ * with the frame of lag the `fixed` strategy had.
  *
  * Rust's overlays use CSS-only placement (`data-side`) and do not measure; see
  * the README "Limitations".
@@ -135,10 +145,19 @@ export function useFloating(opts: {
       return { top, left };
     }
 
-    function write(floating: HTMLElement, top: number, left: number) {
+    // `contain` keeps the box inside the initial containing block: a box past
+    // the document's edge grows the page (a scrollbar shows for as long as the
+    // overlay is open). `place()` already clamps against the viewport;
+    // `sync()` follows a nested scroller's anchor and only needs this bound.
+    function write(floating: HTMLElement, f: Size2D, top: number, left: number, contain: boolean) {
       const p = toContainingBlock(floating, left, top);
-      floating.style.top = `${Math.round(p.y)}px`;
-      floating.style.left = `${Math.round(p.x)}px`;
+      let { x, y } = p;
+      if (contain && p.root) {
+        const icbWidth = floating.ownerDocument.documentElement.clientWidth || window.innerWidth;
+        x = Math.max(0, Math.min(x, icbWidth - f.width));
+        y = Math.max(0, y);
+      }
+      floating.style.translate = `${Math.round(x)}px ${Math.round(y)}px`;
     }
 
     function place() {
@@ -169,7 +188,7 @@ export function useFloating(opts: {
         shiftX: clampedLeft - left,
         shiftY: clampedTop - top,
       };
-      write(floating, clampedTop, clampedLeft);
+      write(floating, f, clampedTop, clampedLeft, false);
       // Only a real change may re-render: this runs on every resize tick.
       setPlacedSide(prev => (prev === placed ? prev : placed));
     }
@@ -183,7 +202,7 @@ export function useFloating(opts: {
       const f = layoutSize(floating);
       const { side: placed, shiftX, shiftY } = placement.current;
       const { top, left } = ideal(a, f, placed);
-      write(floating, top + shiftY, left + shiftX);
+      write(floating, f, top + shiftY, left + shiftX, true);
     }
 
     place();
