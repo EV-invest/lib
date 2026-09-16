@@ -1,15 +1,26 @@
+//! Drawer — the Vaul-style edge sheet.
+//!
+//! Motion is the shared `motion.css` contract, keyed on `data-slot` +
+//! `data-vaul-drawer-direction` + `data-state` (no tw-animate-css): the enter
+//! is a keyframe that plays on insertion, and closing flips
+//! `data-state="closed"`, which transitions the panel off-screen and fades the
+//! scrim. The panel therefore stays mounted after `open` turns false and is
+//! dropped on its exit `transform`'s `transitionend` — the same host-timer-free
+//! presence the toast uses. Drag-to-dismiss (pointer physics) is TS-only; see
+//! the README "Limitations".
+
 use dioxus::prelude::*;
 
 use crate::{
 	cn,
 	uikit::{
-		DRAWER_CONTENT_BASE, DRAWER_DESCRIPTION, DRAWER_FOOTER, DRAWER_HANDLE, DRAWER_HEADER, DRAWER_OVERLAY, DRAWER_TITLE, DrawerDirection,
-		primitives::{Controllable, use_controllable},
+		DRAWER_BODY, DRAWER_CONTENT_BASE, DRAWER_DESCRIPTION, DRAWER_FOOTER, DRAWER_HANDLE, DRAWER_HEADER, DRAWER_OVERLAY, DRAWER_TITLE, DrawerDirection,
+		primitives::{Controllable, is_transform_transition, use_controllable},
 	},
 };
 
-// dep-light: inline positioning + backdrop; no portal/floating/drag — see README Limitations
-// drag-to-dismiss: omitted vs vaul — see README Limitations
+// dep-light: inline positioning + backdrop; no portal/floating — see README Limitations
+// drag-to-dismiss: TS-only pointer physics; the enter/exit motion itself is shared via motion.css
 
 #[component]
 pub fn Drawer(
@@ -38,6 +49,9 @@ pub fn DrawerTrigger(#[props(default)] class: String, children: Element) -> Elem
 		}
 	}
 }
+/// Standalone scrim, redundant with the one [`DrawerContent`] renders (as in
+/// shadcn). Mounted only while open; the animated exit lives on the content's
+/// own scrim.
 #[component]
 pub fn DrawerOverlay(#[props(default)] class: String) -> Element {
 	let ctx = use_context::<DrawerCtx>();
@@ -54,35 +68,66 @@ pub fn DrawerOverlay(#[props(default)] class: String) -> Element {
 		}
 	}
 }
+/// The panel plus its scrim. Presence outlives `open`: once it turns false the
+/// panel flips to `data-state="closed"` and is unmounted when its exit
+/// `transform` transition ends. Re-opening mid-exit just flips the state back
+/// and the same transition carries the panel home.
 #[component]
 pub fn DrawerContent(#[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<DrawerCtx>();
-	if !ctx.open.get() {
+	// Seeded from `open` so a drawer that starts open is in the server-rendered
+	// markup — the effect below never runs under SSR.
+	let mut present = use_signal(|| ctx.open.get());
+	let mut closing = use_signal(|| false);
+	use_effect(move || {
+		let open = ctx.open.get();
+		// `peek` + equality guards: the effect must not subscribe to (or loop on)
+		// its own writes.
+		if open {
+			if !*present.peek() {
+				present.set(true);
+			}
+			if *closing.peek() {
+				closing.set(false);
+			}
+		} else if *present.peek() && !*closing.peek() {
+			closing.set(true);
+		}
+	});
+	if !present() {
 		return rsx! {};
 	}
+	let state = if closing() { "closed" } else { "open" };
 	let direction = ctx.direction;
 	let cls = cn!(DRAWER_CONTENT_BASE, direction.as_class(), class);
 	rsx! {
 		div {
 			class: DRAWER_OVERLAY,
 			"data-slot": "drawer-overlay",
+			"data-state": state,
 			onclick: move |_| ctx.open.set(false),
 		}
 		div {
 			role: "dialog",
 			class: cls,
 			"data-slot": "drawer-content",
-			"data-state": "open",
+			"data-state": state,
 			"data-vaul-drawer-direction": direction.as_ref(),
 			onkeydown: move |e| {
 				if e.key() == Key::Escape {
 					ctx.open.set(false);
 				}
 			},
+			ontransitionend: move |e| {
+				if *closing.peek() && is_transform_transition(&e) {
+					present.set(false);
+					closing.set(false);
+				}
+			},
 			if direction == DrawerDirection::Bottom {
 				div { class: DRAWER_HANDLE, "data-slot": "drawer-handle" }
 			}
-			{children}
+			div { class: DRAWER_BODY, "data-slot": "drawer-body", {children} }
 		}
 	}
 }
@@ -183,5 +228,32 @@ mod tests {
 		}
 		let html = render(app);
 		assert!(html.contains("data-slot=\"drawer-overlay\""), "{html}");
+	}
+
+	// `data-state="open"` is what arms the motion.css enter on both nodes.
+	#[test]
+	fn open_arms_motion_state_on_panel_and_scrim() {
+		fn app() -> Element {
+			rsx! {
+				Drawer { default_open: true,
+					DrawerContent { "body" }
+				}
+			}
+		}
+		let html = render(app);
+		// The whole opening tag around a `data-slot` marker, whatever the
+		// attribute order.
+		let opening_tag = |slot: &str| {
+			let at = html.find(slot).unwrap_or_else(|| panic!("{slot} rendered: {html}"));
+			let start = html[..at].rfind('<').expect("tag start");
+			let end = at + html[at..].find('>').expect("tag end");
+			&html[start..end]
+		};
+		let scrim_tag = opening_tag("data-slot=\"drawer-overlay\"");
+		let panel_tag = opening_tag("data-slot=\"drawer-content\"");
+		assert!(scrim_tag.contains("data-state=\"open\""), "scrim: {scrim_tag}");
+		assert!(panel_tag.contains("data-state=\"open\""), "panel: {panel_tag}");
+		assert!(html.contains("data-slot=\"drawer-handle\""), "handle visible for bottom: {html}");
+		assert!(html.contains("data-slot=\"drawer-body\""), "children wrapped in the scroller: {html}");
 	}
 }

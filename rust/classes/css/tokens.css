@@ -37,7 +37,7 @@
  */
 
 /*
- * Toast (sonner) enter/exit motion, shared by both ports. Imported by the token
+ * Toast (sonner) and Drawer enter/exit motion, shared by both ports. Imported by the token
  * sheets so the lifecycle ships with the theme contract.
  */
 
@@ -206,6 +206,140 @@
     animation:
       ev-toast-fade-in 200ms,
       ev-toast-life var(--life) linear;
+  }
+}
+
+/* ── Drawer (Vaul-style) motion, shared by both ports via data-slot ──────────
+   Both ports render the panel as [data-slot="drawer-content"] with
+   data-vaul-drawer-direction + data-state, and the scrim as
+   [data-slot="drawer-overlay"] with data-state. The enter is a keyframe (plays
+   on DOM insertion — no JS mount flip, same reason as the toast above) on the
+   independent `translate` property, so it composes with the `transform` the
+   React port writes while a finger drags the panel. Closing flips
+   data-state=closed: `transform` transitions to the off-screen edge and the
+   node is dropped on that transitionend. A drag sets data-dragging on the panel
+   and the scrim to kill their transitions for 1:1 finger tracking, then clears
+   it on release so the same transition either snaps the panel home or (with
+   data-state=closed in the same frame) carries it off from where the finger
+   left it. Timing is Vaul's: 500ms cubic-bezier(0.32, 0.72, 0, 1) both ways.
+
+   touch-action:none on the panel keeps the browser from turning a touch into a
+   page pan (which would pointercancel the drag). It does NOT reach into a
+   scroll container nested in the panel — that one keeps native touch scrolling,
+   and the React port only starts a drag from it when it sits at its top. So
+   the scrollable region of a drawer belongs INSIDE the panel, not on it. */
+
+[data-slot="drawer-content"] {
+  --ev-drawer-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  touch-action: none;
+  will-change: transform;
+  transition: transform 500ms var(--ev-drawer-ease);
+  animation: ev-drawer-enter 500ms var(--ev-drawer-ease) backwards;
+}
+[data-slot="drawer-content"][data-vaul-drawer-direction="bottom"] {
+  --ev-drawer-from: 0 100%;
+  --ev-drawer-out: translate3d(0, 100%, 0);
+}
+[data-slot="drawer-content"][data-vaul-drawer-direction="top"] {
+  --ev-drawer-from: 0 -100%;
+  --ev-drawer-out: translate3d(0, -100%, 0);
+}
+[data-slot="drawer-content"][data-vaul-drawer-direction="left"] {
+  --ev-drawer-from: -100% 0;
+  --ev-drawer-out: translate3d(-100%, 0, 0);
+}
+[data-slot="drawer-content"][data-vaul-drawer-direction="right"] {
+  --ev-drawer-from: 100% 0;
+  --ev-drawer-out: translate3d(100%, 0, 0);
+}
+@keyframes ev-drawer-enter {
+  from {
+    translate: var(--ev-drawer-from, 0 100%);
+  }
+  to {
+    translate: 0 0;
+  }
+}
+[data-slot="drawer-content"][data-state="closed"] {
+  transform: var(--ev-drawer-out, translate3d(0, 100%, 0));
+}
+
+/* the over-drag away from the edge is dampened but still moves the panel, so
+   the panel's own background extends past its docked edge to cover the gap */
+[data-slot="drawer-content"]::after {
+  content: "";
+  position: absolute;
+  background: inherit;
+  pointer-events: none;
+}
+[data-slot="drawer-content"][data-vaul-drawer-direction="bottom"]::after {
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 200%;
+}
+[data-slot="drawer-content"][data-vaul-drawer-direction="top"]::after {
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  height: 200%;
+}
+[data-slot="drawer-content"][data-vaul-drawer-direction="left"]::after {
+  right: 100%;
+  top: 0;
+  bottom: 0;
+  width: 200%;
+}
+[data-slot="drawer-content"][data-vaul-drawer-direction="right"]::after {
+  left: 100%;
+  top: 0;
+  bottom: 0;
+  width: 200%;
+}
+
+[data-slot="drawer-overlay"] {
+  touch-action: none;
+  will-change: opacity;
+  transition: opacity 500ms cubic-bezier(0.32, 0.72, 0, 1);
+  animation: ev-drawer-fade-in 500ms cubic-bezier(0.32, 0.72, 0, 1) backwards;
+}
+@keyframes ev-drawer-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+[data-slot="drawer-overlay"][data-state="closed"] {
+  opacity: 0;
+}
+
+/* 1:1 finger tracking during a drag — kill the transitions */
+[data-slot="drawer-content"][data-dragging="true"],
+[data-slot="drawer-overlay"][data-dragging="true"] {
+  transition: none;
+}
+
+/* a mouse drag would otherwise start a text selection alongside the panel */
+@media (hover: hover) and (pointer: fine) {
+  [data-slot="drawer-content"] {
+    user-select: none;
+  }
+}
+
+/* reduced motion: fade only. The transform transition stays (1ms) so its
+   transitionend still fires and the closing node is still dropped. */
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="drawer-content"] {
+    transition:
+      transform 1ms linear,
+      opacity 200ms;
+    animation: ev-drawer-fade-in 200ms;
+  }
+  [data-slot="drawer-content"][data-state="closed"] {
+    opacity: 0;
+  }
+  [data-slot="drawer-overlay"] {
+    transition: opacity 200ms;
+    animation: ev-drawer-fade-in 200ms;
   }
 }
 
