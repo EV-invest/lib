@@ -40,6 +40,7 @@ import {
   type ToastVariant,
 } from "@evinvest/uikit";
 import { TerminalDemo } from "./TerminalDemo";
+import { DrawerDemo } from "./DrawerDemo";
 
 const POSITIONS: ToastPosition[] = [
   "top-left",
@@ -302,6 +303,10 @@ export default function App() {
             <span className="text-sm">
               Press <Kbd>⌘</Kbd> <Kbd>K</Kbd>
             </span>
+          </Section>
+
+          <Section title="Drawer" hint="swipe towards the edge to dismiss; the body scrolls, the panel drags from its top">
+            <DrawerDemo />
           </Section>
 
           <Section title="Terminal" hint="fake data; the chart host is empty on purpose">
