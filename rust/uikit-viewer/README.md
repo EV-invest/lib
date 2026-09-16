@@ -17,7 +17,7 @@ devshell).
 
 ```sh
 cd rust/uikit-viewer
-npm install          # Tailwind CLI
+npm install          # Tailwind CLI + tw-animate-css
 npm run css          # generate assets/tailwind.css from the kit's Rust sources
 dx serve             # build wasm + serve; prints a localhost URL
 ```
@@ -27,10 +27,12 @@ another so Tailwind regenerates as you edit class strings.
 
 ## How it's wired
 
-- `input.css` imports `tailwindcss` + the kit's `tokens.css`, then `@source`s the
-  `ev_lib_classes` crate (`../classes/src`, where the class strings live), the
-  kit's components (`../src/uikit`) and this viewer's `src` so Tailwind scans
-  the class-string literals and generates the utilities. `npm run css` writes
+- `input.css` imports `tailwindcss`, `tw-animate-css` (the enter/exit utilities
+  the overlay components use, as in the React example) and the kit's
+  `tokens.css`, then `@source`s the `ev_lib_classes` crate (`../classes/src`,
+  where the class strings live), the kit's components (`../src/uikit`) and this
+  viewer's `src` so Tailwind scans the class-string literals and generates the
+  utilities. `npm run css` writes
   `assets/tailwind.css` (gitignored), which `src/viewer.rs` links via `asset!`.
 - The toaster **stacks** like the React one (collapsed pile → spreads on
   hover/focus), animates enter/exit, and **auto-dismisses** (pausing on

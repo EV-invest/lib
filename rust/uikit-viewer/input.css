@@ -1,4 +1,8 @@
 @import "tailwindcss";
+/* enter/exit utilities (animate-in, zoom-in-95, fade-out-0, …) for the overlay
+   components — not core Tailwind. The toaster ships its own keyframes in
+   tokens.css, so it animates without this. */
+@import "tw-animate-css";
 /* the kit's theme contract (dark palette + @theme tokens + toast keyframes) */
 @import "../../tokens.css";
 
