@@ -38,7 +38,7 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::{TOAST_BASE, TOAST_CLOSE, TOAST_CONTENT, TOAST_TITLE, TOASTER_BASE, ToastPosition, ToastVariant},
+	uikit::{TOAST_BASE, TOAST_CLOSE, TOAST_CONTENT, TOAST_TITLE, TOASTER_BASE, ToastPosition, ToastVariant, primitives::is_transform_transition},
 };
 
 /// Only the front three toasts show while the stack is collapsed.
@@ -215,26 +215,6 @@ pub fn Toaster(#[props(default)] position: ToastPosition, #[props(default)] clas
 			}
 		}
 	}
-}
-
-/// Whether a `transitionend` is the toast's own exit transform finishing.
-///
-/// `transitionend` bubbles, so a closing toast also sees its descendants' — the
-/// close button's 150ms `transition-colors`, a collapsed child's 300ms opacity
-/// fade — and removing on those cuts the 350ms slide-out short. Mirrors the TS
-/// guard (`e.propertyName === "transform"`).
-///
-/// Dioxus 0.7's `TransitionData` exposes no `property_name` accessor, so the name
-/// is read off the concrete web event. Web-only: another renderer can't report it
-/// and falls through to accepting the event, which is at worst the unguarded
-/// behaviour — never a toast stranded on screen.
-#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
-fn is_transform_transition(e: &Event<TransitionData>) -> bool {
-	e.downcast::<web_sys::TransitionEvent>().is_none_or(|t| t.property_name() == "transform")
-}
-#[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
-fn is_transform_transition(_: &Event<TransitionData>) -> bool {
-	true
 }
 
 /// One toast in the stack. Mirrors the TS `ToastItem`: the enter is a CSS

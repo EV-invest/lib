@@ -650,6 +650,10 @@ fn drawer() -> Vec<Ts> {
 			value: DRAWER_HANDLE,
 		},
 		Ts::Const {
+			name: "DRAWER_BODY",
+			value: DRAWER_BODY,
+		},
+		Ts::Const {
 			name: "DRAWER_HEADER",
 			value: DRAWER_HEADER,
 		},
@@ -1486,7 +1490,6 @@ fn terminal() -> Vec<Ts> {
 		},
 	]
 }
-
 
 fn locales() -> Vec<Ts> {
 	use ev_lib::i18n::{DEFAULT_LOCALE, LOCALES};

@@ -215,9 +215,19 @@ measuring needs host-only `web-sys`). Known gaps:
   onto an arbitrary child (no `Slot`), so it publishes them as a
   `FormControlContext` that `Input`/`Textarea` consume; wrap a bare element and
   you wire them yourself.
-- **resizable / carousel / drawer:** pointer-drag physics are TS-only (keyboard
-  in Rust for resizable; prev/next + keyboard for carousel; click-to-dismiss for
-  drawer). Embla momentum / vaul drag-to-dismiss are not reproduced.
+- **resizable / carousel:** pointer-drag physics are TS-only (keyboard in Rust
+  for resizable; prev/next + keyboard for carousel). Embla momentum is not
+  reproduced.
+- **drawer:** the Vaul-style enter/exit motion is shared by both ports via
+  `motion.css` (inlined into `tokens.css`), keyed on `data-slot` +
+  `data-vaul-drawer-direction` + `data-state`; the panel stays mounted on close
+  until its exit `transitionend`. Drag-to-dismiss (Vaul's pointer physics, from
+  any of the four edges; opt a region out with `data-vaul-no-drag`) is TS-only;
+  Rust dismisses on scrim click / Escape / `DrawerClose`. The panel is
+  `touch-action: none` so a touch never turns into a page pan, which also means
+  the panel itself must not scroll: the kit renders children inside a
+  `data-slot="drawer-body"` scroller (`overflow-y-auto`), so cap the sheet with
+  `max-h-*` on `DrawerContent` and let the body scroll by itself.
 - **sidebar:** the mobile-sheet integration, cookie persistence, and keyboard
   shortcut are omitted.
 - **brand chrome (header / footer / status pages):** TS routes links through an
