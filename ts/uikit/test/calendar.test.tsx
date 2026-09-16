@@ -75,6 +75,32 @@ describe("Calendar", () => {
   });
 });
 
+describe("Calendar grid height", () => {
+  // Rows must not depend on the month, or the popover height jumps on nav.
+  it("always renders six week rows (February 2027: 28 days from a Monday)", () => {
+    const { container, getAllByRole } = render(
+      <Calendar defaultMonth={new Date(2027, 1, 1)} />,
+    );
+    expect(container.querySelectorAll("tbody tr").length).toBe(6);
+    expect(getAllByRole("gridcell").length).toBe(28);
+  });
+
+  it("always renders six week rows (August 2026: 31 days from a Saturday)", () => {
+    const { container, getAllByRole } = render(
+      <Calendar defaultMonth={new Date(2026, 7, 1)} />,
+    );
+    expect(container.querySelectorAll("tbody tr").length).toBe(6);
+    expect(getAllByRole("gridcell").length).toBe(31);
+  });
+
+  it("paints no background of its own (the popover surface shows through)", () => {
+    const { container } = render(<Calendar defaultMonth={new Date(2026, 5, 1)} />);
+    expect(container.querySelector("[data-slot=calendar]")).not.toHaveClass(
+      "bg-background",
+    );
+  });
+});
+
 describe("Calendar bounds and locale", () => {
   it("disables days outside [min, max] and never fires onSelect for them", () => {
     const onSelect = vi.fn();
