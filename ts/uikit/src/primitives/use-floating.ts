@@ -45,6 +45,18 @@ function toContainingBlock(
   };
 }
 
+interface Size2D {
+  width: number;
+  height: number;
+}
+
+// The layout box, not `getBoundingClientRect()`: the latter reports the box
+// mid-animation (`zoom-in-95` scales it to 0.95 on the first frame), which
+// placed a top-side popover 5 % of its height too low, over the anchor.
+function layoutSize(el: HTMLElement): Size2D {
+  return { width: el.offsetWidth, height: el.offsetHeight };
+}
+
 function viewport(): { vw: number; vh: number } {
   // `clientWidth` excludes the scrollbar, which the floating element cannot
   // sit under anyway; jsdom reports 0 there, hence the fallback.
@@ -101,7 +113,7 @@ export function useFloating(opts: {
   React.useLayoutEffect(() => {
     if (!open) return;
 
-    function ideal(a: DOMRect, f: DOMRect, placed: Side): { top: number; left: number } {
+    function ideal(a: DOMRect, f: Size2D, placed: Side): { top: number; left: number } {
       let top = 0;
       let left = 0;
       const vertical = placed === "top" || placed === "bottom";
@@ -135,7 +147,7 @@ export function useFloating(opts: {
       if (!anchor || !floating) return;
 
       const a = anchor.getBoundingClientRect();
-      const f = floating.getBoundingClientRect();
+      const f = layoutSize(floating);
       const { vw, vh } = viewport();
 
       let placed: Side = side;
@@ -168,7 +180,7 @@ export function useFloating(opts: {
       if (!anchor || !floating) return;
 
       const a = anchor.getBoundingClientRect();
-      const f = floating.getBoundingClientRect();
+      const f = layoutSize(floating);
       const { side: placed, shiftX, shiftY } = placement.current;
       const { top, left } = ideal(a, f, placed);
       write(floating, top + shiftY, left + shiftX);

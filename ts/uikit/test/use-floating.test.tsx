@@ -69,10 +69,17 @@ describe("useFloating", () => {
       function (this: HTMLElement) {
         const id = this.getAttribute("data-testid");
         if (id === "anchor") return rect(anchor.top, anchor.left, anchor.width, anchor.height);
-        if (id === "floating") return rect(0, 0, FLOATING.width, FLOATING.height);
+        // The floating rect is deliberately reported scaled, like the first
+        // frame of `zoom-in-95`: the hook must size it off the layout box.
+        if (id === "floating") return rect(0, 0, FLOATING.width * 0.95, FLOATING.height * 0.95);
         return rect(0, 0, 0, 0);
       },
     );
+    for (const [prop, size] of [["offsetWidth", FLOATING.width], ["offsetHeight", FLOATING.height]] as const) {
+      vi.spyOn(HTMLElement.prototype, prop, "get").mockImplementation(function (this: HTMLElement) {
+        return this.getAttribute("data-testid") === "floating" ? size : 0;
+      });
+    }
   });
 
   afterEach(() => {
