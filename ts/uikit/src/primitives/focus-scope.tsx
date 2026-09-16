@@ -3,8 +3,17 @@ import * as React from "react";
 const FOCUSABLE =
   'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
+/**
+ * Every enabled focus candidate under `root` in DOM (= Tab) order, before the
+ * layout-based visibility filter; for content that is fully visible while it
+ * exists (a popover), this is the tab order itself. Internal to the kit.
+ */
+export function focusCandidates(root: HTMLElement): HTMLElement[] {
+  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE));
+}
+
 function focusable(root: HTMLElement): HTMLElement[] {
-  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+  return focusCandidates(root).filter(
     (el) => el.offsetWidth > 0 || el.offsetHeight > 0 || el === document.activeElement,
   );
 }
