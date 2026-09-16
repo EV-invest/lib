@@ -309,6 +309,7 @@ data-y-position=\
 data:image/svg+xml
 date-time-picker
 date-time-picker-clear
+date-time-picker-close
 date-time-picker-content
 date-time-picker-hours
 date-time-picker-minutes

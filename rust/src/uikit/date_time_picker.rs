@@ -13,6 +13,8 @@ use crate::{
 
 // lucide `calendar`, inlined per the kit's no-icon-dep convention.
 const CALENDAR_ICON: [&str; 4] = ["M8 2v4", "M16 2v4", "M3 10h18", "M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"];
+// lucide `x`.
+const CLOSE_ICON: &str = "M18 6 6 18M6 6l12 12";
 
 /// A wall-clock moment with no zone: what the operator sees in the field.
 ///
@@ -63,6 +65,8 @@ pub struct DateTimePickerLabels {
 	pub minutes: Option<String>,
 	/// Text of the clear button; "Clear".
 	pub clear: Option<String>,
+	/// `aria-label` of the close button; "Close".
+	pub close: Option<String>,
 	/// `aria-label` of the popover dialog; "Choose date and time".
 	pub dialog: Option<String>,
 }
@@ -175,10 +179,12 @@ pub fn DateTimePicker(
 	let content_class = cn!(POPOVER_CONTENT, cn!("absolute top-full left-0 mt-1", DATE_TIME_PICKER_CONTENT));
 	let time_input_class = cn!(INPUT_BASE, DATE_TIME_PICKER_TIME_INPUT);
 	let clear_class = button_classes(&ButtonVariant::Ghost, Size::Sm, false, None, DATE_TIME_PICKER_CLEAR);
+	let close_class = button_classes(&ButtonVariant::Ghost, Size::Sm, true, None, "");
 	let (hours, minutes) = value.map_or_else(|| (String::from("00"), String::from("00")), |v| (format!("{:02}", v.hour), format!("{:02}", v.minute)));
 	let hours_label = labels.hours.unwrap_or_else(|| String::from("Hours"));
 	let minutes_label = labels.minutes.unwrap_or_else(|| String::from("Minutes"));
 	let clear_label = labels.clear.unwrap_or_else(|| String::from("Clear"));
+	let close_label = labels.close.unwrap_or_else(|| String::from("Close"));
 	let dialog_label = labels.dialog.unwrap_or_else(|| String::from("Choose date and time"));
 
 	rsx! {
@@ -271,6 +277,15 @@ pub fn DateTimePicker(
 							onclick: on_clear,
 							{clear_label}
 						}
+						button {
+							r#type: "button",
+							class: close_class,
+							"data-slot": "date-time-picker-close",
+							"aria-label": close_label,
+							disabled,
+							onclick: move |_| open.set(false),
+							CloseIcon {}
+						}
 					}
 				}
 			}
@@ -311,6 +326,26 @@ fn CalendarIcon() -> Element {
 			for d in CALENDAR_ICON {
 				path { d }
 			}
+		}
+	}
+}
+
+#[component]
+fn CloseIcon() -> Element {
+	rsx! {
+		svg {
+			class: "size-4",
+			xmlns: "http://www.w3.org/2000/svg",
+			width: "24",
+			height: "24",
+			view_box: "0 0 24 24",
+			fill: "none",
+			stroke: "currentColor",
+			stroke_width: "2",
+			stroke_linecap: "round",
+			stroke_linejoin: "round",
+			"aria-hidden": "true",
+			path { d: CLOSE_ICON }
 		}
 	}
 }
@@ -396,6 +431,8 @@ mod tests {
 		assert!(html.contains("inputmode=\"numeric\""), "{html}");
 		assert!(html.contains("data-slot=\"date-time-picker-clear\""), "{html}");
 		assert!(html.contains(">Clear<"), "{html}");
+		assert!(html.contains("data-slot=\"date-time-picker-close\""), "{html}");
+		assert!(html.contains("aria-label=\"Close\""), "{html}");
 		assert!(html.contains("2026-06-10 09:05"), "{html}");
 		assert!(html.contains("value=\"2026-06-10T09:05\""), "{html}");
 		assert!(html.contains("aria-expanded=\"true\""), "{html}");
@@ -446,6 +483,7 @@ mod tests {
 						hours: Some("Часы".into()),
 						minutes: Some("Минуты".into()),
 						clear: Some("Сбросить".into()),
+						close: Some("Закрыть".into()),
 						dialog: Some("Выберите дату и время".into()),
 					},
 				}
@@ -457,11 +495,13 @@ mod tests {
 		assert!(html.contains("aria-label=\"Часы\""), "{html}");
 		assert!(html.contains("aria-label=\"Минуты\""), "{html}");
 		assert!(html.contains(">Сбросить<"), "{html}");
+		assert!(html.contains("aria-label=\"Закрыть\""), "{html}");
+		assert!(!html.contains("aria-label=\"Close\""), "{html}");
 		assert!(html.contains("aria-label=\"Выберите дату и время\""), "{html}");
 		assert!(!html.contains("Choose date and time"), "{html}");
-		// Trigger, both time fields, Clear, the two nav buttons and every day
-		// of the 30-day month the empty picker opens on.
-		assert_eq!(html.matches(" disabled=true").count(), 4 + 2 + 30, "{html}");
+		// Trigger, both time fields, Clear, Close, the two nav buttons and every
+		// day of the 30-day month the empty picker opens on.
+		assert_eq!(html.matches(" disabled=true").count(), 5 + 2 + 30, "{html}");
 		assert_eq!(html.matches("data-disabled=\"true\"").count(), 30, "{html}");
 		// Empty value: the time inputs show midnight.
 		assert_eq!(html.matches("value=\"00\"").count(), 2, "{html}");

@@ -44,6 +44,27 @@ function CalendarIcon() {
   );
 }
 
+// lucide `x`, inlined like every other icon in the kit.
+function XIcon() {
+  return (
+    <svg
+      className="size-4"
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  );
+}
+
 const pad = (n: number): string => String(n).padStart(2, "0");
 
 // The value always carries whole minutes: seconds/ms are dropped on every write.
@@ -98,6 +119,8 @@ export interface DateTimePickerLabels {
   clear?: string;
   /** `aria-label` of the popover dialog; "Choose date and time". */
   dialog?: string;
+  /** `aria-label` of the close button; "Close". */
+  close?: string;
 }
 
 export interface DateTimePickerProps
@@ -147,10 +170,11 @@ export interface DateTimePickerProps
  * `datetime-local`, so the browser's locale popup never appears.
  *
  * Every edit reports through `onChange`; the popover stays open after a day
- * click (the operator still sets the time) and closes on clear. Opening moves
- * focus into the hours field; closing hands it back to the trigger unless the
- * operator already focused something else. Any other `aria-*` prop, `onFocus`
- * and `onBlur` land on the trigger.
+ * click (the operator still sets the time) and closes on clear or on the close
+ * button (which keeps the value). Opening moves focus into the hours field;
+ * closing hands it back to the trigger unless the operator already focused
+ * something else. Any other `aria-*` prop, `onFocus` and `onBlur` land on the
+ * trigger.
  */
 export function DateTimePicker({
   value: valueProp,
@@ -347,6 +371,16 @@ export function DateTimePicker({
               onClick={onClear}
             >
               {labels.clear ?? "Clear"}
+            </button>
+            <button
+              type="button"
+              className={buttonVariants({ variant: "ghost", size: "sm", icon: true })}
+              data-slot="date-time-picker-close"
+              aria-label={labels.close ?? "Close"}
+              disabled={disabled}
+              onClick={() => setOpen(false)}
+            >
+              <XIcon />
             </button>
           </div>
         </PopoverContent>
