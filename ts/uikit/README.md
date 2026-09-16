@@ -170,8 +170,8 @@ measuring needs host-only `web-sys`). Known gaps:
 - **Rust overlays** (dialog, popover, dropdown, select, menus, tooltip, …) render
   inline with `position:fixed` + a backdrop and CSS-only placement — no portal,
   no viewport-measured floating, native focus order (no trap). TS overlays use a
-  real `Portal`, single-flip `useFloating`, `useDismissableLayer`, and
-  `useFocusScope`.
+  real `Portal`, single-flip `useFloating` (absolute in the document, so it
+  scrolls with the page natively), `useDismissableLayer`, and `useFocusScope`.
 - **chart:** the recharts plotting engine is not bundled. `ChartContainer` is a
   themed SVG host (emits `--color-*` from its config); `ChartTooltipContent` /
   `ChartLegendContent` are presentational and take explicit items. Draw series
@@ -182,17 +182,21 @@ measuring needs host-only `web-sys`). Known gaps:
   submit's default — inputs, validation and the order itself are the
   consumer's. The open-orders pane reuses `Table` and `Tabs`.
 - **calendar:** single month, single-date selection (no range/multi-month, no
-  dropdown captions). `min`/`max` bound the grid at day granularity (days outside
-  render `disabled` + `data-disabled="true"`); `disabled` freezes the
-  whole grid and the nav the same way; the nav buttons take label overrides. TS-only `locale` renders the caption and weekday headers through
+  dropdown captions). The grid is always six fixed weeks of 36px cells, so its
+  size never changes with the month or the locale's weekday labels, and it
+  paints no background of its own (the host does). `min`/`max` bound the grid
+  at day granularity (days outside render `disabled` + `data-disabled="true"`);
+  `disabled` freezes the whole grid and the nav the same way; the nav buttons
+  take label overrides. TS-only `locale` renders the caption and weekday headers through
   `Intl` (Monday-first); Rust has no `Intl`, so its captions stay English. Rust
   does manual date math; TS uses the built-in `Date`.
 - **date-time-picker:** the kit's own bricks only — an outline trigger, a
   `Popover` with the `Calendar` and two numeric 24-hour hours/minutes fields (no
   native `datetime-local` / `time` input, so the browser's locale popup never
   appears). Its ARIA and button strings are `labels` overrides with English
-  defaults — the nav buttons, the hours/minutes `aria-label`s, the clear button
-  and the popover's own accessible name (`labels.dialog`). TS formats the trigger label through `Intl` when `locale` is set,
+  defaults — the nav buttons, the hours/minutes `aria-label`s, the clear button,
+  the close button (`labels.close`, which keeps the value) and the popover's own
+  accessible name (`labels.dialog`). TS formats the trigger label through `Intl` when `locale` is set,
   else `YYYY-MM-DD HH:MM`; Rust has no `Intl`: the ISO-like label or the
   `format` callback, English month/weekday captions. The hidden form value is
   unix seconds in TS and `YYYY-MM-DDTHH:MM` in Rust (no zone there). The Rust

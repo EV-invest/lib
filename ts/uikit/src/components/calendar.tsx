@@ -176,11 +176,14 @@ export function Calendar({
   const lead = mondayIndex(view);
   const total = new Date(year, monthIndex + 1, 0).getDate();
 
-  // Pad leading blanks then the days, padded out to whole weeks of 7.
+  // Pad leading blanks then the days, then pad out to a fixed 6 weeks (42
+  // cells): 6 rows is the most any month needs with a Monday-first week, and a
+  // constant row count keeps the popover height from jumping as the user
+  // flips months. Mirrors Rust.
   const cells: (number | null)[] = [];
   for (let i = 0; i < lead; i += 1) cells.push(null);
   for (let day = 1; day <= total; day += 1) cells.push(day);
-  while (cells.length % 7 !== 0) cells.push(null);
+  while (cells.length < 42) cells.push(null);
 
   const weeks: (number | null)[][] = [];
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));

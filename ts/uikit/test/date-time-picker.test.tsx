@@ -190,6 +190,28 @@ describe("DateTimePicker", () => {
     expect(trigger(container)).toHaveAttribute("aria-expanded", "false");
   });
 
+  it("closes on the close button without touching the value", () => {
+    const onChange = vi.fn();
+    const onOpenChange = vi.fn();
+    const { container, getByLabelText } = render(
+      <DateTimePicker
+        defaultValue={june(10, 9, 5)}
+        onChange={onChange}
+        onOpenChange={onOpenChange}
+        today={TODAY}
+      />,
+    );
+    fireEvent.click(trigger(container));
+    const close = slot(container, "close")!;
+    expect(getByLabelText("Close")).toBe(close);
+    expect(close).toHaveAttribute("type", "button");
+    fireEvent.click(close);
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(trigger(container)).toHaveTextContent("2026-06-10 09:05");
+    expect(trigger(container)).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("lets `format` drive the trigger label", () => {
     const { container } = render(
       <DateTimePicker
@@ -256,6 +278,7 @@ describe("DateTimePicker", () => {
           minutes: "Минуты",
           clear: "Сбросить",
           dialog: "Выбор даты и времени",
+          close: "Закрыть",
         }}
         today={TODAY}
       />,
@@ -276,5 +299,7 @@ describe("DateTimePicker", () => {
     expect(getByLabelText("Минуты")).toBeDisabled();
     expect(slot(container, "clear")).toBeDisabled();
     expect(slot(container, "clear")).toHaveTextContent("Сбросить");
+    expect(getByLabelText("Закрыть")).toBe(slot(container, "close"));
+    expect(slot(container, "close")).toBeDisabled();
   });
 });
