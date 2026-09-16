@@ -92,11 +92,24 @@ function outOfRange(day: Date, min: Date | undefined, max: Date | undefined): bo
 // Intl reads the weekday off the reference date; 2024-01-01 is a Monday.
 const MONDAY = new Date(2024, 0, 1);
 
-function localisedWeekdays(locale: string): string[] {
-  const fmt = new Intl.DateTimeFormat(locale, { weekday: "short" });
+function formatWeekdays(locale: string, weekday: "short" | "narrow"): string[] {
+  const fmt = new Intl.DateTimeFormat(locale, { weekday });
   return Array.from({ length: 7 }, (_, i) =>
     fmt.format(new Date(MONDAY.getFullYear(), MONDAY.getMonth(), MONDAY.getDate() + i)),
   );
+}
+
+// `short` is what every locale wants, except where CLDR spells it as two words
+// ("Thứ 2" in Chrome/CLDR, "Th 2" in Node ICU 76 — vi either way) and the fixed
+// 36px column wraps it onto a second line. There the `narrow` form ("T2") is
+// used, but only while it still tells the days apart: en/ru/de/fr narrow
+// collapses to repeated single letters, and a locale like that keeps `short`
+// (which `whitespace-nowrap` on the header cell holds on one line anyway).
+function localisedWeekdays(locale: string): string[] {
+  const short = formatWeekdays(locale, "short");
+  if (!short.some(label => /\s/.test(label))) return short;
+  const narrow = formatWeekdays(locale, "narrow");
+  return new Set(narrow).size === narrow.length ? narrow : short;
 }
 
 export interface CalendarProps {

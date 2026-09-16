@@ -178,4 +178,60 @@ describe("Calendar bounds and locale", () => {
     expect(headers[0]).toContain("пн");
     expect(headers[6]).toContain("вс");
   });
+
+  const weekdayHeaders = (container: HTMLElement) =>
+    Array.from(container.querySelectorAll("th")).map(th => th.textContent!);
+
+  it("keeps every weekday header a single distinct token for every supported locale", () => {
+    for (const locale of ["en", "ru", "de", "fr", "vi", "he"]) {
+      const { container, unmount } = render(
+        <Calendar defaultMonth={new Date(2026, 5, 1)} locale={locale} />,
+      );
+      const headers = weekdayHeaders(container);
+      expect(headers.length, locale).toBe(7);
+      for (const label of headers) expect(label, locale).not.toMatch(/\s/);
+      expect(new Set(headers).size, locale).toBe(7);
+      unmount();
+    }
+  });
+
+  it("falls back to the narrow form only where the short one wraps (vi)", () => {
+    const viRender = render(<Calendar defaultMonth={new Date(2026, 5, 1)} locale="vi" />);
+    expect(weekdayHeaders(viRender.container)).toEqual(["T2", "T3", "T4", "T5", "T6", "T7", "CN"]);
+    viRender.unmount();
+    const enRender = render(<Calendar defaultMonth={new Date(2026, 5, 1)} locale="en" />);
+    expect(weekdayHeaders(enRender.container)).toEqual(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]);
+  });
+
+  it("keeps the spaced short form when narrow would collapse into duplicates", () => {
+    // A hypothetical ICU where short wraps and narrow is ambiguous; nowrap on
+    // the cell is what keeps such a locale on one line.
+    const short = ["Mo n", "Tu e", "We d", "Th u", "Fr i", "Sa t", "Su n"];
+    const Real = Intl.DateTimeFormat;
+    const spy = vi.spyOn(Intl, "DateTimeFormat").mockImplementation(((
+      locale: string | string[] | undefined,
+      options?: Intl.DateTimeFormatOptions,
+    ) => {
+      if (locale !== "xx") return new Real(locale, options);
+      const narrow = options?.weekday === "narrow";
+      return {
+        format: (d: Date) => (narrow ? "X" : short[(d.getDay() + 6) % 7]!),
+      } as unknown as Intl.DateTimeFormat;
+    }) as unknown as typeof Intl.DateTimeFormat);
+    try {
+      const { container } = render(
+        <Calendar defaultMonth={new Date(2026, 5, 1)} locale="xx" />,
+      );
+      expect(weekdayHeaders(container)).toEqual(short);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("marks weekday headers no-wrap so a future locale cannot grow the row", () => {
+    const { container } = render(<Calendar defaultMonth={new Date(2026, 5, 1)} locale="vi" />);
+    for (const th of Array.from(container.querySelectorAll("th"))) {
+      expect(th.className).toContain("whitespace-nowrap");
+    }
+  });
 });
