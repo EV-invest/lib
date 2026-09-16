@@ -24,13 +24,14 @@ Rust crate and its TypeScript mirror at once.
 
 ### Fixed
 
-- **`Calendar` weekday headers stay on one line in `vi`** (`@evinvest/uikit`,
-  #122). CLDR spells the Vietnamese short weekday as two words ("Thứ 2"), which
-  wrapped inside the fixed 36px column and grew the popover by ~27px. A locale
-  whose `short` form carries whitespace now falls back to `narrow` ("T2" … "T7",
-  "CN") when that form is still unambiguous, and the header cell is
-  `whitespace-nowrap` so no locale can wrap it either way; en/ru/de/fr render
-  byte-for-byte as before.
+- **`Calendar` weekday headers stay on one line in `vi` and `he`**
+  (`@evinvest/uikit`, #122). CLDR spells the Vietnamese short weekday as two
+  words ("Thứ 2"), which wrapped inside the fixed 36px column and grew the
+  popover by ~27px; Hebrew ("יום ב׳") has the same shape. A locale whose
+  `short` form carries whitespace now falls back to `narrow` ("T2" … "T7",
+  "CN"; "ב׳" … "א׳") when that form is still unambiguous, and the header cell
+  is `whitespace-nowrap` so no locale can wrap it either way; en/ru/de/fr
+  render byte-for-byte as before.
 
 - **`uikit::Fonts` is back.** #105 cut it on the argument that brand assets are
   not a UI kit's business. The argument is sound; the move was not, because

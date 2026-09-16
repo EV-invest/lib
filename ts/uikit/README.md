@@ -189,8 +189,8 @@ measuring needs host-only `web-sys`). Known gaps:
   `disabled` freezes the whole grid and the nav the same way; the nav buttons
   take label overrides. TS-only `locale` renders the caption and weekday headers through
   `Intl` (Monday-first): `weekday: "short"`, falling back to `"narrow"` for a
-  locale whose short form contains whitespace (vi's "Thứ 2" → "T2") as long as
-  narrow still yields seven distinct labels. Rust has no `Intl`, so its captions
+  locale whose short form contains whitespace (vi's "Thứ 2" → "T2", he's
+  "יום ב׳" → "ב׳") as long as narrow still yields seven distinct labels. Rust has no `Intl`, so its captions
   stay English. Rust does manual date math; TS uses the built-in `Date`.
 - **date-time-picker:** the kit's own bricks only — an outline trigger, a
   `Popover` with the `Calendar` and two numeric 24-hour hours/minutes fields (no

@@ -195,10 +195,15 @@ describe("Calendar bounds and locale", () => {
     }
   });
 
-  it("falls back to the narrow form only where the short one wraps (vi)", () => {
+  it("falls back to the narrow form only where the short one wraps (vi, he)", () => {
+    // Exact vi/he strings come from Node's ICU (CLDR-stable); a Node bump is
+    // the first suspect if this ever goes red.
     const viRender = render(<Calendar defaultMonth={new Date(2026, 5, 1)} locale="vi" />);
     expect(weekdayHeaders(viRender.container)).toEqual(["T2", "T3", "T4", "T5", "T6", "T7", "CN"]);
     viRender.unmount();
+    const heRender = render(<Calendar defaultMonth={new Date(2026, 5, 1)} locale="he" />);
+    expect(weekdayHeaders(heRender.container)).toEqual(["ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳", "א׳"]);
+    heRender.unmount();
     const enRender = render(<Calendar defaultMonth={new Date(2026, 5, 1)} locale="en" />);
     expect(weekdayHeaders(enRender.container)).toEqual(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]);
   });
