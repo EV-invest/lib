@@ -65,6 +65,22 @@ Rust crate and its TypeScript mirror at once.
 
 ### Changed
 
+- **`uikit` — `--primary` is a fill, `--primary-ink` is the ink** (**Breaking**,
+  both ports; #119). `--primary` is now the fill teal `#128377` under a white
+  `--on-primary` (4.63:1; ≥ 3:1 against `background`, `secondary`, `card` and
+  `popover`), and the readable teal `#2a9d8f` moves to a **new, required**
+  `--primary-ink` — a consumer sheet that does not define it renders every
+  link, eyebrow, radio dot and focus ring transparent. `--ring` is now the ink.
+  Inside the kit the split is already applied: `Button` `Link`, the eyebrow,
+  description links, the radio dot, the checked `Field` outline, the `Slider`
+  range and thumb border and the `Progress` indicator (on a `bg-primary-ink/20`
+  track) are the ink; `bg-primary text-on-primary`, a checked `Checkbox` /
+  `Switch` and the `Primary` band are the fill, and an eyebrow inside a
+  `Primary` band wears `on-primary`. Migration for a consumer's own classes:
+  `text-primary` → `text-primary-ink`; `border-primary` used as an outline →
+  `border-primary-ink`; a chip `bg-primary/N text-primary` keeps its tint and
+  takes `text-primary-ink`; leave `bg-primary text-on-primary` alone. See
+  `docs/spec/accents.md`.
 - **`i18n` — English is written where it renders** (breaking, both ports;
   `@evinvest/i18n` 0.7.0, `ev_lib` 0.13.0). `t` takes the key *and* the English
   sentence — `t("hero.title", "Invest in …")` / `t!(tr, "hero.title", "Invest

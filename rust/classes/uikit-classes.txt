@@ -149,12 +149,12 @@ bg-positive
 bg-positive text-on-positive hover:bg-positive/90
 bg-positive/15
 bg-primary
-bg-primary absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full
-bg-primary h-full w-full flex-1 transition-all
 bg-primary text-on-primary
 bg-primary text-on-primary hover:bg-primary/90
-bg-primary/20
-bg-primary/20 relative h-2 w-full overflow-hidden rounded-full
+bg-primary-ink absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full
+bg-primary-ink h-full w-full flex-1 transition-all
+bg-primary-ink/20
+bg-primary-ink/20 relative h-2 w-full overflow-hidden rounded-full
 bg-secondary group-data-[variant=floating]:border-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm
 bg-secondary text-ink flex h-full w-(--sidebar-width) flex-col
 bg-secondary text-on-secondary hover:bg-secondary/80
@@ -175,8 +175,8 @@ border-border/50 bg-background grid min-w-[8rem] items-start gap-1.5 rounded-lg 
 border-dashed
 border-input
 border-input placeholder:text-ink-soft focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error flex field-sizing-content min-h-16 w-full rounded-[var(--control-radius)] border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm
-border-input text-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error aspect-square size-4 shrink-0 rounded-full border shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50
-border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-ink shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50
+border-input text-primary-ink focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error aspect-square size-4 shrink-0 rounded-full border shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50
+border-primary-ink ring-ring/50 block size-4 shrink-0 rounded-full border bg-ink shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50
 border-t
 border-t border-ink/10 pt-8 text-[10px] font-mono text-ink/40
 border-transparent bg-accent-error text-on-accent-error [a&]:hover:bg-accent-error/90 focus-visible:ring-accent-error/20
@@ -364,7 +364,7 @@ field-separator-content
 field-set
 field-sizing-content
 file:text-ink placeholder:text-ink-soft selection:bg-primary selection:text-on-primary border-input h-9 w-full min-w-0 rounded-[var(--control-radius)] border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error
-fill-primary
+fill-primary-ink
 first:rounded-l-md
 fixed inset-0 z-50 bg-black/50
 fixed top-1/2 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-lg border p-0 shadow-lg
@@ -437,7 +437,7 @@ focus:bg-hover focus:text-ink relative flex cursor-default items-center gap-2 ro
 focus:bg-hover focus:text-ink relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4
 font-display [font-weight:700] max-w-[54rem] tracking-[-0.005em] leading-[1.16] md:leading-[1.14] text-[calc(1.5625rem*var(--display-scale))] md:text-[calc(2.625rem*var(--display-scale))]
 font-medium
-font-medium text-[10px] md:text-[11.5px] tracking-[0.15em] md:tracking-[0.16em] text-primary
+font-medium text-[10px] md:text-[11.5px] tracking-[0.15em] md:tracking-[0.16em] text-primary-ink [.bg-primary_&]:text-on-primary
 font-mono tabular-nums text-ink
 font-mono text-sm tabular-nums text-ink
 font-semibold
@@ -466,7 +466,7 @@ group-label
 group/field flex w-full gap-3 data-[invalid=true]:text-accent-error
 group/field-content flex flex-1 flex-col gap-1.5 leading-snug
 group/field-group @container/field-group flex w-full flex-col gap-7 data-[slot=checkbox-group]:gap-3 [&>[data-slot=field-group]]:gap-4
-group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4 has-data-[state=checked]:bg-primary/5 has-data-[state=checked]:border-primary
+group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4 has-data-[state=checked]:bg-primary-ink/5 has-data-[state=checked]:border-primary-ink
 group/input-group
 group/input-group border-input relative flex w-full items-center rounded-md border shadow-xs transition-[color,box-shadow] outline-none h-9 min-w-0 has-[>textarea]:h-auto has-[>[data-align=inline-start]]:[&>input]:pl-2 has-[>[data-align=inline-end]]:[&>input]:pr-2 has-[>[data-align=block-start]]:h-auto has-[>[data-align=block-start]]:flex-col has-[>[data-align=block-start]]:[&>input]:pb-3 has-[>[data-align=block-end]]:h-auto has-[>[data-align=block-end]]:flex-col has-[>[data-align=block-end]]:[&>input]:pt-3 has-[[data-slot=input-group-control]:focus-visible]:border-ring has-[[data-slot=input-group-control]:focus-visible]:ring-ring/50 has-[[data-slot=input-group-control]:focus-visible]:ring-[3px] has-[[data-slot][aria-invalid=true]]:ring-accent-error/20 has-[[data-slot][aria-invalid=true]]:border-accent-error
 group/item flex items-center border border-transparent text-sm rounded-md transition-colors [a]:hover:bg-hover/50 [a]:transition-colors duration-100 flex-wrap outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]
@@ -809,12 +809,12 @@ text-ink font-semibold
 text-ink h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]
 text-ink px-2 py-1.5 text-sm font-medium data-[inset]:pl-8
 text-ink-soft
-text-ink-soft [&>a:hover]:text-primary text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4
+text-ink-soft [&>a:hover]:text-primary-ink text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4
 text-ink-soft col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed
 text-ink-soft flex flex-wrap items-center gap-1.5 text-sm break-words sm:gap-2.5
 text-ink-soft flex h-auto cursor-text items-center justify-center gap-2 py-1.5 text-sm font-medium select-none [&>svg:not([class*='size-'])]:size-4 [&>kbd]:rounded-[calc(var(--radius)-5px)] group-data-[disabled=true]/input-group:opacity-50
 text-ink-soft flex items-center gap-2 text-sm [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4
-text-ink-soft line-clamp-2 text-sm leading-normal font-normal text-balance [&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4
+text-ink-soft line-clamp-2 text-sm leading-normal font-normal text-balance [&>a:hover]:text-primary-ink [&>a]:underline [&>a]:underline-offset-4
 text-ink-soft ml-auto text-xs tracking-widest
 text-ink-soft mt-4 text-sm
 text-ink-soft pointer-events-none size-4 shrink-0 translate-y-0.5 transition-transform duration-200
@@ -822,7 +822,7 @@ text-ink-soft px-2 py-1.5 text-xs
 text-ink-soft rounded-md w-9 shrink-0 font-normal text-[0.8rem] select-none whitespace-nowrap
 text-ink-soft select-none
 text-ink-soft text-sm
-text-ink-soft text-sm leading-normal font-normal group-has-[[data-orientation=horizontal]]/field:text-balance last:mt-0 nth-last-2:-mt-1 [[data-variant=legend]+&]:-mt-1.5 [&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4
+text-ink-soft text-sm leading-normal font-normal group-has-[[data-orientation=horizontal]]/field:text-balance last:mt-0 nth-last-2:-mt-1 [[data-variant=legend]+&]:-mt-1.5 [&>a:hover]:text-primary-ink [&>a]:underline [&>a]:underline-offset-4
 text-ink/20
 text-ink/30
 text-ink/40 text-xs font-light max-w-sm leading-relaxed mb-6
@@ -836,7 +836,7 @@ text-lg leading-none font-semibold
 text-on-positive
 text-positive
 text-positive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-ink-mid
-text-primary underline-offset-4 hover:underline
+text-primary-ink underline-offset-4 hover:underline
 text-sm
 text-sm font-medium select-none
 text-sm shadow-none flex gap-2 items-center

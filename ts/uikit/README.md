@@ -51,7 +51,7 @@ your Tailwind v4 entrypoint — this is the load-bearing part of the kit:
 | surfaces | `background` `card` `popover` `muted` `hover` |
 | ink | `ink` `ink-mid` `ink-soft` — hierarchy, loudest first |
 | lines | `border` `input` `ring` |
-| roles | `brand` `primary` `secondary` `positive` `accent-trace` `accent-debug` `accent-info` `accent-warn` `accent-error`, each with `on-*` where it gets filled |
+| roles | `brand` `primary` `secondary` `positive` `accent-trace` `accent-debug` `accent-info` `accent-warn` `accent-error`, each with `on-*` where it gets filled; `primary-ink` — the primary role as ink on a surface (`#128377` fill under a white `on-primary`, `#2a9d8f` ink) |
 | scalars | `radius` `control-radius` `control-py` `display-scale` `band-py` `page-max` `page-px` `shadow-*` `font-*` |
 | charts | `chart-1` … `chart-5` |
 
@@ -62,6 +62,17 @@ what `<Section polarity="dark">` does.
 A surface takes its ink from the scope, so it carries no `-foreground`. A
 **filled role** does not — gold wants black and navy wants white regardless of
 polarity — so `on-{role}` exists exactly there.
+
+A fill and an ink are different jobs, and `primary` is the one role that
+names them separately: `primary` is the fill (`bg-primary text-on-primary` on
+a button, a checked switch or checkbox — `#128377`, white reads on it at
+4.63:1 and it clears 3:1 against `background`, `secondary`, `card` and
+`popover`) and `primary-ink` is the same hue as ink (`text-primary-ink` on a
+link or eyebrow, a radio dot, a slider range, `border-primary-ink` on a checked
+outline, the focus `ring` — `#2a9d8f`, 5.85:1 on `background`, 4.72:1 on
+`card`). Every other role holds its own label and reads as ink with one value.
+A consumer sheet must define `--primary-ink`; see
+[`docs/spec/accents.md`](../../docs/spec/accents.md).
 
 Accents are decorative and **ordered by significance**, quiet to loud. Pick a
 rung by how loud the thing should be, never by what it means; see
@@ -77,11 +88,6 @@ state, never its appearance (`Red`) and never its selection (`Default`); see
 `tokens.css` shared with the Rust feature — flattened, so it is self-contained —
 and carries EV's values: a single dark palette on `:root, .dark`. A consumer
 with two polarities writes its own sheet against the same names.
-
-`text-main-mist`, `bg-sidebar`, `text-muted-foreground` and the rest keep
-working, and the current tokens are re-pointed at the old values so rendered
-colour is unchanged. Import it instead while migrating; it goes away once every
-consumer has moved.
 
 ## Usage
 

@@ -4,7 +4,11 @@ pub const SECTION_BASE: &str = "w-full px-[var(--page-px)]";
 pub const SECTION_PY: &str = "py-[var(--band-py)]";
 pub const SECTION_PY_TIGHT: &str = "py-[var(--band-py-tight)]";
 pub const SECTION_HEAD: &str = "flex flex-col gap-2 md:gap-3.5";
-pub const EYEBROW: &str = "font-medium text-[10px] md:text-[11.5px] tracking-[0.15em] md:tracking-[0.16em] text-primary";
+/// Inside a `Surface::Primary` band the ink sits on its own fill (1.47:1), so
+/// the eyebrow follows the band's label there: `--on-primary` at 4.63:1 —
+/// undimmed, because an 80 % tint would fall to 3.55:1 under AA text at 10px.
+pub const EYEBROW: &str = "font-medium text-[10px] md:text-[11.5px] tracking-[0.15em] md:tracking-[0.16em] text-primary-ink \
+                           [.bg-primary_&]:text-on-primary";
 /// `cn!` merges every `font-*` utility as one group, so a `font-bold` here would
 /// take the family down with it the moment a caller overrides anything — hence
 /// the weight as a property.

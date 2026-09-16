@@ -206,6 +206,14 @@ mod tests {
 	fn trailing_comma_and_single_fragment() {
 		assert_eq!(cn!("rounded-md",), "rounded-md");
 	}
+
+	/// A caller's `text-*` overrides the base ink of an eyebrow but not the
+	/// ancestor-scoped one it wears inside a filled band: different variant,
+	/// different group.
+	#[test]
+	fn keeps_parent_scoped_variant_under_override() {
+		assert_eq!(cn!("text-primary-ink [.bg-primary_&]:text-on-primary", "text-ink"), "[.bg-primary_&]:text-on-primary text-ink");
+	}
 }
 
 /// Every Tailwind class literal the kit can emit, one per line.

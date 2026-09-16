@@ -32,7 +32,7 @@ export const ITEM_CONTENT = "flex flex-1 flex-col gap-1 [&+[data-slot=item-conte
 
 export const ITEM_TITLE = "flex w-fit items-center gap-2 text-sm leading-snug font-medium";
 
-export const ITEM_DESCRIPTION = "text-ink-soft line-clamp-2 text-sm leading-normal font-normal text-balance [&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4";
+export const ITEM_DESCRIPTION = "text-ink-soft line-clamp-2 text-sm leading-normal font-normal text-balance [&>a:hover]:text-primary-ink [&>a]:underline [&>a]:underline-offset-4";
 
 export const ITEM_ACTIONS = "flex items-center gap-2";
 

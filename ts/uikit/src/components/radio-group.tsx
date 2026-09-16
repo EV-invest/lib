@@ -124,7 +124,7 @@ export function RadioGroupItem({
           className="relative flex items-center justify-center"
         >
           <svg
-            className="fill-primary absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2"
+            className="fill-primary-ink absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2"
             viewBox="0 0 24 24"
             aria-hidden="true"
           >

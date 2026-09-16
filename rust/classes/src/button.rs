@@ -25,7 +25,7 @@ pub enum ButtonVariant {
 	Ghost,
 	#[tw(class = "bg-accent-error text-on-accent-error hover:bg-accent-error/90 focus-visible:ring-accent-error/20")]
 	Destructive,
-	#[tw(class = "text-primary underline-offset-4 hover:underline")]
+	#[tw(class = "text-primary-ink underline-offset-4 hover:underline")]
 	Link,
 }
 
