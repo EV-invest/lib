@@ -28,7 +28,8 @@ another so Tailwind regenerates as you edit class strings.
 ## How it's wired
 
 - `input.css` imports `tailwindcss` + the kit's `tokens.css`, then `@source`s the
-  kit's Rust sources (`../src/uikit`) and this viewer's `src` so Tailwind scans
+  `ev_lib_classes` crate (`../classes/src`, where the class strings live), the
+  kit's components (`../src/uikit`) and this viewer's `src` so Tailwind scans
   the class-string literals and generates the utilities. `npm run css` writes
   `assets/tailwind.css` (gitignored), which `src/viewer.rs` links via `asset!`.
 - The toaster **stacks** like the React one (collapsed pile → spreads on
