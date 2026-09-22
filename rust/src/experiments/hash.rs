@@ -219,6 +219,18 @@ mod tests {
 	}
 
 	#[test]
+	fn pick_variant_for_with_holdout_matches_ts_parity_vector() {
+		// Same config and literals as the TS `pickVariantFor` holdout test: loc-1
+		// (u ≈ 0.063) exercises the holdout branch, loc-4 (u ≈ 0.348) the rescale —
+		// without the holdout it would land on "b".
+		let exp = Experiment::new(["a", "b", "c"], [1.0, 2.0, 3.0]).with_holdout(0.25);
+		for (subject, expected) in [("loc-1", "a"), ("loc-2", "c"), ("loc-3", "b"), ("loc-4", "a"), ("loc-5", "c"), ("loc-6", "c")] {
+			assert_eq!(pick_variant_for(&exp, "hero", subject), expected, "subject={subject}");
+		}
+		assert_eq!(pick_variant_for(&Experiment::new(["a", "b", "c"], [1.0, 2.0, 3.0]), "hero", "loc-4"), "b");
+	}
+
+	#[test]
 	fn hash_to_unit_matches_ts_parity_vectors() {
 		// The same literals are asserted by the TS `hashToUnit` tests; a drift on
 		// either side breaks the per-subject split across the two stacks.

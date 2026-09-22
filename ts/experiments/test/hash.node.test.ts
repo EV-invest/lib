@@ -177,6 +177,24 @@ describe('holdout', () => {
   });
 });
 
+// Cross-language contract: the Rust `pick_variant_for_with_holdout_matches_ts_parity_vector`
+// asserts the same config and results. loc-1 (u ≈ 0.063) hits the holdout, loc-4
+// (u ≈ 0.348) the rescale — without the holdout it would land on "b".
+describe('pickVariantFor with holdout parity vector', () => {
+  const held = {
+    hero: { variants: ['a', 'b', 'c'], weights: [1, 2, 3], holdout: 0.25 },
+  } as const satisfies ExperimentConfig;
+
+  it('matches the Rust results per subject', () => {
+    const expected = { 'loc-1': 'a', 'loc-2': 'c', 'loc-3': 'b', 'loc-4': 'a', 'loc-5': 'c', 'loc-6': 'c' };
+    for (const [subject, variant] of Object.entries(expected)) {
+      expect(pickVariantFor(held, 'hero', subject)).toBe(variant);
+    }
+    const plain = { hero: { variants: ['a', 'b', 'c'], weights: [1, 2, 3] } } as const;
+    expect(pickVariantFor(plain, 'hero', 'loc-4')).toBe('b');
+  });
+});
+
 describe('forcedVariant', () => {
   it('accepts a declared variant and rejects anything else', () => {
     expect(forcedVariant(config, 'team', 'c')).toBe('c');
