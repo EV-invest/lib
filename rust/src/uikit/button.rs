@@ -66,7 +66,7 @@ pub fn Button(
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::uikit::test_util::render;
+	use crate::uikit::{FILLED_FOCUS_RING, test_util::render};
 
 	#[test]
 	fn default_variant_and_size_render() {
@@ -142,6 +142,31 @@ mod tests {
 		let html = render(outlined);
 		assert!(html.contains("border-accent-warn/40"), "{html}");
 		assert!(!html.contains("bg-accent-warn "), "an outlined button stays outlined: {html}");
+	}
+
+	/// lib#129: a button that paints a fill trades the halo for the offset ring,
+	/// and the fuse has to actually drop the halo's width, not just append.
+	#[test]
+	fn filled_buttons_wear_the_offset_ring() {
+		use strum::IntoEnumIterator;
+
+		for variant in ButtonVariant::iter() {
+			for accent in [None, Some(Accent::Warn)] {
+				let paints_fill = match accent {
+					Some(_) => variant != ButtonVariant::Outline,
+					None => matches!(variant, ButtonVariant::Primary | ButtonVariant::Secondary | ButtonVariant::Destructive),
+				};
+				let classes = button_classes(&variant, Size::Md, false, accent, "");
+				assert_eq!(classes.contains(FILLED_FOCUS_RING), paints_fill, "{variant:?} {accent:?}: {classes}");
+				assert_eq!(classes.contains("focus-visible:ring-[3px]"), !paints_fill, "{variant:?} {accent:?}: {classes}");
+			}
+		}
+
+		fn app() -> Element {
+			rsx! { Button { "go" } }
+		}
+		let html = render(app);
+		assert!(html.contains(FILLED_FOCUS_RING), "{html}");
 	}
 
 	#[test]

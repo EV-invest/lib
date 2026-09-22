@@ -14,6 +14,9 @@ pub fn manifest() -> Vec<(&'static str, Vec<Ts>)> {
 		("alert", alert()),
 		("toggle", toggle()),
 		("badge", badge()),
+		("focus", focus()),
+		("switch", switch()),
+		("checkbox", checkbox()),
 		("separator", separator()),
 		("button-group", button_group()),
 		("empty", empty()),
@@ -1236,6 +1239,39 @@ fn badge() -> Vec<Ts> {
 			value: BADGE_BASE,
 		},
 		table::<BadgeVariant>("badgeVariants", "BadgeVariant"),
+	]
+}
+
+fn focus() -> Vec<Ts> {
+	vec![Ts::Const {
+		name: "FILLED_FOCUS_RING",
+		value: FILLED_FOCUS_RING,
+	}]
+}
+
+fn switch() -> Vec<Ts> {
+	vec![
+		Ts::Const {
+			name: "SWITCH_BASE",
+			value: SWITCH_BASE,
+		},
+		Ts::Const {
+			name: "SWITCH_THUMB",
+			value: SWITCH_THUMB,
+		},
+	]
+}
+
+fn checkbox() -> Vec<Ts> {
+	vec![
+		Ts::Const {
+			name: "CHECKBOX_BASE",
+			value: CHECKBOX_BASE,
+		},
+		Ts::Const {
+			name: "CHECKBOX_INDICATOR",
+			value: CHECKBOX_INDICATOR,
+		},
 	]
 }
 

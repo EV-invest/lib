@@ -416,11 +416,8 @@ measuring needs host-only `web-sys`). Known gaps:
   lock-up are the caller's, and each column renders only when it has content.
   The lock-up is composed from `mark` + `brand` (display family) + `tagline`,
   or passed whole as `lockup`. Brand-coloured text reads `primary-ink`.
-- **TS-only for now:** `NativeSelect`, the `Field` id hand-off, `SelectValue`
-  labels and the offset focus ring on filled controls. The ring is fused in
-  `button.tsx` / `badge.tsx` on top of the shared class tables until
-  `rust/classes/src/{button,badge}.rs` carry it; switch and checkbox classes
-  are per-port already.
+- **TS-only for now:** `NativeSelect`, the `Field` id hand-off and
+  `SelectValue` labels.
 - **brand chrome (header / footer / status pages):** TS routes links through an
   optional `linkComponent` (e.g. `next/link`) for soft navigation; Rust renders
   plain `<a>` (a full document load). The Dioxus header drives its scroll state,

@@ -1,6 +1,5 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
-import { FILLED_FOCUS_RING } from "../lib/focus";
 import { Slot } from "../primitives/slot";
 import { accentFillClasses, accentOutlineClasses, type Accent } from "../generated/accent";
 import {
@@ -43,17 +42,8 @@ export function buttonVariants({
     buttonVariantClasses[variant],
     icon ? buttonIconSizeClasses[size] : buttonSizeClasses[size],
     accent === undefined ? undefined : accentClass(accent, variant),
-    paintsFill(variant, accent) ? FILLED_FOCUS_RING : undefined,
     className,
   );
-}
-
-// TS-side until the shared class table (`rust/classes/src/button.rs`) carries
-// the offset ring itself; the halo stays on the variants that sit on the
-// surface, where it is drawn against nothing but the surface.
-function paintsFill(variant: ButtonVariant, accent: Accent | undefined): boolean {
-  if (accent !== undefined) return variant !== "outline";
-  return variant === "primary" || variant === "secondary" || variant === "destructive";
 }
 
 // Which face an accent wears is the variant's business — an outlined button tints

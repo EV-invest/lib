@@ -17,6 +17,7 @@ mod calendar;
 mod card;
 mod carousel;
 mod chart;
+mod checkbox;
 mod command;
 mod container;
 mod context_menu;
@@ -26,6 +27,7 @@ mod drawer;
 mod dropdown_menu;
 mod empty;
 mod field;
+mod focus;
 mod form;
 mod hover_card;
 mod input;
@@ -48,6 +50,7 @@ mod size;
 mod skeleton;
 mod slider;
 mod sonner;
+mod switch;
 mod table;
 mod tabs;
 mod terminal;
@@ -75,6 +78,7 @@ pub use carousel::{
 	CAROUSEL_ITEM_HORIZONTAL, CAROUSEL_ITEM_VERTICAL, CAROUSEL_NAV, CAROUSEL_NEXT_HORIZONTAL, CAROUSEL_NEXT_VERTICAL, CAROUSEL_PREVIOUS_HORIZONTAL, CAROUSEL_PREVIOUS_VERTICAL,
 };
 pub use chart::{CHART_CONTAINER, CHART_LEGEND, CHART_TOOLTIP};
+pub use checkbox::{CHECKBOX_BASE, CHECKBOX_INDICATOR};
 pub use command::{
 	COMMAND_DIALOG_COMMAND, COMMAND_DIALOG_CONTENT, COMMAND_DIALOG_OVERLAY, COMMAND_EMPTY, COMMAND_GROUP, COMMAND_INPUT, COMMAND_INPUT_WRAPPER, COMMAND_ITEM, COMMAND_LIST, COMMAND_ROOT,
 	COMMAND_SEPARATOR, COMMAND_SHORTCUT,
@@ -95,6 +99,7 @@ pub use field::{
 	FIELD_BASE, FIELD_CONTENT, FIELD_DESCRIPTION, FIELD_ERROR, FIELD_GROUP, FIELD_LABEL, FIELD_LEGEND, FIELD_SEPARATOR, FIELD_SEPARATOR_CONTENT, FIELD_SEPARATOR_LINE, FIELD_SET,
 	FIELD_TITLE, FieldOrientation,
 };
+pub use focus::FILLED_FOCUS_RING;
 pub use form::{FORM_DESCRIPTION, FORM_ITEM, FORM_LABEL, FORM_MESSAGE};
 pub use hover_card::HOVER_CARD_CONTENT;
 pub use input::INPUT_BASE;
@@ -133,6 +138,7 @@ pub use size::Size;
 pub use skeleton::SKELETON_BASE;
 pub use slider::{SLIDER_RANGE, SLIDER_ROOT, SLIDER_THUMB, SLIDER_TRACK};
 pub use sonner::{TOAST_BASE, TOAST_CLOSE, TOAST_CONTENT, TOAST_TITLE, TOASTER_BASE, ToastPosition, ToastVariant};
+pub use switch::{SWITCH_BASE, SWITCH_THUMB};
 pub use table::{TABLE, TABLE_BODY, TABLE_CAPTION, TABLE_CELL, TABLE_CONTAINER, TABLE_FOOTER, TABLE_HEAD, TABLE_HEADER, TABLE_ROW};
 pub use tabs::{TABS_CONTENT, TABS_LIST, TABS_ROOT, TABS_TRIGGER};
 pub use terminal::{
@@ -237,12 +243,6 @@ mod tests {
 		assert_eq!(cn!("flex", "items-center", "justify-center"), "flex items-center justify-center");
 	}
 
-	#[test]
-	fn rightmost_wins_on_conflict() {
-		assert_eq!(cn!("p-4", "p-2"), "p-2");
-		assert_eq!(cn!("bg-primary", "bg-secondary"), "bg-secondary");
-	}
-
 	/// Mirrors `tailwind-merge`: an arbitrary ring length is a width, so it
 	/// yields to `ring-0` and leaves the ring colour alone.
 	#[test]
@@ -253,6 +253,12 @@ mod tests {
 		);
 		assert_eq!(cn!("ring-[3px]", "ring-[length:4px]"), "ring-[length:4px]");
 		assert_eq!(cn!("ring-[3px]", "ring-[#fff]"), "ring-[3px] ring-[#fff]");
+	}
+
+	#[test]
+	fn rightmost_wins_on_conflict() {
+		assert_eq!(cn!("p-4", "p-2"), "p-2");
+		assert_eq!(cn!("bg-primary", "bg-secondary"), "bg-secondary");
 	}
 
 	#[test]

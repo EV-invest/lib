@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
-import { FILLED_FOCUS_RING } from "../lib/focus";
+import { CHECKBOX_BASE, CHECKBOX_INDICATOR } from "../generated/checkbox";
 import { useControllableState } from "../primitives/use-controllable-state";
 import { useFieldControlId } from "./field-context";
 
@@ -36,11 +36,7 @@ export function Checkbox({
       aria-checked={on}
       disabled={disabled}
       id={useFieldControlId(id)}
-      className={cn(
-        "peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-on-primary data-[state=checked]:border-primary focus-visible:border-ring aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none disabled:cursor-not-allowed disabled:opacity-50",
-        FILLED_FOCUS_RING,
-        className,
-      )}
+      className={cn(CHECKBOX_BASE, className)}
       onClick={(e) => {
         onClick?.(e);
         setOn(!on);
@@ -50,7 +46,7 @@ export function Checkbox({
       {on && (
         <span
           data-slot="checkbox-indicator"
-          className="flex items-center justify-center text-current transition-none"
+          className={CHECKBOX_INDICATOR}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

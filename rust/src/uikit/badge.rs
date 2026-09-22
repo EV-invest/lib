@@ -16,7 +16,7 @@ pub fn Badge(#[props(default)] variant: BadgeVariant, #[props(default)] class: S
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::uikit::test_util::render;
+	use crate::uikit::{FILLED_FOCUS_RING, test_util::render};
 
 	#[test]
 	fn default_variant_renders_primary() {
@@ -38,6 +38,27 @@ mod tests {
 		}
 		let html = render(app);
 		assert!(html.contains("text-positive"), "{html}");
+	}
+
+	#[test]
+	fn filled_badge_wears_the_offset_ring_and_outline_keeps_the_halo() {
+		fn filled() -> Element {
+			rsx! {
+				Badge { variant: BadgeVariant::Destructive, "x" }
+			}
+		}
+		let html = render(filled);
+		assert!(html.contains(FILLED_FOCUS_RING), "{html}");
+		assert!(!html.contains("focus-visible:ring-[3px]"), "{html}");
+
+		fn outlined() -> Element {
+			rsx! {
+				Badge { variant: BadgeVariant::Outline, "x" }
+			}
+		}
+		let html = render(outlined);
+		assert!(!html.contains(FILLED_FOCUS_RING), "{html}");
+		assert!(html.contains("focus-visible:ring-[3px]"), "{html}");
 	}
 
 	#[test]

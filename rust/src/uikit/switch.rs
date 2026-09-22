@@ -1,15 +1,9 @@
 use dioxus::prelude::*;
 
-use crate::{cn, uikit::primitives::use_controllable};
-
-const SWITCH_BASE: &str = "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring \
-                           focus-visible:ring-ring/50 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full \
-                           border border-transparent shadow-xs transition-all outline-none focus-visible:ring-[3px] \
-                           disabled:cursor-not-allowed disabled:opacity-50";
-
-const THUMB: &str = "data-[state=checked]:bg-on-primary data-[state=unchecked]:bg-ink pointer-events-none \
-                     block size-4 rounded-full ring-0 transition-transform \
-                     data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0";
+use crate::{
+	cn,
+	uikit::{SWITCH_BASE, SWITCH_THUMB, primitives::use_controllable},
+};
 
 #[component]
 pub fn Switch(
@@ -34,7 +28,7 @@ pub fn Switch(
 			disabled,
 			onclick: move |_| state.set(!on),
 			span {
-				class: THUMB,
+				class: SWITCH_THUMB,
 				"data-slot": "switch-thumb",
 				"data-state": data_state,
 			}
@@ -68,6 +62,16 @@ mod tests {
 		let html = render(app);
 		assert!(html.contains("aria-checked=true"), "{html}");
 		assert!(html.contains("data-slot=\"switch-thumb\""), "{html}");
+	}
+
+	#[test]
+	fn wears_the_offset_ring_not_the_halo() {
+		fn app() -> Element {
+			rsx! { Switch {} }
+		}
+		let html = render(app);
+		assert!(html.contains(crate::uikit::FILLED_FOCUS_RING), "{html}");
+		assert!(!html.contains("focus-visible:ring-[3px]"), "{html}");
 	}
 
 	#[test]

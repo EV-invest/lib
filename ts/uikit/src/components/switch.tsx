@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
-import { FILLED_FOCUS_RING } from "../lib/focus";
+import { SWITCH_BASE, SWITCH_THUMB } from "../generated/switch";
 import { useControllableState } from "../primitives/use-controllable-state";
 import { useFieldControlId } from "./field-context";
 
@@ -36,11 +36,7 @@ export function Switch({
       aria-checked={on}
       disabled={disabled}
       id={useFieldControlId(id)}
-      className={cn(
-        "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-all outline-none disabled:cursor-not-allowed disabled:opacity-50",
-        FILLED_FOCUS_RING,
-        className,
-      )}
+      className={cn(SWITCH_BASE, className)}
       onClick={(e) => {
         onClick?.(e);
         setOn(!on);
@@ -50,7 +46,7 @@ export function Switch({
       <span
         data-slot="switch-thumb"
         data-state={state}
-        className="data-[state=checked]:bg-on-primary data-[state=unchecked]:bg-ink pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0"
+        className={SWITCH_THUMB}
       />
     </button>
   );

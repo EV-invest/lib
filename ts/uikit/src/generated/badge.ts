@@ -3,9 +3,9 @@
 export const BADGE_BASE = "inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 gap-1 overflow-hidden [&>svg]:size-3 [&>svg]:pointer-events-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error";
 
 export const badgeVariants = {
-  "primary": "border-transparent bg-primary text-on-primary [a&]:hover:bg-primary/90",
-  "secondary": "border-transparent bg-secondary text-on-secondary [a&]:hover:bg-secondary/90",
-  "destructive": "border-transparent bg-accent-error text-on-accent-error [a&]:hover:bg-accent-error/90 focus-visible:ring-accent-error/20",
+  "primary": "border-transparent bg-primary text-on-primary [a&]:hover:bg-primary/90 focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+  "secondary": "border-transparent bg-secondary text-on-secondary [a&]:hover:bg-secondary/90 focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+  "destructive": "border-transparent bg-accent-error text-on-accent-error [a&]:hover:bg-accent-error/90 focus-visible:ring-accent-error/20 focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
   "outline": "text-ink [a&]:hover:bg-hover [a&]:hover:text-ink",
   "success": "border-transparent bg-positive/20 text-positive",
 } as const;
