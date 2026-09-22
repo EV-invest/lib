@@ -46,6 +46,20 @@ let team = Experiment::new(["a", "b", "c"], [2.0, 1.0, 1.0]); // 50% / 25% / 25%
 let nav = Experiment::uniform(["a", "b"]);                    // equal weights
 ```
 
+Two optional knobs mirror the TS `ExperimentSpec`:
+
+```rust
+let paused = Experiment::uniform(["a", "b"]).with_enabled(false); // kill switch
+let held = Experiment::new(["a", "b"], [0.5, 0.5]).with_holdout(0.1); // 10% pinned to control
+```
+
+- `enabled: Some(false)` returns the control everywhere: `pick_variant` draws
+  nothing and `resolve_variant` ignores a valid stored cookie, so switching an
+  experiment off takes effect for visitors already bucketed.
+- `holdout` (clamped to `[0, 1]`, `NaN` → 0) reuses the single draw: `u < h` is
+  the control, otherwise `u` is rescaled to `(u - h) / (1 - h)` before the
+  weighted walk. A zero holdout leaves every pick bit-identical to no holdout.
+
 ## Assign a variant in the browser
 
 On the browser, assign once per device. [`assign_variant`] reads `ab_<key>`; if

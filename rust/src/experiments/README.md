@@ -104,6 +104,7 @@ The Rust crate is the source of truth; the TS package preserves its
 | Concept | Rust (`ev_lib::experiments`) | TS (`@evinvest/experiments`) |
 | --- | --- | --- |
 | experiment | `Experiment::new(variants, weights)` / `::uniform` | config entry `{ variants, weights }` (`.`) |
+| kill switch · holdout | `.with_enabled(false)` · `.with_holdout(h)` (`enabled`/`holdout` fields) | `enabled` · `holdout` in the config entry (`.`) |
 | cookie name | `cookie_name(key)` → `ab_<key>` | `cookieName(key)` (`.`) |
 | weighted pick | `pick_variant(&exp, rng)` | `pickVariant(cfg, key, rng?)` (`.`) |
 | control fallback | `resolve_variant(&exp, raw)` | `resolveVariant(cfg, key, raw)` (`.`) |
