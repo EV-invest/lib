@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { render } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { fireEvent, render } from "@testing-library/react";
 import {
   Field,
   FieldLabel,
@@ -154,6 +154,80 @@ describe("Field id wiring", () => {
     );
     expect(getByText("Mine")).toHaveAttribute("for", "mine");
     expect(getByLabelText("Mine").id).toBe("mine");
+  });
+
+  it("gives no for to a label that wraps its own control, so a click on the text toggles it", () => {
+    const { getByText, container } = render(
+      <Field>
+        <FieldLabel>
+          <input type="checkbox" /> Accept
+        </FieldLabel>
+      </Field>,
+    );
+    const label = container.querySelector("label")!;
+    expect(label).not.toHaveAttribute("for");
+    const box = container.querySelector("input")!;
+    fireEvent.click(getByText("Accept"));
+    expect(box.checked).toBe(true);
+  });
+
+  it("gives no for to a label around a nested Field (the choice card)", () => {
+    const { container } = render(
+      <Field>
+        <FieldLabel>
+          <Field orientation="horizontal">
+            <Checkbox /> Pro
+          </Field>
+        </FieldLabel>
+      </Field>,
+    );
+    expect(container.querySelector("label")).not.toHaveAttribute("for");
+  });
+
+  it("opts out with htmlFor={null}", () => {
+    const Wrapped = () => <input />;
+    const { container } = render(
+      <Field>
+        <FieldLabel htmlFor={null}>
+          <Wrapped />
+        </FieldLabel>
+      </Field>,
+    );
+    expect(container.querySelector("label")).not.toHaveAttribute("for");
+  });
+
+  it("names the id with controlId", () => {
+    const { getByLabelText, getByText } = render(
+      <Field controlId="email">
+        <FieldLabel>Email</FieldLabel>
+        <Input />
+      </Field>,
+    );
+    expect(getByText("Email")).toHaveAttribute("for", "email");
+    expect(getByLabelText("Email").id).toBe("email");
+  });
+
+  it("warns when two kit controls take the one id", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(
+      <Field>
+        <FieldLabel>Range</FieldLabel>
+        <Input />
+        <Input />
+      </Field>,
+    );
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0]).toMatch(/two controls took the same <Field> id/);
+    warn.mockClear();
+    render(
+      <Field>
+        <FieldLabel>One</FieldLabel>
+        <Input />
+        <Input id="other" />
+      </Field>,
+    );
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 
   it("leaves a control outside any Field without an id", () => {

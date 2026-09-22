@@ -69,11 +69,18 @@ describe("NativeSelect", () => {
     expect(select(container).className).toContain("[color-scheme:var(--scheme,normal)]");
   });
 
+  it("spans its column like Input unless the wrapper is narrowed", () => {
+    const { container } = render(<NativeSelect />);
+    expect(container.querySelector('[data-slot="native-select-wrapper"]')).toHaveClass("w-full");
+  });
+
   it("splits styling between the control and the box that sizes it", () => {
-    const { container } = render(<NativeSelect className="text-lg" wrapperClassName="w-full" size="sm" />);
+    const { container } = render(<NativeSelect className="text-lg" wrapperClassName="w-40" size="sm" />);
     expect(select(container)).toHaveClass("text-lg");
     expect(select(container)).toHaveAttribute("data-size", "sm");
-    expect(container.querySelector('[data-slot="native-select-wrapper"]')).toHaveClass("w-full");
+    const wrapper = container.querySelector('[data-slot="native-select-wrapper"]');
+    expect(wrapper).toHaveClass("w-40");
+    expect(wrapper).not.toHaveClass("w-full");
   });
 
   it("forwards its ref to the <select>", () => {

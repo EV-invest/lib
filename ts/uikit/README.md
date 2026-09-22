@@ -214,7 +214,8 @@ through hydration. Three parts of the kit make that hold:
   `placeholder` adds an empty, unpickable first option, selected until a value
   is chosen and styled `text-ink-soft`; with `required`, the browser refuses to
   submit it. `className` styles the `<select>`, `wrapperClassName` the box that
-  holds it and the arrow (`w-fit` by default; a vertical `Field` stretches it).
+  holds it and the arrow. That box is `w-full`, like `Input`, so the two line
+  up in a form column; narrow it with `wrapperClassName`, not `className`.
 
   It is a component of its own rather than a mode of `Select`: none of
   `SelectTrigger` / `SelectValue` / `SelectContent` has a native counterpart.
@@ -224,14 +225,22 @@ through hydration. Three parts of the kit make that hold:
   hydrating client agree — and hands it to its `FieldLabel` as `for` and to the
   kit's `Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `Checkbox` and
   `Switch` as `id`, each only when the caller passed none. No `FormControl`
-  wrapper is needed. One control per `Field`; name the ids by hand when it holds
-  more. (`FormItem` / `FormControl` keep their own `useId` wiring for forms that
+  wrapper is needed. Want your own id — pass `controlId` to the `Field`, and
+  both ends take it. One control per `Field`: when it holds more, give the
+  others an `id` of their own (a development warning names the collision).
+  A `FieldLabel` that wraps its control (`<FieldLabel><input type="checkbox" />
+  Accept</FieldLabel>`, or a nested `Field` — the choice card) gets no `for`:
+  the wrapping already labels it. A control hidden inside a component of yours
+  is invisible to that check; pass `htmlFor={null}` there to drop the `for`.
+  (`FormItem` / `FormControl` keep their own `useId` wiring for forms that
   want `aria-describedby` too.)
-- **`SelectValue` shows the label**, not the stored value: the children of the
-  `SelectItem` whose `value` matches, read off the element tree — so it is right
-  on the server and before the popover first opens. An item rendered by a
-  component of yours is learnt once it has mounted (after the first open); pass
-  `SelectValue` children to show something else outright.
+- **`SelectValue` shows the label**, not the stored value: the matching
+  `SelectItem`'s `textValue`, else the text of its children — text, so an id in
+  the item's markup is not rendered a second time in the trigger. It is read off
+  the element tree, so it is right on the server and before the popover first
+  opens. An item rendered by a component of yours is learnt when it mounts (on
+  the first open), and the trigger updates then; pass `SelectValue` children to
+  show something else outright.
 
 ```tsx
 <form action="/lead" method="post">

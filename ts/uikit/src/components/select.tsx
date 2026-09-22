@@ -7,6 +7,7 @@ import { usePresence } from "../primitives/presence";
 import { useRovingFocus } from "../primitives/use-roving-focus";
 import { mergeRefs } from "../primitives/merge-refs";
 import { Portal } from "../primitives/portal";
+import { walkElements } from "../primitives/walk-elements";
 import { useFieldControlId } from "./field-context";
 import { SelectChevron } from "./select-chevron";
 
@@ -17,8 +18,8 @@ interface SelectContextValue {
   setOpen: (next: boolean) => void;
   anchorRef: React.RefObject<HTMLElement | null>;
   /** What `SelectValue` shows for a value: the matching `SelectItem`'s children. */
-  labelOf: (value: string) => React.ReactNode;
-  registerLabel: (value: string, label: React.ReactNode) => void;
+  labelOf: (value: string) => string;
+  registerLabel: (value: string, label: string) => void;
 }
 
 const SelectContext = React.createContext<SelectContextValue | null>(null);
@@ -62,16 +63,20 @@ export function Select({
   // The items live in a closed popover, so they are not mounted when the
   // trigger first renders — on the server least of all. Their labels are read
   // off the element tree instead; items hidden behind a component of the
-  // caller's register once they have mounted (i.e. after the first open).
+  // caller's register once they have mounted (i.e. after the first open), and
+  // a label learnt that way re-renders the trigger once.
   const declared = React.useMemo(() => collectItemLabels(children), [children]);
-  const mounted = React.useRef(new Map<string, React.ReactNode>());
-  const labelOf = React.useCallback(
-    (v: string) => (declared.has(v) ? declared.get(v) : mounted.current.has(v) ? mounted.current.get(v) : v),
+  const mounted = React.useRef(new Map<string, string>());
+  const [, bump] = React.useReducer((n: number) => n + 1, 0);
+  const labelOf = (v: string) => declared.get(v) ?? mounted.current.get(v) ?? v;
+  const registerLabel = React.useCallback(
+    (v: string, label: string) => {
+      if (mounted.current.get(v) === label) return;
+      mounted.current.set(v, label);
+      if (!declared.has(v)) bump();
+    },
     [declared],
   );
-  const registerLabel = React.useCallback((v: string, label: React.ReactNode) => {
-    mounted.current.set(v, label);
-  }, []);
   return (
     <SelectContext.Provider
       value={{
@@ -89,17 +94,31 @@ export function Select({
   );
 }
 
-function collectItemLabels(
-  node: React.ReactNode,
-  into = new Map<string, React.ReactNode>(),
-): Map<string, React.ReactNode> {
-  React.Children.forEach(node, (child) => {
-    if (!React.isValidElement<{ value?: unknown; children?: React.ReactNode }>(child)) return;
-    const { value, children } = child.props;
-    if (child.type === SelectItem && typeof value === "string") into.set(value, children);
-    else collectItemLabels(children, into);
+function collectItemLabels(node: React.ReactNode): Map<string, string> {
+  const labels = new Map<string, string>();
+  walkElements(node, (element) => {
+    if (element.type !== SelectItem) return true;
+    const { value, textValue, children } = element.props as Partial<SelectItemProps>;
+    if (typeof value === "string") labels.set(value, itemLabel(value, textValue, children));
+    return false;
   });
-  return into;
+  return labels;
+}
+
+/**
+ * What the trigger shows for an item: its `textValue`, else the text of its
+ * children. Text, not the children themselves — an item's markup rendered a
+ * second time in the trigger would duplicate any id inside it.
+ */
+function itemLabel(value: string, textValue: string | undefined, children: unknown): string {
+  return textValue ?? (textOf(children).trim() || value);
+}
+
+function textOf(node: unknown): string {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(textOf).join("");
+  if (React.isValidElement<{ children?: unknown }>(node)) return textOf(node.props.children);
+  return "";
 }
 
 export interface SelectTriggerProps extends React.ComponentProps<"button"> {
@@ -146,8 +165,9 @@ export interface SelectValueProps extends React.ComponentProps<"span"> {
 }
 
 /**
- * The chosen option's label — the children of the `SelectItem` whose `value`
- * matches — or `placeholder` while nothing is chosen. `children`, when given,
+ * The chosen option's label — the `textValue` of the `SelectItem` whose `value`
+ * matches, else the text of its children — or `placeholder` while nothing is
+ * chosen. `children`, when given,
  * replace the label outright.
  */
 export function SelectValue({ className, placeholder, children, ...props }: SelectValueProps) {
@@ -240,11 +260,14 @@ export interface SelectItemProps
   extends React.ComponentProps<"div">,
     SelectItemContext {
   value: string;
+  /** What the trigger shows once this item is chosen; defaults to the text of `children`. */
+  textValue?: string;
 }
 
 export function SelectItem({
   className,
   value,
+  textValue,
   children,
   __index = 0,
   __active = false,
@@ -253,7 +276,8 @@ export function SelectItem({
 }: SelectItemProps) {
   const { value: selectedValue, setValue, setOpen, registerLabel } = useSelect();
   const selected = selectedValue === value;
-  React.useEffect(() => registerLabel(value, children), [registerLabel, value, children]);
+  const label = itemLabel(value, textValue, children);
+  React.useEffect(() => registerLabel(value, label), [registerLabel, value, label]);
   return (
     <div
       role="option"

@@ -113,7 +113,7 @@ function LeadForm() {
     <form action="#" onSubmit={(e) => e.preventDefault()} className="flex flex-wrap items-end gap-3">
       <Field className="w-48">
         <FieldLabel>Service</FieldLabel>
-        <NativeSelect name="service" placeholder="Pick one" required wrapperClassName="w-full">
+        <NativeSelect name="service" placeholder="Pick one" required>
           <NativeSelectOption value="leak">Leak</NativeSelectOption>
           <NativeSelectOption value="boiler">Boiler</NativeSelectOption>
         </NativeSelect>
