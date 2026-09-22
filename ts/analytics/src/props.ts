@@ -39,6 +39,15 @@ export interface PropPolicy {
 }
 
 /**
+ * Properties this package puts on events itself, always allowed so an
+ * `allowedProps` list never has to know about them: `$current_url` is what
+ * `PostHogPageView` (`./next/client`) sends with every soft navigation, and
+ * `$lib` is the marker {@link captureBody} stamps (overwriting any caller
+ * value). Nothing else starting with `$` is exempt.
+ */
+export const LIBRARY_PROPS: readonly string[] = ["$current_url", "$lib"];
+
+/**
  * `true` unless the bundle was built for production. Treats an environment
  * without `process` as production: an unknown environment must not throw at a
  * visitor.
@@ -98,7 +107,9 @@ export function withPropPolicy(
 ): AnalyticsSink {
   const strict = policy.strict ?? isDevelopment();
   const allowed =
-    policy.allowedProps === undefined ? undefined : new Set(policy.allowedProps);
+    policy.allowedProps === undefined
+      ? undefined
+      : new Set([...LIBRARY_PROPS, ...policy.allowedProps]);
 
   let globals: Readonly<Record<string, PropValue>> = policy.globalProps ?? {};
   if (allowed) {

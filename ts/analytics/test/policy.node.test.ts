@@ -81,6 +81,15 @@ describe("withPropPolicy — allowedProps", () => {
     expect(capture).toHaveBeenNthCalledWith(2, "b", undefined, undefined);
   });
 
+  it("always allows the $-properties this package sets itself, and no others", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const { sink, capture } = recorder();
+    const guarded = withPropPolicy(sink, { allowedProps });
+    guarded.capture("$pageview", { $current_url: "https://x/", $lib: "x" });
+    expect(capture).toHaveBeenCalledTimes(1);
+    expect(() => guarded.capture("e", { $ip: "1.2.3.4" })).toThrow(/"\$ip"/);
+  });
+
   it("allows any key when no list is configured", () => {
     vi.stubEnv("NODE_ENV", "development");
     const { sink, capture } = recorder();
