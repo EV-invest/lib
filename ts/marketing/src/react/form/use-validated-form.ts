@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import type {
   FieldErrors,
@@ -78,20 +78,39 @@ export function useValidatedForm<T extends Record<string, string>>({
   const [errors, setErrors] = useState<FieldErrors<T>>({});
   const [status, setStatus] = useState<FormStatus>("idle");
   const [failure, setFailure] = useState<SubmitFailure | null>(null);
+  // A ref, not `status`: a double click or Enter-then-click lands the second
+  // submit before React has re-rendered with "sending", so a state check would
+  // still read "idle" and post the lead twice.
+  const inFlight = useRef(false);
+  // The form to move focus into once the failed fields have rendered as
+  // invalid; `invalidSubmits` re-arms the effect even when the same fields
+  // fail twice in a row.
+  const invalidForm = useRef<HTMLElement | null>(null);
+  const [invalidSubmits, setInvalidSubmits] = useState(0);
+
+  useEffect(() => {
+    const form = invalidForm.current;
+    invalidForm.current = null;
+    // After commit, so `aria-invalid` is already on the controls. Without this
+    // a keyboard or screen-reader user presses submit and stays on the button,
+    // with no cue which field — possibly scrolled away — needs fixing.
+    form?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [invalidSubmits]);
 
   const edit = (field: keyof T & string) => (value: string) => {
     setFields(prev => ({ ...prev, [field]: value }));
     setErrors(prev => {
-      if (!prev[field]) return prev;
+      if (!Object.hasOwn(prev, field)) return prev;
       const next = { ...prev };
       delete next[field];
       return next;
     });
     setStatus(prev => (prev === "error" ? "idle" : prev));
+    setFailure(null);
   };
 
   const field = (name: keyof T & string): BoundField => {
-    const key = errors[name];
+    const key = Object.hasOwn(errors, name) ? errors[name] : undefined;
     return {
       name,
       value: fields[name] ?? "",
@@ -102,11 +121,18 @@ export function useValidatedForm<T extends Record<string, string>>({
 
   async function submit(event?: FormEvent) {
     event?.preventDefault();
+    if (inFlight.current) return;
     const result = validate(fields);
     if (!isPayload(result)) {
       setErrors(result.errors);
+      setFailure(null);
+      setStatus(prev => (prev === "error" ? "idle" : prev));
+      const target = event?.currentTarget;
+      invalidForm.current = target instanceof HTMLElement ? target : null;
+      setInvalidSubmits(n => n + 1);
       return;
     }
+    inFlight.current = true;
     setErrors({});
     setFailure(null);
     setStatus("sending");
@@ -120,6 +146,8 @@ export function useValidatedForm<T extends Record<string, string>>({
     } catch {
       setFailure("network");
       setStatus("error");
+    } finally {
+      inFlight.current = false;
     }
   }
 

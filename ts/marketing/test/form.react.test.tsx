@@ -79,6 +79,39 @@ describe("useValidatedForm", () => {
   });
 });
 
+describe("useValidatedForm — submit hygiene", () => {
+  const valid = { name: "Jo", phone: "+33612345678" };
+
+  it("posts once when submit re-enters while the first send is in flight", async () => {
+    let release!: () => void;
+    const send = vi.fn(() => new Promise<unknown>(r => (release = () => r({ data: {} }))));
+    const { result } = renderHook(() => useValidatedForm({ initial: valid, validate, send }));
+    const submit = result.current.submit;
+    let first!: Promise<void>;
+    await act(async () => {
+      first = submit();
+      await submit(); // same render, before "sending" is visible
+    });
+    await act(async () => {
+      release();
+      await first;
+    });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(result.current.status).toBe("sent");
+  });
+
+  it("clears the failure key as soon as the reader edits", async () => {
+    const { result } = renderHook(() =>
+      useValidatedForm({ initial: valid, validate, send: async () => ({ error: "x" }) }),
+    );
+    await act(() => result.current.submit());
+    expect(result.current.failure).toBe("submit");
+    act(() => result.current.edit("name")("J"));
+    expect(result.current.failure).toBeNull();
+    expect(result.current.status).toBe("idle");
+  });
+});
+
 describe("TextField", () => {
   function Form() {
     const form = useValidatedForm({
@@ -102,6 +135,14 @@ describe("TextField", () => {
     expect(input).toHaveAttribute("aria-invalid", "true");
     expect(input).toHaveAccessibleDescription("Too short");
     expect(screen.getByRole("alert")).toHaveTextContent("Too short");
+  });
+
+  it("moves focus to the first invalid field after a failed submit", async () => {
+    render(<Form />);
+    const button = screen.getByText("Send");
+    button.focus();
+    await act(async () => fireEvent.click(button));
+    expect(document.activeElement).toBe(screen.getByLabelText("Name"));
   });
 
   it("drops the error once the reader types", async () => {
