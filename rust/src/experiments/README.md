@@ -43,6 +43,17 @@ resolve_variant(&hero, Some("zzz"));                 // "a" — unknown → cont
 next_variant(&team, "c", 1);                         // "a" — wraps
 ```
 
+### Deterministic bucketing by subject (no cookie)
+
+```rust
+use ev_lib::experiments::{pick_variant_for, hash_to_unit, hash_rng, fnv1a32};
+
+pick_variant_for(&hero, "hero", "loc-1"); // pick_variant driven by hash_rng("hero:loc-1") — stable, static-safe
+hash_to_unit("exp:loc-1");                // 0.7218671222217381 — fnv1a32(UTF-8) / 2^32
+let mut rng = hash_rng("exp:loc-1");      // n-th call == hash_to_unit("exp:loc-1#<n>")
+fnv1a32(b"a");                            // 0xE40C292C
+```
+
 ### Browser variant assignment (wasm)
 
 ```rust
@@ -97,6 +108,8 @@ The Rust crate is the source of truth; the TS package preserves its
 | weighted pick | `pick_variant(&exp, rng)` | `pickVariant(cfg, key, rng?)` (`.`) |
 | control fallback | `resolve_variant(&exp, raw)` | `resolveVariant(cfg, key, raw)` (`.`) |
 | cyclic step | `next_variant(&exp, current, step)` | `nextVariant(cfg, key, current, step)` (`.`) |
+| hash bucketing | `pick_variant_for(&exp, key, subject)` | `pickVariantFor(cfg, key, subject)` (`.`) |
+| hash primitives | `fnv1a32` · `hash_to_unit` · `hash_rng` | `hashToUnit` · `hashRng` (`.`) |
 | sticky assignment | `assign_variant(&exp, key)` (wasm) | proxy `createAbMiddleware` (`./next`) |
 | read current | `current_variant` / `read_cookie` (wasm) | `getVariant` / `readCookie` |
 | exposure boundary | `ExperimentTracker { experiment, variant, on_event }` | `ExperimentTracker` (`./react`) |
@@ -108,9 +121,11 @@ The Rust crate is the source of truth; the TS package preserves its
 - **Frontend-only.** There is no server proxy here (no Rust equivalent of the TS
   `./next` middleware); assignment happens in the browser via the `ab_<key>`
   cookie.
-- **Per-device bucketing.** `pick_variant` draws from an injected `rng`
-  (`js_sys::Math::random` in the browser) — there is **no user-id hashing**.
-  Stickiness comes from the 30-day cookie, not the rng.
+- **Per-device bucketing by default.** `pick_variant` draws from an injected
+  `rng` (`js_sys::Math::random` in the browser); stickiness comes from the 30-day
+  cookie, not the rng. For per-subject splits (location, user id) use
+  `pick_variant_for`, which hashes `"{key}:{subject}"` instead — FNV-1a 32-bit,
+  byte-identical to the TS package.
 - **No event transport, by design.** The tracker emits through an injected
   [`ExposureSink`]; there is no batching, retry, or PII scrubbing — the sink you
   wire owns all of that, and `experiments` never imports `analytics`.
