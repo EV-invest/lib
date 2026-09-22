@@ -57,7 +57,9 @@ your Tailwind v4 entrypoint — this is the load-bearing part of the kit:
 
 Custom properties inherit, so a scope class on a `<section>` re-themes its
 subtree — `bg-card text-ink` is correct on both polarities with no prop. That is
-what `<Section polarity="dark">` does.
+what `<Section polarity="dark">` does. Without `polarity` a `Section` sets no
+scope and inherits its parent's, so a dark-first brand stays dark; pass
+`"light"` or `"dark"` only where a band flips.
 
 A surface takes its ink from the scope, so it carries no `-foreground`. A
 **filled role** does not — gold wants black and navy wants white regardless of
@@ -158,6 +160,14 @@ const [overlays, setOverlays] = useState<HTMLDivElement | null>(null);
   <div ref={setOverlays} />
 </section>
 ```
+
+Put the container as a direct child of the `[data-brand]` (or polarity)
+element, and never under an ancestor with `overflow: hidden`, a `transform`,
+`filter` or `perspective`, or anything else that makes a containing block or
+an isolated stacking context (`contain`, `isolation: isolate`, a `z-index`ed
+positioned box): overlays are positioned `fixed`/`absolute` against the
+viewport and stacked by `z-index`, so any of those clips them, offsets them, or
+buries them under the page.
 
 A brand on `<html>` needs no provider: `document.body` is already inside it.
 Brand scopes do not nest — CSS has no "nearest ancestor", so a polarity class

@@ -36,10 +36,12 @@ export interface SectionProps extends React.ComponentProps<"section"> {
 /**
  * `polarity` sets the token scope on the element, so everything inside reads
  * `text-ink` / `border-border` / `text-ink-soft` and resolves correctly on
- * either side. `tight` is the shorter vertical rhythm.
+ * either side. Omitted, the band sets no scope and inherits its parent's: a
+ * default of `light` would flip every band of a dark-first brand. `tight` is
+ * the shorter vertical rhythm.
  */
 export function Section({
-  polarity = "light",
+  polarity,
   surface = "background",
   tight = false,
   className,
@@ -51,7 +53,7 @@ export function Section({
       className={cn(
         // conflict-free by construction — a gutter, a scope class, a plane and a
         // rhythm — so only the caller override is worth a merge
-        `${SECTION_BASE} ${polarityClasses[polarity]} ${surfaceClasses[surface]} ${
+        `${SECTION_BASE} ${polarity ? polarityClasses[polarity] : ""} ${surfaceClasses[surface]} ${
           tight ? SECTION_PY_TIGHT : SECTION_PY
         }`,
         className,
