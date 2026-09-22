@@ -1,7 +1,14 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { Label } from "./label";
-import { FieldControlIdContext, useFieldControlId } from "./field-context";
+import { walkElements } from "../primitives/walk-elements";
+import { Checkbox } from "./checkbox";
+import { FieldControlContext, useFieldClaims } from "./field-context";
+import { Input } from "./input";
+import { NativeSelect } from "./native-select";
+import { SelectTrigger } from "./select";
+import { Switch } from "./switch";
+import { Textarea } from "./textarea";
 import {
   FIELD_BASE,
   FIELD_SET,
@@ -60,17 +67,23 @@ export function FieldGroup({ className, ...props }: React.ComponentProps<"div">)
  * A labelled control. `Field` mints one id and hands it to both ends: its
  * `FieldLabel` takes it as `for`, and the kit's `Input`, `Textarea`,
  * `NativeSelect`, `SelectTrigger`, `Checkbox` and `Switch` take it as `id` —
- * each only when the caller passed none. One control per `Field`: a field that
- * holds two has to name their ids by hand, or both would claim the one id.
+ * each only when the caller passed none. `controlId` names the id instead of
+ * minting one. One control per `Field`: a field that holds two has to name
+ * their ids by hand, or both would claim the one id (a development warning
+ * says so).
  */
 export function Field({
   className,
   orientation = "vertical",
+  controlId,
   ...props
-}: React.ComponentProps<"div"> & { orientation?: FieldOrientation }) {
-  const controlId = React.useId();
+}: React.ComponentProps<"div"> & { orientation?: FieldOrientation; controlId?: string }) {
+  const minted = React.useId();
+  const claim = useFieldClaims();
+  const id = controlId ?? minted;
+  const control = React.useMemo(() => ({ id, claim }), [id, claim]);
   return (
-    <FieldControlIdContext.Provider value={controlId}>
+    <FieldControlContext.Provider value={control}>
       <div
         role="group"
         data-slot="field"
@@ -78,7 +91,7 @@ export function Field({
         className={cn(FIELD_BASE, fieldOrientation[orientation], className)}
         {...props}
       />
-    </FieldControlIdContext.Provider>
+    </FieldControlContext.Provider>
   );
 }
 
@@ -92,16 +105,50 @@ export function FieldContent({ className, ...props }: React.ComponentProps<"div"
   );
 }
 
-export function FieldLabel({ className, htmlFor, ...props }: React.ComponentProps<typeof Label>) {
-  const controlId = useFieldControlId(htmlFor);
+export interface FieldLabelProps extends Omit<React.ComponentProps<typeof Label>, "htmlFor"> {
+  /** `null` opts out of the `Field`'s id: the label then has no `for` at all. */
+  htmlFor?: string | null;
+}
+
+/**
+ * Takes its `Field`'s id as `for` unless it wraps a control itself — a label
+ * around an `<input>` already labels it, and a `for` pointing elsewhere would
+ * steal the click. A control inside a component of yours is invisible to that
+ * check; pass `htmlFor={null}` there.
+ */
+export function FieldLabel({ className, htmlFor, children, ...props }: FieldLabelProps) {
+  const field = React.useContext(FieldControlContext);
+  const target = htmlFor === null ? undefined : (htmlFor ?? (wrapsControl(children) ? undefined : field?.id));
   return (
     <Label
       data-slot="field-label"
-      htmlFor={controlId}
+      htmlFor={target}
       className={cn(FIELD_LABEL, className)}
       {...props}
-    />
+    >
+      {children}
+    </Label>
   );
+}
+
+// The labelable elements (HTML's list, less `output`/`meter`/`progress`, which a
+// field label never wraps) and the kit's controls that render one — plus a
+// nested `Field`, the choice-card shape, whose control is labelled by its own.
+const LABELABLE_TAGS = new Set(["input", "select", "textarea", "button"]);
+const LABELABLE_KIT: ReadonlySet<unknown> = new Set([Input, Textarea, NativeSelect, Checkbox, Switch, SelectTrigger, Field]);
+
+function wrapsControl(children: React.ReactNode): boolean {
+  let found = false;
+  walkElements(children, (element) => {
+    if (found) return false;
+    const { type } = element;
+    const props = element.props as { type?: unknown };
+    if (typeof type === "string" ? LABELABLE_TAGS.has(type) && props.type !== "hidden" : LABELABLE_KIT.has(type)) {
+      found = true;
+    }
+    return !found;
+  });
+  return found;
 }
 
 export function FieldTitle({ className, ...props }: React.ComponentProps<"div">) {
