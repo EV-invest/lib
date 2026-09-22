@@ -27,6 +27,14 @@ build), `npm run typecheck`.
   components — the toaster ships its own keyframes), and the kit's
   `styles/tokens.css`, then `@source`s `../../src` so Tailwind generates the
   classes the kit uses.
+- The **Brands** section renders the same components under `data-brand="ev"`
+  and `data-brand="aquafix-demo"` (light and dark), each with its own palette
+  and `--brand-mark`, and opens `Dialog` / `Select` into its own scope through
+  `PortalProvider`. The second palette comes from
+  `../test/fixtures/aquafix-demo.brand.toml` — the one the contrast test
+  measures — generated in memory by a small plugin in `vite.config.ts`
+  (`virtual:brand-palettes.css`), so no generated CSS is committed here. The
+  marks live in `public/brands/`.
 
 > Dev-only; not published. Lives inside the package dir but is excluded from the
 > npm tarball (`files` is just `dist` + `styles`) and from the package's own
