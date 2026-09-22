@@ -238,6 +238,10 @@ Test-file naming drives the vitest project: `*.node.test.ts` → node env,
   or fall back to `noopSink()`.
 - **Don't forget `shutdown` on the server.** `posthog-node` queues events;
   without a flush, short-lived processes drop them.
+- **`allowedProps` guards `capture` only.** In the identified (default) mode
+  posthog-js autocapture and replay send page URLs, link `href`s and element
+  text without passing it; the cookieless mode switches those off. See README →
+  "What the allow-list and consent cover".
 - **Keep props primitive and non-PII.** Strings/numbers/booleans only; never the
   user's typed text.
 - **Mount the provider once.** Multiple `PostHogProvider`s mean multiple init

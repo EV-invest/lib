@@ -13,10 +13,12 @@ import {
   createPostHogSink,
   gatedSink,
   noopSink,
+  readConsent,
   withPropPolicy,
   type AnalyticsSink,
   type CaptureFn,
   type CaptureOptions,
+  type ConsentSource,
   type PostHogRegion,
   type PostHogTarget,
   type PropPolicy,
@@ -41,11 +43,14 @@ export interface PostHogProviderBaseProps extends PropPolicy {
   capturePageview?: boolean;
   /**
    * When given, events (the initial pageview included) are sent only while it
-   * returns `true`; see `gatedSink`. Pass `hasConsent` imported from
-   * `@evinvest/analytics` — this entry is a separate bundle, so its own copy
-   * of the page-wide flag would never see a `setConsent` from the core entry.
+   * is granted; see `gatedSink`. Pass `pageConsent` imported from
+   * `@evinvest/analytics` — it can `subscribe`, so a withdrawal also opts
+   * posthog-js out of its own capturing — and import it from the core entry:
+   * this entry is a separate bundle whose own copy of the page-wide flag would
+   * never see a `setConsent`. Read through a ref, so an inline function does
+   * not rebuild the context value on every render.
    */
-  consent?: () => boolean;
+  consent?: ConsentSource;
 }
 
 /**
@@ -157,17 +162,39 @@ export function PostHogProvider(props: PostHogProviderProps) {
   // they apply to buffered events and to the initial pageview alike, and a
   // misconfigured `globalProps` fails during render in development instead of
   // inside an unobserved promise.
+  const consentRef = React.useRef(consent);
+  consentRef.current = consent;
+  const gated = consent !== undefined;
+  // One stable source over the ref: a new `consent` identity each render must
+  // not change the context value, or every consumer effect (the App Router
+  // page-view tracker among them) re-fires.
+  const consentSource = React.useMemo<ConsentSource>(
+    () => ({
+      granted() {
+        const current = consentRef.current;
+        return current === undefined || readConsent(current);
+      },
+      subscribe(listener) {
+        const current = consentRef.current;
+        return typeof current === "object" && current.subscribe
+          ? current.subscribe(listener)
+          : () => {};
+      },
+    }),
+    [],
+  );
+
   const policyKey = JSON.stringify([allowedProps, globalProps, strict]);
   const value = React.useMemo<AnalyticsSink>(() => {
-    const gated = consent ? gatedSink(raw, consent) : raw;
-    return withPropPolicy(gated, {
+    const inner = gated ? gatedSink(raw, consentSource) : raw;
+    return withPropPolicy(inner, {
       ...(allowedProps !== undefined ? { allowedProps } : {}),
       ...(globalProps !== undefined ? { globalProps } : {}),
       ...(strict !== undefined ? { strict } : {}),
     });
     // `policyKey` stands in for the policy fields so an inline array literal
     // does not rebuild the sink on every render.
-  }, [raw, consent, policyKey]);
+  }, [raw, gated, consentSource, policyKey]);
   const valueRef = React.useRef(value);
   valueRef.current = value;
 
@@ -196,6 +223,7 @@ export function PostHogProvider(props: PostHogProviderProps) {
         // posthog's own initial-pageview autocapture is disabled to avoid
         // double-counting it.
         capturePageview: false,
+        ...(gated ? { consent: consentSource } : {}),
       });
       readyRef.current = true;
       // Fire exactly one initial pageview unless the caller opted out. This is
@@ -212,7 +240,7 @@ export function PostHogProvider(props: PostHogProviderProps) {
     return () => {
       active = false;
     };
-  }, [key, host, region, cookieless, capturePageview]);
+  }, [key, host, region, cookieless, capturePageview, gated, consentSource]);
 
   return React.createElement(AnalyticsContext.Provider, { value }, children);
 }

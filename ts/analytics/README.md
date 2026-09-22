@@ -81,7 +81,10 @@ const sink = createPostHogSink(posthog, {
 });
 ```
 
-Nothing is written to cookies or storage; a reload is a new visitor. The
+Nothing is written to cookies or storage; a reload is a new visitor.
+Autocapture, rage/dead clicks, heatmaps and session recording are switched off,
+because those events never pass through `capture` (see the table under
+Consent). The
 default (`cookieless` omitted) is still the identified mode, because the
 existing consumers identify signed-in users.
 
@@ -165,12 +168,42 @@ setConsent(true);                   // from the banner's "accept"
 sink.capture("hero_cta_clicked");   // sent
 ```
 
-Events before consent are **dropped, not queued**. `gatedSink(sink, fn)` takes
-any `() => boolean`; `createConsent()` makes an independent flag.
-`<PostHogProvider consent={hasConsent}>` gates the provider (initial pageview
-included) — pass the function imported from `@evinvest/analytics`: `./react`
-is a separate bundle, and its own copy of the page-wide flag never sees a
-`setConsent` from the core entry.
+Events before consent are **dropped, not queued**. `gatedSink(sink, source)`
+takes a `() => boolean` or a `Consent` object; `pageConsent` is the page-wide
+one `setConsent` writes, `createConsent()` makes an independent flag.
+
+`gatedSink` sees only what goes through `capture`. For posthog-js, give the
+sink the consent itself — `createPostHogSink(posthog, { …, consent:
+pageConsent })` or `<PostHogProvider consent={pageConsent}>`:
+
+- posthog-js is not initialised until the first consented event, so it sends
+  nothing of its own before consent;
+- `setConsent(false)` after init calls `posthog.opt_out_capturing()` (stopping
+  autocapture and recording too), a renewed `setConsent(true)` calls
+  `opt_in_capturing` without the `$opt_in` event. A bare function only gates
+  `capture` — it cannot be subscribed to.
+
+Import `pageConsent` from `@evinvest/analytics`: `./react` is a separate
+bundle, and its own copy of the page-wide flag never sees a `setConsent` from
+the core entry. An inline `consent` prop is fine — the provider reads it
+through a ref, so re-renders do not re-fire consumers' effects.
+
+### What the allow-list and consent cover — and what they do not
+
+`allowedProps`, `globalProps` and `gatedSink` act on **events passed to
+`capture`** (including the provider's `$pageview` and `PostHogPageView`). The
+`$`-properties this package adds itself — `$current_url` (from
+`PostHogPageView`, query string included) and `$lib` — are always allowed;
+no other `$` key is.
+
+| Mode | What posthog-js sends on its own, outside the allow-list |
+| --- | --- |
+| `createBeaconSink` | nothing — there is no SDK |
+| `cookieless: true` | nothing: `autocapture`, `rageclick`, `capture_dead_clicks`, `capture_heatmaps` are off and `disable_session_recording` is on. posthog-js still adds its own device/URL context (`$current_url`, `$browser`, `$referrer`, …) to every event |
+| identified (default) | **autocapture** (`$autocapture` with `$current_url` incl. query, link `href`s such as `tel:…`, element text), rage/dead clicks, heatmaps and session replay as configured in the PostHog project — none of it passes the allow-list. Consent (`consent: pageConsent`) still stops it all via opt-out |
+
+So in the identified mode the allow-list guards your own events only; keep PII
+out of URLs and link targets, or use the cookieless mode.
 
 ## `./react` — provider + hooks
 

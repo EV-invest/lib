@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import {
+  createConsent,
   createPostHogSink,
   noopSink,
   type PostHogLike,
@@ -143,6 +144,11 @@ describe("createPostHogSink — cookieless mode and region", () => {
       capture_pageview: true,
       person_profiles: "never",
       persistence: "memory",
+      autocapture: false,
+      rageclick: false,
+      capture_dead_clicks: false,
+      capture_heatmaps: false,
+      disable_session_recording: true,
     });
   });
 
@@ -206,6 +212,54 @@ describe("createPostHogSink — cookieless mode and region", () => {
       channel: "phone",
     });
     expect(() => sink.capture("e", { phone: "+33" })).toThrow();
+  });
+
+  it("does not init posthog-js before consent, then opts out and back in", () => {
+    const ph = {
+      ...fakePostHog(),
+      opt_out_capturing: vi.fn(),
+      opt_in_capturing: vi.fn(),
+    } satisfies PostHogLike;
+    const consent = createConsent();
+    const sink = createPostHogSink(ph, {
+      key: "phc_test",
+      cookieless: true,
+      region: "eu",
+      consent,
+    });
+
+    sink.capture("before");
+    expect(ph.init).not.toHaveBeenCalled();
+    expect(ph.capture).not.toHaveBeenCalled();
+
+    consent.set(true);
+    sink.capture("granted");
+    expect(ph.init).toHaveBeenCalledTimes(1);
+    expect(ph.capture).toHaveBeenCalledTimes(1);
+
+    consent.set(false);
+    expect(ph.opt_out_capturing).toHaveBeenCalledTimes(1);
+    sink.capture("withdrawn");
+    expect(ph.capture).toHaveBeenCalledTimes(1);
+
+    consent.set(true);
+    expect(ph.opt_in_capturing).toHaveBeenCalledWith({
+      captureEventName: false,
+    });
+  });
+
+  it("gates on a bare consent function without opting the SDK out", () => {
+    const ph = fakePostHog();
+    let granted = false;
+    const sink = createPostHogSink(ph, {
+      key: "phc_test",
+      consent: () => granted,
+    });
+    sink.capture("a");
+    granted = true;
+    sink.capture("b");
+    expect(ph.capture).toHaveBeenCalledTimes(1);
+    expect(ph.capture).toHaveBeenCalledWith("b", undefined);
   });
 
   it("rejects cookieless mode without a target at the type level", () => {

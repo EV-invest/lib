@@ -13,6 +13,11 @@
  * crate is the source of truth; this package preserves its *semantics*.
  */
 
+import {
+  gatedSink,
+  readConsent,
+  type ConsentSource,
+} from "./consent";
 import { withPropPolicy, type PropPolicy } from "./props";
 import {
   LEGACY_DEFAULT_HOST,
@@ -36,6 +41,7 @@ export {
 } from "./region";
 export {
   isDevelopment,
+  LIBRARY_PROPS,
   withPropPolicy,
   type PropPolicy,
   type PropValue,
@@ -44,8 +50,11 @@ export {
   createConsent,
   gatedSink,
   hasConsent,
+  pageConsent,
+  readConsent,
   setConsent,
   type Consent,
+  type ConsentSource,
 } from "./consent";
 export {
   captureBody,
@@ -68,6 +77,15 @@ export interface PostHogBaseConfig extends PropPolicy {
    * preserving the original site behavior.
    */
   capturePageview?: boolean;
+  /**
+   * When given, nothing is sent while it is not granted: `capture` is gated,
+   * and posthog-js is not even initialised until the first consented event.
+   * If the source can `subscribe` (e.g. {@link pageConsent}), a withdrawal
+   * after init calls `posthog.opt_out_capturing()` — which also stops
+   * autocapture and recording the SDK does on its own — and a renewed grant
+   * calls `opt_in_capturing` (without the `$opt_in` event).
+   */
+  consent?: ConsentSource;
 }
 
 /**
@@ -88,6 +106,12 @@ export interface IdentifiedMode {
  * Cookieless mode: `persistence: "memory"` (nothing written to cookies or
  * storage; a reload is a new visitor) and `person_profiles: "never"`. The
  * target is required — a new mode has no legacy region to inherit.
+ *
+ * Everything posthog-js would send on its own is switched off — autocapture,
+ * rage and dead clicks, heatmaps, session recording — because those events
+ * never pass through `capture`, so neither `allowedProps` nor consent gating
+ * could see them (autocapture alone ships `$current_url` with its query, link
+ * `href`s such as `tel:…`, and element text).
  */
 export type CookielessMode = { cookieless: true } & PostHogTarget;
 
@@ -129,6 +153,10 @@ export interface PostHogLike {
     props?: Record<string, unknown>,
     options?: { transport?: "sendBeacon" },
   ): void;
+  /** Stops all capturing, the SDK's own included. Used on consent withdrawal. */
+  opt_out_capturing?(): void;
+  /** Resumes capturing after {@link PostHogLike.opt_out_capturing}. */
+  opt_in_capturing?(options?: { captureEventName?: false }): void;
 }
 
 function initOptions(config: PostHogConfig): Record<string, unknown> {
@@ -137,7 +165,16 @@ function initOptions(config: PostHogConfig): Record<string, unknown> {
     capture_pageview: config.capturePageview ?? true,
   };
   return config.cookieless
-    ? { ...base, person_profiles: "never", persistence: "memory" }
+    ? {
+        ...base,
+        person_profiles: "never",
+        persistence: "memory",
+        autocapture: false,
+        rageclick: false,
+        capture_dead_clicks: false,
+        capture_heatmaps: false,
+        disable_session_recording: true,
+      }
     : { ...base, person_profiles: "identified_only" };
 }
 
@@ -206,5 +243,27 @@ export function createPostHogSink(
       }
     },
   };
-  return withPropPolicy(inner, config);
+
+  const { consent } = config;
+  if (consent === undefined) return withPropPolicy(inner, config);
+
+  if (typeof consent !== "function" && consent.subscribe) {
+    let optedOut = false;
+    // Lives as long as the consent source; a sink is built once per page.
+    consent.subscribe((granted) => {
+      if (!initialized) return;
+      if (!granted && !optedOut) {
+        posthog.opt_out_capturing?.();
+        optedOut = true;
+      } else if (granted && optedOut) {
+        posthog.opt_in_capturing?.({ captureEventName: false });
+        optedOut = false;
+      }
+    });
+  }
+  // Gated before `ensure`, so posthog-js is never initialised pre-consent.
+  return withPropPolicy(
+    gatedSink(inner, () => readConsent(consent)),
+    config,
+  );
 }

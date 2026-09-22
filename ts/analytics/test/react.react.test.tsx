@@ -244,6 +244,11 @@ describe("PostHogProvider — cookieless, policy, consent", () => {
       capture_pageview: false,
       person_profiles: "never",
       persistence: "memory",
+      autocapture: false,
+      rageclick: false,
+      capture_dead_clicks: false,
+      capture_heatmaps: false,
+      disable_session_recording: true,
     });
     unmount();
   });
