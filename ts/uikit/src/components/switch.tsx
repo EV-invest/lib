@@ -2,6 +2,7 @@ import * as React from "react";
 import { cn } from "../lib/cn";
 import { FILLED_FOCUS_RING } from "../lib/focus";
 import { useControllableState } from "../primitives/use-controllable-state";
+import { useFieldControlId } from "./field-context";
 
 export interface SwitchProps
   extends Omit<React.ComponentProps<"button">, "onChange"> {
@@ -17,6 +18,7 @@ export function Switch({
   onCheckedChange,
   onClick,
   disabled,
+  id,
   ...props
 }: SwitchProps) {
   const [on, setOn] = useControllableState<boolean>({
@@ -33,6 +35,7 @@ export function Switch({
       data-state={state}
       aria-checked={on}
       disabled={disabled}
+      id={useFieldControlId(id)}
       className={cn(
         "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-all outline-none disabled:cursor-not-allowed disabled:opacity-50",
         FILLED_FOCUS_RING,

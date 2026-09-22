@@ -7,6 +7,7 @@ import { usePresence } from "../primitives/presence";
 import { useRovingFocus } from "../primitives/use-roving-focus";
 import { mergeRefs } from "../primitives/merge-refs";
 import { Portal } from "../primitives/portal";
+import { useFieldControlId } from "./field-context";
 import { SelectChevron } from "./select-chevron";
 
 interface SelectContextValue {
@@ -110,6 +111,7 @@ export function SelectTrigger({
   size = "md",
   onClick,
   children,
+  id,
   ...props
 }: SelectTriggerProps) {
   const { open, setOpen, anchorRef } = useSelect();
@@ -117,6 +119,7 @@ export function SelectTrigger({
     <button
       type="button"
       role="combobox"
+      id={useFieldControlId(id)}
       data-slot="select-trigger"
       data-size={size}
       data-state={open ? "open" : "closed"}

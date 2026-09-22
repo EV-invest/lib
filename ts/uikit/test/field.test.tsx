@@ -12,6 +12,11 @@ import {
   FieldContent,
   FieldTitle,
 } from "../src/components/field";
+import { Checkbox } from "../src/components/checkbox";
+import { Input } from "../src/components/input";
+import { Select, SelectTrigger, SelectValue } from "../src/components/select";
+import { Switch } from "../src/components/switch";
+import { Textarea } from "../src/components/textarea";
 
 describe("Field", () => {
   it("defaults to the vertical orientation", () => {
@@ -81,5 +86,76 @@ describe("Field", () => {
     expect(container.querySelector('[data-slot="field-group"]')).toBeTruthy();
     expect(container.querySelector('[data-slot="field-content"]')).toBeTruthy();
     expect(container.querySelector('[data-slot="field-description"]')).toBeTruthy();
+  });
+});
+
+describe("Field id wiring", () => {
+  it("labels its control with no id or htmlFor from the caller", () => {
+    const { getByLabelText } = render(
+      <Field>
+        <FieldLabel>Name</FieldLabel>
+        <Input />
+      </Field>,
+    );
+    const input = getByLabelText("Name");
+    expect(input.tagName).toBe("INPUT");
+    expect(input.id).not.toBe("");
+  });
+
+  it.each([
+    ["Textarea", () => <Textarea />, "TEXTAREA"],
+    ["Checkbox", () => <Checkbox />, "BUTTON"],
+    ["Switch", () => <Switch />, "BUTTON"],
+    [
+      "SelectTrigger",
+      () => (
+        <Select>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+        </Select>
+      ),
+      "BUTTON",
+    ],
+  ])("hands the id to a %s", (_, control, tag) => {
+    const { getByLabelText } = render(
+      <Field>
+        <FieldLabel>Label</FieldLabel>
+        {control()}
+      </Field>,
+    );
+    expect(getByLabelText("Label").tagName).toBe(tag);
+  });
+
+  it("gives two fields two ids", () => {
+    const { getByLabelText } = render(
+      <>
+        <Field>
+          <FieldLabel>A</FieldLabel>
+          <Input />
+        </Field>
+        <Field>
+          <FieldLabel>B</FieldLabel>
+          <Input />
+        </Field>
+      </>,
+    );
+    expect(getByLabelText("A").id).not.toBe(getByLabelText("B").id);
+  });
+
+  it("keeps the caller's own id and htmlFor", () => {
+    const { getByLabelText, getByText } = render(
+      <Field>
+        <FieldLabel htmlFor="mine">Mine</FieldLabel>
+        <Input id="mine" />
+      </Field>,
+    );
+    expect(getByText("Mine")).toHaveAttribute("for", "mine");
+    expect(getByLabelText("Mine").id).toBe("mine");
+  });
+
+  it("leaves a control outside any Field without an id", () => {
+    const { container } = render(<Input />);
+    expect(container.querySelector("input")).not.toHaveAttribute("id");
   });
 });

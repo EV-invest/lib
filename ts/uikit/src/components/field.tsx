@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { Label } from "./label";
+import { FieldControlIdContext, useFieldControlId } from "./field-context";
 import {
   FIELD_BASE,
   FIELD_SET,
@@ -55,19 +56,29 @@ export function FieldGroup({ className, ...props }: React.ComponentProps<"div">)
   );
 }
 
+/**
+ * A labelled control. `Field` mints one id and hands it to both ends: its
+ * `FieldLabel` takes it as `for`, and the kit's `Input`, `Textarea`,
+ * `SelectTrigger`, `Checkbox` and `Switch` take it as `id` —
+ * each only when the caller passed none. One control per `Field`: a field that
+ * holds two has to name their ids by hand, or both would claim the one id.
+ */
 export function Field({
   className,
   orientation = "vertical",
   ...props
 }: React.ComponentProps<"div"> & { orientation?: FieldOrientation }) {
+  const controlId = React.useId();
   return (
-    <div
-      role="group"
-      data-slot="field"
-      data-orientation={orientation}
-      className={cn(FIELD_BASE, fieldOrientation[orientation], className)}
-      {...props}
-    />
+    <FieldControlIdContext.Provider value={controlId}>
+      <div
+        role="group"
+        data-slot="field"
+        data-orientation={orientation}
+        className={cn(FIELD_BASE, fieldOrientation[orientation], className)}
+        {...props}
+      />
+    </FieldControlIdContext.Provider>
   );
 }
 
@@ -81,10 +92,12 @@ export function FieldContent({ className, ...props }: React.ComponentProps<"div"
   );
 }
 
-export function FieldLabel({ className, ...props }: React.ComponentProps<typeof Label>) {
+export function FieldLabel({ className, htmlFor, ...props }: React.ComponentProps<typeof Label>) {
+  const controlId = useFieldControlId(htmlFor);
   return (
     <Label
       data-slot="field-label"
+      htmlFor={controlId}
       className={cn(FIELD_LABEL, className)}
       {...props}
     />
