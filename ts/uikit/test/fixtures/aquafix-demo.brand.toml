@@ -1,0 +1,81 @@
+# A second palette for the kit's own tests and example: aquafix's brand.toml
+# (Service-Arb), in its own file format, retuned where it misses the kit's floors
+# and completed with the names the contract has grown since it was written.
+#
+# Changed from aquafix:
+#   light primary-ink  (new)       #9a5424 — copper #c2703d reads 3.70:1 on white;
+#                                  the darker step reads 5.73:1 (AA text)
+#   light muted  #edf1f5 → #d2dbe6 — a slider track on card needs ~1.3:1, was 1.07
+#   dark  primary-ink  (new)       #e08f5c — 6.11:1 on card (was 4.20 as copper)
+#   chart-1 … chart-5  (new)       the accents, which are already distinguishable
+#   the derived tokens (hover, ink-*, border, input, ring) are left to the
+#   contract, so they follow this ink instead of being pinned by hand.
+
+wordmark = ["AQUA", "FIX"] # read by other tools; the palette ignores it
+mark = "/brands/aquafix-mark.svg"
+mark-aspect = "86.6 / 100"
+
+[colors.light]
+background = "#ffffff"
+card = "#f6f8fa"
+muted = "#d2dbe6"
+popover = "#ffffff"
+ink = "#051726"
+brand = "#0a2540"
+primary = "#c2703d"
+on-primary = "#051726"
+primary-ink = "#9a5424"
+secondary = "#edf1f5"
+on-secondary = "#051726"
+positive = "#1e9e6a"
+on-positive = "#ffffff"
+accent-trace = "#5a6b7c"
+on-accent-trace = "#ffffff"
+accent-debug = "#5a6b7c"
+on-accent-debug = "#ffffff"
+accent-info = "#5a6b7c"
+on-accent-info = "#ffffff"
+accent-warn = "#e08a3c"
+on-accent-warn = "#051726"
+accent-error = "#d8362a"
+on-accent-error = "#ffffff"
+chart-1 = "#9a5424"
+chart-2 = "#1e9e6a"
+chart-3 = "#e08a3c"
+chart-4 = "#d8362a"
+chart-5 = "#0a2540"
+
+[colors.dark]
+background = "#051726"
+card = "#0a2540"
+muted = "#12395c"
+popover = "#12395c"
+ink = "#ffffff"
+brand = "#0a2540"
+primary = "#c2703d"
+on-primary = "#051726"
+primary-ink = "#e08f5c"
+secondary = "#12395c"
+on-secondary = "#ffffff"
+positive = "#1e9e6a"
+on-positive = "#ffffff"
+accent-trace = "#a9bdd1"
+on-accent-trace = "#051726"
+accent-debug = "#a9bdd1"
+on-accent-debug = "#051726"
+accent-info = "#a9bdd1"
+on-accent-info = "#051726"
+accent-warn = "#e08a3c"
+on-accent-warn = "#051726"
+accent-error = "#d8362a"
+on-accent-error = "#ffffff"
+chart-1 = "#e08f5c"
+chart-2 = "#1e9e6a"
+chart-3 = "#e08a3c"
+chart-4 = "#d8362a"
+chart-5 = "#a9bdd1"
+
+[fonts]
+display = "Archivo"
+text = "Inter"
+display-weights = [600, 700]
