@@ -38,7 +38,7 @@ Pick the entry that matches the runtime. They all hand you the same
 | Var | Read by | Meaning |
 | --- | --- | --- |
 | `NEXT_PUBLIC_POSTHOG_KEY` | `./react` `PostHogProvider` (fallback for `apiKey`) | Browser project key. **Absent → no-op**: provider serves a `noopSink` and never loads `posthog-js`. |
-| `NEXT_PUBLIC_POSTHOG_HOST` | `./react` `PostHogProvider` (fallback for `host`) | Browser ingestion host. Defaults to `https://us.i.posthog.com`. |
+| `NEXT_PUBLIC_POSTHOG_HOST` | `./react` `PostHogProvider` (fallback for `host`, identified mode only) | Browser ingestion host. Then `region`, then `https://us.i.posthog.com`. Cookieless mode ignores it and requires `region` or `host` (see README → Region). |
 
 The `NEXT_PUBLIC_` prefix means these are inlined into the client bundle by
 Next.js — keep them non-secret (a PostHog *project* key is publishable). For
