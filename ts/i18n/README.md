@@ -11,7 +11,9 @@ zero-dependency, server-safe **core** — locale registry, URL contract,
 > cabinet, and every MFE, and having one place they are declared is the whole
 > point of putting this in a shared library. Helpers that iterate locales still
 > accept an optional `locales` argument, so a surface shipping a subset is not
-> forced to claim all five.
+> forced to claim all five. A surface outside EV's five — a storefront with its
+> own languages — builds its own registry; see
+> [Your own locale set](#your-own-locale-set).
 
 > **This package owns no number, date, or currency policy.** The formatter
 > supports `plural` and `select` but deliberately not `number` / `date` /
@@ -85,6 +87,104 @@ splitLocalePath("/ru/team");      // { locale: "ru", path: "/team" }
 splitLocalePath("/cabinet/x");    // { locale: "en", path: "/cabinet/x" }
 localeAlternates("/team");        // { en: "/team", ru: "/ru/team", … }
 ```
+
+`languageAlternates` is the `alternates.languages` value for Next's
+`generateMetadata` — absolute URLs keyed by `hreflang`, plus `x-default` on the
+default locale:
+
+```ts
+languageAlternates("/team", "https://evinvest.ltd");
+// { en: "https://evinvest.ltd/team", ru: "https://evinvest.ltd/ru/team", …,
+//   "x-default": "https://evinvest.ltd/team" }
+```
+
+## Your own locale set
+
+Everything above is `createLocaleRegistry` applied to the generated five
+(`defaultLocaleRegistry`). A surface with other languages builds its own and
+gets the same contract over its own list:
+
+```ts
+// shared/config/i18n.ts
+import { createLocaleRegistry } from "@evinvest/i18n";
+
+export const i18n = createLocaleRegistry({
+  locales: ["fr", "en"],                        // switcher order; literal union, no `as const` needed
+  labels: { fr: "Français", en: "English" },
+  default: "fr",                                // fallback, and the language `t()` is authored in
+  prefixDefaultLocale: true,                    // default: false
+  hreflang: { fr: "fr-FR" },                    // default: the bare code
+});
+export type Locale = (typeof i18n.locales)[number];   // "fr" | "en"
+
+i18n.localePath("fr", "/contact");              // "/fr/contact"
+i18n.splitLocalePath("/en/contact");            // { locale: "en", path: "/contact" }
+i18n.languageAlternates("/contact", "https://plombier.fr");
+// { "fr-FR": "https://plombier.fr/fr/contact", en: "https://plombier.fr/en/contact",
+//   "x-default": "https://plombier.fr/fr/contact" }
+```
+
+The registry carries every locale-dependent function of the core —
+`isLocale`, `localePath`, `splitLocalePath`, `localeAlternates`, `hreflangOf`,
+`languageAlternates`, `negotiate`, `translator`, `formatMessage`,
+`localeOfElement` — plus `locales`, `labels`, `defaultLocale` and
+`prefixDefaultLocale`. Members are plain closures, so destructuring is safe. A
+`default` outside `locales`, or a locale listed twice, is a type error and
+throws at startup.
+
+**`prefixDefaultLocale`.** `false` is EV's contract: the default locale lives at
+bare paths so indexed URLs never move. `true` prefixes every locale — the shape
+for a site launching in several languages with no legacy URLs. An unprefixed
+path then still parses (as the default locale, never throwing), but nothing is
+served there.
+
+**`hreflang`.** Locale codes stay bare — they are URL segments and catalogue
+directories. A regional target (`fr-FR`, `fr-BE`) is only how the page is
+*advertised*, so it lives in this map and surfaces in `hreflangOf` and the
+`alternates.languages` keys.
+
+The subpaths bind to a registry the same way; each defaults to the generated
+one, which is what their free exports are:
+
+```ts
+import { createNextI18n } from "@evinvest/i18n/next";
+export const { localeStaticParams, localeRewrites, localeRedirects, localeAlternatesMetadata } =
+  createNextI18n(i18n);
+```
+
+With `prefixDefaultLocale: true`, `localeRewrites()` is empty — every locale is
+a real `[locale]` route — and `localeRedirects()` only sends `/` to `/<default>`,
+as a **temporary** redirect so a later change of default is not pinned in
+browsers. Other bare paths 404 under `dynamicParams = false`; a catch-all
+redirect would also match the prefixed routes and loop.
+
+```tsx
+"use client";
+import { createI18nReact } from "@evinvest/i18n/react";
+export const { I18nProvider, useLocale, useT } = createI18nReact(i18n);
+```
+
+Each `createI18nReact` call owns its own context: call it once, at module
+scope, and import the trio from there.
+
+The extractor bins are bound to the generated registry. For another set, a
+three-line launcher of your own passes it through — `runExtract` / `runCheck`
+write and check `<messages>/<default>/common.json` as the source and every
+other listed locale as a translation:
+
+```js
+#!/usr/bin/env node
+import { runCheck } from "@evinvest/i18n/extract";
+import { i18n } from "../shared/config/i18n.js";
+runCheck(process.argv.slice(2), i18n);
+```
+
+`resolveCatalogue` and `availableIn` in `./policy` take the source locale as an
+optional last argument (`i18n.defaultLocale`) for the same reason.
+
+A custom registry has **no Rust twin**. `ev_lib::i18n` mirrors only the
+generated five; its plural rules are transcribed per locale by hand, so a
+surface on its own locale set is TS-only.
 
 ## Wiring a Next.js app
 
