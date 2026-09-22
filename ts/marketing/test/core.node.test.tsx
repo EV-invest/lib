@@ -50,6 +50,24 @@ describe("validation", () => {
     ).toEqual({ email: "validation.email.invalid", name: "validation.name.min" });
   });
 
+  it("handles fields named like Object.prototype members", () => {
+    const errors = firstFieldErrors([
+      { path: ["constructor"], message: "validation.a" },
+      { path: ["toString"], message: "validation.b" },
+      { path: ["__proto__"], message: "validation.c" },
+    ]);
+    expect(Object.hasOwn(errors, "constructor")).toBe(true);
+    expect(Object.keys(errors)).toEqual(["constructor", "toString", "__proto__"]);
+    expect(Object.getPrototypeOf(errors)).toBe(Object.prototype);
+    expect(translateErrors(errors, k => k.toUpperCase())).toEqual(
+      Object.fromEntries([
+        ["constructor", "VALIDATION.A"],
+        ["toString", "VALIDATION.B"],
+        ["__proto__", "VALIDATION.C"],
+      ]),
+    );
+  });
+
   it("adapts a safeParse result either way", () => {
     expect(fromSafeParse({ success: true, data: { a: "1" } })).toEqual({ data: { a: "1" } });
     expect(

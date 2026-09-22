@@ -54,13 +54,16 @@ export type SafeParseLike<T> =
 export function firstFieldErrors<T>(
   issues: readonly ValidationIssue[],
 ): FieldErrors<T> {
-  const first: Record<string, string> = {};
+  // A Map, not `{}` + `in`: a form may well have a field called `constructor`
+  // or `toString`, which `in` finds on Object.prototype (and `__proto__` would
+  // rewrite the prototype on assignment). `fromEntries` defines own properties.
+  const first = new Map<string, string>();
   for (const issue of issues) {
     const field = issue.path[0];
-    if (typeof field !== "string" || field in first) continue;
-    first[field] = issue.message;
+    if (typeof field !== "string" || first.has(field)) continue;
+    first.set(field, issue.message);
   }
-  return first as FieldErrors<T>;
+  return Object.fromEntries(first) as FieldErrors<T>;
 }
 
 /** Adapt a `safeParse` result to the harness's {@link Validated} shape. */
@@ -75,9 +78,9 @@ export function translateErrors<T>(
   errors: FieldErrors<T>,
   t: Translate,
 ): FieldErrors<T> {
-  const out: Record<string, string> = {};
+  const out = new Map<string, string>();
   for (const [field, key] of Object.entries(errors)) {
-    if (typeof key === "string") out[field] = t(key);
+    if (typeof key === "string") out.set(field, t(key));
   }
-  return out as FieldErrors<T>;
+  return Object.fromEntries(out) as FieldErrors<T>;
 }
