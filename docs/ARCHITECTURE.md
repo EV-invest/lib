@@ -21,7 +21,8 @@ lib/                 (repo: EV-invest/lib)
 │   ├── analytics/
 │   ├── error-monitoring/
 │   ├── experiments/
-│   └── settings/
+│   ├── settings/
+│   └── marketing/
 ├── docs/
 │   ├── ARCHITECTURE.md          (this file)
 │   └── .readme_assets/          README fragments (README.md is generated)

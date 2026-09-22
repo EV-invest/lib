@@ -86,7 +86,9 @@ TS packages live under [`ts/`](ts/), one directory per library, each with its ow
 [`ts/uikit/`](ts/uikit/) (the dep-light React UI kit mirroring the Rust `uikit`),
 [`ts/analytics/`](ts/analytics/) (PostHog), [`ts/error-monitoring/`](ts/error-monitoring/)
 (Sentry), [`ts/experiments/`](ts/experiments/) (A/B testing),
-[`ts/settings/`](ts/settings/) (typed env settings), and
+[`ts/settings/`](ts/settings/) (typed env settings),
+[`ts/marketing/`](ts/marketing/) (the landing-page layer over the kit — motion,
+form harness, contact-link tracking; no Cargo counterpart), and
 [`ts/i18n/`](ts/i18n/) (five-locale i18n — the one package with no Cargo
 counterpart yet).
 

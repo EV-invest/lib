@@ -1,0 +1,68 @@
+{
+  "name": "@evinvest/marketing",
+  "version": "0.1.0",
+  "description": "Marketing-site layer on top of @evinvest/uikit: motion primitives with reduced-motion fallbacks, a key-based form harness and field, a contact-link click tracker with an injected sink, a click-to-load facade for third-party widgets, and schema.org JSON-LD helpers. Server-safe core plus a \"use client\" React subpath.",
+  "license": "BlueOak-1.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EV-invest/lib.git",
+    "directory": "ts/marketing"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup && tsup --config tsup.react.config.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.core.json --noEmit",
+    "prepare": "tsup && tsup --config tsup.react.config.ts"
+  },
+  "peerDependencies": {
+    "@evinvest/uikit": ">=0.18.0 <1",
+    "motion": "^12 || ^13",
+    "react": "^18 || ^19"
+  },
+  "peerDependenciesMeta": {
+    "@evinvest/uikit": {
+      "optional": true
+    },
+    "motion": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@evinvest/uikit": "^0.18.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "jsdom": "^25.0.1",
+    "motion": "^12.23.22",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
