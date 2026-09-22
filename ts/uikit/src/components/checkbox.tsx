@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
+import { FILLED_FOCUS_RING } from "../lib/focus";
 import { useControllableState } from "../primitives/use-controllable-state";
 
 export interface CheckboxProps
@@ -33,7 +34,8 @@ export function Checkbox({
       aria-checked={on}
       disabled={disabled}
       className={cn(
-        "peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-on-primary data-[state=checked]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        "peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-on-primary data-[state=checked]:border-primary focus-visible:border-ring aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none disabled:cursor-not-allowed disabled:opacity-50",
+        FILLED_FOCUS_RING,
         className,
       )}
       onClick={(e) => {

@@ -2,7 +2,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 
+import { buttonVariants } from "../src/components/button";
 import { PROGRESS_INDICATOR, PROGRESS_TRACK } from "../src/generated/progress";
+import { FILLED_FOCUS_RING } from "../src/lib/focus";
 import { SLIDER_RANGE, SLIDER_TRACK } from "../src/generated/slider";
 import { brandFromToml, readContract, readRules, renderPalette, type CssRule } from "../src/palette";
 
@@ -106,6 +108,29 @@ describe.each(scopes)("palette $label", (scope) => {
 
     it.each(["background", "card"])("body text reads on %s (AA text)", (surface) => {
       expect(contrast(t("ink"), t(surface))).toBeGreaterThanOrEqual(4.5);
+    });
+  });
+
+  // lib#129. A filled control's focus indicator is the solid ring 2px off the
+  // control, so both of its edges are against the surface: ring | surface gap |
+  // fill. The fill-vs-surface edge is the "fill reads as a shape" floor above;
+  // this is the other one. The 50 % halo it replaced measured ~2:1 here.
+  describe("focus ring on a filled control", () => {
+    it.each(["background", "secondary", "card", "popover"])("the ring reads against %s (non-text 3:1)", (surface) => {
+      expect(contrast(t("primary-ink"), t(surface))).toBeGreaterThanOrEqual(3);
+    });
+
+    it("stands off the fill, so the ring is never measured against it", () => {
+      for (const classes of [
+        buttonVariants({ variant: "primary" }),
+        buttonVariants({ variant: "destructive" }),
+        buttonVariants({ variant: "ghost", accent: "warn" }),
+      ]) {
+        expect(classes).toContain(FILLED_FOCUS_RING);
+        expect(classes).not.toMatch(/focus-visible:ring-\[3px\]/);
+      }
+      expect(FILLED_FOCUS_RING).toMatch(/\bfocus-visible:outline-offset-2\b/);
+      expect(FILLED_FOCUS_RING).toMatch(/\bfocus-visible:outline-ring\b/);
     });
   });
 
