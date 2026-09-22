@@ -14,7 +14,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  Field,
+  FieldLabel,
+  Input,
   Logo,
+  NativeSelect,
+  NativeSelectOption,
   PortalProvider,
   Section,
   Select,
@@ -35,7 +40,9 @@ import {
 function BrandScope({ brand, polarity }: { brand: string; polarity: Polarity }) {
   const [overlays, setOverlays] = useState<HTMLDivElement | null>(null);
   return (
-    <div data-brand={brand} data-testid={`brand-${brand}-${polarity}`}>
+    // `font-sans` on the scope: the page's base family resolved on <html>, so
+    // a brand's `--brand-font-sans` reaches text only through a utility below it
+    <div data-brand={brand} data-testid={`brand-${brand}-${polarity}`} className="font-sans">
       <PortalProvider container={overlays}>
         {/* the overlay root sits inside the polarity too, or a dialog opened
             from a dark band would come up in the brand's light values */}
@@ -46,6 +53,7 @@ function BrandScope({ brand, polarity }: { brand: string; polarity: Polarity }) 
             <Badge variant="outline">{polarity}</Badge>
           </div>
           <BrandCard id={`${brand}-${polarity}`} brand={brand} />
+          <LeadForm />
           <div ref={setOverlays} />
         </Section>
       </PortalProvider>
@@ -92,6 +100,30 @@ function BrandCard({ id, brand }: { id: string; brand: string }) {
         </Dialog>
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * A landing page's lead form: a real `<select>` and `Field`-minted ids, so it
+ * posts and stays labelled before any script runs. Tab through it to see the
+ * focus ring on each palette.
+ */
+function LeadForm() {
+  return (
+    <form action="#" onSubmit={(e) => e.preventDefault()} className="flex flex-wrap items-end gap-3">
+      <Field className="w-48">
+        <FieldLabel>Service</FieldLabel>
+        <NativeSelect name="service" placeholder="Pick one" required wrapperClassName="w-full">
+          <NativeSelectOption value="leak">Leak</NativeSelectOption>
+          <NativeSelectOption value="boiler">Boiler</NativeSelectOption>
+        </NativeSelect>
+      </Field>
+      <Field className="w-48">
+        <FieldLabel>Phone</FieldLabel>
+        <Input name="phone" type="tel" />
+      </Field>
+      <Button type="submit">Request a call</Button>
+    </form>
   );
 }
 

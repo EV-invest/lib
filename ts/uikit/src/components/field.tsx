@@ -59,7 +59,7 @@ export function FieldGroup({ className, ...props }: React.ComponentProps<"div">)
 /**
  * A labelled control. `Field` mints one id and hands it to both ends: its
  * `FieldLabel` takes it as `for`, and the kit's `Input`, `Textarea`,
- * `SelectTrigger`, `Checkbox` and `Switch` take it as `id` —
+ * `NativeSelect`, `SelectTrigger`, `Checkbox` and `Switch` take it as `id` —
  * each only when the caller passed none. One control per `Field`: a field that
  * holds two has to name their ids by hand, or both would claim the one id.
  */

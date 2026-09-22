@@ -14,6 +14,7 @@ import {
 } from "../src/components/field";
 import { Checkbox } from "../src/components/checkbox";
 import { Input } from "../src/components/input";
+import { NativeSelect } from "../src/components/native-select";
 import { Select, SelectTrigger, SelectValue } from "../src/components/select";
 import { Switch } from "../src/components/switch";
 import { Textarea } from "../src/components/textarea";
@@ -104,6 +105,7 @@ describe("Field id wiring", () => {
 
   it.each([
     ["Textarea", () => <Textarea />, "TEXTAREA"],
+    ["NativeSelect", () => <NativeSelect />, "SELECT"],
     ["Checkbox", () => <Checkbox />, "BUTTON"],
     ["Switch", () => <Switch />, "BUTTON"],
     [
