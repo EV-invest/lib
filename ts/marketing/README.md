@@ -21,10 +21,15 @@ none yet.
 
 **Zero runtime dependencies.** Peers:
 
-- `react` / `react-dom` 18 or 19;
-- `motion` 12 or 13 — the motion primitives (`./react` only);
-- `@evinvest/uikit` ≥ 0.18 — `TextField` is built on its `Field` / `Input` /
-  `Textarea`, and classes use only its tokens (`./react` only).
+- `react` 18 or 19 — required;
+- `motion` 12 or 13 — **optional**, needed by `./react` (the motion
+  primitives);
+- `@evinvest/uikit` ≥ 0.18 — **optional**, needed by `./react` (`TextField`
+  is built on its `Field` / `Input` / `Textarea`; classes use only its tokens).
+
+Both are optional because the `.` core imports neither; a consumer of
+`./react` installs them. A test keeps the declared peers equal to what the
+sources import.
 
 No icon library: the two glyphs it draws (a check, a play triangle) are inline
 SVG.

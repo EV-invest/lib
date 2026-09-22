@@ -40,8 +40,15 @@
   "peerDependencies": {
     "@evinvest/uikit": ">=0.18.0 <1",
     "motion": "^12 || ^13",
-    "react": "^18 || ^19",
-    "react-dom": "^18 || ^19"
+    "react": "^18 || ^19"
+  },
+  "peerDependenciesMeta": {
+    "@evinvest/uikit": {
+      "optional": true
+    },
+    "motion": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@evinvest/uikit": "^0.18.0",

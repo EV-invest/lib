@@ -1,3 +1,6 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { isValidElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -14,6 +17,40 @@ import {
   translateErrors,
   whatsappHref,
 } from "../src/index";
+
+describe("dependency honesty", () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+    peerDependencies: Record<string, string>;
+    peerDependenciesMeta?: Record<string, { optional?: boolean }>;
+  };
+  const sources = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap(entry =>
+      entry.isDirectory() ? sources(join(dir, entry.name)) : [join(dir, entry.name)],
+    );
+  const imported = (files: string[]) =>
+    new Set(
+      files.flatMap(file =>
+        [...readFileSync(file, "utf8").matchAll(/from "([^".][^"]*)"/g)].map(m =>
+          m[1]!.startsWith("@") ? m[1]!.split("/").slice(0, 2).join("/") : m[1]!.split("/")[0]!,
+        ),
+      ),
+    );
+
+  it("imports only react from the core, so the other peers can be optional", () => {
+    const core = imported([join(root, "src/index.ts"), ...sources(join(root, "src/core"))]);
+    expect([...core]).toEqual(["react"]);
+    for (const [name, meta] of Object.entries(pkg.peerDependenciesMeta ?? {})) {
+      expect(core.has(name), name).toBe(false);
+      expect(meta.optional, name).toBe(true);
+    }
+  });
+
+  it("declares every peer the React bundle imports, and nothing it does not", () => {
+    const react = imported(sources(join(root, "src/react")));
+    expect([...react].sort()).toEqual(Object.keys(pkg.peerDependencies).sort());
+  });
+});
 
 describe("accented", () => {
   it("returns a flat list: strings stay strings, <br>s stay siblings", () => {
