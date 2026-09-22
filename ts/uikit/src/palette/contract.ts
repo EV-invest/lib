@@ -9,6 +9,13 @@ export interface Contract {
   required: readonly string[];
   /** Names the contract derives from the palette; a palette may override them. */
   derived: readonly string[];
+  /** The tokens each derived default reads, so a palette's references can be checked for cycles through them. */
+  derivedFrom: Readonly<Record<string, readonly string[]>>;
+}
+
+/** The `--name`s a value reads through `var()`. */
+export function references(value: string): string[] {
+  return [...value.matchAll(/var\(--([A-Za-z0-9-]+)/g)].flatMap((m) => (m[1] ? [m[1]] : []));
 }
 
 /** The rule the derived tokens live on — see `theme.css`, the contract half of `tokens.css`. */
@@ -75,5 +82,6 @@ export function readContract(css: string): Contract {
   const derived = [...derivedRule.declarations.keys()];
   const stray = derived.filter((d) => !painted.includes(d));
   if (stray.length > 0) throw new Error(`derived tokens with no @theme mapping: ${stray.join(", ")}`);
-  return { required: painted.filter((p) => !derived.includes(p)), derived };
+  const derivedFrom = Object.fromEntries([...derivedRule.declarations].map(([name, value]) => [name, references(value)]));
+  return { required: painted.filter((p) => !derived.includes(p)), derived, derivedFrom };
 }

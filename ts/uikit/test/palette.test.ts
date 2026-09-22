@@ -45,11 +45,12 @@ wordmark = ["AQUA", "FIX"] # trailing
 background = "#ffffff" # a hash inside a string is not a comment
 [fonts]
 weights = [400, 500]
-on = true`),
+on = true
+escaped = "a\\"b\\\\c"`),
     ).toEqual({
       wordmark: ["AQUA", "FIX"],
       colors: { light: { background: "#ffffff" } },
-      fonts: { weights: [400, 500], on: true },
+      fonts: { weights: [400, 500], on: true, escaped: 'a"b\\c' },
     });
   });
 
@@ -59,6 +60,9 @@ on = true`),
     ["a = 1\na = 2", /duplicate key/],
     ["a = {inline = 1}", /unsupported value/],
     ['a = """multi', /unterminated string|one string/],
+    ["[colors.light]\na = 1\n[colors.light]\nb = 2", /duplicate table header/],
+    ['a = "\\u0041"', /unsupported escape/],
+    ['a = "\\q"', /unsupported escape/],
   ])("rejects %j rather than misreading it", (text, message) => {
     expect(() => parseToml(text)).toThrow(message);
   });
@@ -113,6 +117,47 @@ describe("brandFromToml + renderPalette", () => {
     const config: BrandConfig = { colors: { light: { ...complete(), "on-secondary": "var(--ink)" }, dark: complete() } };
     expect(renderPalette("aqua", config, contract)).toContain("--on-secondary: var(--ink);");
   });
+
+  it("rejects a reference to a name the contract does not have", () => {
+    const config: BrandConfig = { colors: { light: { ...complete(), primary: "var(--primry-ink)" }, dark: complete() } };
+    expect(problems(() => renderPalette("aqua", config, contract))).toEqual([
+      "light.primary refers to --primry-ink, which is not a token of the contract",
+    ]);
+  });
+
+  it.each([
+    ["a self-reference", { ink: "var(--ink)" }, "--ink → --ink"],
+    ["a loop between two tokens", { primary: "var(--brand)", brand: "var(--primary)" }, "--brand → --primary → --brand"],
+    // `border` is left to the contract, whose formula reads `ink`
+    ["a loop through a derived default", { ink: "var(--border)" }, "--ink → --border → --ink"],
+  ])("rejects %s", (_, overrides, cycle) => {
+    const config: BrandConfig = { colors: { light: complete(), dark: { ...complete(), ...overrides } } };
+    const found = problems(() => renderPalette("aqua", config, contract));
+    expect(found).toHaveLength(1);
+    expect(found[0]).toMatch(/^dark has a reference cycle: /);
+    expect(found[0]).toContain(cycle);
+  });
+
+  it("accepts a reference to a derived token it leaves to the contract", () => {
+    const config: BrandConfig = { colors: { light: { ...complete(), "on-secondary": "var(--ink-soft)" }, dark: complete() } };
+    expect(renderPalette("aqua", config, contract)).toContain("--on-secondary: var(--ink-soft);");
+  });
+
+  it("keeps the source name from closing the header comment", () => {
+    const css = renderPalette("aqua", brandFromToml(demo), contract, "evil */ body { color: red } /*.toml");
+    expect(readRules(css).map((r) => r.selector)).not.toContain("body");
+    expect(css.split("*/")[0]).toContain("evil *\\/ body");
+  });
+
+  it.each(["/a<b.svg", "/a>b.svg", "/a'b.svg", "/a`b.svg", "/a\\b.svg", "/a b.svg", '/a"b.svg'])(
+    "rejects the mark URL %j",
+    (mark) => {
+      const config: BrandConfig = { colors: { light: complete(), dark: complete() }, mark };
+      expect(problems(() => renderPalette("aqua", config, contract))).toEqual([
+        `mark ${JSON.stringify(mark)} is not a plain URL`,
+      ]);
+    },
+  );
 
   it("requires both polarities", () => {
     expect(problems(() => brandFromToml('[colors.light]\nink = "#000000"'))).toEqual(["no [colors.dark] table"]);
