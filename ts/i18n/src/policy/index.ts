@@ -82,8 +82,8 @@ export interface Rejection {
 }
 
 /** The outcome of applying the policy to one locale's catalogue. */
-export interface ResolvedCatalogue {
-  locale: Locale;
+export interface ResolvedCatalogue<L extends string = Locale> {
+  locale: L;
   /** Ready for `translator()`: accepted translations, English everywhere else. */
   messages: Messages;
   /** Entries refused by rule 1.2, each falling back to English. */
@@ -106,6 +106,8 @@ export interface ResolvedCatalogue {
  * @param locale     - The locale being resolved. `en` returns `source` unchanged.
  * @param source     - The English catalogue. Canonical: it defines the key set.
  * @param translated - The locale's authored catalogue.
+ * @param canonical  - The source locale `source` is written in — a registry's
+ *   `defaultLocale`. Defaults to the generated `DEFAULT_LOCALE`.
  * @returns The resolved catalogue plus a full account of what was refused.
  *
  * @example
@@ -115,12 +117,13 @@ export interface ResolvedCatalogue {
  * // rejected: [{ key: "hero.title", reason: "source-drift", detail: … }]
  * ```
  */
-export function resolveCatalogue(
-  locale: Locale,
+export function resolveCatalogue<L extends string = Locale>(
+  locale: L,
   source: Messages,
   translated: TranslatedCatalogue,
-): ResolvedCatalogue {
-  if (locale === DEFAULT_LOCALE) {
+  canonical: string = DEFAULT_LOCALE,
+): ResolvedCatalogue<L> {
+  if (locale === canonical) {
     return { locale, messages: source, rejected: [], missing: [], coverage: 1 };
   }
 
@@ -137,7 +140,7 @@ export function resolveCatalogue(
       rejected.push({
         key,
         reason: "orphan-key",
-        detail: `not defined in ${DEFAULT_LOCALE} — only the canonical locale introduces keys`,
+        detail: `not defined in ${canonical} — only the canonical locale introduces keys`,
       });
     }
   }
@@ -150,7 +153,7 @@ export function resolveCatalogue(
       continue;
     }
 
-    const problem = check(entry, en, locale);
+    const problem = check(entry, en, locale, canonical);
     if (problem !== null) {
       rejected.push({ key, ...problem });
       messages[key] = en;
@@ -175,7 +178,8 @@ export function resolveCatalogue(
 function check(
   entry: TranslatedEntry,
   en: string,
-  locale: Locale,
+  locale: string,
+  canonical: string,
 ): Omit<Rejection, "key"> | null {
   if (entry.t.trim() === "") {
     return { reason: "empty", detail: "translation is blank" };
@@ -204,7 +208,7 @@ function check(
     if (mirrored.type !== kind.type) {
       return {
         reason: "argument-type-mismatch",
-        detail: `{${name}} is a ${kind.type} in ${DEFAULT_LOCALE} and a ${mirrored.type} here`,
+        detail: `{${name}} is a ${kind.type} in ${canonical} and a ${mirrored.type} here`,
       };
     }
     if (kind.type === "plural") {
@@ -385,7 +389,7 @@ function branchesOf(body: string): [string, string][] {
  * ```
  */
 export function auditCatalogues(
-  resolved: readonly ResolvedCatalogue[],
+  resolved: readonly ResolvedCatalogue<string>[],
   floor = 1,
 ): { ok: boolean; report: string } {
   const lines: string[] = [];
@@ -437,6 +441,8 @@ export type MissingContentPolicy = "hide" | "fallback";
  * @param items     - The full collection, in canonical (English) form.
  * @param localesOf - Which locales a given item has been translated into.
  * @param policy    - `"hide"` (default) or `"fallback"`.
+ * @param canonical - The locale items are authored in, which always sees
+ *   everything — a registry's `defaultLocale`. Defaults to `DEFAULT_LOCALE`.
  * @returns The items this locale should see.
  *
  * @example
@@ -448,12 +454,13 @@ export type MissingContentPolicy = "hide" | "fallback";
  * availableIn("ru", vacancies, v => v.locales, "fallback");
  * ```
  */
-export function availableIn<T>(
-  locale: Locale,
+export function availableIn<T, L extends string = Locale>(
+  locale: L,
   items: readonly T[],
-  localesOf: (item: T) => readonly Locale[] | undefined,
+  localesOf: (item: T) => readonly L[] | undefined,
   policy: MissingContentPolicy = "hide",
+  canonical: string = DEFAULT_LOCALE,
 ): T[] {
-  if (locale === DEFAULT_LOCALE || policy === "fallback") return [...items];
+  if (locale === canonical || policy === "fallback") return [...items];
   return items.filter(item => (localesOf(item) ?? []).includes(locale));
 }

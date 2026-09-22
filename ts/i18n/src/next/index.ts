@@ -15,15 +15,112 @@
  * Two details carry the whole scheme, both verified by spike rather than
  * assumed — see {@link localeRewrites} and {@link localeStaticParams}.
  *
+ * The free functions are bound to the generated registry. A surface with its
+ * own locales gets the same set from {@link createNextI18n}; a registry that
+ * prefixes its default locale needs no rewrite at all, only a root redirect.
+ *
  * This file is server-safe: it exports plain data for `next.config.ts` and for
  * `generateStaticParams`/`generateMetadata`. It imports nothing from `next`.
  */
-import {
-  DEFAULT_LOCALE,
-  LOCALES,
-  localePath,
-  type Locale,
-} from "../index";
+import { defaultLocaleRegistry, type Locale, type LocaleRegistry } from "../index";
+
+/** A Next.js rewrite/redirect rule, structurally typed to avoid importing `next`. */
+export interface UrlRule {
+  source: string;
+  destination: string;
+}
+
+/** A Next.js redirect rule. */
+export interface RedirectRule extends UrlRule {
+  permanent: boolean;
+}
+
+/** The `alternates` block of a Next `Metadata` object. */
+export interface AlternatesMetadata {
+  canonical: string;
+  languages: Record<string, string>;
+}
+
+/**
+ * The Next wiring for one locale registry. This module's free functions are
+ * {@link createNextI18n} over the generated registry; their docs carry the full
+ * rationale.
+ */
+export interface NextI18n<L extends string> {
+  /** `generateStaticParams` for a `[locale]` segment — every locale, default included. */
+  readonly localeStaticParams: () => { locale: L }[];
+  /**
+   * The `fallback` rewrite serving the default locale at bare paths. Empty when
+   * the registry prefixes its default locale: nothing is served unprefixed.
+   */
+  readonly localeRewrites: (defaultLocale?: L) => UrlRule[];
+  /**
+   * Canonicalising redirects: `/<default>/*` onto the bare form, or — when the
+   * default locale is prefixed — the bare root onto `/<default>`.
+   */
+  readonly localeRedirects: (defaultLocale?: L) => RedirectRule[];
+  /** Self-referential canonical plus the full `hreflang` cluster with `x-default`. */
+  readonly localeAlternatesMetadata: (
+    locale: L,
+    path: string,
+    siteUrl: string,
+    locales?: readonly L[],
+  ) => AlternatesMetadata;
+}
+
+/**
+ * Bind the Next wiring to a registry built with `createLocaleRegistry`.
+ *
+ * With `prefixDefaultLocale: true` every locale is a real `[locale]` route, so
+ * {@link NextI18n.localeRewrites} is empty and {@link NextI18n.localeRedirects}
+ * only sends the bare root to `/<default>`. Other bare paths 404 under
+ * `dynamicParams = false` rather than being redirected: a catch-all redirect
+ * source would match the prefixed routes too and loop.
+ *
+ * @example
+ * ```ts
+ * // shared/config/i18n.ts
+ * export const i18n = createLocaleRegistry({ locales: ["fr", "en"], … });
+ * export const { localeStaticParams, localeRedirects, localeAlternatesMetadata } =
+ *   createNextI18n(i18n);
+ * ```
+ */
+export function createNextI18n<L extends string>(registry: LocaleRegistry<L>): NextI18n<L> {
+  // Takes no arguments on purpose — Next passes a props object; see
+  // `localeStaticParams` below.
+  const localeStaticParams = (): { locale: L }[] => registry.locales.map(locale => ({ locale }));
+
+  const localeRewrites = (defaultLocale: L = registry.defaultLocale): UrlRule[] =>
+    registry.prefixDefaultLocale
+      ? []
+      : [{ source: "/:path*", destination: `/${defaultLocale}/:path*` }];
+
+  const localeRedirects = (defaultLocale: L = registry.defaultLocale): RedirectRule[] =>
+    registry.prefixDefaultLocale
+      ? // Temporary: the target is whatever the default is configured to be, and
+        // a cached 308 would keep returning browsers on the old one after a change.
+        [{ source: "/", destination: `/${defaultLocale}`, permanent: false }]
+      : [
+          { source: `/${defaultLocale}/:path*`, destination: "/:path*", permanent: true },
+          // `:path*` matches zero segments in a destination but not reliably as a
+          // bare source, so the prefix root gets its own rule.
+          { source: `/${defaultLocale}`, destination: "/", permanent: true },
+        ];
+
+  const localeAlternatesMetadata = (
+    locale: L,
+    path: string,
+    siteUrl: string,
+    locales: readonly L[] = registry.locales,
+  ): AlternatesMetadata => ({
+    canonical: `${siteUrl.replace(/\/+$/, "")}${registry.localePath(locale, path)}`,
+    languages: registry.languageAlternates(path, siteUrl, locales),
+  });
+
+  return { localeStaticParams, localeRewrites, localeRedirects, localeAlternatesMetadata };
+}
+
+const next: NextI18n<Locale> = createNextI18n(defaultLocaleRegistry);
 
 /**
  * The `generateStaticParams` return value for a `[locale]` segment.
@@ -57,19 +154,7 @@ import {
  * ```
  */
 export function localeStaticParams(): { locale: Locale }[] {
-  const locales: readonly Locale[] = LOCALES;
-  return locales.map(locale => ({ locale }));
-}
-
-/** A Next.js rewrite/redirect rule, structurally typed to avoid importing `next`. */
-export interface UrlRule {
-  source: string;
-  destination: string;
-}
-
-/** A Next.js redirect rule. */
-export interface RedirectRule extends UrlRule {
-  permanent: boolean;
+  return next.localeStaticParams();
 }
 
 /**
@@ -105,8 +190,8 @@ export interface RedirectRule extends UrlRule {
  * }
  * ```
  */
-export function localeRewrites(defaultLocale: Locale = DEFAULT_LOCALE): UrlRule[] {
-  return [{ source: "/:path*", destination: `/${defaultLocale}/:path*` }];
+export function localeRewrites(defaultLocale?: Locale): UrlRule[] {
+  return next.localeRewrites(defaultLocale);
 }
 
 /**
@@ -130,21 +215,8 @@ export function localeRewrites(defaultLocale: Locale = DEFAULT_LOCALE): UrlRule[
  * }
  * ```
  */
-export function localeRedirects(
-  defaultLocale: Locale = DEFAULT_LOCALE,
-): RedirectRule[] {
-  return [
-    { source: `/${defaultLocale}/:path*`, destination: "/:path*", permanent: true },
-    // `:path*` matches zero segments in a destination but not reliably as a bare
-    // source, so the prefix root gets its own rule.
-    { source: `/${defaultLocale}`, destination: "/", permanent: true },
-  ];
-}
-
-/** The `alternates` block of a Next `Metadata` object. */
-export interface AlternatesMetadata {
-  canonical: string;
-  languages: Record<string, string>;
+export function localeRedirects(defaultLocale?: Locale): RedirectRule[] {
+  return next.localeRedirects(defaultLocale);
 }
 
 /**
@@ -156,6 +228,8 @@ export interface AlternatesMetadata {
  * itself gives.
  *
  * Every URL is absolute. `hreflang` values are ignored by Google when relative.
+ * Keys are `hreflang` tags — the bare locale code unless the registry maps it to
+ * a regional tag.
  *
  * @param locale  - The locale of the page being rendered (drives `canonical`).
  * @param path    - The locale-free root-relative path, e.g. `/team`.
@@ -175,15 +249,7 @@ export function localeAlternatesMetadata(
   locale: Locale,
   path: string,
   siteUrl: string,
-  locales: readonly Locale[] = LOCALES,
+  locales?: readonly Locale[],
 ): AlternatesMetadata {
-  const origin = siteUrl.replace(/\/+$/, "");
-  const abs = (l: Locale) => `${origin}${localePath(l, path)}`;
-  return {
-    canonical: abs(locale),
-    languages: {
-      ...Object.fromEntries(locales.map(l => [l, abs(l)])),
-      "x-default": abs(DEFAULT_LOCALE),
-    },
-  };
+  return next.localeAlternatesMetadata(locale, path, siteUrl, locales);
 }
