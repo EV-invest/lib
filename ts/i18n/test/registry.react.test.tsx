@@ -64,6 +64,6 @@ describe("createI18nReact", () => {
           </DefaultProvider>,
         );
       });
-    }).toThrow(/requires an <I18nProvider>/);
+    }).toThrow(/locales \[fr, en\], default "fr"\).*registry\.translator\(\)/);
   });
 });

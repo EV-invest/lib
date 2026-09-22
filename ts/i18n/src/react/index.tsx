@@ -81,8 +81,13 @@ export function createI18nReact<L extends string>(registry: LocaleRegistry<L>): 
       // A wiring bug, not a content gap: without a provider the locale itself is
       // unknown, so there is nothing sensible to degrade to. Fail loudly and
       // immediately rather than silently rendering one locale inside another.
+      // Names the registry because a provider from another createI18nReact()
+      // call is invisible here, and that is the non-obvious way to hit this.
       throw new Error(
-        `${hook}() requires an <I18nProvider> above it. Server Components should call translator() from @evinvest/i18n instead.`,
+        `${hook}() requires an <I18nProvider> above it from the same registry ` +
+          `(locales [${registry.locales.join(", ")}], default "${registry.defaultLocale}"). ` +
+          `Server Components should call translator() from @evinvest/i18n instead — ` +
+          `or registry.translator() for a registry built with createLocaleRegistry.`,
       );
     }
     return value;
