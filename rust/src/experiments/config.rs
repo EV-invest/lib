@@ -195,6 +195,62 @@ pub fn resolve_variant(exp: &Experiment, raw: Option<&str>) -> String {
 	}
 }
 
+/// What sticky cookie assignment should do for one experiment — the pure
+/// decision behind the wasm `assign_variant`, kept here so it tests natively.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Assignment {
+	/// The experiment is disabled: serve the control and write **no** cookie, so
+	/// re-enabling it does not leave visitors pinned to a control recorded
+	/// during the pause (mirrors the TS `abProxy` skipping disabled experiments).
+	Paused(String),
+	/// A cookie is already set: serve its resolved value and leave it alone.
+	Sticky(String),
+	/// First visit: serve the drawn variant and persist it.
+	New(String),
+}
+
+impl Assignment {
+	/// The variant to serve.
+	pub fn variant(&self) -> &str {
+		match self {
+			Self::Paused(v) | Self::Sticky(v) | Self::New(v) => v,
+		}
+	}
+
+	/// Whether the variant must be written to the `ab_<key>` cookie.
+	pub fn persist(&self) -> bool {
+		match self {
+			Self::New(_) => true,
+			Self::Paused(_) | Self::Sticky(_) => false,
+		}
+	}
+}
+
+/// Decides the sticky assignment given the currently stored cookie value.
+/// A disabled experiment is [`Assignment::Paused`] without drawing; an existing
+/// cookie is [`Assignment::Sticky`] (an unknown value resolves to the control
+/// rather than being re-drawn); otherwise [`pick_variant`] draws a
+/// [`Assignment::New`] variant.
+///
+/// # Examples
+/// ```
+/// use ev_lib::experiments::{Assignment, Experiment, plan_assignment};
+/// let exp = Experiment::new(["a", "b"], [0.0, 1.0]);
+/// assert_eq!(plan_assignment(&exp, None, || 0.5), Assignment::New("b".into()));
+/// assert_eq!(plan_assignment(&exp, Some("a"), || 0.5), Assignment::Sticky("a".into()));
+/// let off = exp.with_enabled(false);
+/// assert_eq!(plan_assignment(&off, None, || 0.5), Assignment::Paused("a".into()));
+/// ```
+pub fn plan_assignment(exp: &Experiment, existing: Option<&str>, rng: impl FnMut() -> f64) -> Assignment {
+	if exp.is_disabled() {
+		return Assignment::Paused(exp.variants.first().cloned().unwrap_or_default());
+	}
+	match existing {
+		Some(raw) => Assignment::Sticky(resolve_variant(exp, Some(raw))),
+		None => Assignment::New(pick_variant(exp, rng)),
+	}
+}
+
 /// Returns the variant `step` positions from `current`, wrapping around the list
 /// (mirrors the TS `nextVariant`, used by the dev cycle). Unknown `current`
 /// values start from the control.
@@ -508,6 +564,45 @@ mod tests {
 			assert_eq!(pick_variant(&all, fixed(r)), "a");
 			assert_eq!(pick_variant(&over, fixed(r)), "a");
 		}
+	}
+
+	#[test]
+	fn plan_assignment_paused_writes_nothing_and_ignores_cookie() {
+		let off = Experiment::new(["a", "b"], [0.0, 1.0]).with_enabled(false);
+		for existing in [None, Some("b"), Some("zzz")] {
+			let plan = plan_assignment(&off, existing, never);
+			assert_eq!(plan, Assignment::Paused("a".to_string()), "existing={existing:?}");
+			assert!(!plan.persist());
+			assert_eq!(plan.variant(), "a");
+		}
+	}
+
+	#[test]
+	fn plan_assignment_new_visit_draws_and_persists() {
+		let exp = Experiment::new(["a", "b"], [0.0, 1.0]);
+		let plan = plan_assignment(&exp, None, fixed(0.5));
+		assert_eq!(plan, Assignment::New("b".to_string()));
+		assert!(plan.persist());
+	}
+
+	#[test]
+	fn plan_assignment_existing_cookie_is_sticky_without_drawing() {
+		let exp = Experiment::new(["a", "b"], [0.0, 1.0]);
+		let kept = plan_assignment(&exp, Some("a"), never);
+		assert_eq!(kept, Assignment::Sticky("a".to_string()));
+		assert!(!kept.persist());
+		// A dropped variant resolves to the control, never re-drawn or rewritten.
+		assert_eq!(plan_assignment(&exp, Some("gone"), never), Assignment::Sticky("a".to_string()));
+	}
+
+	#[test]
+	fn plan_assignment_after_re_enable_draws_fresh_for_unpinned_visitors() {
+		// A visitor first seen during the pause got no cookie, so once the
+		// experiment is back on they are bucketed normally, not stuck on control.
+		let exp = Experiment::new(["a", "b"], [0.0, 1.0]);
+		let paused = plan_assignment(&exp.clone().with_enabled(false), None, never);
+		assert!(!paused.persist());
+		assert_eq!(plan_assignment(&exp.with_enabled(true), None, fixed(0.5)), Assignment::New("b".to_string()));
 	}
 
 	#[test]

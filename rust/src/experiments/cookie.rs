@@ -6,7 +6,7 @@
 
 use wasm_bindgen::JsCast;
 
-use crate::experiments::config::{Experiment, cookie_name, pick_variant, resolve_variant};
+use crate::experiments::config::{Experiment, cookie_name, plan_assignment, resolve_variant};
 
 /// Sticky cookie lifetime: 30 days, matching the TS proxy's `max-age`.
 const COOKIE_MAX_AGE_SECS: u32 = 60 * 60 * 24 * 30;
@@ -36,13 +36,15 @@ pub fn current_variant(exp: &Experiment, key: &str) -> String {
 /// existing `ab_<key>` cookie is never re-drawn or rewritten, and a value that is
 /// no longer in `exp.variants` resolves to the control — so a visitor whose
 /// variant was dropped from the config stays pinned rather than being re-bucketed.
+/// A disabled experiment returns the control and writes no cookie (see
+/// [`plan_assignment`]).
 pub fn assign_variant(exp: &Experiment, key: &str) -> String {
-	if let Some(existing) = read_cookie(&cookie_name(key)) {
-		return resolve_variant(exp, Some(&existing));
+	let existing = read_cookie(&cookie_name(key));
+	let plan = plan_assignment(exp, existing.as_deref(), js_sys::Math::random);
+	if plan.persist() {
+		write_variant(key, plan.variant());
 	}
-	let variant = pick_variant(exp, js_sys::Math::random);
-	write_variant(key, &variant);
-	variant
+	plan.variant().to_string()
 }
 fn html_document() -> Option<web_sys::HtmlDocument> {
 	web_sys::window()?.document()?.dyn_into::<web_sys::HtmlDocument>().ok()

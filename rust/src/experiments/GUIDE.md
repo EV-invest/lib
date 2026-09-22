@@ -59,6 +59,11 @@ let held = Experiment::new(["a", "b"], [0.5, 0.5]).with_holdout(0.1); // 10% pin
 - `holdout` (clamped to `[0, 1]`, `NaN` → 0) reuses the single draw: `u < h` is
   the control, otherwise `u` is rescaled to `(u - h) / (1 - h)` before the
   weighted walk. A zero holdout leaves every pick bit-identical to no holdout.
+- While an experiment is disabled, [`assign_variant`] serves the control and
+  **writes no cookie** (the pure decision is [`plan_assignment`]). So after you
+  re-enable it, no cookies from the pause are left pinning visitors to the
+  control: visitors first seen during the pause are bucketed fresh, and those
+  bucketed before it get their old variant back.
 
 ## Assign a variant in the browser
 
