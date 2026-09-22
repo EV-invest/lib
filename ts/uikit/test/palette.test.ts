@@ -114,6 +114,31 @@ describe("brandFromToml + renderPalette", () => {
     expect(renderPalette("aqua", config, contract)).toContain("--on-secondary: var(--ink);");
   });
 
+  it("declares each scope's polarity for what the platform draws", () => {
+    const rules = readRules(renderPalette("aqua", brandFromToml(demo), contract));
+    expect(rules[0]?.declarations.get("scheme")).toBe("light");
+    expect(rules[1]?.declarations.get("scheme")).toBe("dark");
+  });
+
+  it("writes the brand file's families as the font parameters, `text` being sans", () => {
+    const css = renderPalette("aqua", brandFromToml(demo), contract);
+    expect(css).toContain('--brand-font-display: "Archivo";');
+    expect(css).toContain('--brand-font-sans: "Inter";');
+    expect(css).not.toContain("--brand-font-mono");
+  });
+
+  it("omits the font parameters a brand does not set, so the kit's families stand", () => {
+    const config: BrandConfig = { colors: { light: complete(), dark: complete() } };
+    expect(renderPalette("aqua", config, contract)).not.toContain("--brand-font-");
+  });
+
+  it("rejects a family name that could escape its quotes", () => {
+    const config: BrandConfig = { colors: { light: complete(), dark: complete() }, fonts: { display: 'x"; } body {' } };
+    expect(problems(() => renderPalette("aqua", config, contract))).toEqual([
+      'fonts.display "x\\"; } body {" is not a plain family name',
+    ]);
+  });
+
   it("requires both polarities", () => {
     expect(problems(() => brandFromToml('[colors.light]\nink = "#000000"'))).toEqual(["no [colors.dark] table"]);
     expect(problems(() => brandFromToml('[colors.sepia]\nink = "#000000"'))).toContain(

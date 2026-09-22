@@ -7,7 +7,9 @@ export {
   validateBrand,
   PaletteError,
   POLARITIES,
+  FONT_ROLES,
   type BrandConfig,
+  type FontRole,
   type PolarityName,
 } from "./brand";
 export { parseToml, type TomlTable, type TomlValue } from "./toml";
