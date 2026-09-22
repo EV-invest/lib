@@ -110,7 +110,10 @@ pick a polarity, so a `<Section polarity="dark">` inside the brand takes the
 brand's dark values. The package ships a generator for it, reading the
 `brand.toml` shape (`[colors.light]` and `[colors.dark]`, keyed by token name;
 optional top-level `mark` and `mark-aspect` become `--brand-mark` and
-`--brand-aspect`; other tables are ignored):
+`--brand-aspect`; the family names in `[fonts]` — `sans` (or aquafix's `text`),
+`display`, `mono` — become the [font parameters](#fonts); other keys and tables
+are ignored). Each polarity block also declares `--scheme: light | dark`, which
+the platform-drawn parts of the kit read (a `NativeSelect`'s popup):
 
 ```sh
 npx evinvest-palette --brand aquafix --out app/brand.css assets/brand.toml
@@ -163,6 +166,88 @@ A brand on `<html>` needs no provider: `document.body` is already inside it.
 Brand scopes do not nest — CSS has no "nearest ancestor", so a polarity class
 under a brand under another brand may match either.
 
+### Fonts
+
+The families are parameters, one per role; unset, each is EV's:
+
+| parameter | utilities | default (EV) |
+|---|---|---|
+| `--brand-font-sans` | `font-sans`, the page's base family | `--font-inter`, else `"Inter"` |
+| `--brand-font-display` | `font-display`, `font-serif` | `--font-playfair`, else `"Playfair Display"` |
+| `--brand-font-mono` | `font-mono` | `--font-inter`, else `"Inter"` |
+
+Declare them on the brand scope (the palette generator writes them from
+`[fonts]`) and load the files yourself — `next/font`, or your own `@font-face`;
+the kit ships no font files:
+
+```css
+[data-brand="aquafix"] {
+  --brand-font-display: "Archivo";
+}
+```
+
+The utilities resolve the chain on the element, so a scope re-fonts everything
+under it that carries one. The page's base family resolves once, on `<html>`: a
+brand scoped lower than `<html>` puts `font-sans` on its own element so plain
+text picks the brand's family up.
+
+## Forms that submit before hydration
+
+A landing page's form has to work with scripting off and keep its labels wired
+through hydration. Three parts of the kit make that hold:
+
+- **`NativeSelect`** is a real `<select name>` wearing the kit's control — the
+  kit's arrow instead of the OS one, token colours, the popup following the
+  palette's `--scheme`. It posts with the form without any script, and the
+  popup is the platform's (keyboard, type-ahead, the mobile picker).
+  `NativeSelectOption` / `NativeSelectGroup` are `<option>` / `<optgroup>`.
+  `placeholder` adds an empty, unpickable first option, selected until a value
+  is chosen and styled `text-ink-soft`; with `required`, the browser refuses to
+  submit it. `className` styles the `<select>`, `wrapperClassName` the box that
+  holds it and the arrow (`w-fit` by default; a vertical `Field` stretches it).
+
+  It is a component of its own rather than a mode of `Select`: none of
+  `SelectTrigger` / `SelectValue` / `SelectContent` has a native counterpart.
+  `Select` stays the scripted combobox for what a platform popup cannot draw
+  (rich rows, a check mark, brand-styled menus everywhere).
+- **`Field` mints the id** with `React.useId` — positional, so the server and the
+  hydrating client agree — and hands it to its `FieldLabel` as `for` and to the
+  kit's `Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `Checkbox` and
+  `Switch` as `id`, each only when the caller passed none. No `FormControl`
+  wrapper is needed. One control per `Field`; name the ids by hand when it holds
+  more. (`FormItem` / `FormControl` keep their own `useId` wiring for forms that
+  want `aria-describedby` too.)
+- **`SelectValue` shows the label**, not the stored value: the children of the
+  `SelectItem` whose `value` matches, read off the element tree — so it is right
+  on the server and before the popover first opens. An item rendered by a
+  component of yours is learnt once it has mounted (after the first open); pass
+  `SelectValue` children to show something else outright.
+
+```tsx
+<form action="/lead" method="post">
+  <Field>
+    <FieldLabel>Service</FieldLabel>
+    <NativeSelect name="service" placeholder="Pick one" required>
+      <NativeSelectOption value="leak">Leak</NativeSelectOption>
+      <NativeSelectOption value="boiler">Boiler</NativeSelectOption>
+    </NativeSelect>
+  </Field>
+  <Field>
+    <FieldLabel>Phone</FieldLabel>
+    <Input name="phone" type="tel" />
+  </Field>
+  <Button type="submit">Request a call</Button>
+</form>
+```
+
+**Focus.** A control that paints a fill — `Button` `primary` / `secondary` /
+`destructive` or any accent fill, a filled `Badge`, `Switch`, `Checkbox` —
+shows focus as the solid `ring` standing 2px off it, so both edges of the
+indicator are against the surface: the ring reads on every surface at ≥ 3:1
+and so does the fill, on every palette and polarity `test/tokens.test.ts`
+measures. Controls that sit on the surface (`outline`, `ghost`, inputs) keep
+the `ring` border plus its halo.
+
 ## Usage
 
 ```tsx
@@ -209,11 +294,12 @@ element across the two ports.
 | overlay placement | inline `position:fixed` + `data-side` | `Portal` + `useFloating` |
 | dismiss / focus trap | full-screen backdrop / native order | `useDismissableLayer` / `useFocusScope` |
 
-### Component inventory (all 62 bricks)
+### Component inventory (all 63 bricks)
 
-- **Tier A — static (22):** badge, button, button-group, card, input, textarea,
+- **Tier A — static (23):** badge, button, button-group, card, input, textarea,
   label, field, separator, skeleton, spinner, kbd, table, container, alert,
-  breadcrumb, empty, item, input-group, avatar, progress, pagination.
+  breadcrumb, empty, item, input-group, avatar, progress, pagination,
+  native-select (TS-only).
 - **Tier B — interactive (13):** accordion, collapsible, tabs, toggle,
   toggle-group, switch, checkbox, radio-group, slider, sidebar, scroll-area,
   carousel, input-otp.
@@ -316,6 +402,15 @@ measuring needs host-only `web-sys`). Known gaps:
   `max-h-*` on `DrawerContent` and let the body scroll by itself.
 - **sidebar:** the mobile-sheet integration, cookie persistence, and keyboard
   shortcut are omitted.
+- **footer:** brings no content of its own — every string, the mark and the
+  lock-up are the caller's, and each column renders only when it has content.
+  The lock-up is composed from `mark` + `brand` (display family) + `tagline`,
+  or passed whole as `lockup`. Brand-coloured text reads `primary-ink`.
+- **TS-only for now:** `NativeSelect`, the `Field` id hand-off, `SelectValue`
+  labels and the offset focus ring on filled controls. The ring is fused in
+  `button.tsx` / `badge.tsx` on top of the shared class tables until
+  `rust/classes/src/{button,badge}.rs` carry it; switch and checkbox classes
+  are per-port already.
 - **brand chrome (header / footer / status pages):** TS routes links through an
   optional `linkComponent` (e.g. `next/link`) for soft navigation; Rust renders
   plain `<a>` (a full document load). The Dioxus header drives its scroll state,
