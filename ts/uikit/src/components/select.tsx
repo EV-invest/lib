@@ -7,6 +7,7 @@ import { usePresence } from "../primitives/presence";
 import { useRovingFocus } from "../primitives/use-roving-focus";
 import { mergeRefs } from "../primitives/merge-refs";
 import { Portal } from "../primitives/portal";
+import { SelectChevron } from "./select-chevron";
 
 interface SelectContextValue {
   value: string;
@@ -14,6 +15,9 @@ interface SelectContextValue {
   open: boolean;
   setOpen: (next: boolean) => void;
   anchorRef: React.RefObject<HTMLElement | null>;
+  /** What `SelectValue` shows for a value: the matching `SelectItem`'s children. */
+  labelOf: (value: string) => React.ReactNode;
+  registerLabel: (value: string, label: React.ReactNode) => void;
 }
 
 const SelectContext = React.createContext<SelectContextValue | null>(null);
@@ -54,13 +58,47 @@ export function Select({
     ...(onOpenChange ? { onChange: onOpenChange } : {}),
   });
   const anchorRef = React.useRef<HTMLElement | null>(null);
+  // The items live in a closed popover, so they are not mounted when the
+  // trigger first renders — on the server least of all. Their labels are read
+  // off the element tree instead; items hidden behind a component of the
+  // caller's register once they have mounted (i.e. after the first open).
+  const declared = React.useMemo(() => collectItemLabels(children), [children]);
+  const mounted = React.useRef(new Map<string, React.ReactNode>());
+  const labelOf = React.useCallback(
+    (v: string) => (declared.has(v) ? declared.get(v) : mounted.current.has(v) ? mounted.current.get(v) : v),
+    [declared],
+  );
+  const registerLabel = React.useCallback((v: string, label: React.ReactNode) => {
+    mounted.current.set(v, label);
+  }, []);
   return (
     <SelectContext.Provider
-      value={{ value: currentValue, setValue, open: isOpen, setOpen, anchorRef }}
+      value={{
+        value: currentValue,
+        setValue,
+        open: isOpen,
+        setOpen,
+        anchorRef,
+        labelOf,
+        registerLabel,
+      }}
     >
       {children}
     </SelectContext.Provider>
   );
+}
+
+function collectItemLabels(
+  node: React.ReactNode,
+  into = new Map<string, React.ReactNode>(),
+): Map<string, React.ReactNode> {
+  React.Children.forEach(node, (child) => {
+    if (!React.isValidElement<{ value?: unknown; children?: React.ReactNode }>(child)) return;
+    const { value, children } = child.props;
+    if (child.type === SelectItem && typeof value === "string") into.set(value, children);
+    else collectItemLabels(children, into);
+  });
+  return into;
 }
 
 export interface SelectTriggerProps extends React.ComponentProps<"button"> {
@@ -95,21 +133,7 @@ export function SelectTrigger({
       {...(props as Record<string, unknown>)}
     >
       {children}
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="size-4 opacity-50"
-        aria-hidden="true"
-      >
-        <path d="m6 9 6 6 6-6" />
-      </svg>
+      <SelectChevron className="size-4 opacity-50" />
     </button>
   );
 }
@@ -118,8 +142,13 @@ export interface SelectValueProps extends React.ComponentProps<"span"> {
   placeholder?: string;
 }
 
-export function SelectValue({ className, placeholder, ...props }: SelectValueProps) {
-  const { value } = useSelect();
+/**
+ * The chosen option's label — the children of the `SelectItem` whose `value`
+ * matches — or `placeholder` while nothing is chosen. `children`, when given,
+ * replace the label outright.
+ */
+export function SelectValue({ className, placeholder, children, ...props }: SelectValueProps) {
+  const { value, labelOf } = useSelect();
   const isEmpty = value === "";
   return (
     <span
@@ -128,7 +157,7 @@ export function SelectValue({ className, placeholder, ...props }: SelectValuePro
       className={className}
       {...(props as Record<string, unknown>)}
     >
-      {isEmpty ? placeholder : value}
+      {isEmpty ? placeholder : (children ?? labelOf(value))}
     </span>
   );
 }
@@ -219,8 +248,9 @@ export function SelectItem({
   __setActive,
   ...props
 }: SelectItemProps) {
-  const { value: selectedValue, setValue, setOpen } = useSelect();
+  const { value: selectedValue, setValue, setOpen, registerLabel } = useSelect();
   const selected = selectedValue === value;
+  React.useEffect(() => registerLabel(value, children), [registerLabel, value, children]);
   return (
     <div
       role="option"

@@ -6,6 +6,7 @@ import {
   SelectValue,
   SelectContent,
   SelectItem,
+  SelectGroup,
 } from "../src/components/select";
 
 function tree(props = {}) {
@@ -42,7 +43,7 @@ describe("Select", () => {
     fireEvent.click(screen.getByText("Banana"));
     expect(screen.queryByRole("listbox")).toBeNull();
     const value = document.querySelector('[data-slot="select-value"]')!;
-    expect(value).toHaveTextContent("b");
+    expect(value).toHaveTextContent("Banana");
     expect(value).not.toHaveAttribute("data-placeholder");
   });
 
@@ -64,12 +65,74 @@ describe("Select", () => {
 
   it("marks the selected option with aria-selected and a check", () => {
     render(tree({ defaultValue: "a", defaultOpen: true }));
-    const option = screen.getByText("Apple").closest('[role="option"]')!;
+    const option = screen.getByRole("option", { name: "Apple" });
     expect(option).toHaveAttribute("aria-selected", "true");
   });
 
   it("defaults the trigger to the md size", () => {
     render(tree());
     expect(screen.getByRole("combobox")).toHaveAttribute("data-size", "md");
+  });
+
+  it("shows the chosen item's label, not its value, before the popover ever opened", () => {
+    render(tree({ defaultValue: "b" }));
+    const value = document.querySelector('[data-slot="select-value"]')!;
+    expect(value).toHaveTextContent("Banana");
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("finds labels through groups and mapped arrays", () => {
+    render(
+      <Select defaultValue="pear">
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            {[
+              ["apple", "Apple"],
+              ["pear", "Pear"],
+            ].map(([v, l]) => (
+              <SelectItem key={v} value={v!}>
+                {l}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>,
+    );
+    expect(document.querySelector('[data-slot="select-value"]')).toHaveTextContent("Pear");
+  });
+
+  it("learns the label of an item behind a wrapper component once it has mounted", () => {
+    const Wrapped = ({ value, label }: { value: string; label: string }) => (
+      <SelectItem value={value}>{label}</SelectItem>
+    );
+    render(
+      <Select defaultOpen>
+        <SelectTrigger>
+          <SelectValue placeholder="Pick" />
+        </SelectTrigger>
+        <SelectContent>
+          <Wrapped value="k" label="Kiwi" />
+        </SelectContent>
+      </Select>,
+    );
+    fireEvent.click(screen.getByRole("option", { name: "Kiwi" }));
+    expect(document.querySelector('[data-slot="select-value"]')).toHaveTextContent("Kiwi");
+  });
+
+  it("lets SelectValue children replace the label", () => {
+    render(
+      <Select defaultValue="a">
+        <SelectTrigger>
+          <SelectValue>Custom</SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="a">Apple</SelectItem>
+        </SelectContent>
+      </Select>,
+    );
+    expect(document.querySelector('[data-slot="select-value"]')).toHaveTextContent("Custom");
   });
 });
