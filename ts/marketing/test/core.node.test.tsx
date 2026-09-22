@@ -26,6 +26,24 @@ describe("accented", () => {
     );
   });
 
+  it("keeps an unpaired * literal instead of accenting the rest", () => {
+    const html = (text: string) =>
+      renderToStaticMarkup(<>{accented({ text, className: "a" })}</>);
+    // Pairs left to right; only the last, unpaired `*` stays text.
+    expect(html("The *best* plumber, 5* rated")).toBe(
+      'The <span class="a">best</span> plumber, 5* rated',
+    );
+    expect(html("Rated 5*")).toBe("Rated 5*");
+  });
+
+  it("splits a line break inside an accent into sibling spans around a <br>", () => {
+    const nodes = accented({ text: "Call *right\nnow*", className: "a" });
+    expect(nodes.filter(isValidElement).map(e => e.type)).toEqual(["span", "br", "span"]);
+    expect(renderToStaticMarkup(<>{nodes}</>)).toBe(
+      'Call <span class="a">right</span><br/><span class="a">now</span>',
+    );
+  });
+
   it("cycles tones when the translation carries more accents", () => {
     const html = renderToStaticMarkup(
       <>{accented({ text: "*a* *b* *c*", classNames: ["x", "y"] })}</>,

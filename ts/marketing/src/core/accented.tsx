@@ -59,23 +59,41 @@ export function accented({
   const tones = classNames?.length ? classNames : [className];
   const out: ReactNode[] = [];
 
-  // Odd indices are the marked segments: "a *b* c" → ["a ", "b", " c"].
-  text.split("*").forEach((part, i) => {
-    if (i % 2 === 1) {
-      const tone = tones[((i - 1) / 2) % tones.length];
-      out.push(
-        <span key={`a${i}`} className={tone}>
-          {part}
-        </span>,
-      );
-      return;
-    }
-    // An empty segment contributes nothing — which is what makes "*Accent*
-    // first" and a trailing "*Accent*" both come out right.
+  // Each line its own node with real <br>s between, so `tokenize` sees both.
+  // An empty segment contributes nothing — which is what makes "*Accent*
+  // first" and a trailing "*Accent*" both come out right. A break inside an
+  // accent becomes a sibling <br> between two accent spans, never a <br>
+  // inside one: `SplitText` keeps a span whole as one inline-block, where a
+  // nested break renders as a two-line box.
+  const pushLines = (part: string, key: string, tone?: string) => {
     part.split("\n").forEach((line, j) => {
-      if (j > 0) out.push(<br key={`b${i}-${j}`} />);
-      if (line !== "") out.push(line);
+      if (j > 0) out.push(<br key={`${key}-b${j}`} />);
+      if (line === "") return;
+      out.push(
+        tone === undefined ? (
+          line
+        ) : (
+          <span key={`${key}-${j}`} className={tone}>
+            {line}
+          </span>
+        ),
+      );
     });
+  };
+
+  // Odd indices are the marked segments: "a *b* c" → ["a ", "b", " c"].
+  const parts = text.split("*");
+  // An odd number of `*` leaves the last one unpaired. A translator's typo
+  // (or a literal "5*") must not accent the rest of the heading, so the
+  // unpaired `*` stays text.
+  if (parts.length % 2 === 0) {
+    const tail = parts.pop() ?? "";
+    parts.push(`${parts.pop() ?? ""}*${tail}`);
+  }
+
+  parts.forEach((part, i) => {
+    if (i % 2 === 1) pushLines(part, `a${i}`, tones[((i - 1) / 2) % tones.length]);
+    else pushLines(part, `p${i}`);
   });
 
   return out;
