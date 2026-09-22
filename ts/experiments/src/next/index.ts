@@ -13,7 +13,10 @@ import { cookies } from 'next/headers';
 import { NextResponse, type NextRequest } from 'next/server';
 import {
   cookieName,
+  DEFAULT_COOKIE_PREFIX,
+  forcedVariant,
   pickVariant,
+  pickVariantFor,
   resolveVariant,
   type ExperimentConfig,
   type ExperimentKey,
@@ -23,9 +26,70 @@ import {
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
 /**
+ * Cookie parameters shared by {@link abProxy} and {@link getVariant}. Every
+ * field is optional; the defaults are the historical `ab_<key>` cookie, 30-day
+ * `maxAge`, `path: "/"`, `sameSite: "lax"`, no `domain`.
+ */
+export type AbCookieOptions = {
+  /** Cookie-name prefix; the cookie is `${prefix}${key}`. Default `ab_`. */
+  readonly prefix?: string;
+  /** Lifetime in seconds. Default 30 days. */
+  readonly maxAge?: number;
+  /** Cookie path. Default `/`. */
+  readonly path?: string;
+  /** Cookie domain, e.g. `.brand.com` to share across location subdomains. */
+  readonly domain?: string;
+  /** SameSite policy. Default `lax`. */
+  readonly sameSite?: 'lax' | 'strict' | 'none';
+};
+
+/** Options for {@link getVariant}. Omitted = the plain cookie read. */
+export type GetVariantOptions = {
+  /**
+   * Stable subject (e.g. a location id). When set, the variant is
+   * {@link pickVariantFor} — no cookie is read, so the route can stay static.
+   */
+  readonly subject?: string;
+  /**
+   * A requested variant (e.g. from the page's `searchParams`). Used when it is
+   * valid for the key and the experiment is enabled; otherwise ignored.
+   */
+  readonly force?: string | undefined;
+  /** Cookie parameters; only `prefix` matters for reading. */
+  readonly cookie?: AbCookieOptions;
+};
+
+/** Options for {@link abProxy} / {@link createAbMiddleware}. Omitted = old behaviour. */
+export type AbProxyOptions = {
+  /** Randomness for new cookie assignments. Default `Math.random`. */
+  readonly rng?: () => number;
+  /**
+   * Resolves a stable subject (e.g. a location id from the host) per request.
+   * When it returns a string, every experiment is bucketed with
+   * {@link pickVariantFor} and written to the **forwarded request only** — no
+   * `Set-Cookie`, nothing sticky, the subject alone decides. `undefined` falls
+   * back to the cookie flow.
+   */
+  readonly subject?: (request: NextRequest) => string | undefined;
+  /** Cookie parameters for reading and writing assignments. */
+  readonly cookie?: AbCookieOptions;
+  /** Requests for which the proxy does nothing (bots, health checks…). */
+  readonly skip?: (request: NextRequest) => boolean;
+  /**
+   * Query-parameter prefix that forces a variant: `?${forceParam}${key}=b`.
+   * The value is validated against the declared variants; a forced variant
+   * overrides the cookie (and is persisted in cookie mode). Default: off.
+   */
+  readonly forceParam?: string;
+};
+
+/**
  * Reads the visitor's assigned A/B variant from the `ab_<key>` cookie set by
  * {@link abProxy}. Falls back to the first (control) variant when the cookie is
- * missing or holds an unrecognised value.
+ * missing or holds an unrecognised value, or when the experiment is disabled.
+ *
+ * With `options.subject` it instead returns {@link pickVariantFor} and never
+ * touches `cookies()`; with a valid `options.force` it returns that variant.
  *
  * **Server Component only** — uses `next/headers` and throws if called on the
  * client. Reading the cookie opts the route into dynamic rendering, the
@@ -33,22 +97,29 @@ const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
  *
  * @typeParam C - The {@link ExperimentConfig} (pass it `as const` to narrow).
  * @typeParam K - The experiment key.
- * @param config - The experiments config.
- * @param key    - The experiment key to read.
+ * @param config  - The experiments config.
+ * @param key     - The experiment key to read.
+ * @param options - Optional {@link GetVariantOptions}.
  * @returns The variant string, narrowed to the valid union for that key.
  *
  * @example
  * ```tsx
  * // Inside a Server Component:
  * const variant = await getVariant(config, "hero");
+ * // Per-location split on a static page:
+ * const byLocation = await getVariant(config, "hero", { subject: location.id });
  * ```
  */
 export async function getVariant<
   C extends ExperimentConfig,
   K extends ExperimentKey<C>,
->(config: C, key: K): Promise<Variant<C, K>> {
+>(config: C, key: K, options: GetVariantOptions = {}): Promise<Variant<C, K>> {
+  const forced = forcedVariant(config, key, options.force);
+  if (forced !== undefined) return forced;
+  if (options.subject !== undefined) return pickVariantFor(config, key, options.subject);
   const jar = await cookies();
-  return resolveVariant(config, key, jar.get(cookieName(key))?.value);
+  const name = cookieName(key, options.cookie?.prefix ?? DEFAULT_COOKIE_PREFIX);
+  return resolveVariant(config, key, jar.get(name)?.value);
 }
 
 /**
@@ -56,11 +127,17 @@ export async function getVariant<
  * {@link pickVariant}. New assignments are written to **both** the forwarded
  * request (so this same render's `cookies()` reads them — no first-paint bias)
  * and the response (so the browser persists them for 30 days). Existing cookies
- * are left untouched, making assignment sticky across visits.
+ * are left untouched, making assignment sticky across visits. Disabled
+ * experiments are not assigned.
+ *
+ * `options` adjusts this without changing the defaults: an injected `rng`,
+ * per-subject bucketing with no `Set-Cookie`, cookie parameters, a `skip`
+ * predicate and a query-parameter force — see {@link AbProxyOptions}.
  *
  * @typeParam C - The {@link ExperimentConfig}.
  * @param config  - The experiments config to assign across.
  * @param request - The incoming `NextRequest`.
+ * @param options - Optional {@link AbProxyOptions}.
  * @returns A `NextResponse` (`NextResponse.next`) carrying any new cookies.
  *
  * @example
@@ -75,15 +152,34 @@ export async function getVariant<
 export function abProxy<C extends ExperimentConfig>(
   config: C,
   request: NextRequest,
+  options: AbProxyOptions = {},
 ): NextResponse {
-  const assigned: Array<{ name: string; value: string }> = [];
+  if (options.skip?.(request)) return NextResponse.next();
+
+  const prefix = options.cookie?.prefix ?? DEFAULT_COOKIE_PREFIX;
+  const subject = options.subject?.(request);
+  const persisted: Array<{ name: string; value: string }> = [];
 
   for (const key of Object.keys(config) as ExperimentKey<C>[]) {
-    const name = cookieName(key);
-    if (!request.cookies.get(name)) {
-      const value = pickVariant(config, key);
+    if (config[key]?.enabled === false) continue;
+    const name = cookieName(key, prefix);
+    const forced =
+      options.forceParam === undefined
+        ? undefined
+        : forcedVariant(config, key, request.nextUrl.searchParams.get(`${options.forceParam}${key}`));
+
+    if (subject !== undefined) {
+      // Subject mode overrides whatever cookie the browser sent, so a stale
+      // per-device assignment can never beat the per-subject split.
+      request.cookies.set(name, forced ?? pickVariantFor(config, key, subject));
+      continue;
+    }
+
+    const current = request.cookies.get(name)?.value;
+    const value = forced ?? (request.cookies.has(name) ? undefined : pickVariant(config, key, options.rng));
+    if (value !== undefined && value !== current) {
       request.cookies.set(name, value);
-      assigned.push({ name, value });
+      persisted.push({ name, value });
     }
   }
 
@@ -91,12 +187,13 @@ export function abProxy<C extends ExperimentConfig>(
     request: { headers: request.headers },
   });
 
-  for (const { name, value } of assigned) {
+  for (const { name, value } of persisted) {
     response.cookies.set(name, value, {
-      maxAge: COOKIE_MAX_AGE,
-      sameSite: 'lax',
+      maxAge: options.cookie?.maxAge ?? COOKIE_MAX_AGE,
+      sameSite: options.cookie?.sameSite ?? 'lax',
       httpOnly: false,
-      path: '/',
+      path: options.cookie?.path ?? '/',
+      ...(options.cookie?.domain === undefined ? {} : { domain: options.cookie.domain }),
     });
   }
 
@@ -109,7 +206,8 @@ export function abProxy<C extends ExperimentConfig>(
  * `middleware` (Next ≤ 15).
  *
  * @typeParam C - The {@link ExperimentConfig}.
- * @param config - The experiments config to assign across.
+ * @param config  - The experiments config to assign across.
+ * @param options - Optional {@link AbProxyOptions}, forwarded to every call.
  * @returns A `(request: NextRequest) => NextResponse` handler.
  *
  * @example
@@ -122,6 +220,7 @@ export function abProxy<C extends ExperimentConfig>(
  */
 export function createAbMiddleware<C extends ExperimentConfig>(
   config: C,
+  options: AbProxyOptions = {},
 ): (request: NextRequest) => NextResponse {
-  return (request: NextRequest) => abProxy(config, request);
+  return (request: NextRequest) => abProxy(config, request, options);
 }
