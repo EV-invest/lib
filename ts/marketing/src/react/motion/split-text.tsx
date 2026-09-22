@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 
 import { DUR, EASE, STAGGER_TEXT, VIEWPORT } from "../../core/motion-tokens";
 import { flattenText, tokenize } from "../../core/tokenize";
-import { useReduceMotion } from "./reduced-motion";
+import { INSTANT_MOVE, useReduceMotion } from "./reduced-motion";
 
 export interface SplitTextProps {
   children: ReactNode;
@@ -35,14 +35,18 @@ const VISUALLY_HIDDEN: CSSProperties = {
 // words are real text nodes.
 const WORD_STYLE = { display: "inline-block", willChange: "transform" } as const;
 
-const WORD = {
+const wordVariants = (reduce: boolean) => ({
   hidden: { opacity: 0, y: "0.45em" },
   shown: {
     opacity: 1,
     y: 0,
-    transition: { duration: DUR.base, ease: EASE.out },
+    transition: {
+      duration: DUR.base,
+      ease: EASE.out,
+      ...(reduce ? INSTANT_MOVE : {}),
+    },
   },
-};
+});
 
 /**
  * Headline motion: each word rises into place a beat after the last, so the
@@ -68,33 +72,24 @@ export function SplitText({
   className,
 }: SplitTextProps) {
   const reduce = useReduceMotion();
-
-  // Reduced motion: one fade for the whole line. Splitting would still move
-  // every word, which is the thing the preference asks us not to do.
-  if (reduce) {
-    return (
-      <motion.span
-        className={className}
-        data-motion="fade"
-        initial={{ opacity: 0 }}
-        {...(inView
-          ? { whileInView: { opacity: 1 }, viewport: VIEWPORT }
-          : { animate: { opacity: 1 } })}
-        transition={{ duration: DUR.base, ease: EASE.out, delay }}
-      >
-        {children}
-      </motion.span>
-    );
-  }
+  // One tree on both paths: the server renders the split markup without
+  // knowing the preference, so the hydrating client must too. Reduce changes
+  // only timing — every word fades at once (no stagger) and snaps into place
+  // instead of rising — so the line still arrives as one plain fade.
+  const words = wordVariants(reduce);
 
   return (
     <motion.span
       className={className}
-      data-motion="split"
       initial="hidden"
       variants={{
         hidden: {},
-        shown: { transition: { staggerChildren: step, delayChildren: delay } },
+        shown: {
+          transition: {
+            staggerChildren: reduce ? 0 : step,
+            delayChildren: delay,
+          },
+        },
       }}
       {...(inView
         ? { whileInView: "shown", viewport: VIEWPORT }
@@ -106,7 +101,7 @@ export function SplitText({
           <br key={i} aria-hidden />
         ) : (
           <Fragment key={i}>
-            <motion.span aria-hidden variants={WORD} style={WORD_STYLE}>
+            <motion.span aria-hidden variants={words} style={WORD_STYLE}>
               {token.node}
             </motion.span>
             {token.space ? " " : null}

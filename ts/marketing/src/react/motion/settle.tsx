@@ -15,20 +15,22 @@ export interface SettleProps extends Omit<HTMLMotionProps<"div">, "ref"> {
  * the first frame (a hero's CTA row) but should still join the section's
  * opening beat rather than sit frozen while the headline assembles around it.
  *
- * Under `prefers-reduced-motion` there is nothing to arrive, so it renders at
- * rest: no fade, no movement. This is the one primitive that does not collapse
- * to a fade — its content never left.
+ * Under `prefers-reduced-motion` there is nothing to arrive, so it snaps to
+ * rest on mount: no fade, no movement. This is the one primitive that does not
+ * collapse to a fade — its content never left. The starting state is still
+ * rendered (instantly left) rather than skipped, so server and hydrating
+ * client write the same `style` — see ./reduced-motion.
  */
 export function Settle({ duration = DUR.base, children, ...props }: SettleProps) {
   const reduce = useReduceMotion();
   const shown = { opacity: 1, y: 0 };
-  const hidden = reduce ? shown : { opacity: SETTLE_OPACITY, y: RISE / 2 };
+  const hidden = { opacity: SETTLE_OPACITY, y: RISE / 2 };
 
   return (
     <motion.div
       initial={hidden}
       animate={shown}
-      transition={{ duration, ease: EASE.out }}
+      transition={{ duration: reduce ? 0 : duration, ease: EASE.out }}
       {...props}
     >
       {children}

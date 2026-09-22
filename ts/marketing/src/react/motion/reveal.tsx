@@ -1,7 +1,7 @@
 import { motion, type HTMLMotionProps } from "motion/react";
 
 import { DUR, EASE, RISE, VIEWPORT } from "../../core/motion-tokens";
-import { useReduceMotion } from "./reduced-motion";
+import { INSTANT_MOVE, useReduceMotion } from "./reduced-motion";
 
 /** Where the element travels *from*. `none` is a pure fade. */
 export type RevealFrom = "up" | "down" | "left" | "right" | "none";
@@ -59,7 +59,9 @@ export function Reveal({
   ...props
 }: RevealProps) {
   const reduce = useReduceMotion();
-  const hidden = { opacity: 0, ...(reduce ? {} : offset(from, distance)) };
+  // The offset stays in `initial` either way — see the hydration rule in
+  // ./reduced-motion; reduce only makes the travel instant.
+  const hidden = { opacity: 0, ...offset(from, distance) };
   const shown = { opacity: 1, x: 0, y: 0 };
 
   return (
@@ -68,7 +70,12 @@ export function Reveal({
       {...(onMount
         ? { animate: shown }
         : { whileInView: shown, viewport: VIEWPORT })}
-      transition={{ duration, ease: EASE.out, delay }}
+      transition={{
+        duration,
+        ease: EASE.out,
+        delay,
+        ...(reduce ? INSTANT_MOVE : {}),
+      }}
       {...props}
     >
       {children}

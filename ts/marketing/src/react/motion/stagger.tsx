@@ -1,7 +1,7 @@
 import { motion, type HTMLMotionProps } from "motion/react";
 
 import { DUR, EASE, RISE, STAGGER, VIEWPORT } from "../../core/motion-tokens";
-import { useReduceMotion } from "./reduced-motion";
+import { INSTANT_MOVE, useReduceMotion } from "./reduced-motion";
 
 export interface StaggerProps extends Omit<HTMLMotionProps<"div">, "ref"> {
   /** Seconds before the first child moves. */
@@ -63,11 +63,17 @@ export function StaggerItem({
   return (
     <motion.div
       variants={{
-        hidden: { opacity: 0, y: reduce ? 0 : distance },
+        // Offset kept under reduce so the markup matches the server's;
+        // the rise is made instant instead (see ./reduced-motion).
+        hidden: { opacity: 0, y: distance },
         shown: {
           opacity: 1,
           y: 0,
-          transition: { duration: DUR.slow, ease: EASE.out },
+          transition: {
+            duration: DUR.slow,
+            ease: EASE.out,
+            ...(reduce ? INSTANT_MOVE : {}),
+          },
         },
       }}
       {...props}
