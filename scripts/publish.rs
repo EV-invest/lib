@@ -206,11 +206,11 @@ fn main() -> ExitCode {
 		}
 		let name = json["name"].as_str().expect("package.json name").to_owned();
 		known.push(name.clone());
-		// uikit's `styles/tokens.css` is copied in by its `prepare` script, so the
-		// root source is part of what it publishes even though it lives outside dir.
+		// uikit's `styles/*.css` are flattened from the repo-root sheets, so those
+		// sources are part of what it publishes even though they live outside dir.
 		let mut paths = vec![dir.to_str().expect("utf8 path")];
 		if name == "@evinvest/uikit" {
-			paths.push("tokens.css");
+			paths.extend(["tokens.css", "theme.css", "ev.css"]);
 		}
 		if selected(&name) && changed(&name, &paths) {
 			impacted.push((dir, name));

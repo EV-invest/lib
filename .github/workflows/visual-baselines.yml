@@ -13,6 +13,8 @@ name: Visual baselines
     paths:
       - rust/**
       - tokens.css
+      - theme.css
+      - ev.css
       - motion.css
       - flake.nix
       - flake.lock

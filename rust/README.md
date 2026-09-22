@@ -31,7 +31,7 @@ two ports cannot drift. `uikit` re-exports only the types a caller has to *name*
 to build a prop (`ButtonVariant`, `Size`, `Polarity`, `Surface`, …) — the class
 constants are an implementation detail.
 
-`tokens.css` is the only token stylesheet. Tailwind can neither scan nor `@import` a crate unpacked from crates.io, so `ev_lib_classes` carries the sheet as data. Write it out from `build.rs`:
+`tokens.css` is the token stylesheet: the brand-neutral contract (`theme.css`) followed by EV's palette (`ev.css`), both also shipped on their own as `ev_lib_classes::THEME_CSS` / `EV_CSS` for a consumer bringing its own palette. Tailwind can neither scan nor `@import` a crate unpacked from crates.io, so `ev_lib_classes` carries the sheets as data. Write them out from `build.rs`:
 
 ```rust
 std::fs::write("uikit-classes.txt", ev_lib_classes::CLASS_INVENTORY).unwrap();

@@ -1,0 +1,68 @@
+/* ═══ PALETTE: EV ════════════════════════════════════════════════
+ *
+ * Zero specificity: EV is the default a brand scope overrides, whatever order
+ * the two sheets are imported in.
+ *
+ * Surface ladder — dark UI reads as unfinished when every plane is the same
+ * value, so the steps below are deliberate and measured; keep them apart if you
+ * retune. background #070d18 → secondary #0d1526 (1.07:1) → card #16233c (1.24:1
+ * vs background) → popover #1d2c49 (1.13:1 vs card) → muted #26375c. Elevation
+ * rides the same ladder via --shadow-card / -elevated / -overlay. Card is also
+ * pinned from above by a second floor: --primary has to clear 3:1 against it
+ * (3.39:1 today), so lifting card one step breaks the tokens test.
+ */
+:where(:root, [data-brand="ev"]) {
+  /* ── surfaces ────────────────────────────────────────────────── */
+  --background: #070d18;
+  --card: #16233c;
+  --popover: #1d2c49;
+  --muted: #26375c;
+
+  /* ── ink ─────────────────────────────────────────────────────── */
+  --ink: #e6e1d3;
+
+  /* ── roles ───────────────────────────────────────────────────── */
+  --brand: #001e4e;
+  /* teal, not the brand navy: navy filled a Button/Switch at ~1.1:1 against
+   * these surfaces, i.e. an invisible control, and consumers hardcoded teal to
+   * get around it. The brand navy still lives in --brand.
+   *
+   * A fill and an ink are different jobs, so the primary role carries two
+   * values (docs/spec/accents.md). --primary-ink is the teal that reads on the
+   * surfaces: 5.85:1 on background, 4.72:1 on card. --primary is the same hue
+   * and chroma one step down in lightness — OKLCH L 0.550 C 0.094 H 183°
+   * against the ink's L 0.630 C 0.101 H 183° — so the CTA carries white:
+   * --on-primary reads on it at 4.63:1, and the fill clears the 3:1 non-text
+   * floor against background (4.20:1), secondary (3.94:1), card (3.39:1) and
+   * popover (3.01:1), so a checked Switch on a Card still reads as one. Muted
+   * is the one surface under the floor (2.54:1); the controls that fill there
+   * carry an on-primary mark, see the spec. Darkening the single value instead
+   * would have dropped every teal label below AA. */
+  --primary: #128377;
+  --on-primary: #ffffff;
+  --primary-ink: #2a9d8f;
+  --secondary: #0d1526;
+  --on-secondary: var(--ink);
+  /* valence, not significance: a success reads as good while staying quiet */
+  --positive: #2e9e5b;
+  --on-positive: #070d18;
+  --accent-trace: #6b7fa0;
+  --on-accent-trace: #070d18;
+  --accent-debug: #2a9d8f;
+  --on-accent-debug: #070d18;
+  --accent-info: #4a90d9;
+  --on-accent-info: #070d18;
+  --accent-warn: #f2c94c;
+  --on-accent-warn: #070d18;
+  /* lifted off the brand red #da251d, which failed AA on a card. This one value
+   * carries both the fill and the text; the vivid brand red is a gitops
+   * constant, not a UI token. */
+  --accent-error: #ef5b52;
+  --on-accent-error: #070d18;
+
+  --chart-1: #2a9d8f;
+  --chart-2: #2e9e5b;
+  --chart-3: #f2c94c;
+  --chart-4: #e58aae;
+  --chart-5: #4a90d9;
+}
