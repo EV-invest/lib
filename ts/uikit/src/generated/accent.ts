@@ -11,9 +11,9 @@ export type Accent = keyof typeof accentTextClasses;
 
 export const accentFillClasses = {
   "trace": "bg-accent-trace text-on-accent-trace hover:bg-accent-trace/90",
-  "debug": "bg-accent-debug text-background hover:bg-accent-debug/90",
+  "debug": "bg-accent-debug text-on-accent-debug hover:bg-accent-debug/90",
   "info": "bg-accent-info text-on-accent-info hover:bg-accent-info/90",
-  "warn": "bg-accent-warn text-background hover:bg-accent-warn/90",
+  "warn": "bg-accent-warn text-on-accent-warn hover:bg-accent-warn/90",
   "error": "bg-accent-error text-on-accent-error hover:bg-accent-error/90",
 } as const;
 export type AccentFill = keyof typeof accentFillClasses;
