@@ -14,7 +14,8 @@ import { SelectChevron } from "./select-chevron";
  * a flag would leave most of the compound API meaning nothing in one mode.
  *
  * `className` styles the `<select>`; `wrapperClassName` the box that holds it
- * and the arrow — that box is what a layout sizes.
+ * and the arrow — that box is what a layout sizes. It is `w-full` like `Input`,
+ * so the two line up in a form column; narrow it with `wrapperClassName`.
  */
 export interface NativeSelectProps
   extends Omit<React.ComponentPropsWithoutRef<"select">, "size" | "multiple"> {
@@ -44,7 +45,7 @@ export const NativeSelect = React.forwardRef<HTMLSelectElement, NativeSelectProp
     return (
       <span
         data-slot="native-select-wrapper"
-        className={cn("relative inline-flex w-fit has-[select:disabled]:opacity-50", wrapperClassName)}
+        className={cn("relative inline-flex w-full has-[select:disabled]:opacity-50", wrapperClassName)}
       >
         <select
           ref={ref}
