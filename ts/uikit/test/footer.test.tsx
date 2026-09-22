@@ -56,6 +56,46 @@ describe("Footer", () => {
     expect(container.querySelector('a[class*="text-ink/30"]')).toBeNull();
   });
 
+  it("brings no content of its own", () => {
+    const { container } = render(<Footer />);
+    const footer = container.querySelector('[data-slot="footer"]')!;
+    expect(footer.textContent).toBe("");
+    expect(footer.querySelector('[data-slot="footer-lockup"]')).toBeNull();
+    expect(footer.querySelector("nav")).toBeNull();
+  });
+
+  it("takes a whole lock-up in place of the composed one", () => {
+    const { container, getByTestId } = render(
+      <Footer lockup={<span data-testid="lockup">AQUA FIX</span>} brand="ignored" nav={NAV} />,
+    );
+    expect(getByTestId("lockup")).toBeInTheDocument();
+    expect(container.textContent).not.toContain("ignored");
+  });
+
+  it("composes the lock-up from mark, brand and tagline", () => {
+    const { getByTestId, getByText } = render(
+      <Footer mark={<svg data-testid="mark" />} brand="ACME" tagline="Plumbing" />,
+    );
+    const lockup = getByTestId("mark").closest('[data-slot="footer-lockup"]')!;
+    expect(lockup).toContainElement(getByText("ACME"));
+    expect(getByText("Plumbing")).toHaveClass("text-primary-ink");
+  });
+
+  // lib#131: the readable brand colour is the primary role's ink; the accent
+  // ladder is significance, not a palette.
+  it("reads the brand colour through primary-ink, never an accent rung", () => {
+    const { container } = render(
+      <Footer
+        {...COPY}
+        nav={NAV}
+        tagline="Fund"
+        legalLinks={[{ label: "Privacy", href: "/privacy" }]}
+      />,
+    );
+    expect(container.querySelector("[class*='accent-']")).toBeNull();
+    expect(container.querySelector("[class*='primary-ink']")).not.toBeNull();
+  });
+
   it("renders children right after the footer tag and uses linkComponent", () => {
     const Fancy = (props: React.ComponentProps<"a">) => (
       <a data-fancy="" {...props} />
