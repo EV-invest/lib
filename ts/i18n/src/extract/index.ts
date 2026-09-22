@@ -27,7 +27,7 @@ import {
   type LocaleRegistry,
   type Messages,
 } from "../index.js";
-import { auditCatalogues, resolveCatalogue, type TranslatedCatalogue } from "../policy/index.js";
+import { auditCatalogues, createPolicy, type TranslatedCatalogue } from "../policy/index.js";
 
 /** One readable `t()` call site. */
 export interface Entry {
@@ -291,12 +291,12 @@ export function runCheck(
   }
 
   const en = JSON.parse(generated) as Messages;
+  const { resolveCatalogue } = createPolicy(registry);
   const resolved = translatedLocales(messages, registry).map(locale =>
     resolveCatalogue(
       locale,
       en,
       JSON.parse(readFileSync(cataloguePath(messages, locale), "utf8")) as TranslatedCatalogue,
-      registry.defaultLocale,
     ),
   );
   console.log(auditCatalogues(resolved, 0).report);

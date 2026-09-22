@@ -12,7 +12,7 @@ import {
 } from "../src/index";
 import { translatedLocales, writeCatalogues } from "../src/extract/index";
 import { createNextI18n } from "../src/next/index";
-import { availableIn, resolveCatalogue } from "../src/policy/index";
+import { availableIn, createPolicy, resolveCatalogue } from "../src/policy/index";
 
 // The shape the Service-Arb storefronts need: French first and default, every
 // locale prefixed, French advertised to France specifically.
@@ -225,13 +225,31 @@ describe("createNextI18n", () => {
 });
 
 describe("policy and extract take the registry's source locale", () => {
-  it("resolves against a non-English canonical", () => {
+  it("does not count English as covered when the source is French", () => {
+    // The bug a default-registry policy would have: `en` is its source, so an
+    // empty English catalogue over French copy reads as 100 % translated.
     const source = { cta: "Appelez-nous" };
-    expect(resolveCatalogue("fr", source, {}, "fr").coverage).toBe(1);
-    const orphan = resolveCatalogue("en", source, { gone: { en: "x", t: "y" } }, "fr");
+    expect(resolveCatalogue("en", source, {}).coverage).toBe(1);
+
+    const policy = createPolicy(fr);
+    const en = policy.resolveCatalogue("en", source, {});
+    expect(en.coverage).toBe(0);
+    expect(en.missing).toEqual(["cta"]);
+    expect(en.messages).toEqual(source);
+    expect(policy.resolveCatalogue("fr", source, {}).coverage).toBe(1);
+  });
+
+  it("names the registry's source locale in rejections", () => {
+    const orphan = createPolicy(fr).resolveCatalogue("en", {}, { gone: { en: "x", t: "y" } });
     expect(orphan.rejected[0]?.detail).toMatch(/not defined in fr/);
-    expect(availableIn("fr", ["a"], () => [], "hide", "fr")).toEqual(["a"]);
-    expect(availableIn("en", ["a"], () => [], "hide", "fr")).toEqual([]);
+  });
+
+  it("hides untranslated content from every locale but the registry's source", () => {
+    const policy = createPolicy(fr);
+    expect(policy.availableIn("fr", ["a"], () => [])).toEqual(["a"]);
+    expect(policy.availableIn("en", ["a"], () => [])).toEqual([]);
+    expect(policy.availableIn("en", ["a"], () => ["en"])).toEqual(["a"]);
+    expect(availableIn("en", ["a"], () => [])).toEqual(["a"]);
   });
 
   it("writes the default locale's catalogue and prunes the others", () => {

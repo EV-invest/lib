@@ -179,8 +179,18 @@ import { i18n } from "../shared/config/i18n.js";
 runCheck(process.argv.slice(2), i18n);
 ```
 
-`resolveCatalogue` and `availableIn` in `./policy` take the source locale as an
-optional last argument (`i18n.defaultLocale`) for the same reason.
+The free `resolveCatalogue` and `availableIn` in `./policy` treat `en` as the
+source — the generated registry's default. Against a French-source registry
+they would read an empty English catalogue as 100 % covered, so bind the policy
+to your registry instead:
+
+```ts
+import { createPolicy } from "@evinvest/i18n/policy";
+
+const policy = createPolicy(i18n);                  // source = i18n.defaultLocale ("fr")
+const { messages, coverage } = policy.resolveCatalogue("en", fr, enCatalogue);
+policy.availableIn("en", posts, p => p.locales);    // "fr" always sees everything
+```
 
 A custom registry has **no Rust twin**. `ev_lib::i18n` mirrors only the
 generated five; its plural rules are transcribed per locale by hand, so a
