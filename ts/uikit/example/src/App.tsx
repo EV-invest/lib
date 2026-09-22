@@ -41,6 +41,7 @@ import {
 } from "@evinvest/uikit";
 import { TerminalDemo } from "./TerminalDemo";
 import { DrawerDemo } from "./DrawerDemo";
+import { BrandsDemo } from "./BrandsDemo";
 
 const POSITIONS: ToastPosition[] = [
   "top-left",
@@ -169,6 +170,12 @@ export default function App() {
               </div>
             </CardContent>
           </Card>
+
+          <Section title="Brands" hint="two data-brand scopes; overlays stay in theirs">
+            <div className="w-full">
+              <BrandsDemo />
+            </div>
+          </Section>
 
           <Section title="Buttons" hint="variant + size">
             <Button>Default</Button>

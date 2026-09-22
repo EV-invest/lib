@@ -14,11 +14,13 @@ use crate::{
 
 /// A full-bleed horizontal band. `polarity` sets the token scope on the element,
 /// so everything inside reads `text-ink` / `border-border` / `text-ink-soft` and
-/// resolves correctly on either side. `id` is set when the band is a scroll
-/// anchor; `tight` is the shorter vertical rhythm.
+/// resolves correctly on either side. Omitted, the band sets no scope and
+/// inherits its parent's: a default of `Light` would flip every band of a
+/// dark-first brand. `id` is set when the band is a scroll anchor; `tight` is
+/// the shorter vertical rhythm.
 #[component]
 pub fn Section(
-	#[props(default)] polarity: Polarity,
+	#[props(default)] polarity: Option<Polarity>,
 	#[props(default)] surface: Surface,
 	#[props(default)] id: Option<String>,
 	#[props(default = false)] tight: bool,
@@ -29,7 +31,7 @@ pub fn Section(
 	// plane and a rhythm — so only the caller override is worth a merge.
 	let base = format!(
 		"{SECTION_BASE} {} {} {}",
-		polarity.as_class(),
+		polarity.as_ref().map_or("", AsTailwindClass::as_class),
 		surface.as_class(),
 		if tight { SECTION_PY_TIGHT } else { SECTION_PY }
 	);
@@ -121,6 +123,19 @@ mod tests {
 		assert!(html.contains("text-ink"), "the plane pairs its own ink: {html}");
 		assert!(html.contains("id=\"quote\""), "{html}");
 		assert!(html.contains("py-[var(--band-py)]"), "{html}");
+	}
+
+	#[test]
+	fn section_without_a_polarity_inherits_its_parents_scope() {
+		fn app() -> Element {
+			rsx! {
+				Section { "body" }
+			}
+		}
+		let html = render(app);
+		let class = html.split("class=\"").nth(1).and_then(|rest| rest.split('"').next()).expect("section has a class");
+		let classes: Vec<&str> = class.split_whitespace().collect();
+		assert!(!classes.contains(&"light") && !classes.contains(&"dark"), "{html}");
 	}
 
 	#[test]

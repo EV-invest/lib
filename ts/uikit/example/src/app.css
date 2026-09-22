@@ -5,6 +5,13 @@
 /* the kit's theme contract (dark palette + @theme tokens + toast keyframes) */
 @import "../../styles/tokens.css";
 
+/* EV's palette is the sheet's default and carries no mark (the kit ships no
+   artwork), so the EV scope declares one here, the way a consumer would */
+[data-brand="ev"] {
+  --brand-mark: url("/brands/ev-demo-mark.svg");
+  --brand-aspect: 1 / 1;
+}
+
 /* the kit's class strings live outside this app's root, so point Tailwind at the
    local uikit source as well as this example */
 @source "../../src/**/*.{ts,tsx}";

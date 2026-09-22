@@ -10,7 +10,18 @@
 // cannot recurse.
 import { execFileSync } from "node:child_process";
 
-const REQUIRED = ["package.json", "dist/index.js", "dist/index.d.ts", "styles/tokens.css"];
+const REQUIRED = [
+  "package.json",
+  "dist/index.js",
+  "dist/index.d.ts",
+  "dist/palette.js",
+  "dist/palette.d.ts",
+  // the `bin`; it reads `styles/theme.css` beside `dist/` at run time
+  "dist/palette-cli.js",
+  "styles/tokens.css",
+  "styles/theme.css",
+  "styles/ev.css",
+];
 
 const out = execFileSync("npm", ["pack", "--dry-run", "--json"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
 

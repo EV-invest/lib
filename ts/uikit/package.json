@@ -17,10 +17,19 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./styles/tokens.css": "./styles/tokens.css"
+    "./palette": {
+      "types": "./dist/palette.d.ts",
+      "import": "./dist/palette.js"
+    },
+    "./styles/tokens.css": "./styles/tokens.css",
+    "./styles/theme.css": "./styles/theme.css",
+    "./styles/ev.css": "./styles/ev.css"
   },
   "types": "./dist/index.d.ts",
   "main": "./dist/index.js",
+  "bin": {
+    "evinvest-palette": "./dist/palette-cli.js"
+  },
   "files": [
     "dist",
     "styles"
@@ -32,10 +41,10 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "rm -rf dist && tsup",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "prepare": "tsup",
+    "prepare": "rm -rf dist && tsup",
     "prepublishOnly": "node scripts/verify-pack.mjs"
   },
   "peerDependencies": {

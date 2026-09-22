@@ -35,9 +35,9 @@ pub fn accent_text_class(accent: Accent) -> &'static str {
 pub fn accent_fill_class(accent: Accent) -> &'static str {
 	match accent {
 		Accent::Trace => "bg-accent-trace text-on-accent-trace hover:bg-accent-trace/90",
-		Accent::Debug => "bg-accent-debug text-background hover:bg-accent-debug/90",
+		Accent::Debug => "bg-accent-debug text-on-accent-debug hover:bg-accent-debug/90",
 		Accent::Info => "bg-accent-info text-on-accent-info hover:bg-accent-info/90",
-		Accent::Warn => "bg-accent-warn text-background hover:bg-accent-warn/90",
+		Accent::Warn => "bg-accent-warn text-on-accent-warn hover:bg-accent-warn/90",
 		Accent::Error => "bg-accent-error text-on-accent-error hover:bg-accent-error/90",
 	}
 }

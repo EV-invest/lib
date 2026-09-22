@@ -13,15 +13,13 @@ use std::path::Path;
 use dioxus::prelude::*;
 use ev_lib::uikit::*;
 
-/// The theme contract; inlined into the Tailwind-processed `<style>` so its
-/// `@theme`/`:root` tokens drive the utilities. Absolute path via the manifest
-/// dir so it resolves identically from the example crate and the test crate.
-const TOKENS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../tokens.css"));
-/// `@tailwindcss/browser` rejects relative `@import` outright (not a resolver
-/// gap — copying the file next to the page does not help), and one rejected
-/// rule aborts the whole compile, leaving every page unstyled.
-const MOTION: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../motion.css"));
-const MOTION_IMPORT: &str = "@import \"./motion.css\";";
+/// The theme contract plus EV's palette; inlined into the Tailwind-processed
+/// `<style>` so its `@theme`/`:root` tokens drive the utilities. The flattened
+/// sheet a Rust consumer ships, not the repo-root source: `@tailwindcss/browser`
+/// rejects relative `@import` outright (not a resolver gap — copying the file
+/// next to the page does not help), and one rejected rule aborts the whole
+/// compile, leaving every page unstyled.
+const TOKENS: &str = ev_lib_classes::TOKENS_CSS;
 const DIST: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/visual/dist");
 /// The board. One line per primitive — the only place to edit when adding one.
 #[rustfmt::skip]
@@ -52,8 +50,7 @@ fn render_fragment(app: fn() -> Element) -> String {
 }
 
 fn head(title: &str) -> String {
-	assert!(TOKENS.contains(MOTION_IMPORT), "tokens.css no longer imports motion.css — drop the splice");
-	let tokens = TOKENS.replace(MOTION_IMPORT, MOTION);
+	assert!(!TOKENS.contains("@import"), "the shipped tokens.css must stay flat — @tailwindcss/browser rejects @import");
 	format!(
 		r#"<!doctype html>
 <html class="dark">
@@ -64,7 +61,7 @@ fn head(title: &str) -> String {
 <script src="./tailwind.js"></script>
 <style type="text/tailwindcss">
 @import "tailwindcss";
-{tokens}
+{TOKENS}
 </style>
 <style>
   html, body {{ background: var(--background); color: var(--ink); }}
