@@ -167,6 +167,34 @@ describe('readCookie / writeVariant', () => {
     expect(readCookie(cookieName('hero'))).toBe('b');
   });
 
+  it('keeps the historical cookie string when no options are given', () => {
+    const set = vi.spyOn(Document.prototype, 'cookie', 'set');
+    try {
+      writeVariant('hero', 'b');
+      expect(set).toHaveBeenLastCalledWith('ab_hero=b;path=/;max-age=2592000;samesite=lax');
+    } finally {
+      set.mockRestore();
+    }
+  });
+
+  it('applies AbCookieOptions (prefix, domain, path, maxAge, sameSite)', () => {
+    const set = vi.spyOn(Document.prototype, 'cookie', 'set');
+    try {
+      writeVariant('hero', 'b', {
+        prefix: 'x_',
+        domain: '.brand.com',
+        path: '/fr',
+        maxAge: 60,
+        sameSite: 'strict',
+      });
+      expect(set).toHaveBeenLastCalledWith('x_hero=b;path=/fr;max-age=60;samesite=strict;domain=.brand.com');
+      writeVariant('hero', 'a', { prefix: 'x_' });
+      expect(set).toHaveBeenLastCalledWith('x_hero=a;path=/;max-age=2592000;samesite=lax');
+    } finally {
+      set.mockRestore();
+    }
+  });
+
   it('returns undefined for a cookie that is not set', () => {
     expect(readCookie('ab_absent')).toBeUndefined();
   });

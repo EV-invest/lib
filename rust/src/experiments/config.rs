@@ -10,12 +10,23 @@ use std::collections::BTreeMap;
 /// `variants[0]` is the control — [`resolve_variant`] falls back to it when a
 /// cookie is missing or invalid. `weights` are relative (they need not sum to 1);
 /// [`pick_variant`] normalises by their total.
+///
+/// `enabled` and `holdout` mirror the optional TS `ExperimentSpec` fields: `None`
+/// means "enabled" and "no holdout", so an experiment built without them behaves
+/// exactly as before they existed.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Experiment {
 	/// Variant keys, control first. Stable: these are the dashboard contract.
 	pub variants: Vec<String>,
 	/// Relative weights, one per variant. Normalised by their sum on assignment.
 	pub weights: Vec<f64>,
+	/// Kill switch. `Some(false)` makes every helper return the control:
+	/// [`pick_variant`] draws nothing and [`resolve_variant`] ignores a stored
+	/// cookie. `None` = enabled.
+	pub enabled: Option<bool>,
+	/// Share in `[0, 1]` of assignments pinned to the control before the weighted
+	/// split; out-of-range values are clamped, `NaN` is 0. `None` = no holdout.
+	pub holdout: Option<f64>,
 }
 
 impl Experiment {
@@ -31,6 +42,8 @@ impl Experiment {
 		Self {
 			variants: variants.into_iter().map(Into::into).collect(),
 			weights: weights.into_iter().collect(),
+			enabled: None,
+			holdout: None,
 		}
 	}
 
@@ -45,7 +58,53 @@ impl Experiment {
 	pub fn uniform(variants: impl IntoIterator<Item = impl Into<String>>) -> Self {
 		let variants: Vec<String> = variants.into_iter().map(Into::into).collect();
 		let weights = vec![1.0; variants.len()];
-		Self { variants, weights }
+		Self {
+			variants,
+			weights,
+			enabled: None,
+			holdout: None,
+		}
+	}
+
+	/// Sets the kill switch (see [`Experiment::enabled`]).
+	///
+	/// # Examples
+	/// ```
+	/// use ev_lib::experiments::{Experiment, pick_variant};
+	/// let off = Experiment::new(["a", "b"], [0.0, 1.0]).with_enabled(false);
+	/// assert_eq!(pick_variant(&off, || unreachable!("a disabled experiment draws nothing")), "a");
+	/// ```
+	#[must_use]
+	pub fn with_enabled(mut self, enabled: bool) -> Self {
+		self.enabled = Some(enabled);
+		self
+	}
+
+	/// Sets the holdout share (see [`Experiment::holdout`]).
+	///
+	/// # Examples
+	/// ```
+	/// use ev_lib::experiments::{Experiment, pick_variant};
+	/// let exp = Experiment::new(["a", "b"], [0.0, 1.0]).with_holdout(0.2);
+	/// assert_eq!(pick_variant(&exp, || 0.1), "a"); // inside the holdout → control
+	/// assert_eq!(pick_variant(&exp, || 0.5), "b");
+	/// ```
+	#[must_use]
+	pub fn with_holdout(mut self, holdout: f64) -> Self {
+		self.holdout = Some(holdout);
+		self
+	}
+
+	fn is_disabled(&self) -> bool {
+		self.enabled == Some(false)
+	}
+
+	/// The effective holdout: clamped to `[0, 1]`, `None`/`NaN` → 0 (mirrors the TS `clampUnit`).
+	fn holdout_share(&self) -> f64 {
+		match self.holdout {
+			Some(h) if !h.is_nan() => h.clamp(0.0, 1.0),
+			_ => 0.0,
+		}
 	}
 }
 
@@ -67,6 +126,11 @@ pub fn cookie_name(key: &str) -> String {
 /// value in `[0, 1)`; inject a deterministic closure in tests and
 /// `js_sys::Math::random` in the browser.
 ///
+/// A disabled experiment returns the control without calling `rng`. Otherwise
+/// `rng` is called exactly once: with a holdout of `h`, a draw below `h` returns
+/// the control and the rest is rescaled to `(u - h) / (1 - h)` before the
+/// weighted walk.
+///
 /// Returns an empty string only when the experiment has no variants.
 ///
 /// # Examples
@@ -79,11 +143,27 @@ pub fn cookie_name(key: &str) -> String {
 /// assert_eq!(ev_lib::experiments::pick_variant(&exp, || 0.9), "b");
 /// ```
 pub fn pick_variant(exp: &Experiment, mut rng: impl FnMut() -> f64) -> String {
+	let control = || exp.variants.first().cloned().unwrap_or_default();
+	if exp.is_disabled() {
+		return control();
+	}
 	let total: f64 = exp.weights.iter().copied().filter(|w| *w > 0.0).sum();
 	if total <= 0.0 || exp.variants.is_empty() {
-		return exp.variants.first().cloned().unwrap_or_default();
+		return control();
 	}
-	let mut threshold = rng() * total;
+	let mut u = rng();
+	// Holdout reuses the single draw rather than taking a second one: the bottom
+	// `h` of [0, 1) is the holdout, the rest is rescaled back onto [0, 1). With no
+	// holdout the draw is untouched, so existing seeded picks keep their result
+	// (and stay bit-identical to the TS `pickVariant`).
+	let h = exp.holdout_share();
+	if h > 0.0 {
+		if u < h {
+			return control();
+		}
+		u = (u - h) / (1.0 - h);
+	}
+	let mut threshold = u * total;
 	for (i, weight) in exp.weights.iter().enumerate() {
 		threshold -= weight;
 		if threshold < 0.0
@@ -97,7 +177,8 @@ pub fn pick_variant(exp: &Experiment, mut rng: impl FnMut() -> f64) -> String {
 
 /// Coerces a raw cookie value to a valid variant, falling back to the control
 /// (`variants[0]`) when it is missing or unknown (mirrors the TS
-/// `resolveVariant`).
+/// `resolveVariant`). A disabled experiment always resolves to the control, so
+/// flipping `enabled` off takes effect for visitors who already carry a cookie.
 ///
 /// # Examples
 /// ```
@@ -109,8 +190,64 @@ pub fn pick_variant(exp: &Experiment, mut rng: impl FnMut() -> f64) -> String {
 /// ```
 pub fn resolve_variant(exp: &Experiment, raw: Option<&str>) -> String {
 	match raw {
-		Some(value) if exp.variants.iter().any(|v| v == value) => value.to_string(),
+		Some(value) if !exp.is_disabled() && exp.variants.iter().any(|v| v == value) => value.to_string(),
 		_ => exp.variants.first().cloned().unwrap_or_default(),
+	}
+}
+
+/// What sticky cookie assignment should do for one experiment — the pure
+/// decision behind the wasm `assign_variant`, kept here so it tests natively.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Assignment {
+	/// The experiment is disabled: serve the control and write **no** cookie, so
+	/// re-enabling it does not leave visitors pinned to a control recorded
+	/// during the pause (mirrors the TS `abProxy` skipping disabled experiments).
+	Paused(String),
+	/// A cookie is already set: serve its resolved value and leave it alone.
+	Sticky(String),
+	/// First visit: serve the drawn variant and persist it.
+	New(String),
+}
+
+impl Assignment {
+	/// The variant to serve.
+	pub fn variant(&self) -> &str {
+		match self {
+			Self::Paused(v) | Self::Sticky(v) | Self::New(v) => v,
+		}
+	}
+
+	/// Whether the variant must be written to the `ab_<key>` cookie.
+	pub fn persist(&self) -> bool {
+		match self {
+			Self::New(_) => true,
+			Self::Paused(_) | Self::Sticky(_) => false,
+		}
+	}
+}
+
+/// Decides the sticky assignment given the currently stored cookie value.
+/// A disabled experiment is [`Assignment::Paused`] without drawing; an existing
+/// cookie is [`Assignment::Sticky`] (an unknown value resolves to the control
+/// rather than being re-drawn); otherwise [`pick_variant`] draws a
+/// [`Assignment::New`] variant.
+///
+/// # Examples
+/// ```
+/// use ev_lib::experiments::{Assignment, Experiment, plan_assignment};
+/// let exp = Experiment::new(["a", "b"], [0.0, 1.0]);
+/// assert_eq!(plan_assignment(&exp, None, || 0.5), Assignment::New("b".into()));
+/// assert_eq!(plan_assignment(&exp, Some("a"), || 0.5), Assignment::Sticky("a".into()));
+/// let off = exp.with_enabled(false);
+/// assert_eq!(plan_assignment(&off, None, || 0.5), Assignment::Paused("a".into()));
+/// ```
+pub fn plan_assignment(exp: &Experiment, existing: Option<&str>, rng: impl FnMut() -> f64) -> Assignment {
+	if exp.is_disabled() {
+		return Assignment::Paused(exp.variants.first().cloned().unwrap_or_default());
+	}
+	match existing {
+		Some(raw) => Assignment::Sticky(resolve_variant(exp, Some(raw))),
+		None => Assignment::New(pick_variant(exp, rng)),
 	}
 }
 
@@ -342,6 +479,130 @@ mod tests {
 		assert_eq!(pick_variant(&exp2, fixed(0.1)), "a");
 		assert_eq!(pick_variant(&exp2, fixed(0.5)), "b");
 		assert_eq!(pick_variant(&exp2, fixed(0.9)), "b");
+	}
+
+	/// An rng that fails the test if called: a disabled or zero-weight
+	/// experiment must decide without drawing (TS parity: `rng` is not called).
+	fn never() -> f64 {
+		panic!("rng must not be called")
+	}
+
+	#[test]
+	fn experiment_defaults_to_enabled_without_holdout() {
+		let exp = Experiment::new(["a", "b"], [1.0, 1.0]);
+		assert_eq!((exp.enabled, exp.holdout), (None, None));
+		let uni = Experiment::uniform(["a", "b"]);
+		assert_eq!((uni.enabled, uni.holdout), (None, None));
+	}
+
+	#[test]
+	fn disabled_experiment_picks_control_without_drawing() {
+		let off = Experiment::new(["a", "b"], [0.0, 1.0]).with_enabled(false);
+		assert_eq!(pick_variant(&off, never), "a");
+	}
+
+	#[test]
+	fn zero_total_weight_picks_control_without_drawing() {
+		let exp = Experiment::new(["a", "b"], [0.0, -1.0]).with_holdout(0.5);
+		assert_eq!(pick_variant(&exp, never), "a");
+	}
+
+	#[test]
+	fn enabled_true_behaves_like_omitted() {
+		let on = Experiment::new(["a", "b"], [0.0, 1.0]).with_enabled(true);
+		assert_eq!(pick_variant(&on, fixed(0.5)), "b");
+		assert_eq!(resolve_variant(&on, Some("b")), "b");
+	}
+
+	#[test]
+	fn disabled_experiment_resolves_valid_cookie_to_control() {
+		let off = Experiment::new(["a", "b"], [1.0, 1.0]).with_enabled(false);
+		assert_eq!(resolve_variant(&off, Some("b")), "a");
+		assert_eq!(resolve_variant(&off, None), "a");
+	}
+
+	#[test]
+	fn rng_is_drawn_exactly_once_with_holdout() {
+		let exp = Experiment::new(["a", "b"], [1.0, 1.0]).with_holdout(0.3);
+		let mut calls = 0;
+		pick_variant(&exp, || {
+			calls += 1;
+			0.9
+		});
+		assert_eq!(calls, 1);
+	}
+
+	#[test]
+	fn holdout_pins_low_draws_and_rescales_the_rest() {
+		// h = 0.5, weights 50/50: [0,.5) holdout → a; [.5,.75) → a; [.75,1) → b.
+		let exp = Experiment::new(["a", "b"], [0.5, 0.5]).with_holdout(0.5);
+		for (r, expected) in [(0.0, "a"), (0.49, "a"), (0.5, "a"), (0.74, "a"), (0.75, "b"), (0.99, "b")] {
+			assert_eq!(pick_variant(&exp, fixed(r)), expected, "rng={r}");
+		}
+	}
+
+	#[test]
+	fn holdout_zero_is_bit_identical_to_no_holdout() {
+		let plain = Experiment::new(["a", "b", "c"], [1.0, 2.0, 3.0]);
+		let zero = plain.clone().with_holdout(0.0);
+		let neg = plain.clone().with_holdout(-3.0);
+		let nan = plain.clone().with_holdout(f64::NAN);
+		for i in 0..100 {
+			let r = f64::from(i) / 100.0;
+			let expected = pick_variant(&plain, fixed(r));
+			for exp in [&zero, &neg, &nan] {
+				assert_eq!(pick_variant(exp, fixed(r)), expected, "rng={r} holdout={:?}", exp.holdout);
+			}
+		}
+	}
+
+	#[test]
+	fn holdout_is_clamped_to_one() {
+		let all = Experiment::new(["a", "b"], [0.0, 1.0]).with_holdout(1.0);
+		let over = Experiment::new(["a", "b"], [0.0, 1.0]).with_holdout(7.0);
+		for r in [0.0, 0.5, 0.999] {
+			assert_eq!(pick_variant(&all, fixed(r)), "a");
+			assert_eq!(pick_variant(&over, fixed(r)), "a");
+		}
+	}
+
+	#[test]
+	fn plan_assignment_paused_writes_nothing_and_ignores_cookie() {
+		let off = Experiment::new(["a", "b"], [0.0, 1.0]).with_enabled(false);
+		for existing in [None, Some("b"), Some("zzz")] {
+			let plan = plan_assignment(&off, existing, never);
+			assert_eq!(plan, Assignment::Paused("a".to_string()), "existing={existing:?}");
+			assert!(!plan.persist());
+			assert_eq!(plan.variant(), "a");
+		}
+	}
+
+	#[test]
+	fn plan_assignment_new_visit_draws_and_persists() {
+		let exp = Experiment::new(["a", "b"], [0.0, 1.0]);
+		let plan = plan_assignment(&exp, None, fixed(0.5));
+		assert_eq!(plan, Assignment::New("b".to_string()));
+		assert!(plan.persist());
+	}
+
+	#[test]
+	fn plan_assignment_existing_cookie_is_sticky_without_drawing() {
+		let exp = Experiment::new(["a", "b"], [0.0, 1.0]);
+		let kept = plan_assignment(&exp, Some("a"), never);
+		assert_eq!(kept, Assignment::Sticky("a".to_string()));
+		assert!(!kept.persist());
+		// A dropped variant resolves to the control, never re-drawn or rewritten.
+		assert_eq!(plan_assignment(&exp, Some("gone"), never), Assignment::Sticky("a".to_string()));
+	}
+
+	#[test]
+	fn plan_assignment_after_re_enable_draws_fresh_for_unpinned_visitors() {
+		// A visitor first seen during the pause got no cookie, so once the
+		// experiment is back on they are bucketed normally, not stuck on control.
+		let exp = Experiment::new(["a", "b"], [0.0, 1.0]);
+		let paused = plan_assignment(&exp.clone().with_enabled(false), None, never);
+		assert!(!paused.persist());
+		assert_eq!(plan_assignment(&exp.with_enabled(true), None, fixed(0.5)), Assignment::New("b".to_string()));
 	}
 
 	#[test]

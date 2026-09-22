@@ -18,14 +18,16 @@ import {
 } from 'react';
 import {
   cookieName,
+  DEFAULT_COOKIE_PREFIX,
   select,
+  type AbCookieOptions,
   type CaptureFn,
   type ExperimentConfig,
   type ExperimentKey,
   type Variant,
 } from '../index';
 
-export type { CaptureFn } from '../index';
+export type { AbCookieOptions, CaptureFn } from '../index';
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days, matches `./next`'s abProxy
 
@@ -74,11 +76,20 @@ export function readCookie(name: string): string | undefined {
  * `abProxy` sets), so the next server render picks it up. Client-only; callers
  * typically follow with a router refresh to re-render the new variant.
  *
- * @param key   - The experiment key.
- * @param value - The variant value to persist.
+ * Pass the same `options` as the proxy's `cookie` option when you customised
+ * it there (prefix, shared `domain`…), or the proxy will not see the write.
+ *
+ * @param key     - The experiment key.
+ * @param value   - The variant value to persist.
+ * @param options - Cookie parameters; omitted fields keep the defaults
+ *                  (`ab_` prefix, `path=/`, 30-day `max-age`, `samesite=lax`, no domain).
  */
-export function writeVariant(key: string, value: string): void {
-  document.cookie = `${cookieName(key)}=${value};path=/;max-age=${COOKIE_MAX_AGE};samesite=lax`;
+export function writeVariant(key: string, value: string, options: AbCookieOptions = {}): void {
+  const name = cookieName(key, options.prefix ?? DEFAULT_COOKIE_PREFIX);
+  const domain = options.domain === undefined ? '' : `;domain=${options.domain}`;
+  document.cookie =
+    `${name}=${value};path=${options.path ?? '/'};max-age=${options.maxAge ?? COOKIE_MAX_AGE}` +
+    `;samesite=${options.sameSite ?? 'lax'}${domain}`;
 }
 
 type ExperimentCtx = { experiment: string; variant: string; onEvent: CaptureFn };

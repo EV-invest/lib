@@ -17,6 +17,10 @@
  * `./react`. It deliberately does **not** import `@evinvest/analytics`.
  */
 
+import { hashRng } from './hash';
+
+export { fnv1a32, hashRng, hashToUnit } from './hash';
+
 /**
  * Shape of an experiments config: a map from experiment key to its declared
  * `variants` and their relative `weights`. Declare it `as const` so the variant
@@ -35,10 +39,24 @@
  * } as const satisfies ExperimentConfig;
  * ```
  */
-export type ExperimentConfig = Record<
-  string,
-  { variants: readonly string[]; weights: readonly number[] }
->;
+export type ExperimentConfig = Record<string, ExperimentSpec>;
+
+/**
+ * One experiment of an {@link ExperimentConfig}. `variants[0]` is the control.
+ *
+ * - `enabled` — kill switch. `false` makes every helper return the control:
+ *   {@link pickVariant} draws nothing, {@link resolveVariant} ignores a stored
+ *   cookie, and a force ({@link forcedVariant}) is refused. Omitted = enabled.
+ * - `holdout` — the share in `[0, 1]` of assignments pinned to the control
+ *   before the weighted split (values outside the range are clamped, `NaN` is
+ *   0). Omitted = no holdout.
+ */
+export type ExperimentSpec = {
+  readonly variants: readonly string[];
+  readonly weights: readonly number[];
+  readonly enabled?: boolean;
+  readonly holdout?: number;
+};
 
 /**
  * The valid experiment keys of a config `C` — the union of its property names.
@@ -72,7 +90,9 @@ export type Variant<
 /**
  * The cookie name carrying the assigned variant for an experiment: `ab_<key>`.
  *
- * @param key - The experiment key.
+ * @param key    - The experiment key.
+ * @param prefix - Name prefix; defaults to `ab_`. Override it only together
+ *                 with the matching `cookie.prefix` option of `./next`.
  * @returns The cookie name (e.g. `"ab_hero"`).
  *
  * @example
@@ -80,9 +100,32 @@ export type Variant<
  * cookieName("hero"); // "ab_hero"
  * ```
  */
-export function cookieName(key: string): string {
-  return `ab_${key}`;
+export function cookieName(key: string, prefix: string = DEFAULT_COOKIE_PREFIX): string {
+  return `${prefix}${key}`;
 }
+
+/** The default cookie-name prefix, `ab_` (the Rust `cookie_name` contract). */
+export const DEFAULT_COOKIE_PREFIX = 'ab_';
+
+/**
+ * Cookie parameters shared by `./next` (`abProxy`, `getVariant`) and `./react`
+ * (`writeVariant`). Lives in the zero-dep core so the client bundle never
+ * imports `next/server`. Every
+ * field is optional; the defaults are the historical `ab_<key>` cookie, 30-day
+ * `maxAge`, `path: "/"`, `sameSite: "lax"`, no `domain`.
+ */
+export type AbCookieOptions = {
+  /** Cookie-name prefix; the cookie is `${prefix}${key}`. Default `ab_`. */
+  readonly prefix?: string;
+  /** Lifetime in seconds. Default 30 days. */
+  readonly maxAge?: number;
+  /** Cookie path. Default `/`. */
+  readonly path?: string;
+  /** Cookie domain, e.g. `.brand.com` to share across location subdomains. */
+  readonly domain?: string;
+  /** SameSite policy. Default `lax`. */
+  readonly sameSite?: 'lax' | 'strict' | 'none';
+};
 
 /**
  * Weighted per-device variant pick. Weights need not sum to 1 — they are
@@ -90,8 +133,14 @@ export function cookieName(key: string): string {
  * so floating-point drift can never return `undefined`.
  *
  * The randomness source is injectable: pass a deterministic `rng` (a function
- * returning a number in `[0, 1)`) in tests to make picks reproducible. The
- * default is `Math.random`, i.e. no user-id hashing — bucketing is per device.
+ * returning a number in `[0, 1)`) in tests to make picks reproducible, or
+ * {@link hashRng} to bucket by a stable subject (see {@link pickVariantFor}).
+ * The default is `Math.random` — bucketing is per device.
+ *
+ * A disabled experiment (`enabled: false`) returns the control without calling
+ * `rng`. Otherwise `rng` is called exactly once: with a `holdout` of `h`, a draw
+ * below `h` returns the control and the rest is rescaled to `(u - h) / (1 - h)`
+ * before the weighted walk.
  *
  * @typeParam C - The {@link ExperimentConfig}.
  * @typeParam K - The experiment key.
@@ -111,13 +160,23 @@ export function pickVariant<C extends ExperimentConfig, K extends ExperimentKey<
   key: K,
   rng: () => number = Math.random,
 ): Variant<C, K> {
-  const { variants, weights } = config[key] as C[K];
+  const { variants, weights, enabled, holdout } = config[key] as C[K];
+  if (enabled === false) return variants[0] as Variant<C, K>;
   // Only positive weights contribute, mirroring the Rust core. A non-positive
   // total (no weight at all) falls back to the control (variants[0]) instead of
   // the last variant, so a zero-weight experiment is deterministically control.
   const total = weights.reduce((sum, w) => (w > 0 ? sum + w : sum), 0);
   if (total <= 0) return variants[0] as Variant<C, K>;
-  let r = rng() * total;
+  let u = rng();
+  // Holdout reuses the single draw instead of taking a second one: the bottom
+  // `h` of [0, 1) is the holdout, the rest is rescaled back onto [0, 1). With no
+  // holdout the draw is untouched, so existing seeded picks keep their result.
+  const h = clampUnit(holdout);
+  if (h > 0) {
+    if (u < h) return variants[0] as Variant<C, K>;
+    u = (u - h) / (1 - h);
+  }
+  let r = u * total;
   for (let i = 0; i < variants.length; i++) {
     r -= weights[i] ?? 0;
     if (r < 0) return variants[i] as Variant<C, K>;
@@ -126,8 +185,70 @@ export function pickVariant<C extends ExperimentConfig, K extends ExperimentKey<
 }
 
 /**
+ * Deterministic weighted pick for a stable `subject` — e.g. a location id, so
+ * the split is per location rather than per visitor. Equivalent to
+ * `pickVariant(config, key, hashRng(`${key}:${subject}`))`: the same subject
+ * always gets the same variant, no cookie is read, and pages can stay static.
+ * `enabled` and `holdout` apply exactly as in {@link pickVariant}.
+ *
+ * @typeParam C - The {@link ExperimentConfig}.
+ * @typeParam K - The experiment key.
+ * @param config  - The experiments config.
+ * @param key     - The experiment key.
+ * @param subject - The stable identity to bucket (never PII in clear).
+ * @returns The picked variant, narrowed to {@link Variant}.
+ *
+ * @example
+ * ```ts
+ * pickVariantFor(config, "hero", "loc-42"); // same answer on every call
+ * ```
+ */
+export function pickVariantFor<C extends ExperimentConfig, K extends ExperimentKey<C>>(
+  config: C,
+  key: K,
+  subject: string,
+): Variant<C, K> {
+  return pickVariant(config, key, hashRng(`${key}:${subject}`));
+}
+
+/**
+ * Validates a forced variant (e.g. from a `?ab_hero=b` query parameter). Returns
+ * the variant when it is declared for `key` and the experiment is enabled,
+ * otherwise `undefined` — an unknown value is ignored, never trusted.
+ *
+ * @typeParam C - The {@link ExperimentConfig}.
+ * @typeParam K - The experiment key.
+ * @param config - The experiments config.
+ * @param key    - The experiment key.
+ * @param raw    - The requested variant, or `undefined`/`null` when absent.
+ * @returns The validated variant, or `undefined`.
+ *
+ * @example
+ * ```ts
+ * forcedVariant(config, "hero", "b");       // "b"
+ * forcedVariant(config, "hero", "garbage"); // undefined
+ * ```
+ */
+export function forcedVariant<C extends ExperimentConfig, K extends ExperimentKey<C>>(
+  config: C,
+  key: K,
+  raw: string | null | undefined,
+): Variant<C, K> | undefined {
+  const { variants, enabled } = config[key] as C[K];
+  if (enabled === false || raw === undefined || raw === null) return undefined;
+  return (variants as readonly string[]).includes(raw) ? (raw as Variant<C, K>) : undefined;
+}
+
+function clampUnit(value: number | undefined): number {
+  if (value === undefined || Number.isNaN(value)) return 0;
+  return Math.min(1, Math.max(0, value));
+}
+
+/**
  * Coerce a raw cookie value to a valid variant, falling back to the first
  * (control) variant when the cookie is missing or holds an unrecognised value.
+ * A disabled experiment always resolves to the control, so flipping `enabled`
+ * off takes effect for visitors who already carry a cookie.
  *
  * @typeParam C - The {@link ExperimentConfig}.
  * @typeParam K - The experiment key.
@@ -148,7 +269,8 @@ export function resolveVariant<C extends ExperimentConfig, K extends ExperimentK
   key: K,
   raw: string | undefined,
 ): Variant<C, K> {
-  const { variants } = config[key] as C[K];
+  const { variants, enabled } = config[key] as C[K];
+  if (enabled === false) return variants[0] as Variant<C, K>;
   return (variants as readonly string[]).includes(raw ?? '')
     ? (raw as Variant<C, K>)
     : (variants[0] as Variant<C, K>);

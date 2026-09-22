@@ -7,6 +7,7 @@ is [`@evinvest/experiments`](../../../ts/experiments).
 - [The model](#the-model)
 - [Define experiments](#define-experiments)
 - [Assign a variant in the browser](#assign-a-variant-in-the-browser)
+- [Bucket by subject, without a cookie](#bucket-by-subject-without-a-cookie)
 - [Wrap a section in `ExperimentTracker`](#wrap-a-section-in-experimenttracker)
 - [Track actions with `use_experiment_event`](#track-actions-with-use_experiment_event)
 - [Bridge the injected sink to `analytics`](#bridge-the-injected-sink-to-analytics)
@@ -19,6 +20,9 @@ is [`@evinvest/experiments`](../../../ts/experiments).
 - **Core** ([`config`], pure + `wasm32`-safe): [`Experiment`], [`pick_variant`],
   [`resolve_variant`], [`next_variant`], [`cookie_name`], the event-name helpers
   ([`exposed_event`], [`action_event`]), and [`TrackedEvent`].
+- **Hash bucketing** (pure + `wasm32`-safe): [`pick_variant_for`], built on
+  [`hash_to_unit`] / [`hash_rng`] / [`fnv1a32`] — a deterministic, cookie-free
+  split per subject (location, user…).
 - **Cookie helpers** (wasm only): [`assign_variant`], [`current_variant`],
   [`read_cookie`], [`write_variant`] — the sticky `ab_<key>` cookie (30 days).
 - **Dioxus** ([`ExperimentTracker`], [`use_experiment`], [`use_experiment_event`])
@@ -42,6 +46,25 @@ let team = Experiment::new(["a", "b", "c"], [2.0, 1.0, 1.0]); // 50% / 25% / 25%
 let nav = Experiment::uniform(["a", "b"]);                    // equal weights
 ```
 
+Two optional knobs mirror the TS `ExperimentSpec`:
+
+```rust
+let paused = Experiment::uniform(["a", "b"]).with_enabled(false); // kill switch
+let held = Experiment::new(["a", "b"], [0.5, 0.5]).with_holdout(0.1); // 10% pinned to control
+```
+
+- `enabled: Some(false)` returns the control everywhere: `pick_variant` draws
+  nothing and `resolve_variant` ignores a valid stored cookie, so switching an
+  experiment off takes effect for visitors already bucketed.
+- `holdout` (clamped to `[0, 1]`, `NaN` → 0) reuses the single draw: `u < h` is
+  the control, otherwise `u` is rescaled to `(u - h) / (1 - h)` before the
+  weighted walk. A zero holdout leaves every pick bit-identical to no holdout.
+- While an experiment is disabled, [`assign_variant`] serves the control and
+  **writes no cookie** (the pure decision is [`plan_assignment`]). So after you
+  re-enable it, no cookies from the pause are left pinning visitors to the
+  control: visitors first seen during the pause are bucketed fresh, and those
+  bucketed before it get their old variant back.
+
 ## Assign a variant in the browser
 
 On the browser, assign once per device. [`assign_variant`] reads `ab_<key>`; if
@@ -63,6 +86,37 @@ These are `wasm32`-only (they touch `document.cookie`). On non-browser builds
 use ev_lib::experiments::resolve_variant;
 let variant = resolve_variant(&hero, None); // "a"
 ```
+
+## Bucket by subject, without a cookie
+
+When the unit of the experiment is not the visitor but something you already
+know at render time — a location of a network, a tenant, a user id — bucket by
+hashing it. [`pick_variant_for`] is [`pick_variant`] driven by
+[`hash_rng`]`("{key}:{subject}")`: the same `(key, subject)` always lands on the
+same variant, no cookie is read or written, and the page can stay static.
+
+```rust
+use ev_lib::experiments::{Experiment, pick_variant_for};
+
+let hero = Experiment::new(["a", "b"], [0.5, 0.5]);
+let variant = pick_variant_for(&hero, "hero", "loc-1"); // stable for loc-1, in Rust and TS
+```
+
+`key` is part of the seed, so one subject is bucketed independently across
+experiments. The primitives are public for custom draws:
+
+```rust
+use ev_lib::experiments::{fnv1a32, hash_rng, hash_to_unit};
+
+fnv1a32(b"a");                     // 0xE40C292C — 32-bit FNV-1a over UTF-8 bytes
+hash_to_unit("exp:loc-1");         // 0.7218671222217381 — fnv1a32 / 2^32, in [0, 1)
+let mut rng = hash_rng("exp:loc-1");
+rng();                             // == hash_to_unit("exp:loc-1#0")
+rng();                             // == hash_to_unit("exp:loc-1#1")
+```
+
+This definition is shared byte for byte with the TS `hashToUnit` / `hashRng` /
+`pickVariantFor`; the parity vectors are pinned in tests on both sides.
 
 ## Wrap a section in `ExperimentTracker`
 
@@ -225,9 +279,13 @@ context (see the tests in `ui.rs`). To assert emitted events, pass an
   it (mirroring the TS effect deps) — keep one stable boundary per section.
 - **`use_experiment` / `use_experiment_event` panic outside a tracker.** They
   read context; mount the tracker above any component that calls them.
-- **Stickiness is the cookie, not the rng.** Seeding `rng` only makes a single
-  pick deterministic; cross-visit consistency comes from the 30-day `ab_<key>`
-  cookie.
+- **Stickiness is the cookie, not the rng — unless you bucket by subject.**
+  Seeding `rng` only makes a single pick deterministic; cross-visit consistency
+  comes from the 30-day `ab_<key>` cookie. [`pick_variant_for`] is the exception:
+  the hash of `(key, subject)` *is* the assignment.
+- **Changing the weights, the variant list, or the `key` of a hashed experiment
+  reshuffles subjects.** The hash only fixes the draw in `[0, 1)`; which variant
+  that draw lands on depends on the weights.
 - **The cookie helpers are `wasm32`-only.** `assign_variant`, `current_variant`,
   `read_cookie`, and `write_variant` touch `document.cookie`; on native, use the
   pure core (`resolve_variant`, `pick_variant`).

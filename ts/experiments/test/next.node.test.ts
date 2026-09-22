@@ -12,16 +12,16 @@ vi.mock('next/headers', () => ({
 }));
 
 import { abProxy, createAbMiddleware, getVariant } from '../src/next/index';
-import { type ExperimentConfig } from '../src/index';
+import { pickVariantFor, type ExperimentConfig } from '../src/index';
 
 const config = {
   hero: { variants: ['a', 'b'], weights: [1, 0] }, // weight forces "a"
 } as const satisfies ExperimentConfig;
 
-function makeRequest(cookie?: string): NextRequest {
+function makeRequest(cookie?: string, url = 'https://example.com/'): NextRequest {
   const headers = new Headers();
   if (cookie) headers.set('cookie', cookie);
-  return new NextRequest('https://example.com/', { headers });
+  return new NextRequest(url, { headers });
 }
 
 describe('abProxy', () => {
@@ -99,5 +99,129 @@ describe('getVariant', () => {
   it('falls back to the control when the cookie holds an unknown value', async () => {
     cookieStore.set('ab_hero', 'garbage');
     expect(await getVariant(config, 'hero')).toBe('a');
+  });
+});
+
+describe('abProxy options', () => {
+  const split = {
+    hero: { variants: ['a', 'b'], weights: [0.5, 0.5] },
+  } as const satisfies ExperimentConfig;
+
+  it('uses the injected rng for new assignments', () => {
+    const request = makeRequest();
+    const response = abProxy(split, request, { rng: () => 0.9 });
+    expect(response.cookies.get('ab_hero')?.value).toBe('b');
+  });
+
+  it('with a subject sets no cookie and forwards the per-subject variant', () => {
+    const request = makeRequest('ab_hero=zzz');
+    const response = abProxy(split, request, { subject: () => 'loc-7' });
+    expect(response.cookies.getAll()).toHaveLength(0);
+    expect(response.headers.get('set-cookie')).toBeNull();
+    expect(request.cookies.get('ab_hero')?.value).toBe(pickVariantFor(split, 'hero', 'loc-7'));
+  });
+
+  it('falls back to the cookie flow when the subject resolver returns undefined', () => {
+    const request = makeRequest();
+    const response = abProxy(config, request, { subject: () => undefined });
+    expect(response.cookies.get('ab_hero')?.value).toBe('a');
+  });
+
+  it('applies cookie prefix, maxAge, path, domain and sameSite', () => {
+    const request = makeRequest();
+    const response = abProxy(config, request, {
+      cookie: { prefix: 'x_', maxAge: 60, path: '/fr', domain: '.brand.com', sameSite: 'strict' },
+    });
+    const set = response.cookies.get('x_hero');
+    expect(set?.value).toBe('a');
+    expect(set?.maxAge).toBe(60);
+    expect(set?.path).toBe('/fr');
+    expect(set?.domain).toBe('.brand.com');
+    expect(set?.sameSite).toBe('strict');
+    expect(response.cookies.get('ab_hero')).toBeUndefined();
+  });
+
+  it('does nothing for skipped requests', () => {
+    const request = makeRequest();
+    const response = abProxy(config, request, { skip: () => true });
+    expect(response.cookies.getAll()).toHaveLength(0);
+    expect(request.cookies.get('ab_hero')).toBeUndefined();
+  });
+
+  it('does not assign a disabled experiment', () => {
+    const off = {
+      hero: { variants: ['a', 'b'], weights: [1, 0], enabled: false },
+    } as const satisfies ExperimentConfig;
+    const request = makeRequest();
+    const response = abProxy(off, request);
+    expect(response.cookies.getAll()).toHaveLength(0);
+  });
+
+  it('forces a valid variant from the query, overriding and persisting it', () => {
+    const request = makeRequest('ab_hero=a', 'https://example.com/?ab_hero=b');
+    const response = abProxy(config, request, { forceParam: 'ab_' });
+    expect(request.cookies.get('ab_hero')?.value).toBe('b');
+    expect(response.cookies.get('ab_hero')?.value).toBe('b');
+  });
+
+  it('ignores an invalid forced variant', () => {
+    const request = makeRequest('ab_hero=b', 'https://example.com/?ab_hero=zzz');
+    const response = abProxy(config, request, { forceParam: 'ab_' });
+    expect(request.cookies.get('ab_hero')?.value).toBe('b');
+    expect(response.cookies.get('ab_hero')).toBeUndefined();
+  });
+
+  it('ignores the query unless forceParam is set', () => {
+    const request = makeRequest(undefined, 'https://example.com/?ab_hero=b');
+    const response = abProxy(config, request);
+    expect(response.cookies.get('ab_hero')?.value).toBe('a');
+  });
+
+  it('forces in subject mode without setting a cookie', () => {
+    const request = makeRequest(undefined, 'https://example.com/?force_hero=b');
+    const response = abProxy(config, request, { subject: () => 'loc-1', forceParam: 'force_' });
+    expect(request.cookies.get('ab_hero')?.value).toBe('b');
+    expect(response.cookies.getAll()).toHaveLength(0);
+  });
+
+  it('createAbMiddleware forwards its options', () => {
+    const request = makeRequest();
+    const response = createAbMiddleware(split, { rng: () => 0.9 })(request);
+    expect(response.cookies.get('ab_hero')?.value).toBe('b');
+  });
+});
+
+describe('getVariant options', () => {
+  afterEach(() => cookieStore.clear());
+
+  const split = {
+    hero: { variants: ['a', 'b'], weights: [0.5, 0.5] },
+  } as const satisfies ExperimentConfig;
+
+  it('with a subject ignores the cookie and matches pickVariantFor', async () => {
+    cookieStore.set('ab_hero', 'zzz');
+    expect(await getVariant(split, 'hero', { subject: 'loc-3' })).toBe(
+      pickVariantFor(split, 'hero', 'loc-3'),
+    );
+  });
+
+  it('reads the cookie under a custom prefix', async () => {
+    cookieStore.set('x_hero', 'b');
+    expect(await getVariant(split, 'hero', { cookie: { prefix: 'x_' } })).toBe('b');
+  });
+
+  it('honours a valid force and ignores an invalid one', async () => {
+    cookieStore.set('ab_hero', 'a');
+    expect(await getVariant(split, 'hero', { force: 'b' })).toBe('b');
+    expect(await getVariant(split, 'hero', { force: 'zzz' })).toBe('a');
+  });
+
+  it('returns the control for a disabled experiment despite the cookie', async () => {
+    const off = {
+      hero: { variants: ['a', 'b'], weights: [1, 1], enabled: false },
+    } as const satisfies ExperimentConfig;
+    cookieStore.set('ab_hero', 'b');
+    expect(await getVariant(off, 'hero')).toBe('a');
+    expect(await getVariant(off, 'hero', { force: 'b' })).toBe('a');
   });
 });
