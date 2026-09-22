@@ -69,6 +69,30 @@ export function proxy(request: NextRequest) {
 > The proxy must run on the **nodejs** runtime (the default). `Math.random`
 > bucketing and cookie writes need no edge APIs.
 
+### Per-location split (no cookie)
+
+For a network of locations, bucket by the location instead of the visitor.
+Either skip the proxy and pass the subject straight to `getVariant` (the page
+stays static — `cookies()` is never called):
+
+```tsx
+const variant = await getVariant(experiments, "hero", { subject: location.id });
+```
+
+or let the proxy derive it from the request; it then writes the variant to the
+forwarded request only, with no `Set-Cookie`:
+
+```ts
+export const proxy = createAbMiddleware(experiments, {
+  subject: (req) => req.nextUrl.hostname.split(".")[0],
+});
+```
+
+Other proxy options — `rng`, `cookie` (`prefix`, `maxAge`, `path`, `domain`,
+`sameSite`), `skip`, `forceParam` — are listed in the README; all default to the
+behaviour above. Per-experiment `enabled: false` and `holdout` live in the
+config itself.
+
 ## 3. Read the variant on the server + render a branch
 
 Keep the page agnostic of A/B: each section reads its own variant in a server
@@ -241,6 +265,9 @@ response (see `test/next.node.test.ts`).
 - **Exposure fires on mount, once per tracker instance.** Conditionally
   rendering and re-rendering the tracker will re-fire it — keep one stable
   boundary per section.
-- **Stickiness is the cookie, not the rng.** Seeding `rng` only makes a single
-  pick deterministic; cross-visit consistency comes from the proxy's cookie.
+- **Stickiness is the cookie or the subject, not the rng.** Seeding `rng` only
+  makes a single pick deterministic; cross-visit consistency comes from the
+  proxy's cookie, or from `pickVariantFor` with a stable subject.
+- **`enabled: false` is a hard kill switch.** It beats stored cookies and forced
+  variants alike — every helper returns the control.
 - **The proxy runs on nodejs.** Don't move it to the edge runtime.
