@@ -47,6 +47,12 @@ export {
   setConsent,
   type Consent,
 } from "./consent";
+export {
+  captureBody,
+  createBeaconSink,
+  deliverBeacon,
+  type BeaconSinkConfig,
+} from "./beacon";
 
 /**
  * Options shared by every {@link PostHogConfig} shape.
