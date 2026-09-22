@@ -6,13 +6,14 @@
  * Accept-Language negotiation, and a small ICU-subset message formatter over
  * caller-supplied catalogues.
  *
- * **Why this hard-codes its locales, unlike `@evinvest/experiments`.** That
- * package deliberately never hard-codes experiment keys, because experiments are
- * per-app. Locales are the opposite: the same five apply to the public site, the
- * cabinet, and every MFE, and having one place they are declared is the entire
- * point of putting this in a shared library. Helpers that iterate locales still
- * take an optional `locales` argument so a surface shipping a subset (an MFE
- * translated into two languages, say) is not forced to claim all five.
+ * **The free functions are the generated registry.** Every surface in the EV
+ * workspace shares the same five locales, and having one place they are
+ * declared is the point of a shared library — so `localePath`, `negotiate` and
+ * the rest are {@link createLocaleRegistry} applied to that generated set
+ * ({@link defaultLocaleRegistry}). A surface with its own languages builds its
+ * own registry and gets the identical behaviour over its own list. Helpers that
+ * iterate locales still take an optional `locales` argument so a surface
+ * shipping a subset is not forced to claim all of them.
  *
  * **Formatting numbers and money is deliberately NOT this package's job.** The
  * message formatter supports `plural` and `select` but not `number` or
@@ -23,8 +24,8 @@
  */
 
 /**
- * The locale registry — generated from `ev_lib::i18n::Locale`, which is where
- * the five locales, their endonyms and the default are decided. Plain consts, so
+ * The generated locale set — from `ev_lib::i18n::Locale`, which is where the
+ * five locales, their endonyms and the default are decided. Plain consts, so
  * this stays zero-dep and server-safe.
  *
  * - `LOCALES` — in the order they are offered to a reader; `en` first because it
@@ -41,8 +42,40 @@
 export { DEFAULT_LOCALE, LOCALES, LOCALE_LABELS } from "./generated/locales";
 export type { Locale } from "./generated/locales";
 
-import { DEFAULT_LOCALE, LOCALES } from "./generated/locales";
+export { createLocaleRegistry } from "./registry";
+export type {
+  LangScope,
+  LocaleList,
+  LocaleRegistry,
+  LocaleRegistryConfig,
+  Messages,
+  Translate,
+} from "./registry";
+export type { MessageValues } from "./format";
+
+import { DEFAULT_LOCALE, LOCALES, LOCALE_LABELS } from "./generated/locales";
 import type { Locale } from "./generated/locales";
+import type { MessageValues } from "./format";
+import {
+  createLocaleRegistry,
+  type LangScope,
+  type LocaleRegistry,
+  type Messages,
+  type Translate,
+} from "./registry";
+
+/**
+ * The generated five-locale registry: default `en`, unprefixed, bare-code
+ * `hreflang`. Every free function below delegates to it, and the `./next`,
+ * `./react` and `./extract` subpaths use it when no registry is passed.
+ */
+export const defaultLocaleRegistry: LocaleRegistry<Locale> = createLocaleRegistry({
+  locales: LOCALES,
+  labels: LOCALE_LABELS,
+  default: DEFAULT_LOCALE,
+});
+
+const registry = defaultLocaleRegistry;
 
 /**
  * Narrowing guard for untrusted input — a URL segment, a cookie, a query param.
@@ -57,7 +90,7 @@ import type { Locale } from "./generated/locales";
  * ```
  */
 export function isLocale(value: unknown): value is Locale {
-  return typeof value === "string" && (LOCALES as readonly string[]).includes(value);
+  return registry.isLocale(value);
 }
 
 // ── URL contract ─────────────────────────────────────────────────────────────
@@ -87,11 +120,7 @@ export function isLocale(value: unknown): value is Locale {
  * ```
  */
 export function localePath(locale: Locale, path: string): string {
-  const clean = path.startsWith("/") ? path : `/${path}`;
-  if (locale === DEFAULT_LOCALE) return clean;
-  // "/" would otherwise yield "/ru/", and a trailing slash is a distinct URL to
-  // a crawler — one canonical shape per page, so strip it.
-  return clean === "/" ? `/${locale}` : `/${locale}${clean}`;
+  return registry.localePath(locale, path);
 }
 
 /**
@@ -110,12 +139,7 @@ export function localePath(locale: Locale, path: string): string {
  * ```
  */
 export function splitLocalePath(pathname: string): { locale: Locale; path: string } {
-  const clean = pathname.startsWith("/") ? pathname : `/${pathname}`;
-  const slash = clean.indexOf("/", 1);
-  const head = slash === -1 ? clean.slice(1) : clean.slice(1, slash);
-  if (!isLocale(head) || head === DEFAULT_LOCALE) return { locale: DEFAULT_LOCALE, path: clean };
-  const rest = slash === -1 ? "/" : clean.slice(slash);
-  return { locale: head, path: rest === "" ? "/" : rest };
+  return registry.splitLocalePath(pathname);
 }
 
 /**
@@ -136,7 +160,40 @@ export function localeAlternates(
   path: string,
   locales: readonly Locale[] = LOCALES,
 ): Record<string, string> {
-  return Object.fromEntries(locales.map(l => [l, localePath(l, path)]));
+  return registry.localeAlternates(path, locales);
+}
+
+/**
+ * The `hreflang` tag a locale is advertised under. The generated registry
+ * targets languages, not regions, so this is the bare code.
+ */
+export function hreflangOf(locale: Locale): string {
+  return registry.hreflangOf(locale);
+}
+
+/**
+ * Absolute URLs for one page keyed by `hreflang`, plus `x-default` pointing at
+ * {@link DEFAULT_LOCALE} when `locales` includes it — ready for
+ * `alternates.languages` in Next's `generateMetadata`. Every URL is absolute:
+ * Google ignores relative `hreflang`.
+ *
+ * @param path    - The locale-free root-relative path, e.g. `/team`.
+ * @param siteUrl - Absolute origin; a trailing slash is tolerated.
+ * @param locales - Locales to advertise. Defaults to all of {@link LOCALES}.
+ *
+ * @example
+ * ```ts
+ * languageAlternates("/team", "https://evinvest.ltd");
+ * // { en: "https://evinvest.ltd/team", ru: "https://evinvest.ltd/ru/team", …,
+ * //   "x-default": "https://evinvest.ltd/team" }
+ * ```
+ */
+export function languageAlternates(
+  path: string,
+  siteUrl: string,
+  locales: readonly Locale[] = LOCALES,
+): Record<string, string> {
+  return registry.languageAlternates(path, siteUrl, locales);
 }
 
 /**
@@ -165,60 +222,10 @@ export function negotiate(
   header: string | null | undefined,
   locales: readonly Locale[] = LOCALES,
 ): Locale {
-  if (!header) return DEFAULT_LOCALE;
-
-  const ranked = header
-    .split(",")
-    .map(part => {
-      const [tag, ...params] = part.trim().split(";");
-      const q = params
-        .map(p => p.trim())
-        .find(p => p.startsWith("q="))
-        ?.slice(2);
-      const quality = q === undefined ? 1 : Number.parseFloat(q);
-      return {
-        tag: (tag ?? "").trim().toLowerCase(),
-        // A malformed q= sorts last rather than poisoning the comparison with NaN.
-        quality: Number.isFinite(quality) ? quality : 0,
-      };
-    })
-    // q=0 is an explicit refusal of that language, not a weak preference.
-    .filter(entry => entry.tag !== "" && entry.quality > 0)
-    .sort((a, b) => b.quality - a.quality);
-
-  for (const { tag } of ranked) {
-    // "ru-RU" and "ru" both match the "ru" catalogue; "*" means "anything", for
-    // which the default is as good an answer as any.
-    const base = tag.split("-")[0] ?? "";
-    const hit = locales.find(l => l === tag || l === base);
-    if (hit) return hit;
-    if (tag === "*") return DEFAULT_LOCALE;
-  }
-  return DEFAULT_LOCALE;
+  return registry.negotiate(header, locales);
 }
 
 // ── Messages ─────────────────────────────────────────────────────────────────
-
-/**
- * A loaded catalogue: flat `key → pattern`. Flat rather than nested because the
- * drift checker diffs, hashes, and reports per fully-qualified key, and a nested
- * shape would make every one of those operations a tree walk for no gain at the
- * call site (`t("hero.title")` reads the same either way).
- */
-export type Messages = Readonly<Record<string, string>>;
-
-/** Values interpolated into a message pattern. */
-export type MessageValues = Readonly<Record<string, string | number>>;
-
-/**
- * Renders one string: `en` is the English as authored at this call site, `key`
- * is what a translated catalogue files it under.
- *
- * ```ts
- * t("hero.title", "Invest in the China+1 narrative")
- * ```
- */
-export type Translate = (key: string, en: string, values?: MessageValues) => string;
 
 /**
  * Build a {@link Translate} bound to one catalogue and locale.
@@ -251,23 +258,7 @@ export function translator(
   locale: Locale,
   onMissing?: (key: string, locale: Locale) => void,
 ): Translate {
-  const source = locale === DEFAULT_LOCALE ? null : messages;
-  return (key, en, values) => {
-    if (source === null) return formatMessage(en, locale, values);
-    const pattern = source[key];
-    if (pattern === undefined) onMissing?.(key, locale);
-    return formatMessage(pattern ?? en, locale, values);
-  };
-}
-
-/**
- * The structural slice of `Element` {@link localeOfElement} reads. Spelled out
- * rather than imported from the DOM lib so the core keeps type-checking — and
- * shipping — without one.
- */
-export interface LangScope {
-  getAttribute(name: string): string | null;
-  closest(selectors: string): LangScope | null;
+  return registry.translator(messages, locale, onMissing);
 }
 
 /**
@@ -285,7 +276,7 @@ export interface LangScope {
  * unpublished `lang` reads as {@link DEFAULT_LOCALE}.
  */
 export function localeOfElement(node: LangScope): Locale {
-  return negotiate(node.closest("[lang]")?.getAttribute("lang"));
+  return registry.localeOfElement(node);
 }
 
 /**
@@ -309,174 +300,5 @@ export function formatMessage(
   locale: Locale,
   values: MessageValues = {},
 ): string {
-  return format(pattern, locale, values, undefined);
-}
-
-/**
- * The formatter proper. `pound` is the already-formatted count when rendering
- * inside a plural branch, and `undefined` everywhere else — threading it through
- * (rather than string-replacing `#` afterwards) is what lets `'#'` stay escapable
- * and keeps `#` literal outside a plural, as ICU specifies.
- */
-function format(
-  pattern: string,
-  locale: Locale,
-  values: MessageValues,
-  pound: string | undefined,
-): string {
-  let out = "";
-  let i = 0;
-
-  while (i < pattern.length) {
-    const ch = pattern[i];
-
-    // ICU's apostrophe-friendly quoting (the ICU 4.8+ rules every modern
-    // toolchain implements): an apostrophe only starts a quoted section when it
-    // immediately precedes a syntax character, and that section runs to the next
-    // apostrophe. Anywhere else it is a plain apostrophe — which matters, since
-    // English marketing copy is full of them and the naive "quote escapes the
-    // next character" reading mangles every "we've" and "don't".
-    if (ch === "'") {
-      const next = pattern[i + 1];
-      if (next === "'") {
-        out += "'";
-        i += 2;
-        continue;
-      }
-      if (next === "{" || next === "}" || next === "#") {
-        i += 1;
-        while (i < pattern.length) {
-          if (pattern[i] === "'") {
-            if (pattern[i + 1] === "'") {
-              out += "'";
-              i += 2;
-              continue;
-            }
-            i += 1;
-            break;
-          }
-          out += pattern[i];
-          i += 1;
-        }
-        continue;
-      }
-      out += ch;
-      i += 1;
-      continue;
-    }
-
-    if (ch === "#" && pound !== undefined) {
-      out += pound;
-      i += 1;
-      continue;
-    }
-
-    if (ch === "{") {
-      const end = matchBrace(pattern, i);
-      if (end === -1) {
-        // Unbalanced — emit the rest verbatim rather than losing the copy.
-        out += pattern.slice(i);
-        break;
-      }
-      out += renderArgument(pattern.slice(i + 1, end), locale, values, pound);
-      i = end + 1;
-      continue;
-    }
-
-    out += ch;
-    i += 1;
-  }
-
-  return out;
-}
-
-/** Index of the `}` closing the `{` at `start`, or -1 if unbalanced. */
-function matchBrace(source: string, start: number): number {
-  let depth = 0;
-  for (let i = start; i < source.length; i++) {
-    const ch = source[i];
-    if (ch === "{") depth += 1;
-    else if (ch === "}") {
-      depth -= 1;
-      if (depth === 0) return i;
-    }
-  }
-  return -1;
-}
-
-/** Index of the first `sep` not nested inside braces, or -1. */
-function topLevelIndexOf(source: string, sep: string): number {
-  let depth = 0;
-  for (let i = 0; i < source.length; i++) {
-    const ch = source[i];
-    if (ch === "{") depth += 1;
-    else if (ch === "}") depth -= 1;
-    else if (ch === sep && depth === 0) return i;
-  }
-  return -1;
-}
-
-function renderArgument(
-  inner: string,
-  locale: Locale,
-  values: MessageValues,
-  pound: string | undefined,
-): string {
-  const firstComma = topLevelIndexOf(inner, ",");
-
-  // `{name}` — plain interpolation.
-  if (firstComma === -1) {
-    const value = values[inner.trim()];
-    return value === undefined ? `{${inner}}` : String(value);
-  }
-
-  const name = inner.slice(0, firstComma).trim();
-  const rest = inner.slice(firstComma + 1);
-  const secondComma = topLevelIndexOf(rest, ",");
-  const type = (secondComma === -1 ? rest : rest.slice(0, secondComma)).trim();
-  const body = secondComma === -1 ? "" : rest.slice(secondComma + 1);
-  const raw = values[name];
-
-  if (type === "plural") {
-    const count = typeof raw === "number" ? raw : Number(raw);
-    if (!Number.isFinite(count)) return "";
-    const branches = parseBranches(body);
-    const exact = branches.get(`=${count}`);
-    const category = new Intl.PluralRules(locale).select(count);
-    const chosen = exact ?? branches.get(category) ?? branches.get("other");
-    if (chosen === undefined) return "";
-    // `#` is the count in the reader's locale — ru groups with spaces, de with
-    // dots.
-    return format(chosen, locale, values, new Intl.NumberFormat(locale).format(count));
-  }
-
-  if (type === "select") {
-    const branches = parseBranches(body);
-    const chosen = branches.get(String(raw)) ?? branches.get("other");
-    // `pound` flows through: a select nested inside a plural keeps `#` bound to
-    // the enclosing count, per ICU.
-    return chosen === undefined ? "" : format(chosen, locale, values, pound);
-  }
-
-  // Unknown argument type — fall back to interpolation so the copy still reads.
-  return raw === undefined ? `{${inner}}` : String(raw);
-}
-
-/** Parse `key {body} key {body}` branch lists into a map. */
-function parseBranches(body: string): Map<string, string> {
-  const branches = new Map<string, string>();
-  let i = 0;
-  while (i < body.length) {
-    while (i < body.length && /\s/.test(body[i] ?? "")) i += 1;
-    const keyStart = i;
-    while (i < body.length && !/[\s{]/.test(body[i] ?? "")) i += 1;
-    const key = body.slice(keyStart, i);
-    while (i < body.length && /\s/.test(body[i] ?? "")) i += 1;
-    if (body[i] !== "{") break;
-    const end = matchBrace(body, i);
-    if (end === -1) break;
-    if (key !== "") branches.set(key, body.slice(i + 1, end));
-    i = end + 1;
-  }
-  return branches;
+  return registry.formatMessage(pattern, locale, values);
 }

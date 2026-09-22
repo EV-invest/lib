@@ -21,8 +21,13 @@ import { join } from "node:path";
 
 import ts from "typescript";
 
-import { LOCALES, DEFAULT_LOCALE, type Locale, type Messages } from "../index.js";
-import { auditCatalogues, resolveCatalogue, type TranslatedCatalogue } from "../policy/index.js";
+import {
+  defaultLocaleRegistry,
+  type Locale,
+  type LocaleRegistry,
+  type Messages,
+} from "../index.js";
+import { auditCatalogues, createPolicy, type TranslatedCatalogue } from "../policy/index.js";
 
 /** One readable `t()` call site. */
 export interface Entry {
@@ -141,31 +146,56 @@ export function catalogue(entries: readonly Entry[]): Record<string, string> {
 export const serialise = (value: unknown): string => `${JSON.stringify(value, null, 2)}\n`;
 
 /** `<messages>/<locale>/common.json`. One layout, shared by every EV surface. */
-export const cataloguePath = (messages: string, locale: Locale): string =>
+export const cataloguePath = (messages: string, locale: string): string =>
   join(messages, locale, "common.json");
 
+/**
+ * The slice of a locale registry the extractor reads: which catalogues exist,
+ * and which one is the source. Every function here defaults it to the generated
+ * registry; pass your own `createLocaleRegistry` result to extract for another
+ * locale set.
+ */
+export type CatalogueLocales<L extends string = string> = Pick<
+  LocaleRegistry<L>,
+  "locales" | "defaultLocale"
+>;
+
 /** The non-default locales that have an authored catalogue on disk. */
-export function translatedLocales(messages: string): Locale[] {
+export function translatedLocales(messages: string): Locale[];
+export function translatedLocales<L extends string>(
+  messages: string,
+  registry: CatalogueLocales<L>,
+): L[];
+export function translatedLocales(
+  messages: string,
+  registry: CatalogueLocales = defaultLocaleRegistry,
+): string[] {
   const present = new Set(
     readdirSync(messages, { withFileTypes: true })
       .filter(d => d.isDirectory())
       .map(d => d.name),
   );
-  return LOCALES.filter(l => l !== DEFAULT_LOCALE && present.has(l));
+  return registry.locales.filter(l => l !== registry.defaultLocale && present.has(l));
 }
 
 /**
- * Write the English catalogue, and prune every translated one down to the keys
+ * Write the source catalogue, and prune every translated one down to the keys
  * the code still asks for.
  *
  * @returns A line per catalogue, for the caller to print.
  */
-export function writeCatalogues(messages: string, entries: readonly Entry[]): string[] {
+export function writeCatalogues(
+  messages: string,
+  entries: readonly Entry[],
+  registry: CatalogueLocales = defaultLocaleRegistry,
+): string[] {
   const en = catalogue(entries);
-  writeFileSync(cataloguePath(messages, DEFAULT_LOCALE), serialise(en));
-  const lines = [`en: ${Object.keys(en).length} keys from ${entries.length} call sites`];
+  writeFileSync(cataloguePath(messages, registry.defaultLocale), serialise(en));
+  const lines = [
+    `${registry.defaultLocale}: ${Object.keys(en).length} keys from ${entries.length} call sites`,
+  ];
 
-  for (const locale of translatedLocales(messages)) {
+  for (const locale of translatedLocales(messages, registry)) {
     const path = cataloguePath(messages, locale);
     const authored = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
     const kept = Object.fromEntries(Object.entries(authored).filter(([key]) => key in en));
@@ -215,10 +245,18 @@ function read(argv: readonly string[]): { messages: string; entries: Entry[] } {
   process.exit(1);
 }
 
-/** `evinvest-i18n-extract` — regenerate English from the code, prune the rest to match. */
-export function runExtract(argv: readonly string[]): void {
+/**
+ * `evinvest-i18n-extract` — regenerate English from the code, prune the rest to match.
+ *
+ * @param registry - Whose locales to write. The bin uses the generated registry;
+ *   a surface with its own set calls this from a launcher of its own.
+ */
+export function runExtract(
+  argv: readonly string[],
+  registry: CatalogueLocales = defaultLocaleRegistry,
+): void {
   const { messages, entries } = read(argv);
-  for (const line of writeCatalogues(messages, entries)) console.log(line);
+  for (const line of writeCatalogues(messages, entries, registry)) console.log(line);
 }
 
 /**
@@ -236,19 +274,25 @@ export function runExtract(argv: readonly string[]): void {
  * and drift. Reported but not fatal: untranslated keys — a locale is filled in
  * over time, and blocking CI on an unfinished translation would just get the
  * check disabled.
+ *
+ * @param registry - Whose locales to check; see {@link runExtract}.
  */
-export function runCheck(argv: readonly string[]): void {
+export function runCheck(
+  argv: readonly string[],
+  registry: CatalogueLocales = defaultLocaleRegistry,
+): void {
   const { messages, entries } = read(argv);
 
   const generated = serialise(catalogue(entries));
-  const enPath = cataloguePath(messages, DEFAULT_LOCALE);
+  const enPath = cataloguePath(messages, registry.defaultLocale);
   if (generated !== readFileSync(enPath, "utf8")) {
     console.error(`${enPath} is out of date with the code. Run \`evinvest-i18n-extract\`.`);
     process.exit(1);
   }
 
   const en = JSON.parse(generated) as Messages;
-  const resolved = translatedLocales(messages).map(locale =>
+  const { resolveCatalogue } = createPolicy(registry);
+  const resolved = translatedLocales(messages, registry).map(locale =>
     resolveCatalogue(
       locale,
       en,

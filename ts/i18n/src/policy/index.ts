@@ -39,7 +39,7 @@
  * otherwise.
  */
 
-import { DEFAULT_LOCALE, type Locale, type Messages } from "../index.js";
+import { DEFAULT_LOCALE, type Locale, type LocaleRegistry, type Messages } from "../index.js";
 
 /**
  * One translated entry: the text, plus the English it was translated from.
@@ -82,8 +82,8 @@ export interface Rejection {
 }
 
 /** The outcome of applying the policy to one locale's catalogue. */
-export interface ResolvedCatalogue {
-  locale: Locale;
+export interface ResolvedCatalogue<L extends string = Locale> {
+  locale: L;
   /** Ready for `translator()`: accepted translations, English everywhere else. */
   messages: Messages;
   /** Entries refused by rule 1.2, each falling back to English. */
@@ -108,6 +108,9 @@ export interface ResolvedCatalogue {
  * @param translated - The locale's authored catalogue.
  * @returns The resolved catalogue plus a full account of what was refused.
  *
+ * Bound to the generated registry, whose source is `en`. For a registry of your
+ * own use {@link createPolicy} — this function would treat `en` as the source.
+ *
  * @example
  * ```ts
  * const { messages, rejected } = resolveCatalogue("ru", en, ru);
@@ -120,7 +123,58 @@ export function resolveCatalogue(
   source: Messages,
   translated: TranslatedCatalogue,
 ): ResolvedCatalogue {
-  if (locale === DEFAULT_LOCALE) {
+  return resolveAgainst(DEFAULT_LOCALE, locale, source, translated);
+}
+
+/**
+ * Rules 1.3 and 1.1/1.2 bound to one registry's source locale. Split out so the
+ * source locale is always the registry's own `defaultLocale` — never a default
+ * argument that silently reads as `en` for a registry whose source is French.
+ */
+export interface Policy<L extends string> {
+  /** {@link resolveCatalogue} against this registry's source locale. */
+  readonly resolveCatalogue: (
+    locale: L,
+    source: Messages,
+    translated: TranslatedCatalogue,
+  ) => ResolvedCatalogue<L>;
+  /** {@link availableIn} with this registry's source locale seeing everything. */
+  readonly availableIn: <T>(
+    locale: L,
+    items: readonly T[],
+    localesOf: (item: T) => readonly L[] | undefined,
+    policy?: MissingContentPolicy,
+  ) => T[];
+}
+
+/**
+ * Bind the policy to a registry built with `createLocaleRegistry`.
+ *
+ * @example
+ * ```ts
+ * const policy = createPolicy(i18n);            // i18n.defaultLocale === "fr"
+ * policy.resolveCatalogue("en", fr, enCatalogue);
+ * ```
+ */
+export function createPolicy<L extends string>(
+  registry: Pick<LocaleRegistry<L>, "defaultLocale">,
+): Policy<L> {
+  const canonical = registry.defaultLocale;
+  return {
+    resolveCatalogue: (locale, source, translated) =>
+      resolveAgainst(canonical, locale, source, translated),
+    availableIn: (locale, items, localesOf, policy = "hide") =>
+      availableAgainst(canonical, locale, items, localesOf, policy),
+  };
+}
+
+function resolveAgainst<L extends string>(
+  canonical: string,
+  locale: L,
+  source: Messages,
+  translated: TranslatedCatalogue,
+): ResolvedCatalogue<L> {
+  if (locale === canonical) {
     return { locale, messages: source, rejected: [], missing: [], coverage: 1 };
   }
 
@@ -137,7 +191,7 @@ export function resolveCatalogue(
       rejected.push({
         key,
         reason: "orphan-key",
-        detail: `not defined in ${DEFAULT_LOCALE} — only the canonical locale introduces keys`,
+        detail: `not defined in ${canonical} — only the canonical locale introduces keys`,
       });
     }
   }
@@ -150,7 +204,7 @@ export function resolveCatalogue(
       continue;
     }
 
-    const problem = check(entry, en, locale);
+    const problem = check(entry, en, locale, canonical);
     if (problem !== null) {
       rejected.push({ key, ...problem });
       messages[key] = en;
@@ -175,7 +229,8 @@ export function resolveCatalogue(
 function check(
   entry: TranslatedEntry,
   en: string,
-  locale: Locale,
+  locale: string,
+  canonical: string,
 ): Omit<Rejection, "key"> | null {
   if (entry.t.trim() === "") {
     return { reason: "empty", detail: "translation is blank" };
@@ -204,7 +259,7 @@ function check(
     if (mirrored.type !== kind.type) {
       return {
         reason: "argument-type-mismatch",
-        detail: `{${name}} is a ${kind.type} in ${DEFAULT_LOCALE} and a ${mirrored.type} here`,
+        detail: `{${name}} is a ${kind.type} in ${canonical} and a ${mirrored.type} here`,
       };
     }
     if (kind.type === "plural") {
@@ -385,7 +440,7 @@ function branchesOf(body: string): [string, string][] {
  * ```
  */
 export function auditCatalogues(
-  resolved: readonly ResolvedCatalogue[],
+  resolved: readonly ResolvedCatalogue<string>[],
   floor = 1,
 ): { ok: boolean; report: string } {
   const lines: string[] = [];
@@ -439,6 +494,8 @@ export type MissingContentPolicy = "hide" | "fallback";
  * @param policy    - `"hide"` (default) or `"fallback"`.
  * @returns The items this locale should see.
  *
+ * Bound to the generated registry; see {@link createPolicy} for your own.
+ *
  * @example
  * ```ts
  * // Publications: hide what is not translated.
@@ -454,6 +511,16 @@ export function availableIn<T>(
   localesOf: (item: T) => readonly Locale[] | undefined,
   policy: MissingContentPolicy = "hide",
 ): T[] {
-  if (locale === DEFAULT_LOCALE || policy === "fallback") return [...items];
+  return availableAgainst(DEFAULT_LOCALE, locale, items, localesOf, policy);
+}
+
+function availableAgainst<T, L extends string>(
+  canonical: string,
+  locale: L,
+  items: readonly T[],
+  localesOf: (item: T) => readonly L[] | undefined,
+  policy: MissingContentPolicy,
+): T[] {
+  if (locale === canonical || policy === "fallback") return [...items];
   return items.filter(item => (localesOf(item) ?? []).includes(locale));
 }
