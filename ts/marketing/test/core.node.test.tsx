@@ -28,13 +28,17 @@ describe("dependency honesty", () => {
     readdirSync(dir, { withFileTypes: true }).flatMap(entry =>
       entry.isDirectory() ? sources(join(dir, entry.name)) : [join(dir, entry.name)],
     );
+  const packageOf = (specifier: string) =>
+    specifier.split("/").slice(0, specifier.startsWith("@") ? 2 : 1).join("/");
   const imported = (files: string[]) =>
     new Set(
-      files.flatMap(file =>
-        [...readFileSync(file, "utf8").matchAll(/from "([^".][^"]*)"/g)].map(m =>
-          m[1]!.startsWith("@") ? m[1]!.split("/").slice(0, 2).join("/") : m[1]!.split("/")[0]!,
-        ),
-      ),
+      files.flatMap(file => {
+        const code = readFileSync(file, "utf8")
+          // Doc examples show consumer imports; only real ones count.
+          .replace(/\/\*[\s\S]*?\*\//g, "")
+          .replace(/^\s*\/\/.*$/gm, "");
+        return [...code.matchAll(/from "([^".][^"]*)"/g)].map(m => packageOf(m[1]!));
+      }),
     );
 
   it("imports only react from the core, so the other peers can be optional", () => {

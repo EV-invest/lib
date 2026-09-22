@@ -241,7 +241,18 @@ in the app.
   classes (`font-display`, `text-ink`, `text-primary-ink`), each with `asChild`.
 - `createStatusCopy<T>()` — a typed provider/hook pair to hand server-resolved
   copy to Next's client-only `error.tsx` without shipping every catalogue;
-  the hook returns `null` rather than throwing without a provider.
+  the hook returns `null` rather than throwing without a provider. **Call it
+  in a module marked `"use client"`** — from a server module the factory is a
+  client reference, not a function — and render the returned provider from
+  the server layout:
+
+  ```ts
+  // status-copy.ts
+  "use client";
+  import { createStatusCopy } from "@evinvest/marketing/react";
+  export const { StatusCopyProvider, useStatusCopy } =
+    createStatusCopy<{ title: string; retry: string }>();
+  ```
 
 ## Develop
 

@@ -16,8 +16,18 @@ import { createContext, useContext, type ReactNode } from "react";
  * page that crashes because its copy is missing is a worse failure than one in
  * the fallback language, and it runs precisely when something already broke.
  *
+ * **Call it in a module marked `"use client"`.** It is exported from this
+ * package's client bundle, so in a server module it is a client reference,
+ * not a function — and the context it creates must live in the client graph
+ * anyway. The server layout then imports only the returned Provider, a client
+ * component it may render with serialisable `copy`.
+ *
  * @example
  * ```ts
+ * // status-copy.ts
+ * "use client";
+ * import { createStatusCopy } from "@evinvest/marketing/react";
+ *
  * export const { StatusCopyProvider, useStatusCopy } =
  *   createStatusCopy<{ title: string; retry: string }>();
  * ```
