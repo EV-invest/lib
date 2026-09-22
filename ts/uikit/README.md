@@ -119,7 +119,7 @@ npx evinvest-palette --brand aquafix --out app/brand.css assets/brand.toml
 It fails — naming every hole — unless **both** polarities declare every name the
 contract requires: Tailwind answers an undefined token with no rule at all, so a
 hole would be silent on the page. Values must be `#hex` or `var(--token)`. The
-list of required names is read from the installed kit's own `styles/tokens.css`,
+list of required names is read from the installed kit's own `styles/theme.css`,
 never restated. The same functions are importable for a build script or a Vite
 plugin from `@evinvest/uikit/palette` (Node-only; see `example/vite.config.ts`).
 The generator checks completeness, not contrast: measure a new palette against
@@ -134,6 +134,15 @@ knows.
 
 ```html
 <html data-brand="aquafix">
+```
+
+An app that never shows EV's palette imports the contract alone, so a name its
+palette misses stays a visible hole instead of falling back to EV's value:
+
+```css
+@import "tailwindcss";
+@import "@evinvest/uikit/styles/theme.css";
+@import "./brand.css";
 ```
 
 Overlays (`Dialog`, `Select`, `Popover`, `Tooltip`, menus, …) portal to

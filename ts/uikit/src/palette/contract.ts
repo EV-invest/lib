@@ -11,7 +11,7 @@ export interface Contract {
   derived: readonly string[];
 }
 
-/** The rule the derived tokens live on — see the CONTRACT half of `tokens.css`. */
+/** The rule the derived tokens live on — see `theme.css`, the contract half of `tokens.css`. */
 export const DERIVED_SCOPE = ":where(:root, .dark, .light, [data-brand])";
 
 export interface CssRule {

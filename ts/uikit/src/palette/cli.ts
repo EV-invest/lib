@@ -10,7 +10,7 @@ const USAGE = `usage: evinvest-palette --brand <slug> [--out <file.css>] <brand.
 
 Writes the brand's palette as a flat sheet scoped to [data-brand="<slug>"],
 after checking both polarities against the contract in @evinvest/uikit's
-styles/tokens.css. Prints to stdout without --out.`;
+styles/theme.css. Prints to stdout without --out.`;
 
 function main(): number {
   const { values, positionals } = parseArgs({
@@ -24,7 +24,7 @@ function main(): number {
   }
 
   // Shipped beside `dist/`, so the contract is always the installed kit's own.
-  const contract = readContract(readFileSync(new URL("../styles/tokens.css", import.meta.url), "utf8"));
+  const contract = readContract(readFileSync(new URL("../styles/theme.css", import.meta.url), "utf8"));
   const sheet = renderPalette(values.brand, brandFromToml(readFileSync(input, "utf8")), contract, basename(input));
   if (values.out) writeFileSync(values.out, sheet);
   else process.stdout.write(sheet);

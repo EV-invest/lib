@@ -21,7 +21,9 @@
       "types": "./dist/palette.d.ts",
       "import": "./dist/palette.js"
     },
-    "./styles/tokens.css": "./styles/tokens.css"
+    "./styles/tokens.css": "./styles/tokens.css",
+    "./styles/theme.css": "./styles/theme.css",
+    "./styles/ev.css": "./styles/ev.css"
   },
   "types": "./dist/index.d.ts",
   "main": "./dist/index.js",
