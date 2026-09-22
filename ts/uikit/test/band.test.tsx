@@ -18,6 +18,13 @@ describe("Section", () => {
     expect(el).toHaveAttribute("id", "quote");
   });
 
+  it("sets no scope without a polarity, so it inherits its parent's", () => {
+    const { container } = render(<Section>body</Section>);
+    const el = container.querySelector('[data-slot="section"]')!;
+    expect(el).not.toHaveClass("light");
+    expect(el).not.toHaveClass("dark");
+  });
+
   it("takes the short rhythm when tight", () => {
     const { container } = render(<Section tight>body</Section>);
     expect(container.querySelector('[data-slot="section"]')).toHaveClass(

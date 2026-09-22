@@ -16,6 +16,7 @@ const BARE_KEY = /^[A-Za-z0-9_-]+$/;
 export function parseToml(text: string): TomlTable {
   const root: TomlTable = {};
   let table = root;
+  const headers = new Set<string>();
   text.split(/\r?\n/).forEach((raw, index) => {
     const line = stripComment(raw).trim();
     if (line === "") return;
@@ -25,7 +26,11 @@ export function parseToml(text: string): TomlTable {
 
     if (line.startsWith("[")) {
       if (!line.endsWith("]") || line.startsWith("[[")) fail("only plain [table] headers are supported");
-      table = descend(root, line.slice(1, -1).trim().split("."), fail);
+      const path = line.slice(1, -1).trim().split(".").map((part) => part.trim());
+      // Re-opening a table would merge two halves of it silently.
+      if (headers.has(path.join("."))) fail("duplicate table header");
+      headers.add(path.join("."));
+      table = descend(root, path, fail);
       return;
     }
 
@@ -69,6 +74,8 @@ function parseValue(src: string, fail: (why: string) => never): TomlValue {
     if (src.length < 2 || !src.endsWith('"')) fail("unterminated string");
     const body = src.slice(1, -1);
     if (/(^|[^\\])(\\\\)*"/.test(body)) fail("one string per value");
+    // Only the escapes decoded below; `\u…` and friends would otherwise pass through as literal text.
+    if (/\\(?!["\\nt])/.test(body.replace(/\\\\/g, ""))) fail("unsupported escape");
     return body.replace(/\\(["\\nt])/g, (_, c: string) => ({ n: "\n", t: "\t" })[c] ?? c);
   }
   if (src.startsWith("[")) {

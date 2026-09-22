@@ -26,13 +26,25 @@ pub const CHECK: &str = "font-semibold text-positive";
 /// class re-themes the whole subtree: `bg-card text-ink` is then correct on both
 /// sides with no prop threading. A consumer that defines only `:root` gets a
 /// no-op either way.
-#[derive(Debug, PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
+///
+/// Deliberately without a default: an unset polarity sets no scope class and
+/// inherits the parent's, since a `Light` default would flip every band of a
+/// dark-first brand. `TwVariant` insists on a default variant, so the class is
+/// mapped by hand.
+#[derive(Clone, Copy, Debug, PartialEq, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Polarity {
-	#[tw(default, class = "light")]
 	Light,
-	#[tw(class = "dark")]
 	Dark,
+}
+
+impl AsTailwindClass for Polarity {
+	fn as_class(&self) -> &str {
+		match self {
+			Polarity::Light => "light",
+			Polarity::Dark => "dark",
+		}
+	}
 }
 
 /// Which plane a band sits on, within its polarity.
