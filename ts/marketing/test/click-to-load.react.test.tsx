@@ -60,6 +60,28 @@ describe("YouTubeFacade", () => {
     expect(screen.getByRole("button", { name: props.playLabel })).toBeInTheDocument();
   });
 
+  it("treats YouTube's 120px 'missing still' JPEG as a miss, not a poster", () => {
+    render(<YouTubeFacade {...props} />);
+    const img = screen.getByRole("img");
+    Object.defineProperty(img, "naturalWidth", { configurable: true, value: 120 });
+    act(() => fireEvent.load(img));
+    expect(screen.getByRole("img")).toHaveAttribute(
+      "src",
+      "https://i.ytimg.com/vi/abc123/hqdefault.jpg",
+    );
+  });
+
+  it("keeps a real still that loaded", () => {
+    render(<YouTubeFacade {...props} />);
+    const img = screen.getByRole("img");
+    Object.defineProperty(img, "naturalWidth", { configurable: true, value: 1280 });
+    act(() => fireEvent.load(img));
+    expect(screen.getByRole("img")).toHaveAttribute(
+      "src",
+      "https://i.ytimg.com/vi/abc123/maxresdefault.jpg",
+    );
+  });
+
   it("loads the privacy-preserving player on play", () => {
     const onPlay = vi.fn();
     const { container } = render(<YouTubeFacade {...props} onPlay={onPlay} />);

@@ -27,6 +27,8 @@ function posterCandidates(videoId: string, poster?: string): string[] {
   );
 }
 
+const YT_PLACEHOLDER_WIDTH = 120;
+
 function PlayGlyph() {
   return (
     <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden>
@@ -53,6 +55,7 @@ export function YouTubeFacade({
   // flipping a boolean is what keeps a failing src from re-erroring forever.
   const [attempt, setAttempt] = useState(0);
   const src = posterCandidates(videoId, poster)[attempt];
+  const next = () => setAttempt(n => n + 1);
 
   return (
     <ClickToLoad
@@ -66,7 +69,14 @@ export function YouTubeFacade({
               alt={title}
               loading="lazy"
               decoding="async"
-              onError={() => setAttempt(n => n + 1)}
+              onError={next}
+              onLoad={e => {
+                // i.ytimg.com answers a missing still with HTTP 404 *and* a
+                // valid 120x90 grey JPEG, so the browser fires load, not
+                // error. That placeholder is the only still this narrow —
+                // the same check lite-youtube-embed relies on.
+                if (!poster && e.currentTarget.naturalWidth <= YT_PLACEHOLDER_WIDTH) next();
+              }}
               className="absolute inset-0 size-full object-cover"
             />
           ) : null}
