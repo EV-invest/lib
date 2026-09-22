@@ -95,6 +95,42 @@ describe("PostHogPageView", () => {
     unmount();
   });
 
+  it("does not re-fire on re-renders that pass a fresh inline consent", async () => {
+    const withConsent = () => (
+      <PostHogProvider
+        apiKey="phc_react"
+        capturePageview={false}
+        consent={() => true}
+      >
+        <PostHogPageView />
+      </PostHogProvider>
+    );
+    const { rerender, unmount } = mount(withConsent());
+    await flushEffects();
+    rerender(withConsent());
+    rerender(withConsent());
+    await flushEffects();
+    expect(pageviews()).toHaveLength(1);
+    unmount();
+  });
+
+  it("sends $current_url even when allowedProps does not list it", async () => {
+    const { unmount } = mount(
+      <PostHogProvider
+        apiKey="phc_react"
+        capturePageview={false}
+        allowedProps={["brand_id"]}
+        strict
+      >
+        <PostHogPageView />
+      </PostHogProvider>,
+    );
+    await flushEffects();
+    expect(pageviews()).toHaveLength(1);
+    expect(pageviews()[0]?.[1]).toHaveProperty("$current_url");
+    unmount();
+  });
+
   it("no-ops (and never throws) without a provider", async () => {
     let threw = false;
     let cleanup = () => {};
