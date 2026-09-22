@@ -11,23 +11,23 @@
 import * as React from "react";
 import {
   createPostHogSink,
+  gatedSink,
   noopSink,
+  withPropPolicy,
   type AnalyticsSink,
   type CaptureFn,
+  type CaptureOptions,
+  type PostHogRegion,
+  type PostHogTarget,
+  type PropPolicy,
 } from "../index";
 // Shared with `./next/client`'s PostHogPageView so both read the same context.
 import { AnalyticsContext } from "./context";
 
 /**
- * Props for {@link PostHogProvider}.
- *
- * @remarks
- * `apiKey` / `host` fall back to `process.env.NEXT_PUBLIC_POSTHOG_KEY` and
- * `process.env.NEXT_PUBLIC_POSTHOG_HOST` respectively. When neither a prop nor
- * the env var supplies a key, the provider mounts a no-op sink — safe in local
- * and test environments without configuration.
+ * Props every {@link PostHogProvider} accepts, whatever the mode.
  */
-export interface PostHogProviderProps {
+export interface PostHogProviderBaseProps extends PropPolicy {
   /** Children to render unchanged below the provider. */
   children?: React.ReactNode;
   /**
@@ -36,20 +36,53 @@ export interface PostHogProviderProps {
    */
   apiKey?: string;
   /**
-   * PostHog ingestion host. Defaults to
-   * `process.env.NEXT_PUBLIC_POSTHOG_HOST`, then to
-   * `https://us.i.posthog.com`.
-   */
-  host?: string;
-  /**
    * Whether PostHog should auto-capture pageviews. Defaults to `true`.
    */
   capturePageview?: boolean;
+  /**
+   * When given, events (the initial pageview included) are sent only while it
+   * returns `true`; see `gatedSink`. Pass `hasConsent` imported from
+   * `@evinvest/analytics` — this entry is a separate bundle, so its own copy
+   * of the page-wide flag would never see a `setConsent` from the core entry.
+   */
+  consent?: () => boolean;
 }
+
+/**
+ * Props for {@link PostHogProvider}.
+ *
+ * @remarks
+ * `apiKey` falls back to `process.env.NEXT_PUBLIC_POSTHOG_KEY`. In the default
+ * (identified) mode `host` falls back to `process.env.NEXT_PUBLIC_POSTHOG_HOST`,
+ * then `region`, then `https://us.i.posthog.com`. `cookieless` requires an
+ * explicit `region` or `host`. When no key is supplied, the provider mounts a
+ * no-op sink — safe in local and test environments without configuration.
+ */
+export type PostHogProviderProps = PostHogProviderBaseProps &
+  (
+    | {
+        cookieless?: false;
+        /**
+         * PostHog ingestion host. Defaults to
+         * `process.env.NEXT_PUBLIC_POSTHOG_HOST`, then to `region`, then to
+         * `https://us.i.posthog.com`.
+         */
+        host?: string;
+        /** PostHog Cloud region, used when no host is resolved. */
+        region?: PostHogRegion;
+      }
+    | ({ cookieless: true } & PostHogTarget)
+  );
 
 function readEnv(name: string): string | undefined {
   return typeof process !== "undefined" ? process.env[name] : undefined;
 }
+
+type Buffered = {
+  event: string;
+  props?: Record<string, unknown> | undefined;
+  options?: CaptureOptions | undefined;
+};
 
 /**
  * Boots PostHog on the client and provides an {@link AnalyticsSink} via React
@@ -66,8 +99,8 @@ function readEnv(name: string): string | undefined {
  * @remarks
  * **No-op without a key.** When no key is supplied via `apiKey` or
  * `process.env.NEXT_PUBLIC_POSTHOG_KEY`, the provider serves a {@link noopSink}
- * and never loads `posthog-js`. `host` falls back to
- * `process.env.NEXT_PUBLIC_POSTHOG_HOST` then `https://us.i.posthog.com`.
+ * and never loads `posthog-js`. `allowedProps` / `globalProps` still apply, so
+ * a disallowed key fails in development without a key.
  *
  * @example
  * ```tsx
@@ -85,14 +118,15 @@ function readEnv(name: string): string | undefined {
  * }
  * ```
  */
-export function PostHogProvider({
-  children,
-  apiKey,
-  host,
-  capturePageview,
-}: PostHogProviderProps) {
+export function PostHogProvider(props: PostHogProviderProps) {
+  const { children, apiKey, capturePageview, consent } = props;
+  const { allowedProps, globalProps, strict } = props;
   const key = apiKey ?? readEnv("NEXT_PUBLIC_POSTHOG_KEY");
-  const resolvedHost = host ?? readEnv("NEXT_PUBLIC_POSTHOG_HOST");
+  const cookieless = props.cookieless === true;
+  const host = cookieless
+    ? props.host
+    : (props.host ?? readEnv("NEXT_PUBLIC_POSTHOG_HOST"));
+  const region = props.region;
 
   const sinkRef = React.useRef<AnalyticsSink>(noopSink());
   // `posthog-js` loads asynchronously (dynamic import below), but consumers can
@@ -101,56 +135,84 @@ export function PostHogProvider({
   // Such captures are buffered until the SDK is ready, then flushed in order, so
   // first-load events are never silently dropped.
   const readyRef = React.useRef(false);
-  const bufferRef = React.useRef<
-    Array<{ event: string; props?: Record<string, unknown> }>
-  >([]);
+  const bufferRef = React.useRef<Buffered[]>([]);
   const enabled = Boolean(key);
+
+  const raw = React.useMemo<AnalyticsSink>(
+    () => ({
+      capture(event, eventProps, options) {
+        if (readyRef.current) {
+          sinkRef.current.capture(event, eventProps, options);
+        } else if (enabled) {
+          // SDK still loading — buffer for flush on init. When analytics is
+          // disabled (no key), this is a silent no-op, as before.
+          bufferRef.current.push({ event, props: eventProps, options });
+        }
+      },
+    }),
+    [enabled],
+  );
+
+  // Policy and consent wrap the context value rather than the PostHog sink, so
+  // they apply to buffered events and to the initial pageview alike, and a
+  // misconfigured `globalProps` fails during render in development instead of
+  // inside an unobserved promise.
+  const policyKey = JSON.stringify([allowedProps, globalProps, strict]);
+  const value = React.useMemo<AnalyticsSink>(() => {
+    const gated = consent ? gatedSink(raw, consent) : raw;
+    return withPropPolicy(gated, {
+      ...(allowedProps !== undefined ? { allowedProps } : {}),
+      ...(globalProps !== undefined ? { globalProps } : {}),
+      ...(strict !== undefined ? { strict } : {}),
+    });
+    // `policyKey` stands in for the policy fields so an inline array literal
+    // does not rebuild the sink on every render.
+  }, [raw, consent, policyKey]);
+  const valueRef = React.useRef(value);
+  valueRef.current = value;
 
   React.useEffect(() => {
     if (!key) return;
     let active = true;
     void import("posthog-js").then((mod) => {
       if (!active) return;
-      const posthog = mod.default;
-      const sink = createPostHogSink(posthog, {
+      const target = cookieless
+        ? host
+          ? { cookieless: true as const, host }
+          : region
+            ? { cookieless: true as const, region }
+            : undefined
+        : {
+            ...(host !== undefined ? { host } : {}),
+            ...(region !== undefined ? { region } : {}),
+          };
+      // Unreachable through the prop types; a JS caller gets a no-op rather
+      // than events in an unintended region.
+      if (!target) return;
+      sinkRef.current = createPostHogSink(mod.default, {
         key,
-        ...(resolvedHost !== undefined ? { host: resolvedHost } : {}),
+        ...target,
         // The provider fires the single initial $pageview itself (below), so
         // posthog's own initial-pageview autocapture is disabled to avoid
         // double-counting it.
         capturePageview: false,
       });
-      sinkRef.current = sink;
       readyRef.current = true;
       // Fire exactly one initial pageview unless the caller opted out. This is
       // also what lazily inits posthog, so a pageview is guaranteed on mount.
-      if (capturePageview !== false) sink.capture("$pageview");
-      // Flush captures that arrived while posthog-js was still loading.
+      if (capturePageview !== false) valueRef.current.capture("$pageview");
+      // Flush captures that arrived while posthog-js was still loading. They
+      // already passed the policy and consent checks when captured.
       const queued = bufferRef.current;
       bufferRef.current = [];
-      for (const item of queued) sink.capture(item.event, item.props);
+      for (const item of queued) {
+        sinkRef.current.capture(item.event, item.props, item.options);
+      }
     });
     return () => {
       active = false;
     };
-  }, [key, resolvedHost, capturePageview]);
-
-  const value = React.useMemo<AnalyticsSink>(
-    () => ({
-      capture(event, props) {
-        if (readyRef.current) {
-          sinkRef.current.capture(event, props);
-        } else if (enabled) {
-          // SDK still loading — buffer for flush on init. When analytics is
-          // disabled (no key), this is a silent no-op, as before.
-          bufferRef.current.push(
-            props !== undefined ? { event, props } : { event },
-          );
-        }
-      },
-    }),
-    [enabled],
-  );
+  }, [key, host, region, cookieless, capturePageview]);
 
   return React.createElement(AnalyticsContext.Provider, { value }, children);
 }
@@ -209,8 +271,8 @@ export function useAnalytics(): CaptureFn {
   const sink = React.useContext(AnalyticsContext);
   return React.useMemo<CaptureFn>(() => {
     const target = sink ?? noopSink();
-    return (event, props) => {
-      target.capture(event, props);
+    return (event, props, options) => {
+      target.capture(event, props, options);
     };
   }, [sink]);
 }

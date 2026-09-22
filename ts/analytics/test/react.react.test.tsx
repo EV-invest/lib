@@ -200,6 +200,128 @@ describe("PostHogProvider", () => {
   });
 });
 
+describe("PostHogProvider — cookieless, policy, consent", () => {
+  function Clicker({
+    props,
+    beacon,
+  }: {
+    props: Record<string, unknown>;
+    beacon?: boolean;
+  }) {
+    const capture = useCapture();
+    return (
+      <button
+        onClick={() =>
+          capture(
+            "contact_intent_click",
+            props,
+            beacon ? { transport: "beacon" } : undefined,
+          )
+        }
+      >
+        go
+      </button>
+    );
+  }
+
+  function click(container: HTMLElement) {
+    act(() => {
+      container
+        .querySelector("button")!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+  }
+
+  it("inits posthog-js cookieless in the given region", async () => {
+    const { unmount } = render(
+      <PostHogProvider apiKey="phc_react" cookieless region="eu">
+        <span>x</span>
+      </PostHogProvider>,
+    );
+    await flushEffects();
+    expect(phInit).toHaveBeenCalledWith("phc_react", {
+      api_host: "https://eu.i.posthog.com",
+      capture_pageview: false,
+      person_profiles: "never",
+      persistence: "memory",
+    });
+    unmount();
+  });
+
+  it("stamps globalProps on the initial pageview and on events", async () => {
+    const { container, unmount } = render(
+      <PostHogProvider
+        apiKey="phc_react"
+        cookieless
+        region="eu"
+        allowedProps={["brand_id", "location_id", "channel"]}
+        globalProps={{ brand_id: "aquafix", location_id: "warsaw" }}
+      >
+        <Clicker props={{ channel: "phone" }} beacon />
+      </PostHogProvider>,
+    );
+    await flushEffects();
+    expect(phCapture).toHaveBeenCalledWith("$pageview", {
+      brand_id: "aquafix",
+      location_id: "warsaw",
+    });
+    click(container);
+    expect(phCapture).toHaveBeenCalledWith(
+      "contact_intent_click",
+      { brand_id: "aquafix", location_id: "warsaw", channel: "phone" },
+      { transport: "sendBeacon" },
+    );
+    unmount();
+  });
+
+  it("throws in development on a property outside allowedProps", async () => {
+    let thrown: unknown;
+    function Probe() {
+      const capture = useCapture();
+      React.useEffect(() => {
+        try {
+          capture("contact_intent_click", { phone: "+33 1 00 00 00 00" });
+        } catch (err) {
+          thrown = err;
+        }
+      }, [capture]);
+      return null;
+    }
+    const { unmount } = render(
+      <PostHogProvider apiKey="phc_react" allowedProps={["channel"]}>
+        <Probe />
+      </PostHogProvider>,
+    );
+    await flushEffects();
+    expect(thrown).toBeInstanceOf(Error);
+    expect(
+      phCapture.mock.calls.filter(([e]) => e === "contact_intent_click"),
+    ).toHaveLength(0);
+    unmount();
+  });
+
+  it("sends nothing, pageview included, until consent is granted", async () => {
+    let granted = false;
+    const consent = () => granted;
+    const { container, unmount } = render(
+      <PostHogProvider apiKey="phc_react" consent={consent}>
+        <Clicker props={{ channel: "phone" }} />
+      </PostHogProvider>,
+    );
+    await flushEffects();
+    click(container);
+    expect(phCapture).not.toHaveBeenCalled();
+
+    granted = true;
+    click(container);
+    expect(phCapture).toHaveBeenCalledTimes(1);
+    expect(phCapture).toHaveBeenCalledWith("contact_intent_click", {
+      channel: "phone",
+    });
+    unmount();
+  });
+});
+
 describe("useCapture", () => {
   it("throws when used outside a provider", () => {
     let captured: unknown;

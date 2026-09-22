@@ -128,3 +128,89 @@ describe("noopSink", () => {
     expect(() => sink.capture("bare")).not.toThrow();
   });
 });
+
+describe("createPostHogSink — cookieless mode and region", () => {
+  it('inits with person_profiles "never" and in-memory persistence', () => {
+    const ph = fakePostHog();
+    const sink = createPostHogSink(ph, {
+      key: "phc_test",
+      cookieless: true,
+      region: "eu",
+    });
+    sink.capture("a");
+    expect(ph.init).toHaveBeenCalledWith("phc_test", {
+      api_host: "https://eu.i.posthog.com",
+      capture_pageview: true,
+      person_profiles: "never",
+      persistence: "memory",
+    });
+  });
+
+  it("resolves a region to its host in the identified mode", () => {
+    const ph = fakePostHog();
+    createPostHogSink(ph, { key: "phc_test", region: "eu" }).capture("a");
+    expect(ph.init.mock.calls[0]?.[1]).toMatchObject({
+      api_host: "https://eu.i.posthog.com",
+      person_profiles: "identified_only",
+    });
+  });
+
+  it("prefers an explicit host over a region", () => {
+    const ph = fakePostHog();
+    createPostHogSink(ph, {
+      key: "phc_test",
+      host: "https://ph.example.com",
+      region: "eu",
+    }).capture("a");
+    expect(ph.init.mock.calls[0]?.[1]).toMatchObject({
+      api_host: "https://ph.example.com",
+    });
+  });
+
+  it("keeps the US fallback for existing callers that name no target", () => {
+    const ph = fakePostHog();
+    createPostHogSink(ph, { key: "phc_test" }).capture("a");
+    expect(ph.init.mock.calls[0]?.[1]).toMatchObject({
+      api_host: "https://us.i.posthog.com",
+    });
+  });
+
+  it("maps the beacon transport onto posthog-js sendBeacon", () => {
+    const ph = fakePostHog();
+    const sink = createPostHogSink(ph, { key: "phc_test" });
+    sink.capture(
+      "contact_intent_click",
+      { channel: "phone" },
+      { transport: "beacon" },
+    );
+    expect(ph.capture).toHaveBeenCalledWith(
+      "contact_intent_click",
+      { channel: "phone" },
+      { transport: "sendBeacon" },
+    );
+  });
+
+  it("merges globalProps and enforces allowedProps", () => {
+    const ph = fakePostHog();
+    const sink = createPostHogSink(ph, {
+      key: "phc_test",
+      cookieless: true,
+      region: "eu",
+      allowedProps: ["brand_id", "channel"],
+      globalProps: { brand_id: "aquafix" },
+      strict: true,
+    });
+    sink.capture("contact_intent_click", { channel: "phone" });
+    expect(ph.capture).toHaveBeenCalledWith("contact_intent_click", {
+      brand_id: "aquafix",
+      channel: "phone",
+    });
+    expect(() => sink.capture("e", { phone: "+33" })).toThrow();
+  });
+
+  it("rejects cookieless mode without a target at the type level", () => {
+    const ph = fakePostHog();
+    // @ts-expect-error — cookieless requires `region` or `host`.
+    createPostHogSink(ph, { key: "phc_test", cookieless: true });
+  });
+});

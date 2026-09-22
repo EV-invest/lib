@@ -13,62 +13,89 @@
  * crate is the source of truth; this package preserves its *semantics*.
  */
 
-/**
- * A destination that records product events. The single seam every consumer
- * codes against — UI, server handlers, and tests all depend on this interface
- * rather than on any concrete analytics vendor.
- *
- * @remarks
- * Implementations must be safe to call before they are fully wired: a sink that
- * is not yet configured (e.g. PostHog without a key) is expected to no-op
- * rather than throw. See {@link createPostHogSink} and {@link noopSink}.
- */
-export interface AnalyticsSink {
-  /**
-   * Records a single product event.
-   *
-   * @param event - Snake-case event name, scoped `<surface>_<thing>_<action>`
-   *   (e.g. `hero_cta_clicked`). Names are the analytics contract — renames
-   *   break dashboards.
-   * @param props - Optional payload of primitive values only
-   *   (`string` | `number` | `boolean`). Never PII — no names, emails, or
-   *   free-text the user typed.
-   */
-  capture(event: string, props?: Record<string, unknown>): void;
-}
+import { withPropPolicy, type PropPolicy } from "./props";
+import {
+  LEGACY_DEFAULT_HOST,
+  resolveHost,
+  type PostHogRegion,
+  type PostHogTarget,
+} from "./region";
+import type { AnalyticsSink } from "./sink";
+
+export {
+  noopSink,
+  type AnalyticsSink,
+  type CaptureFn,
+  type CaptureOptions,
+} from "./sink";
+export {
+  POSTHOG_HOSTS,
+  LEGACY_DEFAULT_HOST,
+  type PostHogRegion,
+  type PostHogTarget,
+} from "./region";
+export {
+  isDevelopment,
+  withPropPolicy,
+  type PropPolicy,
+  type PropValue,
+} from "./props";
+export {
+  createConsent,
+  gatedSink,
+  hasConsent,
+  setConsent,
+  type Consent,
+} from "./consent";
 
 /**
- * The signature of {@link AnalyticsSink.capture}, exposed as a standalone type
- * so a bare capture function can be passed around (e.g. as a React context
- * value or a prop) without carrying the whole sink object.
+ * Options shared by every {@link PostHogConfig} shape.
  */
-export type CaptureFn = AnalyticsSink["capture"];
-
-/**
- * Configuration for {@link createPostHogSink}.
- *
- * @remarks
- * When `key` is absent the resulting sink silently no-ops — local development
- * and tests stay quiet without any configuration. In a browser app these
- * values typically come from `process.env.NEXT_PUBLIC_POSTHOG_KEY` and
- * `process.env.NEXT_PUBLIC_POSTHOG_HOST`; the React entry reads those for you.
- */
-export interface PostHogConfig {
+export interface PostHogBaseConfig extends PropPolicy {
   /**
    * PostHog project API key. When omitted (or empty), the sink no-ops: it never
    * calls `init` and `capture` does nothing.
    */
-  key?: string;
-  /**
-   * PostHog ingestion host. Defaults to `https://us.i.posthog.com` when omitted.
-   */
-  host?: string;
+  key?: string | undefined;
   /**
    * Whether PostHog should auto-capture pageviews. Defaults to `true`,
    * preserving the original site behavior.
    */
   capturePageview?: boolean;
 }
+
+/**
+ * The pre-existing mode: PostHog persists its id in a cookie / localStorage
+ * and creates person profiles for identified users. `host` / `region` are
+ * optional and fall back to {@link LEGACY_DEFAULT_HOST} (US) so the US projects
+ * already on this package keep reporting where they always have.
+ */
+export interface IdentifiedMode {
+  cookieless?: false;
+  /** Ingestion host; wins over `region`. */
+  host?: string | undefined;
+  /** PostHog Cloud region, used when `host` is absent. */
+  region?: PostHogRegion | undefined;
+}
+
+/**
+ * Cookieless mode: `persistence: "memory"` (nothing written to cookies or
+ * storage; a reload is a new visitor) and `person_profiles: "never"`. The
+ * target is required — a new mode has no legacy region to inherit.
+ */
+export type CookielessMode = { cookieless: true } & PostHogTarget;
+
+/**
+ * Configuration for {@link createPostHogSink}.
+ *
+ * @remarks
+ * When `key` is absent the resulting sink silently no-ops — local development
+ * and tests stay quiet without any configuration. `allowedProps` /
+ * `globalProps` ({@link PropPolicy}) are enforced even then, so a disallowed
+ * key still fails in development without a PostHog key.
+ */
+export type PostHogConfig = PostHogBaseConfig &
+  (IdentifiedMode | CookielessMode);
 
 /**
  * The minimal structural shape this package needs from a PostHog client. Both
@@ -81,7 +108,7 @@ export interface PostHogLike {
    *
    * @param key - The PostHog project API key.
    * @param options - PostHog init options (`api_host`, `capture_pageview`,
-   *   `person_profiles`, …).
+   *   `person_profiles`, `persistence`, …).
    */
   init(key: string, options: Record<string, unknown>): void;
   /**
@@ -89,11 +116,24 @@ export interface PostHogLike {
    *
    * @param event - Event name.
    * @param props - Optional event properties.
+   * @param options - posthog-js capture options; only `transport` is used.
    */
-  capture(event: string, props?: Record<string, unknown>): void;
+  capture(
+    event: string,
+    props?: Record<string, unknown>,
+    options?: { transport?: "sendBeacon" },
+  ): void;
 }
 
-const DEFAULT_HOST = "https://us.i.posthog.com";
+function initOptions(config: PostHogConfig): Record<string, unknown> {
+  const base = {
+    api_host: resolveHost(config, LEGACY_DEFAULT_HOST),
+    capture_pageview: config.capturePageview ?? true,
+  };
+  return config.cookieless
+    ? { ...base, person_profiles: "never", persistence: "memory" }
+    : { ...base, person_profiles: "identified_only" };
+}
 
 /**
  * Builds an {@link AnalyticsSink} backed by an injected PostHog instance.
@@ -105,15 +145,20 @@ const DEFAULT_HOST = "https://us.i.posthog.com";
  * @param posthog - A PostHog client (the `posthog-js` default export, the
  *   result of `posthog.init` in a custom setup, or any {@link PostHogLike}
  *   stub).
- * @param config - {@link PostHogConfig} controlling key, host, and pageview
- *   capture.
+ * @param config - {@link PostHogConfig}: key, target, mode, pageview capture,
+ *   and the property policy.
  * @returns An {@link AnalyticsSink} whose `capture` forwards to PostHog.
  *
  * @remarks
  * **No-op without a key.** When `config.key` is absent, the returned sink never
  * calls `init` and every `capture` is a silent no-op — local dev and tests stay
- * quiet without configuration. `host` defaults to `https://us.i.posthog.com`
- * and `person_profiles` is fixed to `"identified_only"`.
+ * quiet without configuration.
+ *
+ * **Target.** `host` wins, then `region`; the identified (default) mode falls
+ * back to `https://us.i.posthog.com`, cookieless mode requires one of the two.
+ *
+ * **Beacon.** `capture(event, props, { transport: "beacon" })` maps to
+ * posthog-js's `sendBeacon` transport, for events followed by navigation.
  *
  * @example
  * ```ts
@@ -122,9 +167,12 @@ const DEFAULT_HOST = "https://us.i.posthog.com";
  *
  * const sink = createPostHogSink(posthog, {
  *   key: process.env.NEXT_PUBLIC_POSTHOG_KEY,
- *   host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+ *   cookieless: true,
+ *   region: "eu",
+ *   allowedProps: ["brand_id", "location_id", "channel"],
+ *   globalProps: { brand_id: "aquafix" },
  * });
- * sink.capture("hero_cta_clicked", { variant: "b" });
+ * sink.capture("contact_intent_click", { channel: "phone" }, { transport: "beacon" });
  * ```
  */
 export function createPostHogSink(
@@ -137,41 +185,20 @@ export function createPostHogSink(
     if (initialized) return true;
     const { key } = config;
     if (!key) return false;
-    posthog.init(key, {
-      api_host: config.host ?? DEFAULT_HOST,
-      capture_pageview: config.capturePageview ?? true,
-      person_profiles: "identified_only",
-    });
+    posthog.init(key, initOptions(config));
     initialized = true;
     return true;
   };
 
-  return {
-    capture(event, props) {
+  const inner: AnalyticsSink = {
+    capture(event, props, options) {
       if (!ensure()) return;
-      posthog.capture(event, props);
+      if (options?.transport === "beacon") {
+        posthog.capture(event, props, { transport: "sendBeacon" });
+      } else {
+        posthog.capture(event, props);
+      }
     },
   };
-}
-
-/**
- * Returns an {@link AnalyticsSink} that discards every event.
- *
- * Use as a default when analytics is disabled, as a stand-in in tests, or as
- * the fallback a consumer reaches for when no provider is mounted.
- *
- * @returns A sink whose `capture` does nothing.
- *
- * @example
- * ```ts
- * import { noopSink } from "@evinvest/analytics";
- *
- * const sink = analyticsEnabled ? realSink : noopSink();
- * sink.capture("app_booted");
- * ```
- */
-export function noopSink(): AnalyticsSink {
-  return {
-    capture() {},
-  };
+  return withPropPolicy(inner, config);
 }

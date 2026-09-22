@@ -43,8 +43,8 @@ export function PostHogPageView(): null {
   const sink = useContext(AnalyticsContext);
   const capture = useMemo<CaptureFn>(() => {
     const target: AnalyticsSink = sink ?? noopSink();
-    return (event, props) => {
-      target.capture(event, props);
+    return (event, props, options) => {
+      target.capture(event, props, options);
     };
   }, [sink]);
 
