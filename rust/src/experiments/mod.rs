@@ -1,11 +1,13 @@
 //! `experiments` — frontend-only A/B testing (mirrors `@evinvest/experiments`).
 //!
-//! Cookie-bucketed weighted variant assignment for Dioxus. The bucketing core
-//! ([`config`]) is pure and `wasm32`-safe; the browser cookie helpers
-//! ([`assign_variant`], [`read_cookie`]) are `wasm32`-only. Exposure and action
-//! events are reported through an **injected** [`ExposureSink`], so this library
-//! never imports `analytics` — the consumer forwards each [`TrackedEvent`] to
-//! whatever capture it uses (no cross-library coupling).
+//! Cookie-bucketed weighted variant assignment for Dioxus, plus deterministic
+//! hash bucketing ([`pick_variant_for`]) for cookie-free, per-subject splits.
+//! The bucketing core ([`config`]) is pure and `wasm32`-safe; the browser
+//! cookie helpers ([`assign_variant`], [`read_cookie`]) are `wasm32`-only.
+//! Exposure and action events are reported through an **injected**
+//! [`ExposureSink`], so this library never imports `analytics` — the consumer
+//! forwards each [`TrackedEvent`] to whatever capture it uses (no cross-library
+//! coupling).
 //!
 //! ```toml
 //! [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -14,6 +16,9 @@
 
 pub mod config;
 pub use config::*;
+
+mod hash;
+pub use hash::*;
 
 mod ui;
 pub use ui::*;
