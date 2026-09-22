@@ -10,11 +10,11 @@ export const accentTextClasses = {
 export type Accent = keyof typeof accentTextClasses;
 
 export const accentFillClasses = {
-  "trace": "bg-accent-trace text-on-accent-trace hover:bg-accent-trace/90",
-  "debug": "bg-accent-debug text-on-accent-debug hover:bg-accent-debug/90",
-  "info": "bg-accent-info text-on-accent-info hover:bg-accent-info/90",
-  "warn": "bg-accent-warn text-on-accent-warn hover:bg-accent-warn/90",
-  "error": "bg-accent-error text-on-accent-error hover:bg-accent-error/90",
+  "trace": "bg-accent-trace text-on-accent-trace hover:bg-accent-trace/90 focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+  "debug": "bg-accent-debug text-on-accent-debug hover:bg-accent-debug/90 focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+  "info": "bg-accent-info text-on-accent-info hover:bg-accent-info/90 focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+  "warn": "bg-accent-warn text-on-accent-warn hover:bg-accent-warn/90 focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+  "error": "bg-accent-error text-on-accent-error hover:bg-accent-error/90 focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
 } as const;
 export type AccentFill = keyof typeof accentFillClasses;
 

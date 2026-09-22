@@ -1,4 +1,4 @@
-use crate::ButtonVariant;
+use crate::{ButtonVariant, focus::filled_focus_ring};
 
 /// Which rung of the accent ladder a surface wears — quiet to loud. See
 /// docs/spec/accents.md; a rung is picked by how loud the thing should be, never
@@ -31,14 +31,16 @@ pub fn accent_text_class(accent: Accent) -> &'static str {
 	}
 }
 
-/// Repaints a filled control at the rung.
+/// Repaints a filled control at the rung. A ghost or link button wearing it
+/// becomes a fill too, so the face brings [`FILLED_FOCUS_RING`](crate::FILLED_FOCUS_RING)
+/// with it rather than leaving that to the variant.
 pub fn accent_fill_class(accent: Accent) -> &'static str {
 	match accent {
-		Accent::Trace => "bg-accent-trace text-on-accent-trace hover:bg-accent-trace/90",
-		Accent::Debug => "bg-accent-debug text-on-accent-debug hover:bg-accent-debug/90",
-		Accent::Info => "bg-accent-info text-on-accent-info hover:bg-accent-info/90",
-		Accent::Warn => "bg-accent-warn text-on-accent-warn hover:bg-accent-warn/90",
-		Accent::Error => "bg-accent-error text-on-accent-error hover:bg-accent-error/90",
+		Accent::Trace => concat!("bg-accent-trace text-on-accent-trace hover:bg-accent-trace/90 ", filled_focus_ring!()),
+		Accent::Debug => concat!("bg-accent-debug text-on-accent-debug hover:bg-accent-debug/90 ", filled_focus_ring!()),
+		Accent::Info => concat!("bg-accent-info text-on-accent-info hover:bg-accent-info/90 ", filled_focus_ring!()),
+		Accent::Warn => concat!("bg-accent-warn text-on-accent-warn hover:bg-accent-warn/90 ", filled_focus_ring!()),
+		Accent::Error => concat!("bg-accent-error text-on-accent-error hover:bg-accent-error/90 ", filled_focus_ring!()),
 	}
 }
 

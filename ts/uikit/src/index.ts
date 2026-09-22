@@ -232,6 +232,7 @@ export * from "./components/alert-dialog";
 export * from "./components/sheet";
 export * from "./components/drawer";
 export * from "./components/select";
+export * from "./components/native-select";
 export * from "./components/command";
 
 // Tier D — heavy engines (dep-light: see README Limitations).

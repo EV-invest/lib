@@ -1,6 +1,8 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
+import { SWITCH_BASE, SWITCH_THUMB } from "../generated/switch";
 import { useControllableState } from "../primitives/use-controllable-state";
+import { useFieldControlId } from "./field-context";
 
 export interface SwitchProps
   extends Omit<React.ComponentProps<"button">, "onChange"> {
@@ -16,6 +18,7 @@ export function Switch({
   onCheckedChange,
   onClick,
   disabled,
+  id,
   ...props
 }: SwitchProps) {
   const [on, setOn] = useControllableState<boolean>({
@@ -32,10 +35,8 @@ export function Switch({
       data-state={state}
       aria-checked={on}
       disabled={disabled}
-      className={cn(
-        "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring focus-visible:ring-ring/50 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-all outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
-        className,
-      )}
+      id={useFieldControlId(id)}
+      className={cn(SWITCH_BASE, className)}
       onClick={(e) => {
         onClick?.(e);
         setOn(!on);
@@ -45,7 +46,7 @@ export function Switch({
       <span
         data-slot="switch-thumb"
         data-state={state}
-        className="data-[state=checked]:bg-on-primary data-[state=unchecked]:bg-ink pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0"
+        className={SWITCH_THUMB}
       />
     </button>
   );

@@ -1,12 +1,9 @@
 use dioxus::prelude::*;
 
-use crate::{cn, uikit::primitives::use_controllable};
-
-const CHECKBOX_BASE: &str = "peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-on-primary \
-                             data-[state=checked]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 \
-                             aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error size-4 shrink-0 \
-                             rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] \
-                             disabled:cursor-not-allowed disabled:opacity-50";
+use crate::{
+	cn,
+	uikit::{CHECKBOX_BASE, CHECKBOX_INDICATOR, primitives::use_controllable},
+};
 
 #[component]
 pub fn Checkbox(
@@ -32,7 +29,7 @@ pub fn Checkbox(
 			onclick: move |_| state.set(!on),
 			if on {
 				span {
-					class: "flex items-center justify-center text-current transition-none",
+					class: CHECKBOX_INDICATOR,
 					"data-slot": "checkbox-indicator",
 					svg {
 						xmlns: "http://www.w3.org/2000/svg",
@@ -89,5 +86,17 @@ mod tests {
 		let html = render(app);
 		assert!(html.contains("rounded-[4px]"), "{html}");
 		assert!(html.contains("data-slot=\"checkbox\""), "{html}");
+	}
+
+	#[test]
+	fn wears_the_offset_ring_not_the_halo() {
+		fn app() -> Element {
+			rsx! {
+				Checkbox { checked: true }
+			}
+		}
+		let html = render(app);
+		assert!(html.contains(crate::uikit::FILLED_FOCUS_RING), "{html}");
+		assert!(!html.contains("focus-visible:ring-[3px]"), "{html}");
 	}
 }

@@ -12,6 +12,10 @@
  * (3.39:1 today), so lifting card one step breaks the tokens test.
  */
 :where(:root, [data-brand="ev"]) {
+  /* the polarity, for what the platform draws itself (a native <select>'s
+   * popup); a custom property so nothing but the kit's opt-ins reads it */
+  --scheme: dark;
+
   /* ── surfaces ────────────────────────────────────────────────── */
   --background: #070d18;
   --card: #16233c;

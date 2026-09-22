@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 
+import { buttonVariants } from "../src/components/button";
 import { PROGRESS_INDICATOR, PROGRESS_TRACK } from "../src/generated/progress";
 import { SLIDER_RANGE, SLIDER_TRACK } from "../src/generated/slider";
-import { brandFromToml, readContract, readRules, renderPalette, type CssRule } from "../src/palette";
+import { brandFromToml, DERIVED_SCOPE, readContract, readRules, renderPalette, type CssRule } from "../src/palette";
 
 // The shipped sheet, not the repo-root source: a consumer imports this one.
 // Resolved from cwd rather than import.meta.url: jsdom rewrites the module URL
@@ -53,6 +54,21 @@ function token(name: string, scope: Scope): string {
   if (ref?.[1]) return token(ref[1], scope);
   if (!value || !/^#[0-9a-f]{6}$/i.test(value)) throw new Error(`--${name} is not a plain hex token in ${scope.label}`);
   return value.toLowerCase();
+}
+
+const derivedRule = readRules(sheet).find((r) => r.selector === DERIVED_SCOPE);
+
+/**
+ * `--ring` as painted in `scope`: the palette's own value when it pins one,
+ * else the contract's formula resolved against the palette (`var(--primary-ink)`
+ * today) — so a retune of either side is what gets measured.
+ */
+function ring(scope: Scope): string {
+  if (scope.rule.declarations.has("ring")) return token("ring", scope);
+  const formula = derivedRule?.declarations.get("ring");
+  const ref = formula && /^var\(--([a-z0-9-]+)\)$/.exec(formula);
+  if (!ref?.[1]) throw new Error(`the contract's --ring is not a plain reference: ${formula}`);
+  return token(ref[1], scope);
 }
 
 function luminance(hex: string): number {
@@ -106,6 +122,28 @@ describe.each(scopes)("palette $label", (scope) => {
 
     it.each(["background", "card"])("body text reads on %s (AA text)", (surface) => {
       expect(contrast(t("ink"), t(surface))).toBeGreaterThanOrEqual(4.5);
+    });
+  });
+
+  // lib#129. A filled control's focus indicator is the solid ring 2px off the
+  // control, so both of its edges are against the surface: ring | surface gap |
+  // fill. The fill-vs-surface edge is the "fill reads as a shape" floor above;
+  // this is the other one. The 50 % halo it replaced measured ~2:1 here.
+  describe("focus ring on a filled control", () => {
+    it.each(["background", "secondary", "card", "popover"])("the ring reads against %s (non-text 3:1)", (surface) => {
+      expect(contrast(ring(scope), t(surface))).toBeGreaterThanOrEqual(3);
+    });
+
+    it("stands off the fill, so the ring is never measured against it", () => {
+      for (const classes of [
+        buttonVariants({ variant: "primary" }),
+        buttonVariants({ variant: "destructive" }),
+        buttonVariants({ variant: "ghost", accent: "warn" }),
+      ]) {
+        expect(classes).toMatch(/\bfocus-visible:outline-offset-2\b/);
+        expect(classes).toMatch(/\bfocus-visible:outline-ring\b/);
+        expect(classes).not.toMatch(/focus-visible:ring-\[3px\]/);
+      }
     });
   });
 

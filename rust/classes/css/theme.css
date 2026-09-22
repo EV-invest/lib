@@ -324,15 +324,20 @@
     0 2px 4px -2px rgb(0 0 0 / 0.30);
   --shadow-overlay: 0 16px 48px -12px rgb(0 0 0 / 0.60);
 
-  /* The leading var() carries its own fallback: next/font (landing) sets
-   * `--font-inter` / `--font-playfair`; a Rust consumer `@font-face`s the same
-   * families itself. Without the in-var fallback an undefined leading var would
-   * invalidate the whole `font-family` and drop the browser to its default — so
-   * it must never resolve to guaranteed-invalid. */
-  --font-sans: var(--font-inter, "Inter"), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-playfair, "Playfair Display"), ui-serif, Georgia, serif;
-  --font-mono: var(--font-inter, "Inter"), ui-monospace, monospace;
-  --font-display: var(--font-playfair, "Playfair Display"), ui-serif, Georgia, serif;
+  /* The families are parameters: a brand scope sets `--brand-font-sans`,
+   * `--brand-font-display` and `--brand-font-mono` (evinvest-palette writes
+   * them from a brand file's [fonts]); `font-serif` is the display role under
+   * its older name. Unset, each falls through to EV: next/font (landing) sets
+   * `--font-inter` / `--font-playfair`, a Rust consumer `@font-face`s the same
+   * families itself. Every leading var() carries its own fallback — an
+   * undefined one would invalidate the whole `font-family` and drop the
+   * browser to its default, so it must never resolve to guaranteed-invalid.
+   * `inline` puts the var() chain in the utility itself, so it resolves on
+   * the element and a brand scope re-fonts its subtree. */
+  --font-sans: var(--brand-font-sans, var(--font-inter, "Inter")), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--brand-font-display, var(--font-playfair, "Playfair Display")), ui-serif, Georgia, serif;
+  --font-mono: var(--brand-font-mono, var(--font-inter, "Inter")), ui-monospace, monospace;
+  --font-display: var(--brand-font-display, var(--font-playfair, "Playfair Display")), ui-serif, Georgia, serif;
 
   /* The colour contract: every `--color-X: var(--X)` below is a name a palette
    * owes, except the derived ones in the next rule. `evinvest-palette` reads
