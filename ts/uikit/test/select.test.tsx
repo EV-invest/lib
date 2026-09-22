@@ -7,6 +7,7 @@ import {
   SelectContent,
   SelectItem,
   SelectGroup,
+  SelectLabel,
 } from "../src/components/select";
 
 function tree(props = {}) {
@@ -120,6 +121,78 @@ describe("Select", () => {
     );
     fireEvent.click(screen.getByRole("option", { name: "Kiwi" }));
     expect(document.querySelector('[data-slot="select-value"]')).toHaveTextContent("Kiwi");
+  });
+
+  it("walks past children that are not elements (an i18n object, a render function)", () => {
+    // what i18next's <Trans> leaves in the tree: an interpolation object
+    const Trans = ({ children }: { children?: unknown }) => <>{String((children as { count?: number })?.count)}</>;
+    const Fn = ({ children }: { children?: unknown }) => <>{typeof children === "function" ? "fn" : null}</>;
+    render(
+      <Select defaultValue="a">
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectLabel>
+            <Trans>{{ count: 3 } as unknown as React.ReactNode}</Trans>
+          </SelectLabel>
+          <Fn>{(() => null) as unknown as React.ReactNode}</Fn>
+          <SelectItem value="a">Apple</SelectItem>
+        </SelectContent>
+      </Select>,
+    );
+    expect(document.querySelector('[data-slot="select-value"]')).toHaveTextContent("Apple");
+  });
+
+  it("shows an item's text, not its markup, so no id inside it is rendered twice", () => {
+    render(
+      <Select defaultValue="a" defaultOpen>
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="a">
+            <span id="apple-flag">🍎</span> Apple
+          </SelectItem>
+        </SelectContent>
+      </Select>,
+    );
+    expect(document.querySelectorAll("#apple-flag")).toHaveLength(1);
+    expect(document.querySelector('[data-slot="select-value"]')).toHaveTextContent("🍎 Apple");
+  });
+
+  it("shows textValue when the item gives one", () => {
+    render(
+      <Select defaultValue="fr">
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="fr" textValue="France">
+            France <small>+33</small>
+          </SelectItem>
+        </SelectContent>
+      </Select>,
+    );
+    expect(document.querySelector('[data-slot="select-value"]')).toHaveTextContent(/^France$/);
+  });
+
+  it("updates the trigger when a wrapped item's label is first learnt, without a new selection", () => {
+    const Wrapped = () => <SelectItem value="k">Kiwi</SelectItem>;
+    render(
+      <Select defaultValue="k">
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <Wrapped />
+        </SelectContent>
+      </Select>,
+    );
+    const value = document.querySelector('[data-slot="select-value"]')!;
+    expect(value).toHaveTextContent("k");
+    fireEvent.click(screen.getByRole("combobox"));
+    expect(value).toHaveTextContent("Kiwi");
   });
 
   it("lets SelectValue children replace the label", () => {
