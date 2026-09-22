@@ -128,7 +128,10 @@ With `subject` resolving to a string, each experiment is bucketed by
 `pickVariantFor` and written to the **forwarded request only** (overriding any
 cookie the browser sent), so `getVariant` in the same render reads it and the
 response sets no cookie. A valid forced variant overrides the cookie and, in
-cookie mode, is persisted.
+cookie mode, is persisted. **In subject mode the only way to force a variant is
+`forceParam`**: the subject overrides any cookie, so a `writeVariant` from the
+client (or `DevAbPanel`) has no effect there. When you customise `cookie` here,
+pass the same object to the client's `writeVariant(key, value, options)`.
 
 ```tsx
 // a Server Component

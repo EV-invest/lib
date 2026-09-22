@@ -18,30 +18,15 @@ import {
   pickVariant,
   pickVariantFor,
   resolveVariant,
+  type AbCookieOptions,
   type ExperimentConfig,
   type ExperimentKey,
   type Variant,
 } from '../index';
 
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+export type { AbCookieOptions } from '../index';
 
-/**
- * Cookie parameters shared by {@link abProxy} and {@link getVariant}. Every
- * field is optional; the defaults are the historical `ab_<key>` cookie, 30-day
- * `maxAge`, `path: "/"`, `sameSite: "lax"`, no `domain`.
- */
-export type AbCookieOptions = {
-  /** Cookie-name prefix; the cookie is `${prefix}${key}`. Default `ab_`. */
-  readonly prefix?: string;
-  /** Lifetime in seconds. Default 30 days. */
-  readonly maxAge?: number;
-  /** Cookie path. Default `/`. */
-  readonly path?: string;
-  /** Cookie domain, e.g. `.brand.com` to share across location subdomains. */
-  readonly domain?: string;
-  /** SameSite policy. Default `lax`. */
-  readonly sameSite?: 'lax' | 'strict' | 'none';
-};
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
 /** Options for {@link getVariant}. Omitted = the plain cookie read. */
 export type GetVariantOptions = {

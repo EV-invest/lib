@@ -108,6 +108,26 @@ export function cookieName(key: string, prefix: string = DEFAULT_COOKIE_PREFIX):
 export const DEFAULT_COOKIE_PREFIX = 'ab_';
 
 /**
+ * Cookie parameters shared by `./next` (`abProxy`, `getVariant`) and `./react`
+ * (`writeVariant`). Lives in the zero-dep core so the client bundle never
+ * imports `next/server`. Every
+ * field is optional; the defaults are the historical `ab_<key>` cookie, 30-day
+ * `maxAge`, `path: "/"`, `sameSite: "lax"`, no `domain`.
+ */
+export type AbCookieOptions = {
+  /** Cookie-name prefix; the cookie is `${prefix}${key}`. Default `ab_`. */
+  readonly prefix?: string;
+  /** Lifetime in seconds. Default 30 days. */
+  readonly maxAge?: number;
+  /** Cookie path. Default `/`. */
+  readonly path?: string;
+  /** Cookie domain, e.g. `.brand.com` to share across location subdomains. */
+  readonly domain?: string;
+  /** SameSite policy. Default `lax`. */
+  readonly sameSite?: 'lax' | 'strict' | 'none';
+};
+
+/**
  * Weighted per-device variant pick. Weights need not sum to 1 — they are
  * normalized by their total — and the loop falls through to the last variant,
  * so floating-point drift can never return `undefined`.
