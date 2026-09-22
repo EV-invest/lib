@@ -98,8 +98,9 @@ export interface LocaleRegistry<L extends string> {
   /** The `hreflang` tag a locale is advertised under. */
   readonly hreflangOf: (locale: L) => string;
   /**
-   * Absolute URLs for one page keyed by `hreflang` tag, plus `x-default` — the
-   * `alternates.languages` value Next's `generateMetadata` wants.
+   * Absolute URLs for one page keyed by `hreflang` tag — the
+   * `alternates.languages` value Next's `generateMetadata` wants — plus
+   * `x-default` when the default locale is among those advertised.
    */
   readonly languageAlternates: (
     path: string,
@@ -157,6 +158,17 @@ export function createLocaleRegistry<const Locales extends LocaleList>(
   if (new Set(locales).size !== locales.length) {
     throw new Error(`locales listed more than once: [${locales.join(", ")}]`);
   }
+  // Checked on the effective tags, bare-code fallbacks included: two locales
+  // advertised under one tag collapse into one `alternates.languages` key and a
+  // crawler sees only one of them; `x-default` is reserved for the fallback.
+  const tags = locales.map(l => hreflangTags?.[l] ?? l);
+  if (tags.some(tag => tag.toLowerCase() === "x-default")) {
+    throw new Error(`"x-default" is reserved and cannot be a locale's hreflang`);
+  }
+  const lowered = tags.map(tag => tag.toLowerCase());
+  if (new Set(lowered).size !== lowered.length) {
+    throw new Error(`hreflang tags collide: [${tags.join(", ")}]`);
+  }
 
   const isLocale = (value: unknown): value is L =>
     typeof value === "string" && (locales as readonly string[]).includes(value);
@@ -194,12 +206,14 @@ export function createLocaleRegistry<const Locales extends LocaleList>(
   ): Record<string, string> => {
     const origin = siteUrl.replace(/\/+$/, "");
     const abs = (l: L) => `${origin}${localePath(l, path)}`;
-    return {
-      ...Object.fromEntries(only.map(l => [hreflangOf(l), abs(l)])),
-      // What a crawler serves a reader whose language matches none of ours —
-      // the same answer the site itself gives.
-      "x-default": abs(defaultLocale),
-    };
+    const languages: Record<string, string> = Object.fromEntries(
+      only.map(l => [hreflangOf(l), abs(l)]),
+    );
+    // What a crawler serves a reader whose language matches none of ours — the
+    // same answer the site itself gives. Only when the default is advertised:
+    // pointing x-default at a URL outside the cluster breaks its reciprocity.
+    if (only.includes(defaultLocale)) languages["x-default"] = abs(defaultLocale);
+    return languages;
   };
 
   const negotiate = (header: string | null | undefined, only: readonly L[] = locales): L => {

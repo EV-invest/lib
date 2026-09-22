@@ -124,11 +124,29 @@ describe("hreflang", () => {
     });
   });
 
-  it("tolerates a trailing slash on the origin and a subset of locales", () => {
-    expect(fr.languageAlternates("/", `${SITE}/`, ["en"])).toEqual({
-      en: "https://plombier.example/en",
+  it("tolerates a trailing slash on the origin", () => {
+    expect(fr.languageAlternates("/", `${SITE}/`)["x-default"]).toBe("https://plombier.example/fr");
+  });
+
+  it("omits x-default for a subset that does not advertise the default", () => {
+    expect(fr.languageAlternates("/", SITE, ["en"])).toEqual({ en: "https://plombier.example/en" });
+    expect(fr.languageAlternates("/", SITE, ["fr"])).toEqual({
+      "fr-FR": "https://plombier.example/fr",
       "x-default": "https://plombier.example/fr",
     });
+  });
+
+  it("rejects hreflang tags that collide or claim x-default", () => {
+    const labels = { fr: "Français", en: "English" };
+    expect(() =>
+      createLocaleRegistry({ locales: ["fr", "en"], labels, default: "fr", hreflang: { fr: "fr-FR", en: "FR-fr" } }),
+    ).toThrow(/collide/);
+    expect(() =>
+      createLocaleRegistry({ locales: ["fr", "en"], labels, default: "fr", hreflang: { en: "fr" } }),
+    ).toThrow(/collide/);
+    expect(() =>
+      createLocaleRegistry({ locales: ["fr", "en"], labels, default: "fr", hreflang: { en: "x-default" } }),
+    ).toThrow(/reserved/);
   });
 
   it("supports two regions of one language as distinct locales", () => {
@@ -204,6 +222,13 @@ describe("createNextI18n", () => {
         en: "https://plombier.example/en/contact",
         "x-default": "https://plombier.example/fr/contact",
       },
+    });
+  });
+
+  it("keeps x-default in the metadata for a subset, as it always has", () => {
+    expect(next.localeAlternatesMetadata("en", "/", SITE, ["en"]).languages).toEqual({
+      en: "https://plombier.example/en",
+      "x-default": "https://plombier.example/fr",
     });
   });
 

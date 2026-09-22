@@ -173,8 +173,9 @@ export function hreflangOf(locale: Locale): string {
 
 /**
  * Absolute URLs for one page keyed by `hreflang`, plus `x-default` pointing at
- * {@link DEFAULT_LOCALE} — ready for `alternates.languages` in Next's
- * `generateMetadata`. Every URL is absolute: Google ignores relative `hreflang`.
+ * {@link DEFAULT_LOCALE} when `locales` includes it — ready for
+ * `alternates.languages` in Next's `generateMetadata`. Every URL is absolute:
+ * Google ignores relative `hreflang`.
  *
  * @param path    - The locale-free root-relative path, e.g. `/team`.
  * @param siteUrl - Absolute origin; a trailing slash is tolerated.

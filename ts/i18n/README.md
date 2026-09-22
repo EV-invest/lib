@@ -141,7 +141,11 @@ served there.
 **`hreflang`.** Locale codes stay bare — they are URL segments and catalogue
 directories. A regional target (`fr-FR`, `fr-BE`) is only how the page is
 *advertised*, so it lives in this map and surfaces in `hreflangOf` and the
-`alternates.languages` keys.
+`alternates.languages` keys. Tags must be unique (bare-code fallbacks included,
+case-insensitively) and `x-default` is reserved — both throw at startup.
+`languageAlternates` adds `x-default` only when the locales it is given include
+the default; `localeAlternatesMetadata` in `./next` always adds it, as it
+always has.
 
 The subpaths bind to a registry the same way; each defaults to the generated
 one, which is what their free exports are:

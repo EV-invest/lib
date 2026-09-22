@@ -112,10 +112,18 @@ export function createNextI18n<L extends string>(registry: LocaleRegistry<L>): N
     path: string,
     siteUrl: string,
     locales: readonly L[] = registry.locales,
-  ): AlternatesMetadata => ({
-    canonical: `${siteUrl.replace(/\/+$/, "")}${registry.localePath(locale, path)}`,
-    languages: registry.languageAlternates(path, siteUrl, locales),
-  });
+  ): AlternatesMetadata => {
+    const origin = siteUrl.replace(/\/+$/, "");
+    return {
+      canonical: `${origin}${registry.localePath(locale, path)}`,
+      // x-default unconditionally, unlike `languageAlternates`: this has always
+      // emitted it for a subset too, and published callers rely on that.
+      languages: {
+        ...registry.languageAlternates(path, siteUrl, locales),
+        "x-default": `${origin}${registry.localePath(registry.defaultLocale, path)}`,
+      },
+    };
+  };
 
   return { localeStaticParams, localeRewrites, localeRedirects, localeAlternatesMetadata };
 }
