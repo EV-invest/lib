@@ -54,6 +54,10 @@ describe("the declared peers", () => {
         if (text.includes('import "server-only"')) imported.add("server-only");
       }
     }
-    expect([...imported].sort()).toEqual(Object.keys(manifest.peerDependencies).sort());
+    // The test runners the suites import are the brand's devDependencies, not
+    // peers: a peer counts as a production dependency for `npm audit`.
+    const runners = ["vitest", "@playwright/test"];
+    expect([...imported].filter(n => !runners.includes(n)).sort()).toEqual(Object.keys(manifest.peerDependencies).sort());
+    for (const r of runners) expect(manifest.peerDependencies[r], r).toBeUndefined();
   });
 });
