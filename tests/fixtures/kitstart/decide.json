@@ -1,5 +1,5 @@
 {
-  "source": "aquafix tests/l10n.test.ts as of Service-Arb/aquafix#13 (link mode in the path)",
+  "source": "aquafix tests/l10n.test.ts as of Service-Arb/aquafix#13 fcd7445 (link mode in the path, dead paths gone), plus unprefixed junk",
   "cases": [
     {
       "name": "bare apex, no header → default locale",
@@ -176,11 +176,11 @@
       }
     },
     {
-      "name": "passes /royat/nope",
+      "name": "passes /wp-login.php",
       "site": "aquafix",
       "request": {
         "host": "aquafix.top",
-        "pathname": "/royat/nope",
+        "pathname": "/wp-login.php",
         "query": "",
         "acceptLanguage": null,
         "cookieLang": null
@@ -411,8 +411,168 @@
         "cookieLang": null
       },
       "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": "_royat"
+      }
+    },
+    {
+      "name": "a dead sub-path of a page on a subdomain",
+      "site": "aquafix",
+      "request": {
+        "host": "royat.aquafix.top",
+        "pathname": "/en/prices/nope",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "en",
+        "location": "_royat"
+      }
+    },
+    {
+      "name": "a known place's dead page through the apex",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/fr/lyon-nord/nope",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": "lyon-nord"
+      }
+    },
+    {
+      "name": "an unknown place through the apex is the brand's 404",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/fr/nowhere",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": null
+      }
+    },
+    {
+      "name": "an unknown host-mode param is the brand's 404",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/fr/_nowhere/prices",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": null
+      }
+    },
+    {
+      "name": "the reserved segment alone is the brand's 404",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/fr/404",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": null
+      }
+    },
+    {
+      "name": "the 404's own target passes",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/fr/404/404",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
         "kind": "serve",
-        "pathname": "/fr/_royat/nope"
+        "pathname": "/fr/404/404"
+      }
+    },
+    {
+      "name": "a dead host-mode route",
+      "site": "aquafix",
+      "request": {
+        "host": "localhost:3000",
+        "pathname": "/fr/_royat/nope",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": "_royat"
+      }
+    },
+    {
+      "name": "junk without a language on the apex: default locale",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/royat/nope",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": null
+      }
+    },
+    {
+      "name": "junk without a language follows Accept-Language",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/admin",
+        "query": "",
+        "acceptLanguage": "en",
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "en",
+        "location": null
+      }
+    },
+    {
+      "name": "junk without a language on a subdomain follows the cookie",
+      "site": "aquafix",
+      "request": {
+        "host": "royat.aquafix.top",
+        "pathname": "/nope",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": "en"
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "en",
+        "location": "_royat"
       }
     },
     {
@@ -561,8 +721,56 @@
         "cookieLang": null
       },
       "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": "_paris"
+      }
+    },
+    {
+      "name": "single: a dead host-mode route",
+      "site": "cleaning",
+      "request": {
+        "host": "localhost:3000",
+        "pathname": "/fr/_paris/nope",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": "_paris"
+      }
+    },
+    {
+      "name": "single: junk without a language",
+      "site": "cleaning",
+      "request": {
+        "host": "clean.example",
+        "pathname": "/nope",
+        "query": "",
+        "acceptLanguage": "en",
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "en",
+        "location": "_paris"
+      }
+    },
+    {
+      "name": "single: the 404's own target passes",
+      "site": "cleaning",
+      "request": {
+        "host": "clean.example",
+        "pathname": "/fr/404/404",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
         "kind": "serve",
-        "pathname": "/fr/_paris/nope"
+        "pathname": "/fr/404/404"
       }
     },
     {

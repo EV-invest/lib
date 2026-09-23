@@ -7,7 +7,9 @@ import {
   createLocaleRegistry,
   defineSite,
   EVENTS,
-  memoByKey,
+  goneHeader,
+  gonePath,
+  parseGoneHeader,
   ogImageUrl,
   ogLocaleOf,
   parsePlaceParam,
@@ -18,6 +20,7 @@ import {
   sitemapFor,
   STOREFRONT_GATE,
 } from "../src/index";
+import { memoByKey } from "../src/core/memo";
 import { fixtureSite } from "./support/fixtures";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -130,5 +133,25 @@ describe("the core's promise", () => {
     const files = readdirSync(root, { recursive: true, encoding: "utf8" }).filter(f => /\.tsx?$/.test(f));
     const bad = files.filter(f => /from\s+["'](node:|next|react|server-only)/.test(readFileSync(join(root, f), "utf8")));
     expect(bad).toEqual([]);
+  });
+});
+
+describe("defineSite's reserved shapes", () => {
+  const site = fixtureSite("cleaning");
+  it("refuses a page suffix with a trailing slash, and the 404 slug", () => {
+    expect(() => defineSite({ ...site, pages: { home: "", prices: "/prices/" } })).toThrow(/must not end/);
+    const place = site.places[0];
+    if (!place) throw new Error("fixture");
+    expect(() => defineSite({ ...site, places: [{ ...place, slug: "404" }], topology: { kind: "single", place: "404" } })).toThrow(/reserved/);
+  });
+});
+
+describe("the gone header", () => {
+  it("round-trips, and reads anything malformed as nothing", () => {
+    expect(parseGoneHeader(goneHeader("fr", "_royat"))).toEqual({ locale: "fr", location: "_royat" });
+    expect(parseGoneHeader(goneHeader("en", null))).toEqual({ locale: "en" });
+    expect(parseGoneHeader(null)).toEqual({});
+    expect(parseGoneHeader("fr/a/b")).toEqual({});
+    expect(gonePath("fr")).toBe("/fr/404/404");
   });
 });

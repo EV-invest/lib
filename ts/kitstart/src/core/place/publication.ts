@@ -31,8 +31,13 @@ function filled(place: Place<string>, field: PublicationField): boolean {
   switch (field) {
     case "storefrontPhoto":
       return Boolean(front?.storefrontPhoto);
-    case "landmark":
-      return Boolean(front?.landmark) && Object.values(front?.landmark ?? {}).every(v => v.trim() !== "");
+    case "landmark": {
+      // In every language the place is named in — an empty `{}` says nothing.
+      const landmark: Readonly<Record<string, string>> | null = front?.landmark ?? null;
+      if (!landmark) return false;
+      const locales = Object.keys(place.name);
+      return locales.length > 0 && locales.every(l => (landmark[l] ?? "").trim() !== "");
+    }
     case "serviceArea":
       return place.serviceArea !== null && place.serviceArea.length > 0;
     case "hours":
