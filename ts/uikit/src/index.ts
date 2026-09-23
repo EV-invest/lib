@@ -112,7 +112,9 @@ export type {
 } from "./components/footer";
 
 export { Input } from "./components/input";
+export type { InputProps, InputSize } from "./components/input";
 export { Textarea } from "./components/textarea";
+export type { TextareaProps, TextareaSize } from "./components/textarea";
 export { Label } from "./components/label";
 
 export { Logo } from "./components/logo";
@@ -580,6 +582,7 @@ export type {
   SelectItemProps,
   SelectProps,
   SelectTriggerProps,
+  SelectTriggerSize,
   SelectValueProps,
 } from "./components/select";
 export {
@@ -589,6 +592,7 @@ export {
 } from "./components/native-select";
 export type {
   NativeSelectProps,
+  NativeSelectSize,
 } from "./components/native-select";
 export {
   Command,

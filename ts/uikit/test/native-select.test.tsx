@@ -83,6 +83,16 @@ describe("NativeSelect", () => {
     expect(wrapper).not.toHaveClass("w-full");
   });
 
+  it("grows to 48px at lg, keeping the arrow clear of the text", () => {
+    const { container } = render(<NativeSelect size="lg" />);
+    const el = select(container);
+    expect(el).toHaveAttribute("data-size", "lg");
+    expect(el).toHaveClass("h-12", "pl-4", "pr-11", "md:text-base");
+    expect(el).not.toHaveClass("h-9");
+    expect(el).not.toHaveClass("md:text-sm");
+    expect(container.querySelector("svg")).toHaveClass("right-4");
+  });
+
   it("forwards its ref to the <select>", () => {
     const ref = React.createRef<HTMLSelectElement>();
     render(<NativeSelect ref={ref} />);
