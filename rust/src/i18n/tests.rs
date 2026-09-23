@@ -533,6 +533,8 @@ fn the_default_locale_always_sees_everything() {
 
 // ── interop with the TypeScript mirror ───────────────────────────────────────
 
+type PluralCase = (Locale, &'static str, [(f64, &'static str); 3]);
+
 #[test]
 fn renders_the_real_site_catalogue_plurals_identically_to_intl() {
 	// These five patterns are copied verbatim from site_conductor's shipped
@@ -540,7 +542,7 @@ fn renders_the_real_site_catalogue_plurals_identically_to_intl() {
 	// `Intl.PluralRules` + `Intl.NumberFormat` in the browser. If this ever
 	// diverges, a catalogue authored against one half is wrong in the other —
 	// which is the entire failure mode a shared registry exists to prevent.
-	let cases: [(Locale, &str, [(f64, &str); 3]); 5] = [
+	let cases: [PluralCase; 5] = [
 		(Locale::En, "{count, plural, one {# role} other {# roles}}", [(1.0, "1 role"), (2.0, "2 roles"), (5.0, "5 roles")]),
 		(
 			Locale::Ru,
