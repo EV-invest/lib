@@ -194,6 +194,62 @@
         # a host-built directory has to reach a sandboxed build somehow.
         distPath = builtins.getEnv "EV_VISUAL_DIST";
 
+        # ── Visual regression (ts/kitstart/test/visual) ─────────────────────
+        # The kitstart widget gallery, on the same pinned runner, browsers, fonts
+        # and Tailwind engine as the kit's suite. The pages are rendered on the
+        # host by the gallery test (react-dom/server); only the capture is here.
+        kitstartSnapshotsFrom =
+          dist:
+          pkgs.runCommand "kitstart-visual-snapshots"
+            (
+              visual.env
+              // {
+                nativeBuildInputs = [ pkgs.playwright-test pkgs.python3 ];
+              }
+            )
+            ''
+              mkdir -p "$out" "$NIX_BUILD_TOP/run"
+              cd "$NIX_BUILD_TOP/run"
+              cp -r ${dist} dist
+              cp ${./ts/kitstart/test/visual/gallery.spec.ts} gallery.spec.ts
+              cp ${./ts/kitstart/test/visual/playwright.config.ts} playwright.config.ts
+              cp ${./ts/kitstart/test/visual/package.json} package.json
+              ln -s ${visual.nodeModules} node_modules
+              export HOME="$NIX_BUILD_TOP" KITSTART_SNAPSHOT_OUT="$out"
+              playwright test
+            '';
+
+        kitstartDistPath = builtins.getEnv "KITSTART_VISUAL_DIST";
+
+        kitstart-visual-app = pkgs.writeShellApplication {
+          name = "kitstart-visual";
+          runtimeInputs = [ pkgs.nodejs pkgs.git pkgs.diffutils ];
+          text = ''
+            cd "$(git rev-parse --show-toplevel)/ts/kitstart"
+            shots=test/visual/__screenshots__
+            # kitstart links the workspace kit and marketing layer; a linked
+            # directory ships whatever `dist/` it has, so build them first.
+            for pkg in uikit marketing; do
+              (cd "../$pkg" && { [ -d node_modules ] || npm ci --ignore-scripts; } && npm run build >/dev/null)
+            done
+            [ -d node_modules ] || npm ci --ignore-scripts
+            KITSTART_VISUAL_OUT="$PWD/test/visual/dist" npx vitest run test/visual/gallery.node.test.tsx
+            cp ${visual.tailwind} test/visual/dist/tailwind.js
+
+            dist=$(nix store add-path test/visual/dist --name kitstart-visual-dist)
+            out=$(KITSTART_VISUAL_DIST="$dist" nix build --impure --no-link --print-out-paths \
+              ".#packages.${linuxSystem}.kitstart-visual-snapshots")
+
+            if [ "''${1-}" = "--update" ]; then
+              rm -f "$shots"/*.png
+              install -m644 "$out"/*.png "$shots"/
+              echo "kitstart baselines updated from $out"
+            else
+              diff -rq --exclude=README.md "$out" "$shots"
+            fi
+          '';
+        };
+
         visual-app = pkgs.writeShellApplication {
           name = "visual";
           # `mold` because .cargo/config.toml links through it on linux; without
@@ -246,6 +302,22 @@
           type = "app";
           program = "${visual-app}/bin/visual";
         };
+
+        # `nix run .#kitstart-visual [-- --update]`: render the widget gallery,
+        # capture it on linux, and compare byte for byte.
+        apps.kitstart-visual = {
+          type = "app";
+          program = "${kitstart-visual-app}/bin/kitstart-visual";
+        };
+
+        packages.kitstart-visual-snapshots =
+          if kitstartDistPath == "" then
+            pkgs.runCommand "kitstart-visual-snapshots-no-dist" { } ''
+              echo "KITSTART_VISUAL_DIST is unset — this is built through \`nix run .#kitstart-visual\`." >&2
+              exit 1
+            ''
+          else
+            kitstartSnapshotsFrom (builtins.storePath kitstartDistPath);
 
         packages.visual-snapshots =
           if distPath == "" then

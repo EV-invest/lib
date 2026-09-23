@@ -15,13 +15,36 @@ stays in the brand.
 |---|---|---|
 | `@evinvest/kitstart` | anywhere (edge, client, server) | `defineSite`, places, routing (`createRouting`), the lead schema and funnel (`createAcceptLead`), antispam, JSON-LD / sitemap / robots builders, analytics events, the copy contract |
 | `@evinvest/kitstart/server` | Node, `server-only` | `createServerEnv`, `createPlaceSource`, the lead store (`openLeadStore` by `LEADS_DB_URL`: `sqlite:` today, `postgres://` a stub that refuses at boot), `checkLeadStore`, `leadNotifier`, `sendMail`, `clientKey` |
-
 | `@evinvest/kitstart/proxy` | edge | `createProxy(site)`, `PROXY_MATCHER` |
 | `@evinvest/kitstart/next` | Next server (routes, RSC) | `quoteRoute`, `sitemapRoute`, `robotsRoute`, `ogRoute`, `healthRoute`, `createPlaceLoader`, `loadLocale`, `placeMetadata` / `brandMetadata` / `statusMetadata`, `metadataBase` |
 | `@evinvest/kitstart/next/config` | `next.config.ts`, `vitest.config.ts` | `withLanding`, `buildEnv` and the `assets/` readers |
+| `@evinvest/kitstart/react` | either side | `LangSwitch`, `CallBar`, `StatusScreen`, `PlaceDirectory`, `AreaChips`, `Coverage`, `MapFacade` (client), `QuoteFormShell`, `Faq`, `AnalyticsBoundary` (client), plus the kit and marketing pieces a landing composes with |
 
-More subpaths (`./react`, `./testing`) land in the following PRs of the
-stack.
+`./testing` lands in the next PR of the stack.
+
+## Widgets
+
+Structural only — where behaviour matters more than look. Marketing sections
+(hero, prices, reviews…) stay in the brand until two brands hold the same one.
+Each widget is a Server Component unless it needs the browser (`MapFacade`,
+`AnalyticsBoundary`), styled with the kit's token roles only, restyled through
+`className`. `QuoteFormShell` is headless: it owns the hidden fields and the
+honeypot the funnel reads; the visible fields are the brand's children.
+`StatusScreen` takes the brand's name and marks as props, so the client error
+boundary never imports the site config.
+
+Tailwind v4 does not scan `node_modules`; the brand's `globals.css` names the
+package:
+
+```css
+/* app/globals.css; from src/app/ it is ../../node_modules/… */
+@source "../node_modules/@evinvest/kitstart/dist";
+```
+
+Visual baselines: `test/visual/` renders each widget to a static page
+(`react-dom/server` over the kit's `tokens.css`), and `nix run
+.#kitstart-visual` captures and compares them byte for byte on Linux. PNGs
+come from the `kitstart-visual` CI artifact only.
 
 ## Thin `app/` routes
 
@@ -68,8 +91,9 @@ chooses per visitor answer `Cache-Control: private, no-store`.
 - **A page's place loader never throws on the live source.** Pages are cached
   (ISR); a cold render that throws is Next's bare `Internal Server Error`
   with no phone on it. A 5xx or an unreachable source serves the baked place
-  (`noindex` until the gate fields are back); only a 404 is "gone". The
-  sitemap is the one strict reader (`listPlaces(locale, "sitemap")` throws).
+  (`noindex` until the gate fields are back); only a 410, or a 404 in the
+  source's own JSON, withdraws a place — a bare 404 is an ingress, not the
+  source. The sitemap is the one strict reader (`getPlaceStrict` throws).
 - **The lead is durable before anything else happens.** Every `LeadStore`
   adapter passes `describeLeadStoreContract` and migrates itself to
   `LEAD_SCHEMA_VERSION` on open. SQLite keeps the Rust server's columns

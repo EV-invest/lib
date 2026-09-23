@@ -11,6 +11,8 @@ name: kitstart
       - ts/marketing/**
       - tests/fixtures/kitstart/**
       - .github/workflows/kitstart.yml
+      - flake.nix
+      - flake.lock
   push:
     branches: [main]
     paths:
@@ -61,3 +63,38 @@ jobs:
         run: npm run build
       - name: Verify the tarball
         run: node scripts/verify-pack.mjs
+
+  # Renders the widget gallery on the pinned linux stack, publishes the PNGs as
+  # the `kitstart-visual` artifact (the only honest source of baselines — a mac
+  # renders different glyphs), and fails when they differ from the committed
+  # ones. To accept a change:
+  #
+  #   rm -f ts/kitstart/test/visual/__screenshots__/*.png
+  #   gh run download <run-id> -n kitstart-visual -D ts/kitstart/test/visual/__screenshots__
+  visual:
+    name: nix run .#kitstart-visual
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: 'lazy-trees = true'
+      - name: Render and capture
+        run: nix run .#kitstart-visual -- --update
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: kitstart-visual
+          path: ts/kitstart/test/visual/__screenshots__/*.png
+          if-no-files-found: error
+          retention-days: 14
+      - name: Compare with the committed baselines
+        run: |
+          changed="$(git status --porcelain -- ts/kitstart/test/visual/__screenshots__)"
+          if [ -n "$changed" ]; then
+            echo "$changed"
+            echo "::error::widget baselines differ from this render — review the kitstart-visual artifact and commit it if intended"
+            exit 1
+          fi

@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { createLocaleRegistry } from "@evinvest/i18n";
 import {
   defineSite,
@@ -14,10 +15,10 @@ import {
  * The fixtures the TS and Rust ports share, at the lib root. A site there is
  * data only; this turns one into a `Site` the way a brand's `site.ts` would.
  */
-const ROOT = new URL("../../../../tests/fixtures/kitstart/", import.meta.url);
+const ROOT = join(import.meta.dirname, "../../../../tests/fixtures/kitstart");
 
 export function fixture<T = unknown>(name: string): T {
-  return JSON.parse(readFileSync(new URL(name, ROOT), "utf8")) as T;
+  return JSON.parse(readFileSync(join(ROOT, name), "utf8")) as T;
 }
 
 type Locale = "fr" | "en";
