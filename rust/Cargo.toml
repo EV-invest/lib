@@ -88,6 +88,13 @@ experiments = ["dep:dioxus", "dep:js-sys", "dep:web-sys", "dep:wasm-bindgen"]
 # and a shipped bundle extracts nothing.
 i18n = ["dep:inventory"]
 
+# The pure core of a small-business landing (mirrors the core of
+# `@evinvest/kitstart`): the place model, the publication gate, request routing,
+# schema.org JSON-LD, `<head>` metadata, sitemap/robots, the form's spam
+# barriers and contact links. No I/O and wasm-safe. `i18n` for its locale
+# registry; `jiff` to read a live rating's timestamp against the caller's `now`.
+kitstart = ["i18n", "dep:jiff"]
+
 # Typed env settings (mirrors `@evinvest/settings`). The `settings!` macro reads
 # env vars into a validated struct: aggregate error reporting, `= "literal"`
 # defaults, `Option` = optional, `#[secret]` redaction. Env-only by design — no
@@ -179,7 +186,7 @@ wasm-bindgen-futures = { version = "0.4", optional = true }
 web-sys = { version = "0.3", optional = true, features = ["Document", "Window", "HtmlDocument", "Storage", "Navigator", "Element", "TransitionEvent", "Location"] }
 
 [dev-dependencies]
-ev_lib = { path = ".", features = ["architecture", "uikit", "analytics", "error_monitoring", "experiments", "settings", "types"] }
+ev_lib = { path = ".", features = ["architecture", "uikit", "analytics", "error_monitoring", "experiments", "settings", "types", "i18n", "kitstart"] }
 
 async-trait.workspace = true
 axum = { workspace = true, features = ["ws"] }

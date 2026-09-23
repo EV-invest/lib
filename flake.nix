@@ -396,9 +396,18 @@
                 python3
                 sccache
               ]
-              ++ lib.optionals stdenv.isLinux [ mold ]
+              ++ lib.optionals stdenv.isLinux [
+                mold
+                pkg-config
+              ]
               ++ pre-commit-check.enabledPackages
               ++ combined.enabledPackages;
+
+              # Linux: the test build links `sentry`/`reqwest` (the crate's own
+              # dev-dependency turns on `error_monitoring`), whose default TLS is
+              # native-tls, i.e. openssl-sys — it finds the headers through
+              # pkg-config. macOS uses the system Security framework instead.
+              buildInputs = lib.optionals stdenv.isLinux [ openssl ];
 
               env = visual.env // {
                 RUST_BACKTRACE = 1;

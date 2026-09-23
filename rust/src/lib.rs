@@ -44,6 +44,11 @@
 //!   which is what turns `t!` sites into that catalogue. Reads the same
 //!   `messages/<locale>/*.json` as the TypeScript half, so a catalogue is
 //!   portable between them. See [`i18n`].
+//! - **`kitstart`** — the pure core of a small-business landing (mirrors the core
+//!   of `@evinvest/kitstart`): the place model, the publication gate, request
+//!   routing, schema.org JSON-LD, `<head>` metadata, sitemap and robots, the
+//!   form's spam barriers. No I/O, wasm-safe; pinned with the TypeScript port to
+//!   the fixtures in `tests/fixtures/kitstart/`. See [`kitstart`].
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
@@ -72,6 +77,9 @@ pub mod experiments;
 
 #[cfg(feature = "i18n")]
 pub mod i18n;
+
+#[cfg(feature = "kitstart")]
+pub mod kitstart;
 
 #[cfg(feature = "settings")]
 pub mod settings;

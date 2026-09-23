@@ -147,13 +147,13 @@ jobs:
           extra-conf: 'lazy-trees = true'
       - name: Fixtures
         if: steps.port.outputs.present == 'true'
-        run: nix develop --command env RUSTC_WRAPPER= cargo test --features kitstart kitstart
+        run: nix develop --command env RUSTC_WRAPPER= cargo test -p ev_lib --features kitstart kitstart
       - name: Clippy
         if: steps.port.outputs.present == 'true'
-        run: nix develop --command env RUSTC_WRAPPER= cargo clippy --features kitstart --all-targets -- -D warnings
+        run: nix develop --command env RUSTC_WRAPPER= cargo clippy -p ev_lib --features kitstart --all-targets -- -D warnings
       - name: wasm32
         if: steps.port.outputs.present == 'true'
-        run: nix develop --command env RUSTC_WRAPPER= cargo check --target wasm32-unknown-unknown --no-default-features --features kitstart
+        run: nix develop --command env RUSTC_WRAPPER= cargo check -p ev_lib --target wasm32-unknown-unknown --no-default-features --features kitstart
 
   # Renders the widget gallery on the pinned linux stack, publishes the PNGs as
   # the `kitstart-visual` artifact (the only honest source of baselines — a mac

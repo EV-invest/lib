@@ -13,7 +13,7 @@ lib/                 (repo: EV-invest/lib)
 ├── tokens.css       the shared design tokens, one copy for both ports
 ├── rust/            the crate (sources); one library per Cargo feature
 │   ├── Cargo.toml
-│   ├── src/{lib.rs, architecture/, uikit/, analytics/, error_monitoring/, experiments/, settings/, otel/}
+│   ├── src/{lib.rs, architecture/, uikit/, analytics/, error_monitoring/, experiments/, settings/, otel/, i18n/, kitstart/}
 │   └── tests/
 ├── ts/              TypeScript packages, one directory per library
 │   ├── architecture/

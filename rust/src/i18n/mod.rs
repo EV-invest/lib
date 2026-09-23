@@ -16,7 +16,9 @@
 //! site, the cabinet and every MFE, and having one place they are declared is the
 //! entire point of putting this in a shared library. Helpers that iterate locales
 //! still take a `locales` slice, so a surface shipping a subset is not forced to
-//! claim all five.
+//! claim all five. A surface outside that set — a brand landing that is `fr` by
+//! default and prefixes every locale — builds a [`LocaleRegistry`] over its own
+//! list and gets the same URL contract and negotiation.
 //!
 //! **Formatting numbers and money is deliberately NOT this module's job.** The
 //! formatter supports `plural` and `select` but not `number`, `date` or
@@ -49,11 +51,13 @@ use std::collections::BTreeMap;
 mod format;
 mod plural;
 pub mod policy;
+mod registry;
 #[cfg(test)]
 mod tests;
 
 pub use format::{MessageValue, MessageValues, format_message};
 pub use plural::PluralCategory;
+pub use registry::{LocaleRegistry, LocaleRegistryConfig, RegistryError};
 
 /// The locales EV publishes, in the order they are offered to a reader.
 /// `En` is first because it is both the default and the authored source.
@@ -294,27 +298,7 @@ pub fn negotiate(header: Option<&str>, locales: &[Locale]) -> Locale {
 	let Some(header) = header else {
 		return DEFAULT_LOCALE;
 	};
-
-	let mut ranked: Vec<(String, f64)> = header
-		.split(',')
-		.filter_map(|part| {
-			let mut params = part.trim().split(';');
-			let tag = params.next().unwrap_or("").trim().to_ascii_lowercase();
-			let quality = params
-				.map(str::trim)
-				.find_map(|p| p.strip_prefix("q="))
-				// A malformed q= sorts last rather than poisoning the comparison.
-				.map_or(1.0, |q| q.parse::<f64>().unwrap_or(0.0));
-			// q=0 is an explicit refusal of that language, not a weak preference.
-			(!tag.is_empty() && quality > 0.0).then_some((tag, quality))
-		})
-		.collect();
-
-	// Stable sort: equal q-values keep the client's stated order, which is the
-	// tie-break the header itself intends.
-	ranked.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-
-	for (tag, _) in ranked {
+	for tag in ranked_tags(header) {
 		// "ru-RU" and "ru" both match the "ru" catalogue.
 		let base = tag.split('-').next().unwrap_or("");
 		if let Some(hit) = locales.iter().find(|l| l.code() == tag || l.code() == base) {
@@ -326,6 +310,32 @@ pub fn negotiate(header: Option<&str>, locales: &[Locale]) -> Locale {
 		}
 	}
 	DEFAULT_LOCALE
+}
+
+/// The language tags of an `Accept-Language` header, lowercased, best first.
+/// Shared by [`negotiate`] and [`LocaleRegistry::negotiate`] so the two cannot
+/// rank one header differently.
+fn ranked_tags(header: &str) -> Vec<String> {
+	let mut ranked: Vec<(String, f64)> = header
+		.split(',')
+		.filter_map(|part| {
+			let mut params = part.trim().split(';');
+			let tag = params.next().unwrap_or("").trim().to_ascii_lowercase();
+			let quality = params
+				.map(str::trim)
+				.find_map(|p| p.strip_prefix("q="))
+				// A malformed or non-finite q= (`inf`, `NaN` — Rust parses both) is
+				// dropped rather than outranking every real preference.
+				.map_or(1.0, |q| q.parse::<f64>().ok().filter(|q| q.is_finite()).unwrap_or(0.0));
+			// q=0 is an explicit refusal of that language, not a weak preference.
+			(!tag.is_empty() && quality > 0.0).then_some((tag, quality))
+		})
+		.collect();
+
+	// Stable sort: equal q-values keep the client's stated order, which is the
+	// tie-break the header itself intends.
+	ranked.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+	ranked.into_iter().map(|(tag, _)| tag).collect()
 }
 
 /// Every locale's URL for one page — the shape an `hreflang` cluster wants.
