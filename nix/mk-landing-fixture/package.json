@@ -1,0 +1,9 @@
+{
+  "name": "mk-landing-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A stand-in brand for `lib.mkLanding`'s own check: its `build` writes the files a Next standalone build leaves, so the flake plumbing is exercised without a Next install.",
+  "scripts": {
+    "build": "node build.mjs"
+  }
+}
