@@ -68,6 +68,20 @@ page how to write its links through the route it rewrites to:
 
 `parsePlaceParam("_royat")` reads the mode back out of the `[location]` param.
 
+## Publishing
+
+`package.json` says `0.0.0` on purpose: `nix run .#publish -- minor` bumps it
+to `0.1.0`, the version `template/` asks for (`^0.1.0`). kitstart's peers
+must be on the registry first, so a release is two runs:
+
+1. `nix run .#publish -- minor --npm-only --only @evinvest/uikit --only @evinvest/marketing`,
+   then wait until `npm view @evinvest/uikit version` answers the new one;
+2. `nix run .#publish -- minor --npm-only --only @evinvest/kitstart`.
+
+The first publish of a new name in the scope needs an automation or classic
+token: a granular token cannot create a name. Bump the lib flake revision a
+brand pins (`mkLanding`) in the same PR as its npm version.
+
 ## Shared fixtures with Rust
 
 `tests/fixtures/kitstart/` at the repo root holds the site configs, routing
