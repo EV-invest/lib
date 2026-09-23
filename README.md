@@ -88,7 +88,9 @@ TS packages live under [`ts/`](ts/), one directory per library, each with its ow
 (Sentry), [`ts/experiments/`](ts/experiments/) (A/B testing),
 [`ts/settings/`](ts/settings/) (typed env settings),
 [`ts/marketing/`](ts/marketing/) (the landing-page layer over the kit — motion,
-form harness, contact-link tracking; no Cargo counterpart), and
+form harness, contact-link tracking; no Cargo counterpart),
+[`ts/kitstart/`](ts/kitstart/) (landing-site machinery for local-service brands —
+routing, places, the lead funnel, SEO; the Rust `kitstart` feature mirrors its core), and
 [`ts/i18n/`](ts/i18n/) (five-locale i18n — the one package with no Cargo
 counterpart yet).
 
