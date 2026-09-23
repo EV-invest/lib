@@ -202,46 +202,499 @@ export {
 } from "./components/table";
 
 // Tier B — self-contained interactive components.
-export * from "./components/accordion";
-export * from "./components/collapsible";
-export * from "./components/container";
-export * from "./components/band";
-export * from "./components/tabs";
-export * from "./components/toggle";
-export * from "./components/toggle-group";
-export * from "./components/switch";
-export * from "./components/checkbox";
-export * from "./components/radio-group";
-export * from "./components/slider";
-export * from "./components/scroll-area";
-export * from "./components/sidebar";
-export * from "./components/carousel";
-export * from "./components/input-otp";
+export {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "./components/accordion";
+export type {
+  AccordionItemProps,
+  AccordionProps,
+} from "./components/accordion";
+export {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "./components/collapsible";
+export type {
+  CollapsibleProps,
+} from "./components/collapsible";
+export {
+  Container,
+} from "./components/container";
+export type {
+  ContainerProps,
+} from "./components/container";
+export {
+  Check,
+  Display,
+  Eyebrow,
+  Prose,
+  Section,
+  SectionHead,
+  Stat,
+} from "./components/band";
+export type {
+  Polarity,
+  SectionHeadProps,
+  SectionProps,
+  StatProps,
+  Surface,
+} from "./components/band";
+export {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "./components/tabs";
+export type {
+  TabsContentProps,
+  TabsProps,
+  TabsTriggerProps,
+} from "./components/tabs";
+export {
+  Toggle,
+  toggleVariants,
+} from "./components/toggle";
+export type {
+  ToggleProps,
+  ToggleSize,
+  ToggleVariant,
+  ToggleVariantsOptions,
+} from "./components/toggle";
+export {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "./components/toggle-group";
+export type {
+  ToggleGroupItemProps,
+  ToggleGroupProps,
+} from "./components/toggle-group";
+export {
+  Switch,
+} from "./components/switch";
+export type {
+  SwitchProps,
+} from "./components/switch";
+export {
+  Checkbox,
+} from "./components/checkbox";
+export type {
+  CheckboxProps,
+} from "./components/checkbox";
+export {
+  RadioGroup,
+  RadioGroupItem,
+} from "./components/radio-group";
+export type {
+  RadioGroupItemProps,
+  RadioGroupProps,
+} from "./components/radio-group";
+export {
+  Slider,
+} from "./components/slider";
+export type {
+  SliderProps,
+} from "./components/slider";
+export {
+  ScrollArea,
+  ScrollBar,
+} from "./components/scroll-area";
+export type {
+  ScrollBarOrientation,
+  ScrollBarProps,
+} from "./components/scroll-area";
+export {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarSeparator,
+  SidebarTrigger,
+  useSidebar,
+} from "./components/sidebar";
+export type {
+  SidebarGroupLabelProps,
+  SidebarMenuButtonProps,
+  SidebarMenuButtonSize,
+  SidebarProps,
+  SidebarProviderProps,
+} from "./components/sidebar";
+export {
+  Carousel,
+  CarouselContent,
+  CarouselEdgeFade,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "./components/carousel";
+export type {
+  CarouselProps,
+} from "./components/carousel";
+export {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+} from "./components/input-otp";
+export type {
+  InputOTPProps,
+  InputOTPSlotProps,
+} from "./components/input-otp";
 
 // Tier C — overlay/portal components.
-export * from "./components/tooltip";
-export * from "./components/popover";
-export * from "./components/info-tip";
-export * from "./components/hover-card";
-export * from "./components/dropdown-menu";
-export * from "./components/context-menu";
-export * from "./components/menubar";
-export * from "./components/navigation-menu";
-export * from "./components/dialog";
-export * from "./components/alert-dialog";
-export * from "./components/sheet";
-export * from "./components/drawer";
-export * from "./components/select";
-export * from "./components/native-select";
-export * from "./components/command";
+export {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./components/tooltip";
+export type {
+  TooltipContentProps,
+  TooltipProps,
+  TooltipProviderProps,
+  TooltipTriggerProps,
+} from "./components/tooltip";
+export {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+  PopoverTrigger,
+} from "./components/popover";
+export type {
+  PopoverAnchorProps,
+  PopoverContentProps,
+  PopoverProps,
+  PopoverTriggerProps,
+} from "./components/popover";
+export {
+  InfoTip,
+  InfoTipContent,
+  InfoTipTrigger,
+} from "./components/info-tip";
+export type {
+  InfoTipContentProps,
+  InfoTipProps,
+  InfoTipTriggerProps,
+} from "./components/info-tip";
+export {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "./components/hover-card";
+export type {
+  HoverCardContentProps,
+  HoverCardProps,
+  HoverCardTriggerProps,
+} from "./components/hover-card";
+export {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuPortal,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "./components/dropdown-menu";
+export type {
+  DropdownMenuCheckboxItemProps,
+  DropdownMenuContentProps,
+  DropdownMenuItemProps,
+  DropdownMenuLabelProps,
+  DropdownMenuProps,
+  DropdownMenuRadioGroupProps,
+  DropdownMenuRadioItemProps,
+  DropdownMenuSubProps,
+  DropdownMenuSubTriggerProps,
+  DropdownMenuTriggerProps,
+} from "./components/dropdown-menu";
+export {
+  ContextMenu,
+  ContextMenuCheckboxItem,
+  ContextMenuContent,
+  ContextMenuGroup,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuPortal,
+  ContextMenuRadioGroup,
+  ContextMenuRadioItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from "./components/context-menu";
+export type {
+  ContextMenuCheckboxItemProps,
+  ContextMenuItemProps,
+  ContextMenuLabelProps,
+  ContextMenuProps,
+  ContextMenuRadioGroupProps,
+  ContextMenuRadioItemProps,
+  ContextMenuSubProps,
+  ContextMenuSubTriggerProps,
+  ContextMenuTriggerProps,
+} from "./components/context-menu";
+export {
+  Menubar,
+  MenubarCheckboxItem,
+  MenubarContent,
+  MenubarGroup,
+  MenubarItem,
+  MenubarLabel,
+  MenubarMenu,
+  MenubarRadioGroup,
+  MenubarRadioItem,
+  MenubarSeparator,
+  MenubarShortcut,
+  MenubarSub,
+  MenubarSubContent,
+  MenubarSubTrigger,
+  MenubarTrigger,
+} from "./components/menubar";
+export type {
+  MenubarMenuProps,
+  MenubarRadioGroupProps,
+  MenubarSubProps,
+} from "./components/menubar";
+export {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuIndicator,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  NavigationMenuViewport,
+  navigationMenuTriggerStyle,
+} from "./components/navigation-menu";
+export type {
+  NavigationMenuItemProps,
+} from "./components/navigation-menu";
+export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+} from "./components/dialog";
+export type {
+  DialogCloseProps,
+  DialogContentProps,
+  DialogOverlayProps,
+  DialogPortalProps,
+  DialogProps,
+  DialogTriggerProps,
+} from "./components/dialog";
+export {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./components/alert-dialog";
+export type {
+  AlertDialogActionProps,
+  AlertDialogCancelProps,
+  AlertDialogContentProps,
+  AlertDialogOverlayProps,
+  AlertDialogProps,
+  AlertDialogTriggerProps,
+} from "./components/alert-dialog";
+export {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetOverlay,
+  SheetTitle,
+  SheetTrigger,
+} from "./components/sheet";
+export type {
+  SheetCloseProps,
+  SheetContentProps,
+  SheetOverlayProps,
+  SheetProps,
+  SheetTriggerProps,
+} from "./components/sheet";
+export {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerOverlay,
+  DrawerTitle,
+  DrawerTrigger,
+} from "./components/drawer";
+export type {
+  DrawerCloseProps,
+  DrawerDirection,
+  DrawerProps,
+  DrawerTriggerProps,
+} from "./components/drawer";
+export {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "./components/select";
+export type {
+  SelectContentProps,
+  SelectItemProps,
+  SelectProps,
+  SelectTriggerProps,
+  SelectValueProps,
+} from "./components/select";
+export {
+  NativeSelect,
+  NativeSelectGroup,
+  NativeSelectOption,
+} from "./components/native-select";
+export type {
+  NativeSelectProps,
+} from "./components/native-select";
+export {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
+} from "./components/command";
+export type {
+  CommandDialogProps,
+  CommandGroupProps,
+  CommandItemProps,
+  CommandProps,
+} from "./components/command";
 
 // Tier D — heavy engines (dep-light: see README Limitations).
-export * from "./components/chart";
-export * from "./components/calendar";
-export * from "./components/date-time-picker";
-export * from "./components/sonner";
-export * from "./components/form";
-export * from "./components/resizable";
+export {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartStyle,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "./components/chart";
+export type {
+  ChartConfig,
+  ChartItem,
+} from "./components/chart";
+export {
+  Calendar,
+} from "./components/calendar";
+export type {
+  CalendarProps,
+} from "./components/calendar";
+export {
+  DateTimePicker,
+} from "./components/date-time-picker";
+export type {
+  DateTimePickerLabels,
+  DateTimePickerProps,
+} from "./components/date-time-picker";
+export {
+  Toaster,
+  toast,
+} from "./components/sonner";
+export type {
+  Toast,
+  ToastFn,
+  ToastOptions,
+  ToastPosition,
+  ToastState,
+  ToastVariant,
+  ToasterProps,
+} from "./components/sonner";
+export {
+  Form,
+  FormControl,
+  FormDescription,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "./components/form";
+export {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "./components/resizable";
+export type {
+  ResizableDirection,
+  ResizableHandleProps,
+  ResizablePanelGroupProps,
+  ResizablePanelProps,
+} from "./components/resizable";
 
 // Features — screens composed from the bricks above.
-export * from "./components/terminal";
+export {
+  OpenOrdersEmpty,
+  OrderBook,
+  OrderBookHead,
+  OrderBookRow,
+  OrderBookSpread,
+  OrderForm,
+  OrderFormRow,
+  OrderFormSubmit,
+  Terminal,
+  TerminalChart,
+  TerminalPane,
+  TerminalPaneBody,
+  TerminalPaneHeader,
+  TerminalTicker,
+  TickerStat,
+  TradesTapeRow,
+} from "./components/terminal";
+export type {
+  BookSide,
+  OrderBookHeadProps,
+  OrderBookRowProps,
+  OrderFormRowProps,
+  OrderFormSubmitProps,
+  OrderSide,
+  TerminalArea,
+  TerminalPaneProps,
+  TickerStatProps,
+  TradesTapeRowProps,
+} from "./components/terminal";

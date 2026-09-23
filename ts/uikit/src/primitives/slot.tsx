@@ -48,7 +48,12 @@ export const Slot = React.forwardRef<HTMLElement, SlotProps>(function Slot(
     }
   }
 
-  merged["ref"] = composeRefs(forwardedRef, (child as { ref?: React.Ref<unknown> }).ref);
+  // Only when there is a ref to compose. `Slot` renders inside server
+  // components too (`<Button asChild>` has no "use client"), and a function
+  // ref in a Server Component's output fails the render ("Refs cannot be used
+  // in Server Components") even when it would call nothing.
+  const childRef = (child as { ref?: React.Ref<unknown> }).ref;
+  if (forwardedRef || childRef) merged["ref"] = composeRefs(forwardedRef, childRef);
 
   return React.cloneElement(child, merged);
 });

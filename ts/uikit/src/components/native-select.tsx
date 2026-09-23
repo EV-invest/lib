@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { nativeSelectSizeClasses, type NativeSelectSize } from "../generated/select";
