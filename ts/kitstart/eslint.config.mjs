@@ -17,6 +17,10 @@ export default tseslint.config(
   { ignores: ["dist/**", "node_modules/**", "template/**"] },
   ...tseslint.configs.recommended,
   {
+    // `_x` is a parameter a signature needs and the body does not read.
+    rules: { "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }] },
+  },
+  {
     files: ["src/core/**", "src/index.ts"],
     rules: restrict([
       { group: RUNTIME, message: "the core runs anywhere: no React, Next or node:*" },

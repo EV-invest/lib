@@ -14,9 +14,26 @@ stays in the brand.
 | Import | Runtime | What |
 |---|---|---|
 | `@evinvest/kitstart` | anywhere (edge, client, server) | `defineSite`, places, routing (`createRouting`), the lead schema and funnel (`createAcceptLead`), antispam, JSON-LD / sitemap / robots builders, analytics events, the copy contract |
+| `@evinvest/kitstart/server` | Node, `server-only` | `createServerEnv`, `createPlaceSource`, the lead store (`openLeadStore` by `LEADS_DB_URL`: `sqlite:` today, `postgres://` a stub that refuses at boot), `checkLeadStore`, `leadNotifier`, `sendMail`, `clientKey` |
 
-More subpaths (`./server`, `./proxy`, `./next`, `./react`, `./testing`) land
-in the following PRs of the stack.
+More subpaths (`./proxy`, `./next`, `./react`, `./testing`) land in the
+following PRs of the stack.
+
+## Server invariants
+
+- **A page's place loader never throws on the live source.** Pages are cached
+  (ISR); a cold render that throws is Next's bare `Internal Server Error`
+  with no phone on it. A 5xx or an unreachable source serves the baked place
+  (`noindex` until the gate fields are back); only a 404 is "gone". The
+  sitemap is the one strict reader (`listPlaces(locale, "sitemap")` throws).
+- **The lead is durable before anything else happens.** Every `LeadStore`
+  adapter passes `describeLeadStoreContract` and migrates itself to
+  `LEAD_SCHEMA_VERSION` on open. SQLite keeps the Rust server's columns
+  (`job`, `zip`, `mobile`) and recognises every earlier table in place.
+- **Mail is checked at boot.** With `SMTP_URL` set, `leadNotifier` throws when
+  it is built if there is no sender (`LEAD_NOTIFY_FROM`, or `leads@<domain>`)
+  or no recipient (`LEAD_NOTIFY_TO`, or the brand's email). Off loopback, a
+  server without TLS gets nothing.
 
 ## The site
 
