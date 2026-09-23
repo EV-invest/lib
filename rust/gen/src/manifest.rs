@@ -25,6 +25,7 @@ pub fn manifest() -> Vec<(&'static str, Vec<Ts>)> {
 		("label", label()),
 		("skeleton", skeleton()),
 		("textarea", textarea()),
+		("select", select()),
 		("kbd", kbd()),
 		("container", container()),
 		("band", band()),
@@ -1188,10 +1189,30 @@ fn tooltip() -> Vec<Ts> {
 }
 
 fn input() -> Vec<Ts> {
-	vec![Ts::Const {
-		name: "INPUT_BASE",
-		value: INPUT_BASE,
-	}]
+	vec![
+		Ts::Const {
+			name: "INPUT_BASE",
+			value: INPUT_BASE,
+		},
+		form_size_table("inputSizeClasses", "InputSize", input_size_class),
+	]
+}
+
+fn select() -> Vec<Ts> {
+	vec![
+		form_size_table("selectTriggerSizeClasses", "SelectTriggerSize", select_trigger_size_class),
+		form_size_table("nativeSelectSizeClasses", "NativeSelectSize", native_select_size_class),
+	]
+}
+
+/// A form field's `fn(Size) -> &str` over the three steps a field has; the
+/// outer two of the shared scale fold into these, so they get no key.
+fn form_size_table(name: &'static str, ty: &'static str, class: fn(Size) -> &'static str) -> Ts {
+	Ts::Table {
+		name,
+		ty,
+		entries: [Size::Sm, Size::Md, Size::Lg].into_iter().map(|s| (s.as_ref().to_string(), class(s).to_string())).collect(),
+	}
 }
 
 fn label() -> Vec<Ts> {
@@ -1209,10 +1230,13 @@ fn skeleton() -> Vec<Ts> {
 }
 
 fn textarea() -> Vec<Ts> {
-	vec![Ts::Const {
-		name: "TEXTAREA_BASE",
-		value: TEXTAREA_BASE,
-	}]
+	vec![
+		Ts::Const {
+			name: "TEXTAREA_BASE",
+			value: TEXTAREA_BASE,
+		},
+		form_size_table("textareaSizeClasses", "TextareaSize", textarea_size_class),
+	]
 }
 
 fn kbd() -> Vec<Ts> {

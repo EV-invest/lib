@@ -1,3 +1,5 @@
+"use client";
+
 // Dep-light chart primitives: the shadcn/recharts wrapper minus recharts.
 //
 // Upstream shadcn `chart` is theming + presentational tooltip/legend wrappers

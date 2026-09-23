@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { SWITCH_BASE, SWITCH_THUMB } from "../generated/switch";

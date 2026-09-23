@@ -5,6 +5,7 @@ use crate::{
 	uikit::{
 		Size,
 		primitives::{Controllable, use_controllable},
+		select_trigger_size_class,
 	},
 };
 
@@ -37,12 +38,12 @@ pub fn SelectTrigger(#[props(default)] size: Size, #[props(default)] class: Stri
 	let cls = cn!(
 		"border-input data-[placeholder]:text-ink-soft [&_svg:not([class*='text-'])]:text-ink-soft \
 		 focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error \
-		 flex w-fit items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs \
+		 flex w-fit items-center justify-between gap-2 rounded-[var(--control-radius)] border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs \
 		 transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 \
 		 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex \
 		 *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 \
 		 [&_svg:not([class*='size-'])]:size-4",
-		&format!("h-{}", size.scale()),
+		select_trigger_size_class(size),
 		class
 	);
 	rsx! {
@@ -51,6 +52,7 @@ pub fn SelectTrigger(#[props(default)] size: Size, #[props(default)] class: Stri
 			role: "combobox",
 			class: cls,
 			"data-slot": "select-trigger",
+			"data-size": size.as_ref(),
 			"data-state": data_state,
 			"aria-expanded": if open { "true" } else { "false" },
 			onclick: move |_| ctx.open.set(!ctx.open.get()),
@@ -285,5 +287,21 @@ mod tests {
 		}
 		let html = render(app);
 		assert!(html.contains("h-8"), "{html}");
+	}
+
+	#[test]
+	fn trigger_size_lg_matches_the_large_input() {
+		fn app() -> Element {
+			rsx! {
+				Select {
+					SelectTrigger { size: Size::Lg, "x" }
+				}
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("h-12"), "{html}");
+		assert!(html.contains("text-base"), "{html}");
+		assert!(!html.contains("text-sm"), "lg replaces the md type: {html}");
+		assert!(html.contains("rounded-[var(--control-radius)]"), "{html}");
 	}
 }

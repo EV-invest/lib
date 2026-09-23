@@ -1,7 +1,12 @@
+"use client";
+
 import * as React from "react";
 import { cn } from "../lib/cn";
+import { nativeSelectSizeClasses, type NativeSelectSize } from "../generated/select";
 import { useFieldControlId } from "./field-context";
 import { SelectChevron } from "./select-chevron";
+
+export type { NativeSelectSize };
 
 /**
  * A real `<select>` wearing the kit's control: the form posts its `name` with no
@@ -19,7 +24,7 @@ import { SelectChevron } from "./select-chevron";
  */
 export interface NativeSelectProps
   extends Omit<React.ComponentPropsWithoutRef<"select">, "size" | "multiple"> {
-  size?: "sm" | "md";
+  size?: NativeSelectSize;
   /** An empty, unpickable first option shown until a value is chosen. */
   placeholder?: string;
   wrapperClassName?: string;
@@ -31,7 +36,7 @@ export interface NativeSelectProps
 // menu where it does not. The placeholder is the empty option being the
 // checked one — CSS can see that without script.
 const NATIVE_SELECT =
-  "border-input text-ink h-9 w-full min-w-0 appearance-none rounded-[var(--control-radius)] border bg-transparent py-1 pr-9 pl-3 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error data-[size=sm]:h-8 has-[option[value='']:checked]:text-ink-soft [&_option]:bg-popover [&_option]:text-ink [&_optgroup]:bg-popover [&_optgroup]:text-ink-soft [color-scheme:var(--scheme,normal)]";
+  "border-input text-ink h-9 w-full min-w-0 appearance-none rounded-[var(--control-radius)] border bg-transparent py-1 pr-9 pl-3 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error has-[option[value='']:checked]:text-ink-soft [&_option]:bg-popover [&_option]:text-ink [&_optgroup]:bg-popover [&_optgroup]:text-ink-soft [color-scheme:var(--scheme,normal)]";
 
 export const NativeSelect = React.forwardRef<HTMLSelectElement, NativeSelectProps>(
   function NativeSelect(
@@ -52,7 +57,7 @@ export const NativeSelect = React.forwardRef<HTMLSelectElement, NativeSelectProp
           id={controlId}
           data-slot="native-select"
           data-size={size}
-          className={cn(NATIVE_SELECT, className)}
+          className={cn(NATIVE_SELECT, nativeSelectSizeClasses[size], className)}
           {...(value !== undefined ? { value } : {})}
           {...(initial !== undefined ? { defaultValue: initial } : {})}
           {...props}
@@ -64,7 +69,13 @@ export const NativeSelect = React.forwardRef<HTMLSelectElement, NativeSelectProp
           )}
           {children}
         </select>
-        <SelectChevron className="text-ink-soft pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2" />
+        <SelectChevron
+          className={cn(
+            "text-ink-soft pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2",
+            // keeps the arrow as far in from the edge as the large inset keeps the text
+            size === "lg" && "right-4",
+          )}
+        />
       </span>
     );
   },
