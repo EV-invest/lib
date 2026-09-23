@@ -114,6 +114,13 @@ describe("motion.css", () => {
 });
 
 describe("withMotionEngine", () => {
+  it("can be required: Next compiles next.config.ts to CommonJS", () => {
+    const pkg = JSON.parse(readFileSync(join(import.meta.dirname, "../package.json"), "utf8")) as {
+      exports: Record<string, { require?: { default?: string } }>;
+    };
+    expect(pkg.exports["./next"]?.require?.default).toBe("./dist/next.cjs");
+  });
+
   it("leaves the config alone for the JS engine", () => {
     const config = { poweredByHeader: false };
     expect(withMotionEngine(config, "js")).toBe(config);

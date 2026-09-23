@@ -42,11 +42,24 @@ export const clientConfig = {
   banner: { js: '"use client";' },
 } satisfies Options;
 
+/**
+ * The Next config helpers, in both module systems. Next compiles a
+ * `next.config.ts` to CommonJS and `require`s it, so an import-only export
+ * fails there with "Package subpath './next' is not defined by exports".
+ */
+export const nextConfig = {
+  entry: { next: "src/next/index.ts" },
+  format: ["esm", "cjs"],
+  dts: true,
+  clean: false,
+  sourcemap: true,
+  target: "es2022",
+} satisfies Options;
+
 export default defineConfig([
   {
-    // Server-safe: the core, the zero-JS motion engine and the Next config
-    // helpers.
-    entry: { index: "src/index.ts", "motion-css": "src/motion-css/index.tsx", next: "src/next/index.ts" },
+    // Server-safe: the core and the zero-JS motion engine.
+    entry: { index: "src/index.ts", "motion-css": "src/motion-css/index.tsx" },
     format: ["esm"],
     dts: true,
     clean: true,
@@ -55,4 +68,5 @@ export default defineConfig([
     external: ["react", "react/jsx-runtime"],
   },
   clientConfig,
+  nextConfig,
 ]);
