@@ -1,6 +1,6 @@
 {
   "name": "@evinvest/marketing",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Marketing-site layer on top of @evinvest/uikit: motion primitives with reduced-motion fallbacks, a key-based form harness and field, a contact-link click tracker with an injected sink, a click-to-load facade for third-party widgets, and schema.org JSON-LD helpers. Server-safe core plus a \"use client\" React subpath.",
   "license": "BlueOak-1.0.0",
   "publishConfig": {

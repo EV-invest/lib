@@ -1,6 +1,6 @@
 {
   "name": "@evinvest/experiments",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Dep-light A/B experiments toolkit: a zero-dep server-safe core plus React and Next.js subpaths, mirroring the experiments Cargo feature. Emits exposure/events through an injected sink — never imports an analytics SDK.",
   "license": "BlueOak-1.0.0",
   "publishConfig": {
