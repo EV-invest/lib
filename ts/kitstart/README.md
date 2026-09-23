@@ -23,8 +23,10 @@ stays in the brand.
 | `@evinvest/kitstart/testing/e2e` | a brand's Playwright | `defineSectionSuite(sections)`, `settle(page, selector)`, `BREAKPOINTS` |
 | bin `kitstart-size` | plain node | `kitstart-size [<build root>] [--route …] [--budget …]`: first-load JS of a place page against `tests/bundle_budget.txt`; fails closed |
 
-`vitest` and `@playwright/test` are optional peers, needed only by the
-suites.
+`vitest` and `@playwright/test` are not peers at all: they are the brand's
+own test runners, which it installs in its `devDependencies`. As peers —
+even optional ones — npm counted them among a brand's production
+dependencies, and a runner's advisory turned `npm audit --omit=dev` red.
 
 ## A new brand
 
