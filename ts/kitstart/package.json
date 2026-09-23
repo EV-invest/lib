@@ -20,6 +20,18 @@
     "./server": {
       "types": "./dist/server/index.d.ts",
       "import": "./dist/server/index.js"
+    },
+    "./proxy": {
+      "types": "./dist/proxy/index.d.ts",
+      "import": "./dist/proxy/index.js"
+    },
+    "./next": {
+      "types": "./dist/next/index.d.ts",
+      "import": "./dist/next/index.js"
+    },
+    "./next/config": {
+      "types": "./dist/next/config/index.d.ts",
+      "import": "./dist/next/config/index.js"
     }
   },
   "types": "./dist/index.d.ts",
@@ -43,6 +55,8 @@
     "@evinvest/analytics": ">=0.3.0 <1",
     "@evinvest/i18n": ">=0.9.0 <1",
     "@evinvest/marketing": ">=0.2.0 <1",
+    "next": "^16",
+    "react": "^19",
     "server-only": "*"
   },
   "devDependencies": {
@@ -50,13 +64,24 @@
     "@evinvest/i18n": "^0.9.0",
     "@evinvest/marketing": "^0.2.0",
     "@types/node": "^22.10.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "eslint": "^9.39.5",
+    "next": "^16.3.6",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "server-only": "^0.0.1",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.46.0",
     "vitest": "^3.2.4"
   },
   "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
     "server-only": {
       "optional": true
     }

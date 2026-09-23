@@ -104,6 +104,17 @@ export function ogLocaleOf<L extends string>(site: Pick<SiteConfig<L, string>, "
   return site.ogLocale?.[locale] ?? site.i18n.hreflangOf(locale).replace("-", "_");
 }
 
+/**
+ * A card fact `withLanding` inlined at build (`process.env.SITE_CARD_PHONE`…):
+ * `""` is a fact the card leaves out, `undefined` a build that skipped the
+ * card — and a site that silently lost its phone number is worse than one that
+ * does not build.
+ */
+export function cardFact(name: string, value: string | undefined): string | null {
+  if (value === undefined) throw new Error(`${name} was not inlined — build through withLanding (next.config.ts)`);
+  return value === "" ? null : value;
+}
+
 /** The baked place for a slug, if the site has it. */
 export function bakedPlace<L extends string, P extends string>(site: Site<L, P>, slug: string): Place<L> | undefined {
   return site.places.find(p => p.slug === slug);

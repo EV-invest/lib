@@ -16,8 +16,41 @@ stays in the brand.
 | `@evinvest/kitstart` | anywhere (edge, client, server) | `defineSite`, places, routing (`createRouting`), the lead schema and funnel (`createAcceptLead`), antispam, JSON-LD / sitemap / robots builders, analytics events, the copy contract |
 | `@evinvest/kitstart/server` | Node, `server-only` | `createServerEnv`, `createPlaceSource`, the lead store (`openLeadStore` by `LEADS_DB_URL`: `sqlite:` today, `postgres://` a stub that refuses at boot), `checkLeadStore`, `leadNotifier`, `sendMail`, `clientKey` |
 
-More subpaths (`./proxy`, `./next`, `./react`, `./testing`) land in the
-following PRs of the stack.
+| `@evinvest/kitstart/proxy` | edge | `createProxy(site)`, `PROXY_MATCHER` |
+| `@evinvest/kitstart/next` | Next server (routes, RSC) | `quoteRoute`, `sitemapRoute`, `robotsRoute`, `ogRoute`, `healthRoute`, `createPlaceLoader`, `loadLocale`, `placeMetadata` / `brandMetadata` / `statusMetadata`, `metadataBase` |
+| `@evinvest/kitstart/next/config` | `next.config.ts`, `vitest.config.ts` | `withLanding`, `buildEnv` and the `assets/` readers |
+
+More subpaths (`./react`, `./testing`) land in the following PRs of the
+stack.
+
+## Thin `app/` routes
+
+Segment config, `config.matcher` and `next/font/local` must be literals in the
+route file — Next reads them statically — so the literal stays in the brand's
+file and the handler comes from a factory:
+
+```ts
+// proxy.ts
+export const proxy = createProxy(site);
+export const config = { matcher: ["/((?!_next/|.*\\.[a-z0-9]+$).*)"] };
+
+// app/quote/route.ts
+export const dynamic = "force-dynamic";
+export const POST = quoteRoute(site, { env: serverEnv, notifier, unavailable });
+
+// app/sitemap.ts — reads the Host header, so it is dynamic; pages are not
+export const dynamic = "force-dynamic";
+export default sitemapRoute(site, places);
+
+// app/[locale]/[location]/layout.tsx — ISR: no page reads the request
+export function generateStaticParams() { return []; }
+export const revalidate = 600;
+```
+
+`createPlaceLoader(site, places)(params)` returns the `PlaceView` for a page,
+reading the link mode from the `location` param (`_royat` = host mode). The
+not-found and error boundaries use `statusTarget(site, useParams())` from the
+core — never `headers()`, which would make every cached page per-request.
 
 ## Server invariants
 
