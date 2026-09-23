@@ -19,6 +19,8 @@ export default defineConfig({
     cwd: "../..",
     url: `http://localhost:${PORT}/health`,
     reuseExistingServer: false,
-    env: { PORT: String(PORT), HOSTNAME: "127.0.0.1", LEADS_DB_PATH: `/tmp/brand-e2e-${PORT}/leads.db` },
+    // The prod server refuses to boot without these (instrumentation.ts); on
+    // loopback the one hop is the runner itself.
+    env: { PORT: String(PORT), HOSTNAME: "127.0.0.1", LEADS_DB_PATH: `/tmp/brand-e2e-${PORT}/leads.db`, TRUSTED_PROXY: "xff:1" },
   },
 });

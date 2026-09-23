@@ -8,5 +8,8 @@
   },
   "optionalDependencies": {
     "@fixture/win32-only": "1.0.0"
+  },
+  "dependencies": {
+    "fixture-vendored": "1.0.0"
   }
 }

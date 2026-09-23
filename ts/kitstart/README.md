@@ -23,8 +23,10 @@ stays in the brand.
 | `@evinvest/kitstart/testing/e2e` | a brand's Playwright | `defineSectionSuite(sections)`, `settle(page, selector)`, `BREAKPOINTS` |
 | bin `kitstart-size` | plain node | `kitstart-size [<build root>] [--route …] [--budget …]`: first-load JS of a place page against `tests/bundle_budget.txt`; fails closed |
 
-`vitest` and `@playwright/test` are optional peers, needed only by the
-suites.
+`vitest` and `@playwright/test` are not peers at all: they are the brand's
+own test runners, which it installs in its `devDependencies`. As peers —
+even optional ones — npm counted them among a brand's production
+dependencies, and a runner's advisory turned `npm audit --omit=dev` red.
 
 ## A new brand
 
@@ -58,6 +60,7 @@ landing = ev.lib.mkLanding {
   containerAttr ? ".#container",
   checkKitstartVersion ? true,
   e2eConfig ? "tests/e2e",
+  packageSourceOverrides ? { },                   # lock key → `file:`/vendored tarball
 };
 # → { site, bundleBudget, packages.{default,site,container}, containers,
 #     checks.{site,bundle-budget}, apps.{default,help,dev,test,accept-test,size,container-smoke},
@@ -68,6 +71,10 @@ landing = ev.lib.mkLanding {
   `importNpmLock` (dependencies keyed on the manifest and the lock only;
   foreign optional native binaries never fetched — the self-check's lock
   carries a Windows-only package with a bogus integrity to prove it).
+  `packageSourceOverrides` serves lock entries the registry cannot yet —
+  `{ "node_modules/@evinvest/kitstart" = ./vendor/kitstart.tgz; }` builds a
+  brand against an unpublished kitstart; the self-check vendors one package
+  whose `resolved` 404s.
 - `container`: the OCI image on node-slim, `prodEnv` baked in.
 - `checks.bundle-budget`: `kitstart-size` on the Nix build.
 - `apps.test` (tsc, lint, vitest, build, size, Playwright on the flake's

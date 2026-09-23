@@ -52,6 +52,11 @@
   checkKitstartVersion ? true
 , # Playwright's config for `apps.test` / `apps.accept-test`.
   e2eConfig ? "tests/e2e"
+, # Sources for lockfile entries the registry cannot serve yet — a `file:` or
+  # vendored tarball of an unpublished @evinvest package — keyed like the
+  # lock (`"node_modules/@evinvest/kitstart" = ./vendor/kitstart.tgz;`). They
+  # win over the platform pruning.
+  packageSourceOverrides ? { }
 ,
 }:
 let
@@ -109,7 +114,7 @@ let
       inherit pname version src nodejs;
       npmDeps = pkgs.importNpmLock {
         inherit npmRoot;
-        packageSourceOverrides = npmSourceOverrides;
+        packageSourceOverrides = npmSourceOverrides // packageSourceOverrides;
       };
       npmConfigHook = pkgs.importNpmLock.npmConfigHook;
       env.NEXT_TELEMETRY_DISABLED = "1";
