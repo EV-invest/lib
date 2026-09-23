@@ -1,0 +1,18 @@
+{
+  // `tsc` rather than a bundler: one output module per source module, so a
+  // `"use client"` or `import "server-only"` stays on the file that says it,
+  // and an `index.ts` of `export … from` stays a barrel a consumer's bundler
+  // can see through. Relative specifiers get their `.js` afterwards
+  // (`scripts/fully-specify.mjs`).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "dist",
+    "declaration": true,
+    "declarationMap": false,
+    "sourceMap": false,
+    "removeComments": false
+  },
+  "include": ["src"]
+}
