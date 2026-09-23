@@ -36,6 +36,53 @@ would — packed tarballs, `next build`, its own tests, `kitstart-size`, and a
 live standalone server answering `/`, `/fr`, a page, a 404, the form POST, the
 OG card and robots (`npm run check:template`).
 
+## Nix: `lib.mkLanding`
+
+The lib flake exports the flake a landing shares (`nix/mk-landing.nix`), so a
+brand's `flake.nix` is its own config plus one call — `template/flake.nix` is
+the whole of one:
+
+```nix
+inputs.ev.url = "github:EV-invest/lib?ref=@evinvest/kitstart-v0.1.0"; # the version in package-lock.json
+inputs.ev.inputs.v_flakes.follows = "v_flakes";
+
+landing = ev.lib.mkLanding {
+  pkgs, root, pname, sitePort, buildFiles,        # required
+  prodEnv ? { },                                  # baked into the image (deploy/config.nix)
+  v_flakes ? null,                                # without it: no `container`
+  nodejs ? pkgs.nodejs_22, nodeRuntime ? pkgs.nodejs-slim_22,
+  budgetFile ? "tests/bundle_budget.txt", gatedRoute ? "/[locale]/[location]",
+  requiredFiles ? [ ],                            # must be in the standalone output (OG fonts)
+  mounts ? [ "/data" ], criticality ? "high",
+  smoke ? { page = "/fr"; },                      # + host, og, quote = { field = value; }
+  containerAttr ? ".#container",
+  checkKitstartVersion ? true,
+  e2eConfig ? "tests/e2e",
+};
+# → { site, bundleBudget, packages.{default,site,container}, containers,
+#     checks.{site,bundle-budget}, apps.{default,help,dev,test,accept-test,size,container-smoke},
+#     devShell }
+```
+
+- `site`: the hermetic `next build` from `package-lock.json` through
+  `importNpmLock` (dependencies keyed on the manifest and the lock only;
+  foreign optional native binaries never fetched — the self-check's lock
+  carries a Windows-only package with a bogus integrity to prove it).
+- `container`: the OCI image on node-slim, `prodEnv` baked in.
+- `checks.bundle-budget`: `kitstart-size` on the Nix build.
+- `apps.test` (tsc, lint, vitest, build, size, Playwright on the flake's
+  pinned browsers), `accept-test` (Linux only), `size`, `dev`, `help`.
+- `apps.container-smoke`: boots the image with a host port docker picks
+  (`-p 127.0.0.1::<port>`: landing ports sit in Linux's ephemeral range), checks
+  `/health`, the 302, the page, the OG card and the form POST landing in the
+  mount, then boots it again with every `prodEnv` key blanked and wants 500.
+
+**Versions move together.** mkLanding refuses a lock whose
+`@evinvest/kitstart` differs from the lib revision's
+`ts/kitstart/package.json`: the size gate runs the lib's copy of the bin, and
+the two must be one release. Pin the flake to the matching
+`@evinvest/kitstart-vX.Y.Z` tag.
+
 ## Widgets
 
 Structural only — where behaviour matters more than look. Marketing sections

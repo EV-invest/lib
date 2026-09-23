@@ -1,0 +1,12 @@
+{
+  "name": "mk-landing-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A stand-in brand for lib.mkLanding's own check: its build writes what a Next standalone build leaves plus a stub server that keeps the container contract, and its lock carries a Windows-only optional package with a bogus integrity, which the platform pruning must never fetch.",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "optionalDependencies": {
+    "@fixture/win32-only": "1.0.0"
+  }
+}
