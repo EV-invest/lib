@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::{INPUT_BASE, form::FormControlContext},
+	uikit::{INPUT_BASE, Size, form::FormControlContext, input_size_class},
 };
 
 /// Picks up the id and `aria-*` of an enclosing
@@ -12,6 +12,7 @@ use crate::{
 /// `<form method="post">`, with no hydration and no handler.
 #[component]
 pub fn Input(
+	#[props(default)] size: Size,
 	#[props(default)] class: String,
 	#[props(default)] r#type: String,
 	#[props(default)] placeholder: String,
@@ -21,7 +22,7 @@ pub fn Input(
 	#[props(default)] required: bool,
 	oninput: Option<EventHandler<FormEvent>>,
 ) -> Element {
-	let cls = cn!(INPUT_BASE, class);
+	let cls = cn!(INPUT_BASE, input_size_class(size), class);
 	let input_type = if r#type.is_empty() { "text".to_string() } else { r#type };
 	let form = try_consume_context::<Signal<FormControlContext>>().map(|ctx| ctx.read().clone());
 
@@ -30,6 +31,7 @@ pub fn Input(
 			r#type: input_type,
 			class: cls,
 			"data-slot": "input",
+			"data-size": size.as_ref(),
 			id: form.as_ref().map(|f| f.id.clone()),
 			"aria-describedby": form.as_ref().map(|f| f.described_by.clone()),
 			"aria-invalid": form.as_ref().map(|f| f.invalid.to_string()),
@@ -90,5 +92,33 @@ mod tests {
 		let html = render(app);
 		assert!(html.contains("h-12"), "{html}");
 		assert!(!html.contains("h-9"), "override should drop base h-9: {html}");
+	}
+
+	#[test]
+	fn large_size_is_48px_with_16px_text_at_every_width() {
+		fn app() -> Element {
+			rsx! {
+				Input { size: Size::Lg }
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("h-12"), "{html}");
+		assert!(html.contains("md:text-base"), "{html}");
+		// `file:h-9` sizes the file button and legitimately stays; only the bare
+		// height class must be gone.
+		assert!(!html.split(['"', ' ']).any(|class| class == "h-9"), "lg drops the md height: {html}");
+		assert!(!html.contains("md:text-sm"), "lg must not shrink below 16px: {html}");
+		assert!(html.contains("rounded-[var(--control-radius)]"), "{html}");
+		assert!(html.contains("data-size=\"lg\""), "{html}");
+	}
+
+	#[test]
+	fn defaults_to_md() {
+		fn app() -> Element {
+			rsx! { Input {} }
+		}
+		let html = render(app);
+		assert!(html.contains("h-9"), "{html}");
+		assert!(html.contains("data-size=\"md\""), "{html}");
 	}
 }

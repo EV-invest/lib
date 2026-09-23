@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";

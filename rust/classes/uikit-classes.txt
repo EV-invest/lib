@@ -485,7 +485,10 @@ h-10 aspect-square px-0
 h-10 px-2.5 min-w-10
 h-10 px-6 has-[>svg]:px-4
 h-12
+h-12 pr-11 pl-4 text-base md:text-base
 h-12 px-3 min-w-12
+h-12 px-4 text-base
+h-12 px-4 text-base md:text-base file:h-9
 h-12 text-sm group-data-[collapsible=icon]:p-0!
 h-2 w-2 shrink-0 rounded-[2px]
 h-2.5 flex-col border-t border-t-transparent
@@ -511,7 +514,6 @@ h-9 px-2 min-w-9
 h-9 px-4 py-[var(--control-py)] has-[>svg]:px-3
 h-full
 h-full w-2.5 border-l border-l-transparent
-h-{}
 has-data-[slot=card-action]:grid-cols-[1fr_auto]
 hint-body
 hover-card-content
@@ -581,6 +583,8 @@ max-w-[52rem] text-[15px] md:text-[17px] leading-[1.58] text-ink-soft
 max-w-[var(--page-max,90rem)]
 mb-3 font-medium data-[variant=legend]:text-base data-[variant=label]:text-sm
 mb-7 h-10 w-auto
+md:text-base
+md:text-sm
 menu-button
 menu-item
 menubar-checkbox-item
@@ -597,7 +601,10 @@ menubar-sub
 menubar-sub-content
 menubar-sub-trigger
 menubar-trigger
+min-h-14
 min-h-16
+min-h-20
+min-h-20 px-4 py-3 text-base md:text-base
 min-h-40
 min-w-0 flex-auto shrink-0 rounded-none shadow-none first:rounded-l-md last:rounded-r-md focus:z-10 focus-visible:z-10 data-[variant=outline]:border-l-0 data-[variant=outline]:first:border-l
 min-w-0 shrink-0 grow-0 basis-full
@@ -707,6 +714,7 @@ resizable-panel-group
 ring-offset-background focus:ring-ring absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none
 ring-offset-background focus:ring-ring absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4
 rounded-[4px]
+rounded-[var(--control-radius)]
 rounded-full
 rounded-md
 rounded-xs

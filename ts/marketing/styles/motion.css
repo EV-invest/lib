@@ -1,0 +1,148 @@
+/*
+ * @evinvest/marketing/motion.css — the zero-JS motion engine.
+ *
+ * Animates the markup of `@evinvest/marketing/motion-css` (`data-ev-motion`,
+ * `data-ev-stagger`). Import it once, next to the kit's tokens, into a
+ * cascade layer below Tailwind's utilities:
+ *
+ *   @import "@evinvest/marketing/motion.css" layer(components);
+ *
+ * Rules of the house, same as the JS primitives:
+ * - `opacity` and `translate` only — both stay on the compositor, and
+ *   `translate` leaves a consumer's `transform` (a hover scale) alone.
+ * - The hidden state exists only inside the keyframes (`both` fill). A browser
+ *   that runs none of this shows every block at rest; nothing is ever stuck
+ *   invisible.
+ * - `prefers-reduced-motion` collapses movement to a plain fade; a `Settle`
+ *   simply stands still.
+ * - Zero specificity (`:where`), so an unlayered rule of the app's wins. That
+ *   is not enough against Tailwind v4, whose utilities live in a cascade
+ *   layer — and any unlayered rule beats every layered one, whatever the
+ *   specificity. Hence the `layer(components)` import above: then an
+ *   `animate-*` or `translate-*` utility on the same element wins.
+ *
+ * The timings mirror `core/motion-tokens.ts`; a test keeps them in step.
+ */
+
+/* Set on the animating element itself, never meant for its descendants: a
+   `Reveal from="left"` wrapping another `Reveal` must not hand it its offset,
+   nor a stagger item its index. Registered non-inheriting; with no initial
+   value they fall back to the `var()` default where unset. */
+@property --ev-from-x {
+  syntax: "*";
+  inherits: false;
+}
+@property --ev-from-y {
+  syntax: "*";
+  inherits: false;
+}
+@property --ev-i {
+  syntax: "*";
+  inherits: false;
+}
+
+:root {
+  --ev-motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ev-motion-dur-base: 450ms;
+  --ev-motion-dur-slow: 700ms;
+  --ev-motion-rise: 16px;
+  --ev-motion-settle-opacity: 0.6;
+  --ev-motion-stagger: 70ms;
+  /* Scroll reveals run from the element's first pixel entering the viewport
+     to the moment it is fully in (or, if taller than the viewport, fills it).
+     Ending by `entry 100%` means a block already on screen at load — or one
+     too short to ever scroll a third of the way up, at the foot of the page —
+     is at rest, never frozen half-arrived. */
+  --ev-motion-view-range: entry 0% entry 100%;
+}
+
+@keyframes ev-rise {
+  from {
+    opacity: 0;
+    translate: var(--ev-from-x, 0) var(--ev-from-y, 0);
+  }
+}
+
+@keyframes ev-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ev-settle {
+  from {
+    opacity: var(--ev-motion-settle-opacity);
+    translate: 0 calc(var(--ev-motion-rise) / 2);
+  }
+}
+
+/* A word must be a box for `translate` to apply; separators stay text nodes. */
+:where([data-ev-motion="word"]) {
+  display: inline-block;
+  --ev-from-y: 0.45em;
+}
+
+/* ── time-based: on mount ─────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+  :where([data-ev-motion="mount"]) {
+    animation: ev-rise var(--ev-dur, var(--ev-motion-dur-slow)) var(--ev-motion-ease-out) var(--ev-delay, 0ms) both;
+  }
+
+  :where([data-ev-motion="settle"]) {
+    animation: ev-settle var(--ev-dur, var(--ev-motion-dur-base)) var(--ev-motion-ease-out) both;
+  }
+
+  :where([data-ev-stagger="mount"] > [data-ev-motion="item"], [data-ev-stagger="mount"] > [data-ev-motion="word"]) {
+    animation: ev-rise var(--ev-dur, var(--ev-motion-dur-slow)) var(--ev-motion-ease-out)
+      calc(var(--ev-delay, 0ms) + var(--ev-i, 0) * var(--ev-step, var(--ev-motion-stagger))) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(
+      [data-ev-motion="mount"],
+      [data-ev-stagger="mount"] > [data-ev-motion="item"],
+      [data-ev-stagger="mount"] > [data-ev-motion="word"]
+    ) {
+    /* All at once: a sequence of fades is still motion. */
+    animation: ev-fade var(--ev-dur, var(--ev-motion-dur-slow)) var(--ev-motion-ease-out) var(--ev-delay, 0ms) both;
+  }
+}
+
+/* ── scroll-linked: in view ───────────────────────────────────────────── */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    :where([data-ev-motion="view"]) {
+      animation: ev-rise linear both;
+      animation-timeline: view();
+      animation-range: var(--ev-motion-view-range);
+    }
+
+    /* Staggered siblings share the viewport, so the cascade is an offset in
+       scroll distance: each item's window starts a little later inside the
+       same entry phase. The offset is capped at 40% and every window is 60%
+       wide, so the last one still ends by `entry 100%` — past ~8 items the
+       tail arrives together rather than stranded half-way (the JS stagger
+       tokens say the same: prefer two groups over a longer tail). */
+    :where([data-ev-stagger="view"] > [data-ev-motion="item"], [data-ev-stagger="view"] > [data-ev-motion="word"]) {
+      --ev-offset: min(calc(var(--ev-i, 0) * 5%), 40%);
+      animation: ev-rise linear both;
+      animation-timeline: view();
+      animation-range: entry var(--ev-offset) entry calc(var(--ev-offset) + 60%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :where(
+        [data-ev-motion="view"],
+        [data-ev-stagger="view"] > [data-ev-motion="item"],
+        [data-ev-stagger="view"] > [data-ev-motion="word"]
+      ) {
+      animation: ev-fade linear both;
+      animation-timeline: view();
+      animation-range: var(--ev-motion-view-range);
+    }
+  }
+}

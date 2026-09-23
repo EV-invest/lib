@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { Button, type ButtonProps } from "./button";
@@ -99,10 +101,12 @@ export function InputGroupText({
   );
 }
 
+// The group, not the control, owns the height, so the control takes neither the
+// kit's `size` nor the native one `Input` gave up for it.
 export function InputGroupInput({
   className,
   ...props
-}: React.ComponentProps<"input">) {
+}: Omit<React.ComponentProps<"input">, "size">) {
   return (
     <Input
       data-slot="input-group-control"
