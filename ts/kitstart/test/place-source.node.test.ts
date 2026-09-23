@@ -26,9 +26,16 @@ describe("one place from the live source", () => {
     expect(fetch.mock.calls[0]?.[1]).toMatchObject({ cache: "force-cache", next: { revalidate: 600 } });
   });
 
-  it("turns a 404 into a missing place", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 404 })));
+  it("turns the source's own 404 (its JSON) or a 410 into a missing place", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ error: "withdrawn" }, { status: 404 })));
     expect(await live().getPlace("royat", "fr")).toBeNull();
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 410 })));
+    expect(await live().getPlace("royat", "fr")).toBeNull();
+  });
+
+  it("serves the baked place on a bare 404 — an ingress with no route is not the source retiring a place", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("<html>404</html>", { status: 404, headers: { "content-type": "text/html" } })));
+    expect((await live().getPlace("royat", "fr"))?.slug).toBe("royat");
   });
 
   // Under ISR a cold render that throws is a bare 500 with no phone on it.
@@ -56,6 +63,16 @@ describe("one place from the live source", () => {
   });
 });
 
+describe("one place, strictly", () => {
+  it("throws on a failing source instead of dropping the place", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 503 })));
+    await expect(live().getPlaceStrict("royat", "fr")).rejects.toThrow(/503/);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 410 })));
+    expect(await live().getPlaceStrict("royat", "fr")).toBeNull();
+    expect(await live(null).getPlaceStrict("paris", "fr")).toBeNull();
+  });
+});
+
 describe("every place", () => {
   it("keeps the sitemap strict on a dead or failing source", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("fetch failed"))));
@@ -72,7 +89,7 @@ describe("every place", () => {
   });
 
   it("drops a place the source retired (404) in both modes", async () => {
-    vi.stubGlobal("fetch", bySlug(s => (s === "royat" ? new Response(null, { status: 404 }) : Response.json({}))));
+    vi.stubGlobal("fetch", bySlug(s => (s === "royat" ? new Response(null, { status: 410 }) : Response.json({}))));
     for (const mode of ["page", "sitemap"] as const) {
       const slugs = (await live().listPlaces("fr", mode)).map(p => p.slug);
       expect(slugs).toHaveLength(5);

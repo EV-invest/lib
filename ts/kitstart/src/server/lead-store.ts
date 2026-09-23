@@ -19,18 +19,19 @@ export function parseLeadDb(value: string): LeadDb {
   try {
     url = new URL(value);
   } catch {
-    throw new Error(`LEADS_DB_URL is not a URL: ${JSON.stringify(value)}`);
+    // Never the value: it may carry a password.
+    throw new Error("LEADS_DB_URL is not a URL");
   }
   if (url.protocol === "sqlite:") {
     // `sqlite://data/leads.db` parses `data` as a host and would put the file
     // at `/leads.db`; a query or fragment would be dropped just as quietly.
     if (url.host !== "" || url.search !== "" || url.hash !== "") {
       throw new Error(
-        `LEADS_DB_URL: a sqlite URL is sqlite:///<absolute path> with no host, query or fragment, got ${JSON.stringify(value)}`,
+        "LEADS_DB_URL: a sqlite URL is sqlite:///<absolute path> with no host, query or fragment",
       );
     }
     const path = decodeURIComponent(url.pathname);
-    if (!path.startsWith("/")) throw new Error(`LEADS_DB_URL: a sqlite path must be absolute, got ${JSON.stringify(value)}`);
+    if (!path.startsWith("/")) throw new Error("LEADS_DB_URL: a sqlite path must be absolute");
     return { kind: "sqlite", path };
   }
   if (POSTGRES.has(url.protocol)) return { kind: "postgres", url: value };

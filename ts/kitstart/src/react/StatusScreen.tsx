@@ -19,6 +19,8 @@ export interface StatusScreenProps<L extends string, F> {
   status: StatusCopy<F>;
   target: Pick<StatusTarget<L>, "phone" | "home" | "retry" | "langHrefs">;
   locales: readonly L[];
+  /** Each language's name in itself, for the switch. */
+  labels?: Readonly<Record<L, string>>;
   /** The accessible name of the home link around `logo`. */
   brandName: string;
   /** The brand's lock-up, in the header. */
@@ -30,7 +32,7 @@ export interface StatusScreenProps<L extends string, F> {
 }
 
 export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>) {
-  const { copy, status, target, locales, brandName, logo, mark, className, buttonClassName } = props;
+  const { copy, status, target, locales, labels, brandName, logo, mark, className, buttonClassName } = props;
   const { t, f } = copy;
   const action = (a: StatusAction): { href: string; label: string } | null =>
     a === "call"
@@ -50,7 +52,7 @@ export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>
           {logo ?? <span className="font-display text-xl font-bold">{brandName}</span>}
         </a>
         <div className="flex-1" />
-        <LangSwitch current={copy.locale} locales={locales} hrefs={target.langHrefs} className="text-sm font-medium text-ink-soft" />
+        <LangSwitch current={copy.locale} locales={locales} hrefs={target.langHrefs} {...(labels ? { labels } : {})} className="text-sm font-medium text-ink-soft" />
         {target.phone && (
           <a href={telHref(target.phone)} className="font-display text-base font-bold text-primary-ink md:text-xl">
             {target.phone}
@@ -87,8 +89,8 @@ export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>
           ))}
         </ul>
       </main>
-      <footer className="relative border-t border-border px-5 py-6 text-xs tracking-wider text-ink-soft md:px-12 md:py-7">
-        <p>{t.facts(f).join(" · ").toUpperCase()}</p>
+      <footer className="relative border-t border-border px-5 py-6 text-xs uppercase tracking-wider text-ink-soft md:px-12 md:py-7">
+        <p>{t.facts(f).join(" · ")}</p>
       </footer>
     </div>
   );

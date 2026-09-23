@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { headers } from "next/headers.js";
+import { createRouting } from "../core/routing";
 import { robotsFor, sitemapFor } from "../core/seo/sitemap";
 import type { Site } from "../core/site";
 import type { PlaceSource } from "../server/place-source";
@@ -18,13 +19,22 @@ async function host(): Promise<string> {
 /**
  * Strict: with a live source configured, an unreachable one throws, and the
  * crawler keeps its last copy — an empty or truncated sitemap would tell it
- * the places are gone.
+ * the place is gone.
  */
 export function sitemapRoute<L extends string, P extends string>(
   site: Site<L, P>,
   source: PlaceSource<L>,
 ): () => Promise<MetadataRoute.Sitemap> {
-  return async () => sitemapFor(site, await host(), await source.listPlaces(site.i18n.defaultLocale, "sitemap"));
+  const routing = createRouting(site);
+  return async () => {
+    const h = await host();
+    // A host's sitemap lists at most its own place, so that is the one fetch;
+    // the apex of a subdomains site lists only the brand page and asks nothing.
+    const slug = routing.hostSlug(h);
+    if (slug === null) return sitemapFor(site, h, []);
+    const place = await source.getPlaceStrict(slug, site.i18n.defaultLocale);
+    return sitemapFor(site, h, place ? [place] : []);
+  };
 }
 
 export function robotsRoute<L extends string, P extends string>(site: Site<L, P>): () => Promise<MetadataRoute.Robots> {

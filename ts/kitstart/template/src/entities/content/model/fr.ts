@@ -39,6 +39,8 @@ export const FR = {
   facts: () => ["Brand SAS"],
   hero: { title: f => `Le ménage à ${f.place}, à prix fixe.`, lede: "Un prix annoncé avant de venir." },
   coverageTitle: "Où nous intervenons",
+  brandPage: { title: "Brand", description: "Le ménage à prix fixe.", open: "Ouvrir" },
+  contactLabel: "Nous contacter",
   subjects: { standard: "Ménage courant", deep: "Grand ménage", other: "Autre" },
   quoteLabels: { subject: "Prestation", locality: "Ville ou code postal", mobile: "Mobile" },
   faqs: [{ q: "Le prix peut-il changer ?", a: "Non : le prix annoncé est celui que vous payez." }],

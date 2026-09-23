@@ -67,7 +67,7 @@ const SCENARIOS: readonly { name: string; widths: Widths; node: ReactElement }[]
         copy={{ locale: "fr", f, t: { callLabel: x => `Appeler ${x.phone}`, whatsappMessage: () => "Bonjour", whatsappShort: "WhatsApp", ctaShort: "Devis" } }}
         phone={f.phone}
         whatsapp={f.phone}
-        quoteHref="/fr#quote"
+        quoteHref="/fr#quote" label="Contact"
       />
     ),
   },

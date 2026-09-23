@@ -5,14 +5,17 @@
  */
 
 export {
+  assertLaunchable,
   bakedPlace,
   cardFact,
   contactOf,
   defineSite,
   ogLocaleOf,
+  openLaunchBlockers,
   perLocale,
   type BrandFacts,
   type LegacyRedirect,
+  type OwnerTodo,
   type PageSuffix,
   type Site,
   type SiteConfig,
@@ -22,6 +25,7 @@ export {
 export {
   createPlaceView,
   freshRating,
+  parseInstant,
   isPublished,
   mergeLive,
   parsePlaceLive,
@@ -54,10 +58,16 @@ export {
 
 export {
   createRouting,
+  GONE,
+  GONE_HEADER,
+  gonePath,
+  goneHeader,
   HOST_MARK,
   LANG_COOKIE,
   LANG_COOKIE_MAX_AGE,
+  parseGoneHeader,
   parsePlaceParam,
+  PASS_PATHS,
   placeParam,
   pointSuffixes,
   THANKS,
@@ -83,7 +93,9 @@ export {
 export {
   checkTiming,
   HONEYPOT_FIELD,
+  LEGACY_HONEYPOT_FIELDS,
   MIN_FILL_MS,
+  RATE_LIMIT_MAX_KEYS,
   RateLimiter,
   RENDERED_AT_FIELD,
   screen,
@@ -146,9 +158,8 @@ export type {
   StatusScreenText,
 } from "./core/content";
 
-export { memoByKey } from "./core/memo";
 
-export { statusTarget, type StatusTarget } from "./core/status";
+export { brandStatusTarget, statusTarget, type StatusTarget } from "./core/status";
 
 // A landing needs these beside the machinery; re-exported by name so a brand
 // imports one package and the list here is the whole surface.

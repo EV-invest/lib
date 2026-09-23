@@ -94,7 +94,10 @@ jobs:
       - name: Install
         run: npm ci
       - name: Build and smoke the template
-        run: npm run check:template
+        # --pre-publish until uikit 0.20, marketing 0.3 and kitstart 0.1 are on
+        # npm: the workspace copies carry the old numbers. Drop it with the
+        # release; `kitstart-registry.yml` then covers the published set.
+        run: npm run check:template -- --pre-publish
 
   # `lib.mkLanding` on a stand-in brand: the hermetic npm build from its
   # lockfile, the standalone install checks, the size gate and the OCI image.

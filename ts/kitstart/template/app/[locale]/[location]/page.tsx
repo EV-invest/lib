@@ -1,6 +1,6 @@
 import { placeMetadata } from "@evinvest/kitstart/next";
 import type { Metadata } from "next";
-import { loadPlace } from "@/entities/place/server";
+import { loadPlace } from "@/views/place/server";
 import { site } from "@/shared/config/site";
 import { PlaceHome } from "@/views/home";
 
@@ -13,6 +13,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PlaceHomePage({ params }: Props) {
-  const { view, copy } = await loadPlace(params);
-  return <PlaceHome view={view} copy={copy} renderedAt={Date.now()} />;
+  const { view, copy, renderedAt } = await loadPlace(params);
+  return <PlaceHome view={view} copy={copy} renderedAt={renderedAt} />;
 }

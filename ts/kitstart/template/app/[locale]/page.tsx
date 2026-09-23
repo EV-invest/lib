@@ -2,6 +2,7 @@ import { brandMetadata, loadLocale } from "@evinvest/kitstart/next";
 import { PlaceDirectory } from "@evinvest/kitstart/react";
 import { contactOf, placeUrl } from "@evinvest/kitstart";
 import type { Metadata } from "next";
+import { TEXT } from "@/entities/content";
 import { places } from "@/shared/config/env";
 import { site } from "@/shared/config/site";
 
@@ -19,7 +20,8 @@ type Props = { params: Promise<{ locale: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const locale = await loadLocale(site, params);
-  return brandMetadata(site, locale, { title: site.brand.name, description: site.brand.name });
+  const { title, description } = TEXT[locale].brandPage;
+  return brandMetadata(site, locale, { title, description });
 }
 
 export default async function BrandPage({ params }: Props) {
@@ -31,7 +33,7 @@ export default async function BrandPage({ params }: Props) {
         locale={locale}
         hrefOf={p => placeUrl(site, p.slug, locale, "")}
         phoneOf={p => contactOf(site, p).phone}
-        openLabel={locale === "fr" ? "Ouvrir" : "Open"}
+        openLabel={TEXT[locale].brandPage.open}
       />
     </main>
   );

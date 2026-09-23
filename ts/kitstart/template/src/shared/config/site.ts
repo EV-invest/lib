@@ -1,4 +1,4 @@
-import { cardFact, defineSite, SERVICE_AREA_GATE } from "@evinvest/kitstart";
+import { cardFact, defineSite, SERVICE_AREA_GATE, type OwnerTodo } from "@evinvest/kitstart";
 import { i18n } from "./i18n";
 import { LEAD } from "./lead";
 import { PLACES } from "./places";
@@ -32,13 +32,6 @@ export const site = defineSite({
 });
 
 export type PageKey = (typeof site.pageKeys)[number];
-
-export interface OwnerTodo {
-  field: string;
-  why: string;
-  /** Launch (a domain in card.toml) is refused while any of these is open. */
-  blocksLaunch: boolean;
-}
 
 export const OWNER_TODO: readonly OwnerTodo[] = [
   { field: "site.brand.legalName", why: "raison sociale as registered", blocksLaunch: true },

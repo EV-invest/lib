@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isPublished, publicationGaps } from "../core/place/publication";
 import { createRouting, pointSuffixes, THANKS } from "../core/routing";
-import type { Site } from "../core/site";
+import { openLaunchBlockers, type OwnerTodo, type Site } from "../core/site";
 
 /**
  * What every brand's site config must hold for the machinery to work — run
@@ -24,6 +24,8 @@ export interface LandingContractOptions<L extends string> {
   text?: Readonly<Partial<Record<L, unknown>>>;
   /** Places that must be published once the owner's fields are in. */
   mustPublish?: readonly string[];
+  /** The brand's open owner facts: a domain (launch) is refused while one that blocks launch is open. */
+  ownerTodo?: readonly OwnerTodo[];
 }
 
 const SOURCE_LINE = /@source\s+["'][^"']*node_modules\/@evinvest\/kitstart\/dist["']/;
@@ -79,6 +81,13 @@ export function describeLandingContract<L extends string, P extends string>(site
           expect(place, slug).toBeDefined();
           if (place) expect(publicationGaps(place, site.publication), slug).toEqual([]);
         }
+      });
+    }
+
+    if (options.ownerTodo) {
+      it("launches only with every blocking owner fact in", () => {
+        if (site.brand.domain === null) return;
+        expect(openLaunchBlockers(options.ownerTodo ?? []).map(t => t.field)).toEqual([]);
       });
     }
 

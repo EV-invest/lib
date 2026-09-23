@@ -21,7 +21,7 @@ export function Faq({ items, head, id = "faq", className }: FaqProps) {
       <div className="overflow-hidden rounded-xl border border-border bg-background">
         {items.map(item => (
           <details key={item.q} className="group border-b border-border last:border-b-0">
-            <summary className="flex cursor-pointer list-none items-start gap-4 px-5 py-5 md:px-8 md:py-6">
+            <summary className="flex cursor-pointer list-none items-start gap-4 px-5 py-5 md:px-8 md:py-6 [&::-webkit-details-marker]:hidden">
               <span className="flex-1 font-display text-lg font-bold leading-snug text-ink">{item.q}</span>
               <span className="text-lg text-primary-ink transition-transform group-open:rotate-45" aria-hidden="true">
                 +

@@ -1,4 +1,4 @@
-import { HONEYPOT_FIELD, RENDERED_AT_FIELD, screen, type RateLimiter } from "./antispam";
+import { HONEYPOT_FIELD, LEGACY_HONEYPOT_FIELDS, RENDERED_AT_FIELD, screen, type RateLimiter } from "./antispam";
 import { MAX_FIELD, readCandidate, validateCandidate, type Lead } from "./lead";
 import type { Site } from "./site";
 
@@ -6,6 +6,7 @@ import type { Site } from "./site";
 export const LOCATION_FIELD = "location";
 export const LOCALE_FIELD = "locale";
 export const FORM_ID_FIELD = "form_id";
+const FORM_ID = /^[a-z0-9_-]{1,32}$/;
 
 export type Outcome<L extends string> =
   | { kind: "stored"; id: number; lead: Lead; locale: L; formId: string }
@@ -69,7 +70,7 @@ async function accept<L extends string, P extends string>(
 
   // After validation, so a typo corrected and resent does not spend the limit.
   const verdict = screen({
-    honeypot: field(form, HONEYPOT_FIELD),
+    honeypot: [HONEYPOT_FIELD, ...LEGACY_HONEYPOT_FIELDS].map(name => field(form, name)).find(v => v) ?? null,
     renderedAt: field(form, RENDERED_AT_FIELD),
     clientKey,
     now: deps.now,
@@ -85,7 +86,9 @@ async function accept<L extends string, P extends string>(
     return { kind: "failed", locale, slug };
   }
 
-  const formId = field(form, FORM_ID_FIELD) ?? "quote";
+  // It reaches analytics as a property; anything but a short slug is dropped.
+  const posted = field(form, FORM_ID_FIELD);
+  const formId = posted !== null && FORM_ID.test(posted) ? posted : "quote";
   // The render stamp comes from the client, so it only marks: a `too-fast`
   // lead (or one from a page cached before the stamp existed) is still sent
   // on, flagged. The honeypot and the rate limit are the server's own

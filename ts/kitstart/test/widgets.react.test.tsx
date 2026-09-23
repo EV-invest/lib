@@ -18,20 +18,27 @@ describe("LangSwitch", () => {
     expect(screen.getByText("EN")).toHaveAttribute("aria-current", "true");
     expect(screen.getByText("FR")).not.toHaveAttribute("aria-current");
   });
+
+  it("names each language to a screen reader, and keeps a link's query and fragment", () => {
+    render(<LangSwitch current="fr" locales={["fr", "en"]} hrefs={{ fr: "/fr?x=1#faq", en: "/en" }} labels={{ fr: "Français", en: "English" }} label="Langue" />);
+    expect(screen.getByRole("navigation", { name: "Langue" })).toBeInTheDocument();
+    expect(screen.getByLabelText("English")).toHaveAttribute("href", "/en?lang=en");
+    expect(screen.getByLabelText("Français")).toHaveAttribute("href", "/fr?x=1&lang=fr#faq");
+  });
 });
 
 describe("CallBar", () => {
   const copy = { locale: "fr" as const, f, t: { callLabel: (x: F) => `Appeler ${x.phone}`, whatsappMessage: () => "Bonjour", whatsappShort: "WhatsApp", ctaShort: "Devis" } };
 
   it("offers the phone, WhatsApp and the form", () => {
-    render(<CallBar copy={copy} phone="+33 4 23 50 06 40" whatsapp="+33 6 12 34 56 78" quoteHref="/fr#quote" />);
+    render(<CallBar copy={copy} phone="+33 4 23 50 06 40" whatsapp="+33 6 12 34 56 78" quoteHref="/fr#quote" label="Contact" />);
     expect(screen.getByLabelText("Appeler +33 4 23 50 06 40")).toHaveAttribute("href", "tel:+33423500640");
     expect(screen.getByText("WhatsApp").closest("a")).toHaveAttribute("href", "https://wa.me/33612345678?text=Bonjour");
     expect(screen.getByText("Devis").closest("a")).toHaveAttribute("data-intent", "form_open");
   });
 
   it("leaves out a channel the place does not have", () => {
-    render(<CallBar copy={copy} phone={null} whatsapp={null} quoteHref="/fr#quote" />);
+    render(<CallBar copy={copy} phone={null} whatsapp={null} quoteHref="/fr#quote" label="Contact" />);
     expect(screen.queryByText("☎")).toBeNull();
     expect(screen.queryByText("WhatsApp")).toBeNull();
     expect(screen.getByText("Devis")).toBeInTheDocument();
@@ -62,7 +69,7 @@ describe("StatusScreen", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Cette page n’existe pas");
     expect(screen.getByText("Appeler +33 4 23 50 06 40").closest("a")).toHaveAttribute("href", "tel:+33423500640");
     expect(screen.getByText("Accueil").closest("a")).toHaveAttribute("href", "/fr");
-    expect(screen.getByText("SIRET 000 · DÉCENNALE —")).toBeInTheDocument();
+    expect(screen.getByText("SIRET 000 · Décennale —").closest("footer")).toHaveClass("uppercase");
     expect(screen.getByLabelText("Aquafix")).toHaveAttribute("href", "/fr");
   });
 
@@ -154,6 +161,6 @@ describe("QuoteFormShell", () => {
       </QuoteFormShell>,
     );
     expect(document.querySelector('input[name="location"]')).toBeNull();
-    expect(document.querySelector('input[name="website"]')?.getAttribute("tabindex")).toBe("-1");
+    expect(document.querySelector('input[name="hp_ref"]')?.getAttribute("tabindex")).toBe("-1");
   });
 });

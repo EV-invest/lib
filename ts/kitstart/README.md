@@ -83,6 +83,7 @@ Tailwind v4 does not scan `node_modules`; the brand's `globals.css` names the
 package:
 
 ```css
+/* app/globals.css; from src/app/ it is ../../node_modules/… */
 @source "../node_modules/@evinvest/kitstart/dist";
 ```
 
@@ -116,25 +117,46 @@ export const revalidate = 600;
 ```
 
 `createPlaceLoader(site, places)(params)` returns the `PlaceView` for a page,
-reading the link mode from the `location` param (`_royat` = host mode). The
-not-found and error boundaries use `statusTarget(site, useParams())` from the
-core — never `headers()`, which would make every cached page per-request.
+reading the link mode from the `location` param (`_royat` = host mode).
+
+**Dead paths.** Next 16 answers a `notFound()` with an empty shell it fills in
+after hydration — a blank page without JavaScript. So the proxy knows the dead
+paths itself (`decide` → `gone`) and rewrites each to `/<locale>/404/404`, a
+path no route matches, with the language and place in `GONE_HEADER`. The
+brand's `app/global-not-found.tsx` (`experimental.globalNotFound`, set by
+`withLanding`) reads that header — the only thing that does — and renders the
+404 on the server with `statusTarget(site, parseGoneHeader(…))`. The
+`notFound()` boundary under `[locale]` stays for what the proxy cannot foresee
+(a place the live source withdrew); it and `error.tsx` are client modules and
+take `brandStatusTarget({ locales, phone }, locale)`, never the site config,
+which would carry every place into every page's bundle. Redirects the proxy
+chooses per visitor answer `Cache-Control: private, no-store`.
 
 ## Server invariants
 
 - **A page's place loader never throws on the live source.** Pages are cached
   (ISR); a cold render that throws is Next's bare `Internal Server Error`
   with no phone on it. A 5xx or an unreachable source serves the baked place
-  (`noindex` until the gate fields are back); only a 404 is "gone". The
-  sitemap is the one strict reader (`listPlaces(locale, "sitemap")` throws).
+  (`noindex` until the gate fields are back); only a 410, or a 404 in the
+  source's own JSON, withdraws a place — a bare 404 is an ingress, not the
+  source. The sitemap is the one strict reader (`getPlaceStrict` throws).
 - **The lead is durable before anything else happens.** Every `LeadStore`
   adapter passes `describeLeadStoreContract` and migrates itself to
   `LEAD_SCHEMA_VERSION` on open. SQLite keeps the Rust server's columns
   (`job`, `zip`, `mobile`) and recognises every earlier table in place.
 - **Mail is checked at boot.** With `SMTP_URL` set, `leadNotifier` throws when
-  it is built if there is no sender (`LEAD_NOTIFY_FROM`, or `leads@<domain>`)
-  or no recipient (`LEAD_NOTIFY_TO`, or the brand's email). Off loopback, a
-  server without TLS gets nothing.
+  it is built if the URL is malformed (the error never repeats it), there is
+  no sender (`LEAD_NOTIFY_FROM`, or `leads@<domain>`) or no recipient
+  (`LEAD_NOTIFY_TO`, or the brand's email). Both are bare addresses
+  (`leads@brand.fr`), not `Name <…>`. Off loopback, a server without TLS gets
+  nothing; past `MAIL_PER_MINUTE` a minute the lead is stored and only logged.
+- **The rate limit knows whose address it counts.** `TRUSTED_PROXY` is
+  `cloudflare` (only `CF-Connecting-IP`) or `xff:<n>` (the n-th
+  `X-Forwarded-For` hop from the right); production refuses to boot without it.
+- **SQLite wants one writer node.** The file lives on a ReadWriteOnce volume
+  mounted by one node; pods on it take turns through `busy_timeout`. A shared
+  network filesystem is not a place for it — that is what the Postgres port
+  is for.
 
 ## The site
 
@@ -168,6 +190,20 @@ page how to write its links through the route it rewrites to:
 | single site `clean.example/fr/prices` | `/fr/_paris/prices` | `/fr/…` |
 
 `parsePlaceParam("_royat")` reads the mode back out of the `[location]` param.
+
+## Publishing
+
+`package.json` says `0.0.0` on purpose: `nix run .#publish -- minor` bumps it
+to `0.1.0`, the version `template/` asks for (`^0.1.0`). kitstart's peers
+must be on the registry first, so a release is two runs:
+
+1. `nix run .#publish -- minor --npm-only --only @evinvest/uikit --only @evinvest/marketing`,
+   then wait until `npm view @evinvest/uikit version` answers the new one;
+2. `nix run .#publish -- minor --npm-only --only @evinvest/kitstart`.
+
+The first publish of a new name in the scope needs an automation or classic
+token: a granular token cannot create a name. Bump the lib flake revision a
+brand pins (`mkLanding`) in the same PR as its npm version.
 
 ## Shared fixtures with Rust
 

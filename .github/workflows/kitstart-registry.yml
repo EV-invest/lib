@@ -1,0 +1,30 @@
+# Hand-written: `ts/kitstart/template/` installed exactly as a brand installs
+# it — from npm, no tarballs, no workspace links — then its types, tests, lint,
+# `next build`, the bundle budget and the live smoke. Runs on each kitstart
+# release tag and weekly, so a published version that no longer builds (a
+# peer moved under it) is found before the next brand is.
+name: kitstart (registry)
+'on':
+  push:
+    tags: ['@evinvest/kitstart-v*']
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  template-registry:
+    name: template from npm
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ts/kitstart
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14'
+      - name: Build and smoke the template from the registry
+        run: node scripts/check-template.mjs --registry

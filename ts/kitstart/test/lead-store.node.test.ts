@@ -51,7 +51,7 @@ describe("choosing the lead store", () => {
   });
 
   it("keeps LEADS_DB_PATH working and lets LEADS_DB_URL win", () => {
-    const prod = { NODE_ENV: "production" };
+    const prod = { NODE_ENV: "production", TRUSTED_PROXY: "cloudflare" };
     expect(parseServerEnv(SITE, { ...prod, LEADS_DB_PATH: "/data/leads.db" })).toMatchObject({
       leadsDb: { kind: "sqlite", path: "/data/leads.db" },
       leadsDbFrom: "LEADS_DB_PATH",
@@ -63,8 +63,13 @@ describe("choosing the lead store", () => {
   });
 
   it("refuses to boot in production with neither", () => {
-    expect(() => parseServerEnv(SITE, { NODE_ENV: "production" })).toThrow(/LEADS_DB_URL or LEADS_DB_PATH is required/);
-    expect(() => parseServerEnv(SITE, { NODE_ENV: "production", LEADS_DB_PATH: " " })).toThrow(/required/);
+    const prod = { NODE_ENV: "production", TRUSTED_PROXY: "cloudflare" };
+    expect(() => parseServerEnv(SITE, prod)).toThrow(/LEADS_DB_URL or LEADS_DB_PATH is required/);
+    expect(() => parseServerEnv(SITE, { ...prod, LEADS_DB_PATH: " " })).toThrow(/required/);
+    // The postgres adapter does not exist yet: refused at boot, never on a lead.
+    expect(() => parseServerEnv(SITE, { ...prod, LEADS_DB_URL: "postgres://u:secret@db/leads" })).toThrow(/not implemented/);
+    expect(() => parseServerEnv(SITE, { ...prod, LEADS_DB_URL: "postgres://u:secret@db/leads" })).not.toThrow(/secret/);
+    expect(() => parseLeadDb("::secret::")).not.toThrow(/secret/);
   });
 
   it("defaults to a per-brand file outside production, and reads the rest of the env", () => {

@@ -1,24 +1,27 @@
 "use client";
 
-import { statusTarget } from "@evinvest/kitstart";
+import { brandStatusTarget } from "@evinvest/kitstart";
 import { StatusScreen } from "@evinvest/kitstart/react";
 import { useParams } from "next/navigation";
 import { copyFor } from "@/entities/content";
-import { site } from "@/shared/config/site";
+import { i18n } from "@/shared/config/i18n";
+import { BRAND_PUBLIC } from "@/shared/config/public";
 
 /**
- * A real 404 that still answers in the page's language with the right
- * place's phone. It reads the route params, never the request: the boundary
- * is rendered into every cached page. A client module so `dynamic()` can keep
- * it (and both languages' copy) out of every page's first load.
+ * The `notFound()` boundary, for what the proxy could not foresee — a place
+ * the live source withdrew. It speaks for the brand: the site config (and its
+ * places) must not ride into every page's bundle. Every dead path the proxy
+ * does know is rendered on the server by `app/global-not-found.tsx` instead.
  */
 export function NotFound() {
-  const target = statusTarget(site, useParams<{ locale?: string; location?: string }>() ?? {});
-  const copy = copyFor(target.locale, { place: target.place?.name[target.locale] ?? site.brand.name, phone: target.phone });
+  const params = useParams<{ locale?: string }>();
+  const locale = i18n.isLocale(params?.locale) ? params.locale : i18n.defaultLocale;
+  const target = brandStatusTarget({ locales: i18n.locales, phone: BRAND_PUBLIC.phone }, locale);
+  const copy = copyFor(locale, { place: BRAND_PUBLIC.name, phone: BRAND_PUBLIC.phone });
   return (
     <>
-      <title>{`${copy.t.notFound.title} · ${site.brand.name}`}</title>
-      <StatusScreen copy={copy} status={copy.t.notFound} target={target} locales={site.i18n.locales} brandName={site.brand.name} />
+      <title>{`${copy.t.notFound.title} · ${BRAND_PUBLIC.name}`}</title>
+      <StatusScreen copy={copy} status={copy.t.notFound} target={target} locales={i18n.locales} labels={i18n.labels} brandName={BRAND_PUBLIC.name} />
     </>
   );
 }

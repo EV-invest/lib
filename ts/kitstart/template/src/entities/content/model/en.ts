@@ -39,6 +39,8 @@ export const EN = {
   facts: () => ["Brand SAS"],
   hero: { title: f => `Cleaning in ${f.place}, at a fixed price.`, lede: "A price quoted before we come." },
   coverageTitle: "Where we work",
+  brandPage: { title: "Brand", description: "Cleaning at a fixed price.", open: "Open" },
+  contactLabel: "Contact us",
   subjects: { standard: "Regular cleaning", deep: "Deep cleaning", other: "Other" },
   quoteLabels: { subject: "Service", locality: "Town or postcode", mobile: "Mobile" },
   faqs: [{ q: "Can the price change?", a: "No: the price quoted is the price you pay." }],

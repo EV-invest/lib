@@ -73,6 +73,11 @@ export interface Site<L extends string, P extends string = string> extends SiteC
 export function defineSite<const L extends string, const P extends string>(config: SiteConfig<L, P>): Site<L, P> {
   const pageKeys = Object.keys(config.pages).filter((k): k is P | "home" => Object.hasOwn(config.pages, k));
   if (!pageKeys.includes("home")) throw new Error("defineSite: pages.home is required");
+  for (const key of pageKeys) {
+    // One spelling per page: `/prices/` would be a second URL for `/prices`.
+    const suffix = config.pages[key];
+    if (suffix.endsWith("/") || suffix.includes("//")) throw new Error(`defineSite: page "${key}" suffix "${suffix}" must not end in "/"`);
+  }
   const placeSlugs = config.places.map(p => p.slug);
   const dup = placeSlugs.find((s, i) => placeSlugs.indexOf(s) !== i);
   if (dup !== undefined) throw new Error(`defineSite: place slug "${dup}" is listed twice`);
@@ -80,6 +85,8 @@ export function defineSite<const L extends string, const P extends string>(confi
     // The host-mode route param is `_<slug>`; a slug starting with the mark
     // would read back as a different place.
     if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) throw new Error(`defineSite: place slug "${slug}" must be [a-z0-9-], not starting with "-"`);
+    // `/<locale>/404/404` is the proxy's route to the 404 (see `GONE`).
+    if (slug === "404") throw new Error(`defineSite: place slug "404" is reserved for the 404 route`);
   }
   if (config.topology.kind === "single" && !placeSlugs.includes(config.topology.place)) {
     throw new Error(`defineSite: topology.place "${config.topology.place}" is not one of the places`);
@@ -113,6 +120,30 @@ export function ogLocaleOf<L extends string>(site: Pick<SiteConfig<L, string>, "
 export function cardFact(name: string, value: string | undefined): string | null {
   if (value === undefined) throw new Error(`${name} was not inlined — build through withLanding (next.config.ts)`);
   return value === "" ? null : value;
+}
+
+/**
+ * A fact the owner has not supplied yet, rendered as a placeholder until then.
+ * Listed once in the brand's `site.ts`, instead of discovered on the page.
+ */
+export interface OwnerTodo {
+  field: string;
+  why: string;
+  /** A domain (launch) is refused while any of these is open. */
+  blocksLaunch: boolean;
+}
+
+/** The owner facts that stand between the site and a domain. */
+export function openLaunchBlockers(todos: readonly OwnerTodo[]): OwnerTodo[] {
+  return todos.filter(t => t.blocksLaunch);
+}
+
+/** Throws while a blocking owner fact is open and the site has a domain. */
+export function assertLaunchable(site: { brand: { domain: string | null } }, todos: readonly OwnerTodo[]): void {
+  const open = openLaunchBlockers(todos);
+  if (site.brand.domain !== null && open.length > 0) {
+    throw new Error(`not launchable: ${open.map(t => `${t.field} (${t.why})`).join("; ")}`);
+  }
 }
 
 /** The baked place for a slug, if the site has it. */
