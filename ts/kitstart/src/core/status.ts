@@ -20,7 +20,39 @@ export interface StatusTarget<L extends string> {
   langHrefs: Record<L, string>;
 }
 
+function complete<L extends string>(r: Partial<Record<L, string>>, locales: readonly L[]): r is Record<L, string> {
+  return locales.every(l => typeof r[l] === "string");
+}
+
 /**
+ * The brand's own status target from two facts — for a client boundary
+ * (`error.tsx`, the `notFound()` boundary), which must not import the site
+ * config: it would carry every place into every page's bundle.
+ */
+export function brandStatusTarget<L extends string>(
+  facts: { locales: readonly L[]; phone: string | null },
+  locale: L,
+  options: { retry?: string; thanks?: boolean } = {},
+): StatusTarget<L> {
+  const suffix = options.thanks ? THANKS : "";
+  const langHrefs: Partial<Record<L, string>> = {};
+  for (const l of facts.locales) langHrefs[l] = `/${l}${suffix}`;
+  if (!complete(langHrefs, facts.locales)) throw new Error("brandStatusTarget: a locale was skipped");
+  return {
+    locale,
+    place: null,
+    phone: facts.phone,
+    home: `/${locale}`,
+    retry: options.retry ?? `/${locale}`,
+    langHrefs,
+  };
+}
+
+/**
+ * Server side — the global not-found page, a thank-you page: the target for
+ * the place the params name. Not for a client module (see
+ * {@link brandStatusTarget}).
+ *
  * Read from the route params alone — `useParams()` in a client boundary, or a
  * page's `params` — never from the request: a not-found boundary is rendered
  * into every cached page, and a `headers()` there would make each one

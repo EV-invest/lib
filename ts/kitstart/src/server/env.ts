@@ -1,6 +1,7 @@
 import "server-only";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { parseProxyTrust, type ProxyTrust } from "./client-key";
 import { parseLeadDb, type LeadDb } from "./lead-store";
 
 /**
@@ -22,8 +23,12 @@ export interface ServerEnv {
   /** Where the live place data comes from; absent → the baked config. */
   locationsApiUrl: string | null;
   smtpUrl: string | null;
+  /** A bare address (`leads@brand.fr`), not `Name <…>`. */
   notifyTo: string | null;
+  /** A bare address (`leads@brand.fr`), not `Name <…>`. */
   notifyFrom: string | null;
+  /** Whose word the rate limit takes for the client's address; see `ProxyTrust`. */
+  trustedProxy: ProxyTrust | null;
   smsToken: string | null;
   posthogKey: string | null;
   posthogHost: string;
@@ -42,7 +47,8 @@ function url(source: EnvSource, name: string): string | null {
   try {
     return new URL(value).toString().replace(/\/$/, "");
   } catch {
-    throw new Error(`${name} is not a URL: ${JSON.stringify(value)}`);
+    // Never the value: a URL setting may carry credentials.
+    throw new Error(`${name} is not a URL`);
   }
 }
 
@@ -54,7 +60,12 @@ function url(source: EnvSource, name: string): string | null {
  */
 function leadsDb(source: EnvSource, production: boolean, brandId: string): Pick<ServerEnv, "leadsDb" | "leadsDbFrom"> {
   const dbUrl = opt(source, "LEADS_DB_URL");
-  if (dbUrl !== null) return { leadsDb: parseLeadDb(dbUrl), leadsDbFrom: "LEADS_DB_URL" };
+  if (dbUrl !== null) {
+    const db = parseLeadDb(dbUrl);
+    // Refused here, at boot, until the adapter exists — not on the first lead.
+    if (db.kind === "postgres") throw new Error("LEADS_DB_URL: the postgres lead store is not implemented yet; use sqlite:///<path>");
+    return { leadsDb: db, leadsDbFrom: "LEADS_DB_URL" };
+  }
   const path = opt(source, "LEADS_DB_PATH");
   if (path !== null) return { leadsDb: { kind: "sqlite", path }, leadsDbFrom: "LEADS_DB_PATH" };
   if (production) {
@@ -65,8 +76,13 @@ function leadsDb(source: EnvSource, production: boolean, brandId: string): Pick<
 
 export function parseServerEnv(site: { brand: { id: string } }, source: EnvSource): ServerEnv {
   const production = source["NODE_ENV"] === "production";
+  const trust = opt(source, "TRUSTED_PROXY");
+  if (trust === null && production) {
+    throw new Error("TRUSTED_PROXY is required in production: cloudflare, or xff:<n> for n proxies of ours");
+  }
   return {
     production,
+    trustedProxy: trust === null ? null : parseProxyTrust(trust),
     ...leadsDb(source, production, site.brand.id),
     locationsApiUrl: url(source, "LOCATIONS_API_URL"),
     smtpUrl: opt(source, "SMTP_URL"),

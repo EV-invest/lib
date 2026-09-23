@@ -1,0 +1,180 @@
+{
+  "source": "the TS core's screen/RateLimiter (lib#143)",
+  "minFillMs": 3000,
+  "maxSkewMs": 60000,
+  "cases": [
+    {
+      "name": "the honeypot outranks everything and spends nothing",
+      "limit": 1,
+      "windowMs": 60000,
+      "maxKeys": 10000,
+      "steps": [
+        {
+          "honeypot": "http://spam",
+          "renderedAt": "1799999990000",
+          "clientKey": "a",
+          "now": 1800000000000,
+          "expected": "honeypot"
+        },
+        {
+          "honeypot": "",
+          "renderedAt": "1799999990000",
+          "clientKey": "a",
+          "now": 1800000000001,
+          "expected": "ok"
+        }
+      ]
+    },
+    {
+      "name": "a missing stamp spends the limit: N+1 without t is rate-limited",
+      "limit": 2,
+      "windowMs": 60000,
+      "maxKeys": 10000,
+      "steps": [
+        {
+          "honeypot": "",
+          "renderedAt": null,
+          "clientKey": "a",
+          "now": 1800000000000,
+          "expected": "too-fast"
+        },
+        {
+          "honeypot": "",
+          "renderedAt": null,
+          "clientKey": "a",
+          "now": 1800000000001,
+          "expected": "too-fast"
+        },
+        {
+          "honeypot": "",
+          "renderedAt": null,
+          "clientKey": "a",
+          "now": 1800000000002,
+          "expected": "rate-limited"
+        },
+        {
+          "honeypot": "",
+          "renderedAt": null,
+          "clientKey": "b",
+          "now": 1800000000003,
+          "expected": "too-fast"
+        }
+      ]
+    },
+    {
+      "name": "timing: too fast, a forged future, the threshold itself",
+      "limit": 10,
+      "windowMs": 60000,
+      "maxKeys": 10000,
+      "steps": [
+        {
+          "honeypot": "",
+          "renderedAt": "1799999997001",
+          "clientKey": "a",
+          "now": 1800000000000,
+          "expected": "too-fast"
+        },
+        {
+          "honeypot": "",
+          "renderedAt": "1799999997000",
+          "clientKey": "a",
+          "now": 1800000000000,
+          "expected": "ok"
+        },
+        {
+          "honeypot": "",
+          "renderedAt": "1800000120000",
+          "clientKey": "a",
+          "now": 1800000000000,
+          "expected": "too-fast"
+        },
+        {
+          "honeypot": "",
+          "renderedAt": "soon",
+          "clientKey": "a",
+          "now": 1800000000000,
+          "expected": "too-fast"
+        },
+        {
+          "honeypot": "",
+          "renderedAt": "",
+          "clientKey": "a",
+          "now": 1800000000000,
+          "expected": "too-fast"
+        }
+      ]
+    },
+    {
+      "name": "the window resets",
+      "limit": 1,
+      "windowMs": 60000,
+      "maxKeys": 10000,
+      "steps": [
+        {
+          "honeypot": "",
+          "renderedAt": "1799999990000",
+          "clientKey": "a",
+          "now": 1800000000000,
+          "expected": "ok"
+        },
+        {
+          "honeypot": "",
+          "renderedAt": "1799999990000",
+          "clientKey": "a",
+          "now": 1800000000001,
+          "expected": "rate-limited"
+        },
+        {
+          "honeypot": "",
+          "renderedAt": "1799999990000",
+          "clientKey": "a",
+          "now": 1800000060000,
+          "expected": "ok"
+        }
+      ]
+    },
+    {
+      "name": "past maxKeys, new keys share one overflow bucket",
+      "limit": 1,
+      "windowMs": 60000,
+      "maxKeys": 2,
+      "steps": [
+        {
+          "honeypot": "",
+          "renderedAt": "1799999990000",
+          "clientKey": "a",
+          "now": 1800000000000,
+          "expected": "ok"
+        },
+        {
+          "honeypot": "",
+          "renderedAt": "1799999990000",
+          "clientKey": "b",
+          "now": 1800000000000,
+          "expected": "ok"
+        },
+        {
+          "honeypot": "",
+          "renderedAt": "1799999990000",
+          "clientKey": "c",
+          "now": 1800000000000,
+          "expected": "ok"
+        },
+        {
+          "honeypot": "",
+          "renderedAt": "1799999990000",
+          "clientKey": "d",
+          "now": 1800000000000,
+          "expected": "rate-limited"
+        },
+        {
+          "honeypot": "",
+          "renderedAt": "1799999990000",
+          "clientKey": "a",
+          "now": 1800000000001,
+          "expected": "rate-limited"
+        }
+      ]
+    }
+  ]
+}

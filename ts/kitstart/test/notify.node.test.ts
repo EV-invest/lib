@@ -50,6 +50,26 @@ function catcher(): Promise<{ port: number; lines: string[] }> {
   return new Promise(resolve => s.listen(0, "127.0.0.1", () => resolve({ port: (s.address() as AddressInfo).port, lines })));
 }
 
+describe("the lead notifier's mail cap", () => {
+  it("mails at most mailPerMinute a minute per process, then only logs", async () => {
+    const { port, lines } = await catcher();
+    const warn = vi.fn();
+    let t = 0;
+    const notifier = leadNotifier({ brand: BRAND }, { ...NONE, smtpUrl: `smtp://127.0.0.1:${port}` }, { mailPerMinute: 2, now: () => t, log: { warn } });
+    for (let i = 1; i <= 3; i++) await notifier.notify(lead, i);
+    expect(lines.filter(l => l.startsWith("MAIL FROM"))).toHaveLength(2);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("over 2 notification mails a minute"));
+    t = 60_000;
+    await notifier.notify(lead, 4);
+    expect(lines.filter(l => l.startsWith("MAIL FROM"))).toHaveLength(3);
+  });
+
+  it("refuses a malformed SMTP_URL at construction, without repeating it", () => {
+    expect(() => leadNotifier({ brand: BRAND }, { ...NONE, smtpUrl: "ftp://u:secret@x" })).toThrow(/unsupported scheme/);
+    expect(() => leadNotifier({ brand: BRAND }, { ...NONE, smtpUrl: "not a url secret" })).toThrow(/^SMTP_URL is not a URL$/);
+  });
+});
+
 describe("the lead notifier", () => {
   it("refuses at construction to mail from a site with no domain, or to a brand with no mailbox", () => {
     const smtp = { ...NONE, smtpUrl: "smtp://127.0.0.1:2525" };
