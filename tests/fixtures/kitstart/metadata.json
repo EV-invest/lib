@@ -1,5 +1,5 @@
 {
-  "source": "Service-Arb/aquafix@33e3198 tests/golden/metadata.json",
+  "source": "Service-Arb/aquafix@33e3198 tests/golden/metadata.json; cleaning/* and prelaunch/* from the TS builders",
   "cases": [
     {
       "name": "royat/fr/home",
@@ -1671,6 +1671,467 @@
         },
         "twitter": {
           "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "cleaning/fr/home",
+      "kind": "place",
+      "site": "cleaning",
+      "place": {
+        "slug": "paris",
+        "gbpName": "Clean Co Paris",
+        "name": {
+          "fr": "Paris",
+          "en": "Paris"
+        },
+        "presence": {
+          "kind": "service-area"
+        },
+        "serviceArea": [
+          {
+            "kind": "localities",
+            "names": [
+              "Paris",
+              "Boulogne-Billancourt"
+            ]
+          },
+          {
+            "kind": "radius",
+            "center": {
+              "lat": 48.8566,
+              "lng": 2.3522
+            },
+            "km": 12
+          }
+        ],
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": [
+          {
+            "days": [
+              "Monday",
+              "Saturday"
+            ],
+            "opens": "08:00",
+            "closes": "19:00"
+          }
+        ],
+        "rating": null
+      },
+      "locale": "fr",
+      "page": "home",
+      "mode": "host",
+      "copy": {
+        "title": "Ménage à Paris",
+        "description": "Ménage à Paris : un prix fixe annoncé avant de venir."
+      },
+      "expected": {
+        "title": "Clean Co — Ménage à Paris",
+        "description": "Ménage à Paris : un prix fixe annoncé avant de venir.",
+        "robots": {
+          "index": true,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://clean.example/fr",
+          "languages": {
+            "fr-FR": "https://clean.example/fr",
+            "en": "https://clean.example/en",
+            "x-default": "https://clean.example/fr"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Clean Co",
+          "title": "Clean Co — Ménage à Paris",
+          "description": "Ménage à Paris : un prix fixe annoncé avant de venir.",
+          "url": "https://clean.example/fr",
+          "locale": "fr_FR",
+          "alternateLocale": [
+            "en_GB"
+          ],
+          "images": [
+            {
+              "url": "https://clean.example/og?lang=fr&l=paris&p=home",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "cleaning/en/prices",
+      "kind": "place",
+      "site": "cleaning",
+      "place": {
+        "slug": "paris",
+        "gbpName": "Clean Co Paris",
+        "name": {
+          "fr": "Paris",
+          "en": "Paris"
+        },
+        "presence": {
+          "kind": "service-area"
+        },
+        "serviceArea": [
+          {
+            "kind": "localities",
+            "names": [
+              "Paris",
+              "Boulogne-Billancourt"
+            ]
+          },
+          {
+            "kind": "radius",
+            "center": {
+              "lat": 48.8566,
+              "lng": 2.3522
+            },
+            "km": 12
+          }
+        ],
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": [
+          {
+            "days": [
+              "Monday",
+              "Saturday"
+            ],
+            "opens": "08:00",
+            "closes": "19:00"
+          }
+        ],
+        "rating": null
+      },
+      "locale": "en",
+      "page": "prices",
+      "mode": "host",
+      "copy": {
+        "title": "Our prices",
+        "description": "Every price in Paris."
+      },
+      "expected": {
+        "title": "Our prices · Clean Co",
+        "description": "Every price in Paris.",
+        "robots": {
+          "index": true,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://clean.example/en/prices",
+          "languages": {
+            "fr-FR": "https://clean.example/fr/prices",
+            "en": "https://clean.example/en/prices",
+            "x-default": "https://clean.example/fr/prices"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Clean Co",
+          "title": "Our prices · Clean Co",
+          "description": "Every price in Paris.",
+          "url": "https://clean.example/en/prices",
+          "locale": "en_GB",
+          "alternateLocale": [
+            "fr_FR"
+          ],
+          "images": [
+            {
+              "url": "https://clean.example/og?lang=en&l=paris&p=prices",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "cleaning brand/fr",
+      "kind": "brand",
+      "site": "cleaning",
+      "locale": "fr",
+      "copy": {
+        "title": "Clean Co",
+        "description": "Le ménage à prix fixe."
+      },
+      "expected": {
+        "title": "Clean Co",
+        "description": "Le ménage à prix fixe.",
+        "alternates": {
+          "canonical": "https://clean.example/fr",
+          "languages": {
+            "fr-FR": "https://clean.example/fr",
+            "en": "https://clean.example/en",
+            "x-default": "https://clean.example/fr"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Clean Co",
+          "title": "Clean Co",
+          "description": "Le ménage à prix fixe.",
+          "url": "https://clean.example/fr",
+          "locale": "fr_FR",
+          "alternateLocale": [
+            "en_GB"
+          ],
+          "images": [
+            {
+              "url": "https://clean.example/og?lang=fr",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "cleaning status/fr",
+      "kind": "status",
+      "site": "cleaning",
+      "copy": {
+        "title": "Demande reçue"
+      },
+      "expected": {
+        "title": "Demande reçue · Clean Co",
+        "robots": {
+          "index": false,
+          "follow": false
+        }
+      }
+    },
+    {
+      "name": "prelaunch/fr/home",
+      "kind": "place",
+      "site": "prelaunch",
+      "place": {
+        "slug": "paris",
+        "gbpName": "Clean Co Paris",
+        "name": {
+          "fr": "Paris",
+          "en": "Paris"
+        },
+        "presence": {
+          "kind": "service-area"
+        },
+        "serviceArea": [
+          {
+            "kind": "localities",
+            "names": [
+              "Paris",
+              "Boulogne-Billancourt"
+            ]
+          },
+          {
+            "kind": "radius",
+            "center": {
+              "lat": 48.8566,
+              "lng": 2.3522
+            },
+            "km": 12
+          }
+        ],
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": [
+          {
+            "days": [
+              "Monday",
+              "Saturday"
+            ],
+            "opens": "08:00",
+            "closes": "19:00"
+          }
+        ],
+        "rating": null
+      },
+      "locale": "fr",
+      "page": "home",
+      "mode": "host",
+      "copy": {
+        "title": "Ménage à Paris",
+        "description": "Ménage à Paris : un prix fixe annoncé avant de venir."
+      },
+      "expected": {
+        "title": "Clean Co — Ménage à Paris",
+        "description": "Ménage à Paris : un prix fixe annoncé avant de venir.",
+        "robots": {
+          "index": false,
+          "follow": false
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Clean Co",
+          "title": "Clean Co — Ménage à Paris",
+          "description": "Ménage à Paris : un prix fixe annoncé avant de venir.",
+          "locale": "fr_FR",
+          "alternateLocale": [
+            "en_GB"
+          ],
+          "images": [
+            {
+              "url": "/og?lang=fr&l=paris&p=home",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "prelaunch/en/prices",
+      "kind": "place",
+      "site": "prelaunch",
+      "place": {
+        "slug": "paris",
+        "gbpName": "Clean Co Paris",
+        "name": {
+          "fr": "Paris",
+          "en": "Paris"
+        },
+        "presence": {
+          "kind": "service-area"
+        },
+        "serviceArea": [
+          {
+            "kind": "localities",
+            "names": [
+              "Paris",
+              "Boulogne-Billancourt"
+            ]
+          },
+          {
+            "kind": "radius",
+            "center": {
+              "lat": 48.8566,
+              "lng": 2.3522
+            },
+            "km": 12
+          }
+        ],
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": [
+          {
+            "days": [
+              "Monday",
+              "Saturday"
+            ],
+            "opens": "08:00",
+            "closes": "19:00"
+          }
+        ],
+        "rating": null
+      },
+      "locale": "en",
+      "page": "prices",
+      "mode": "host",
+      "copy": {
+        "title": "Our prices",
+        "description": "Every price in Paris."
+      },
+      "expected": {
+        "title": "Our prices · Clean Co",
+        "description": "Every price in Paris.",
+        "robots": {
+          "index": false,
+          "follow": false
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Clean Co",
+          "title": "Our prices · Clean Co",
+          "description": "Every price in Paris.",
+          "locale": "en_GB",
+          "alternateLocale": [
+            "fr_FR"
+          ],
+          "images": [
+            {
+              "url": "/og?lang=en&l=paris&p=prices",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "prelaunch brand/fr",
+      "kind": "brand",
+      "site": "prelaunch",
+      "locale": "fr",
+      "copy": {
+        "title": "Clean Co",
+        "description": "Le ménage à prix fixe."
+      },
+      "expected": {
+        "title": "Clean Co",
+        "description": "Le ménage à prix fixe.",
+        "robots": {
+          "index": false,
+          "follow": false
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Clean Co",
+          "title": "Clean Co",
+          "description": "Le ménage à prix fixe.",
+          "locale": "fr_FR",
+          "alternateLocale": [
+            "en_GB"
+          ],
+          "images": [
+            {
+              "url": "/og?lang=fr",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "prelaunch status/fr",
+      "kind": "status",
+      "site": "prelaunch",
+      "copy": {
+        "title": "Demande reçue"
+      },
+      "expected": {
+        "title": "Demande reçue · Clean Co",
+        "robots": {
+          "index": false,
+          "follow": false
         }
       }
     }

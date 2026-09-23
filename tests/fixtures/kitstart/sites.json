@@ -345,5 +345,96 @@
     ],
     "publication": "service-area",
     "legacyRedirects": []
+  },
+  "prelaunch": {
+    "brand": {
+      "id": "prelaunch",
+      "name": "Clean Co",
+      "legalName": "Clean Co SAS",
+      "email": null,
+      "phone": null,
+      "domain": null,
+      "businessType": "LocalBusiness"
+    },
+    "i18n": {
+      "locales": [
+        "fr",
+        "en"
+      ],
+      "labels": {
+        "fr": "Français",
+        "en": "English"
+      },
+      "default": "fr",
+      "prefixDefaultLocale": true,
+      "hreflang": {
+        "fr": "fr-FR"
+      }
+    },
+    "ogLocale": {
+      "fr": "fr_FR",
+      "en": "en_GB"
+    },
+    "topology": {
+      "kind": "single",
+      "place": "paris"
+    },
+    "pages": [
+      {
+        "key": "home",
+        "suffix": ""
+      },
+      {
+        "key": "prices",
+        "suffix": "/prices"
+      }
+    ],
+    "places": [
+      {
+        "slug": "paris",
+        "gbpName": "Clean Co Paris",
+        "name": {
+          "fr": "Paris",
+          "en": "Paris"
+        },
+        "presence": {
+          "kind": "service-area"
+        },
+        "serviceArea": [
+          {
+            "kind": "localities",
+            "names": [
+              "Paris",
+              "Boulogne-Billancourt"
+            ]
+          },
+          {
+            "kind": "radius",
+            "center": {
+              "lat": 48.8566,
+              "lng": 2.3522
+            },
+            "km": 12
+          }
+        ],
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": [
+          {
+            "days": [
+              "Monday",
+              "Saturday"
+            ],
+            "opens": "08:00",
+            "closes": "19:00"
+          }
+        ],
+        "rating": null
+      }
+    ],
+    "publication": "service-area",
+    "legacyRedirects": []
   }
 }
