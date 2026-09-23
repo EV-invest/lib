@@ -138,7 +138,7 @@ pub fn place_meta(view: &PlaceView<'_>, page: Page<'_>, copy: &PageMetaCopy) -> 
 	let canonical = origin.as_ref().map(|_| view.url(page.suffix));
 	let robots = match &origin {
 		Some(_) => Robots {
-			index: site.publication().is_published(view.place, site.brand().domain.as_deref()),
+			index: site.is_published(view.place),
 			follow: true,
 		},
 		None => OFF_THE_WEB,

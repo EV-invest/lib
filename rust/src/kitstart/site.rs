@@ -4,7 +4,7 @@
 
 use std::collections::BTreeMap;
 
-use super::place::{Place, PublicationPolicy};
+use super::place::{Place, PublicationField, PublicationPolicy};
 use crate::i18n::LocaleRegistry;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -211,6 +211,18 @@ impl Site {
 	/// The baked place for a slug, if the site has it.
 	pub fn baked_place(&self, slug: &str) -> Option<&Place> {
 		self.config.places.iter().find(|p| p.slug == slug)
+	}
+
+	/// What `place` still lacks before this site's publication policy lets it
+	/// be indexed.
+	pub fn publication_gaps(&self, place: &Place) -> Vec<PublicationField> {
+		self.publication().gaps(place)
+	}
+
+	/// Whether `place` may be indexed: the site has a domain and the place
+	/// fills every field its policy requires.
+	pub fn is_published(&self, place: &Place) -> bool {
+		self.publication().is_published(place, self.brand().domain.as_deref())
 	}
 
 	/// `og:locale` for a locale: the configured one, else its `hreflang` with `_`.

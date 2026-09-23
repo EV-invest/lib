@@ -63,7 +63,7 @@ pub fn sitemap_for(site: &Site, host: &str, places: &[Place]) -> Vec<SitemapEntr
 	let Some(origin) = site.place_origin(slug) else {
 		return Vec::new();
 	};
-	if !site.publication().is_published(place, site.brand().domain.as_deref()) {
+	if !site.is_published(place) {
 		return Vec::new();
 	}
 	site.pages()

@@ -12,8 +12,8 @@ use jiff::Timestamp;
 
 use super::{
 	BrandFacts, Channels, DayOfWeek, Decision, Geo, Json, LegacyRedirect, LinkMode, Object, OfferInput, OpeningHours, PageGraphCopy, PageMetaCopy, Place, PlaceView, PostalAddress, Presence,
-	QuestionAnswer, Rating, RequestFacts, SERVICE_AREA_GATE, STOREFRONT_GATE, ServiceArea, Site, SiteConfig, Storefront, Topology, brand_meta, decide, place_graph, place_meta, robots_for,
-	sitemap_for, sitemap_json, status_meta,
+	PublicationField, QuestionAnswer, Rating, RequestFacts, SERVICE_AREA_GATE, STOREFRONT_GATE, ServiceArea, Site, SiteConfig, Storefront, Topology, brand_meta, decide, place_graph,
+	place_meta, robots_for, sitemap_for, sitemap_json, status_meta,
 };
 use crate::i18n::{LocaleRegistry, LocaleRegistryConfig};
 
@@ -520,7 +520,7 @@ fn a_service_area_business_says_where_it_goes_and_never_where_it_is() {
 fn a_single_site_lists_its_one_place_on_the_apex_once_published() {
 	let site = site("cleaning");
 	let place = service_area_place();
-	assert!(site.publication().gaps(&place).is_empty());
+	assert!(site.publication_gaps(&place).is_empty());
 	let entries = sitemap_for(&site, "clean.example", std::slice::from_ref(&place));
 	let urls: Vec<&str> = entries.iter().map(|e| e.url.as_str()).collect();
 	assert_eq!(
@@ -565,6 +565,11 @@ fn a_rating_is_shown_only_inside_the_api_window() {
 	assert!(place.fresh_rating(at("2026-08-31T23:59:59Z")).is_none(), "a future-dated copy");
 	place.rating.as_mut().expect("set above").fetched_at = "last week".into();
 	assert!(place.fresh_rating(at("2026-09-02T00:00:00Z")).is_none());
+	// No offset: its instant would depend on the server's time zone.
+	place.rating.as_mut().expect("set above").fetched_at = "2026-09-01T00:00:00".into();
+	assert!(place.fresh_rating(at("2026-09-02T00:00:00Z")).is_none());
+	place.rating.as_mut().expect("set above").fetched_at = "2026-09-01T00:00:00+02:00".into();
+	assert!(place.fresh_rating(at("2026-09-02T00:00:00Z")).is_some());
 }
 
 #[test]
@@ -580,4 +585,24 @@ fn a_site_refuses_a_config_the_router_could_not_read() {
 	assert!(refuse(&|c| c.pages.push(("faq".into(), "/faq/".into()))).contains("suffix"));
 	assert!(refuse(&|c| c.places[0].slug = "_paris".into()).contains("[a-z0-9-]"));
 	assert!(refuse(&|c| c.topology = Topology::Single { place: "lyon".into() }).contains("lyon"));
+}
+
+#[test]
+fn a_landmark_must_be_written_in_every_locale_the_place_is_named_in() {
+	let site = site("aquafix");
+	let mut place = site.baked_place("royat").expect("a baked place").clone();
+	let landmark = |pairs: &[(&str, &str)]| -> BTreeMap<String, String> { pairs.iter().map(|(l, v)| ((*l).to_owned(), (*v).to_owned())).collect() };
+	let cases = [
+		(landmark(&[("fr", "En face des thermes"), ("en", "Opposite the spa")]), false),
+		(landmark(&[("fr", "En face des thermes")]), true),
+		(landmark(&[]), true),
+		(landmark(&[("fr", "En face des thermes"), ("en", " ")]), true),
+	];
+	for (value, missing) in cases {
+		let Presence::Storefront(front) = &mut place.presence else {
+			panic!("royat is a storefront");
+		};
+		front.landmark = Some(value.clone());
+		assert_eq!(site.publication_gaps(&place).contains(&PublicationField::Landmark), missing, "{value:?}");
+	}
 }

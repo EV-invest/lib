@@ -170,11 +170,20 @@ impl Place {
 /// Google Business Profile API policy: no cached copy older than this.
 pub const RATING_MAX_AGE_DAYS: i64 = 30;
 
-/// An RFC 3339 instant, or a bare date read as UTC midnight — the two shapes
-/// `Date.parse` agrees on across engines, so both ports accept the same input.
+/// An RFC 3339 instant, or a bare date read as UTC midnight — the shapes
+/// `Date.parse` reads the same everywhere.
+///
+/// A date-time without an offset is refused, where `Date.parse` reads it in
+/// the server's own time zone: that instant moves with the host's `TZ`, and a
+/// rating whose age depends on where the page renders is not one to show. The
+/// live source writes `Z`, so this only ever drops a malformed copy.
 fn parse_instant(value: &str) -> Option<Timestamp> {
 	if let Ok(ts) = value.parse::<Timestamp>() {
 		return Some(ts);
+	}
+	// jiff reads a date-time as its date; only a bare date is one.
+	if value.contains(['T', 't', ' ']) {
+		return None;
 	}
 	value.parse::<Date>().ok()?.to_zoned(TimeZone::UTC).ok().map(|z| z.timestamp())
 }
@@ -215,7 +224,8 @@ pub const SERVICE_AREA_GATE: PublicationPolicy = PublicationPolicy {
 
 impl PublicationPolicy {
 	/// What is still missing, in the policy's order; empty means the place may
-	/// be indexed.
+	/// be indexed. A landmark counts only when it is written in every locale
+	/// the place is named in, since each of those pages prints it.
 	pub fn gaps(&self, place: &Place) -> Vec<PublicationField> {
 		self.required.iter().copied().filter(|field| !filled(place, *field)).collect()
 	}
@@ -232,7 +242,10 @@ fn filled(place: &Place, field: PublicationField) -> bool {
 	let front = place.storefront();
 	match field {
 		PublicationField::StorefrontPhoto => front.and_then(|f| f.storefront_photo.as_deref()).is_some_and(|p| !p.is_empty()),
-		PublicationField::Landmark => front.and_then(|f| f.landmark.as_ref()).is_some_and(|l| l.values().all(|v| !v.trim().is_empty())),
+		PublicationField::Landmark => front
+			.and_then(|f| f.landmark.as_ref())
+			// An empty map covers no locale, so it never passes.
+			.is_some_and(|l| !l.is_empty() && place.name.keys().all(|locale| l.get(locale).is_some_and(|v| !v.trim().is_empty()))),
 		PublicationField::ServiceArea => place.service_area.as_ref().is_some_and(|a| !a.is_empty()),
 		PublicationField::Hours => place.hours.as_ref().is_some_and(|h| !h.is_empty()),
 	}
