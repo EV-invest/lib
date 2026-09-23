@@ -6,6 +6,8 @@ import { nativeSelectSizeClasses, type NativeSelectSize } from "../generated/sel
 import { useFieldControlId } from "./field-context";
 import { SelectChevron } from "./select-chevron";
 
+export type { NativeSelectSize };
+
 /**
  * A real `<select>` wearing the kit's control: the form posts its `name` with no
  * script at all, and the popup is the platform's own (keyboard, type-ahead, the

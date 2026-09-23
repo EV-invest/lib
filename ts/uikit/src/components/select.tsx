@@ -14,6 +14,8 @@ import { walkElements } from "../primitives/walk-elements";
 import { useFieldControlId } from "./field-context";
 import { SelectChevron } from "./select-chevron";
 
+export type { SelectTriggerSize };
+
 interface SelectContextValue {
   value: string;
   setValue: (next: string) => void;

@@ -5,6 +5,8 @@ import { cn } from "../lib/cn";
 import { TEXTAREA_BASE, textareaSizeClasses, type TextareaSize } from "../generated/textarea";
 import { useFieldControlId } from "./field-context";
 
+export type { TextareaSize };
+
 export interface TextareaProps extends React.ComponentProps<"textarea"> {
   size?: TextareaSize;
 }

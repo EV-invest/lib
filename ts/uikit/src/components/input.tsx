@@ -5,6 +5,8 @@ import { cn } from "../lib/cn";
 import { INPUT_BASE, inputSizeClasses, type InputSize } from "../generated/input";
 import { useFieldControlId } from "./field-context";
 
+export type { InputSize };
+
 // The native `size` attribute (a width in characters) gives way to the kit's
 // scale, as it does on `NativeSelect`; a width belongs in `className`.
 export interface InputProps extends Omit<React.ComponentPropsWithoutRef<"input">, "size"> {
