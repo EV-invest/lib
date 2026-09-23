@@ -12,6 +12,7 @@ describeLandingContract(fixtureSite("aquafix"), {
   text: { fr: {}, en: {} },
 });
 describeLandingContract(fixtureSite("cleaning"), { mustPublish: ["paris"] });
+describeLandingContract(fixtureSite("prelaunch"));
 
 describeLeadStoreContract("in memory", () => {
   const rows: unknown[] = [];
