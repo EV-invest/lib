@@ -1,0 +1,18 @@
+@import "tailwindcss";
+@import "@evinvest/uikit/styles/tokens.css";
+@import "./brand.css";
+
+/* Tailwind v4 does not scan node_modules: name the packages whose markup it
+   must see. The landing contract test checks the kitstart line. */
+@source "../node_modules/@evinvest/uikit/dist";
+@source "../node_modules/@evinvest/kitstart/dist";
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

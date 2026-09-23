@@ -1,0 +1,5 @@
+/* The call bar rides the viewport, so it lands inside every tall section's
+ * crop at a scroll-dependent place; it is shot on its own instead. */
+#callbar {
+  display: none !important;
+}

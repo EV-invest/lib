@@ -1,0 +1,8 @@
+# The one place a contact fact is written — the printed card, the vCards and
+# the site all read it (`withLanding` inlines it at build).
+#
+# `phone` and `site` are optional for the web: without `site` the whole site
+# is noindex and robots disallow everything — the state before launch. Add
+# them when the owner has them; `phone` must be international ("+33 …").
+name = "Brand"
+email = "hello@brand.example"

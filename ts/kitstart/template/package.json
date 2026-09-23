@@ -1,0 +1,39 @@
+{
+  "name": "brand-landing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "palette": "evinvest-palette --brand brand --out app/brand.css assets/brand.toml",
+    "dev": "npm run palette && next dev",
+    "build": "npm run palette && next build",
+    "postbuild": "rm -rf .next/standalone/.next/static && cp -R .next/static .next/standalone/.next/static",
+    "start": "node .next/standalone/server.js",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
+    "size": "kitstart-size"
+  },
+  "dependencies": {
+    "@evinvest/analytics": "^0.3.0",
+    "@evinvest/i18n": "^0.9.0",
+    "@evinvest/kitstart": "^0.1.0",
+    "@evinvest/marketing": "^0.3.0",
+    "@evinvest/uikit": "^0.20.0",
+    "next": "16.3.6",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.20.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "5.9.3",
+    "vitest": "^3.2.4"
+  }
+}
