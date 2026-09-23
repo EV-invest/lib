@@ -36,6 +36,38 @@ would — packed tarballs, `next build`, its own tests, `kitstart-size`, and a
 live standalone server answering `/`, `/fr`, a page, a 404, the form POST, the
 OG card and robots (`npm run check:template`).
 
+## Nix: `lib.mkLanding`
+
+The lib flake exports the flake a landing shares (`nix/mk-landing.nix`), so a
+brand's `flake.nix` is its own config plus one call:
+
+```nix
+landing = ev.lib.mkLanding {
+  inherit pkgs v_flakes;
+  root = ./.;
+  pname = "vifnet";
+  sitePort = "59082";
+  buildFiles = [ "package.json" "package-lock.json" "app" "src" "assets"
+                 "next.config.ts" "tsconfig.json" "postcss.config.mjs"
+                 "proxy.ts" "instrumentation.ts" ];
+  prodEnv = import ./deploy/config.nix { port = "59082"; };
+  smoke = { page = "/fr"; quote = { location = "paris"; subject = "standard"; locality = "75011"; mobile = "0612345678"; }; };
+};
+# packages = landing.packages; checks = landing.checks; apps = landing.apps;
+```
+
+It gives `packages.site` (the hermetic `next build` from `package-lock.json`
+via `importNpmLock`, foreign native binaries never fetched) and
+`packages.container` (the OCI image, node-slim), `checks.bundle-budget`
+(`kitstart-size` on the Nix build), and the apps `dev`, `size` and
+`container-smoke`. The smoke lets docker pick the host port
+(`-p 127.0.0.1::<port>`): landing ports sit in Linux's ephemeral range, and a
+fixed host port flakes with `address already in use`. The lib's own CI builds
+it against a stand-in brand (`nix/mk-landing-fixture`), image included.
+
+Bump the npm version and the flake revision a brand uses in one PR: the size
+gate runs the lib's copy of `kitstart-size`.
+
 ## Widgets
 
 Structural only — where behaviour matters more than look. Marketing sections

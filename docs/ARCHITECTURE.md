@@ -25,6 +25,7 @@ lib/                 (repo: EV-invest/lib)
 │   ├── marketing/
 │   └── kitstart/
 ├── tests/fixtures/  test vectors both ports read (kitstart)
+├── nix/            lib.mkLanding — the flake every kitstart landing shares
 ├── docs/
 │   ├── ARCHITECTURE.md          (this file)
 │   └── .readme_assets/          README fragments (README.md is generated)
