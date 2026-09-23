@@ -10,7 +10,7 @@ export { createPlaceSource, PLACE_REVALIDATE_SECONDS, PlaceSourceError, type Pla
 export { describeLeadDb, openLeadStore, parseLeadDb, type LeadDb } from "./lead-store";
 export { openSqliteLeadStore, type SqliteLeadStore } from "./lead-store-sqlite";
 export { LeadStoreNotImplemented, openPostgresLeadStore } from "./lead-store-postgres";
-export { sendMail, type Mail, type SendOptions } from "./smtp";
-export { defaultLeadMail, leadNotifier, type LeadMail, type LeadNotifier, type NotifyEnv } from "./notify";
-export { clientKey } from "./client-key";
+export { parseSmtpUrl, sendMail, type Mail, type SendOptions } from "./smtp";
+export { defaultLeadMail, leadNotifier, MAIL_PER_MINUTE, type LeadMail, type LeadNotifier, type NotifyEnv } from "./notify";
+export { clientKey, NO_CLIENT_ADDRESS, parseProxyTrust, type ProxyTrust } from "./client-key";
 export { checkLeadStore } from "./boot";
