@@ -42,7 +42,7 @@
   },
   "scripts": {
     "build": "rm -rf dist && tsup && node scripts/emit-barrel.mjs && node scripts/fully-specify.mjs dist",
-    "test": "vitest run",
+    "test": "vitest run --project dom && NODE_OPTIONS=--conditions=react-server vitest run --project rsc",
     "typecheck": "tsc --noEmit",
     "prepare": "rm -rf dist && tsup && node scripts/emit-barrel.mjs && node scripts/fully-specify.mjs dist",
     "prepublishOnly": "node scripts/verify-pack.mjs"
@@ -64,6 +64,7 @@
     "jsdom": "^25.0.1",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
+    "react-server-dom-webpack": "^19.2.7",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
