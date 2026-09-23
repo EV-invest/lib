@@ -16,11 +16,23 @@ is hand-rolled in [`./primitives`](src/primitives). Runtime dependencies are jus
 > This is the first library in the monorepo that ships runtime deps — a UI kit
 > can't be zero-dep like the `architecture` kernel. See the repo `AGENTS.md`.
 
-The bundle is a **`"use client"`** module (it's interactive — hooks, context,
-the DOM), so it can be imported from React Server Components / the Next.js App
-Router directly. One consequence: `cn` re-exported here is therefore client-only;
-if you need class merging in a **server** component, keep a local `cn`
-(`clsx` + `tailwind-merge`) rather than importing it from the kit.
+The kit ships **one file per module**, each with its own boundary: the
+interactive ones (hooks, context, event handlers — `Select`, `Dialog`, `Field`,
+`Input`, …) start with `"use client"`, and the static ones (`Button`,
+`Section`/`Band`, `Table`, `Badge`, `Card`, `Footer`, `Label`, `cn`, …) do not.
+Import everything from `@evinvest/uikit` in a Server Component: a static
+component renders on the server and sends the browser nothing, and a client one
+is a client reference as usual. `cn` is server-safe.
+
+Keep it that way when adding to the kit:
+
+- a module with a hook, a context or an `on*={…}` handler says `"use client"`
+  on its first line, and one without says nothing —
+  `test/client-boundary.test.ts` derives which is which from the source;
+- `src/index.ts` names every re-export; `export *` fails the same test. A
+  bundler has to load every starred module to learn its names, so one star on
+  a client module ships it to every page that imports anything from the kit —
+  on the aquafix landing that was ~26 KB gz of components it never rendered.
 
 ## Install
 

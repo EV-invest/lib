@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { CHECKBOX_BASE, CHECKBOX_INDICATOR } from "../generated/checkbox";
