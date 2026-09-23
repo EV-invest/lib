@@ -20,10 +20,15 @@ name: kitstart
     branches: [main]
     paths:
       - ts/kitstart/**
+      - rust/src/kitstart/**
+      - rust/src/i18n/**
       - ts/uikit/**
       - ts/marketing/**
       - tests/fixtures/kitstart/**
       - .github/workflows/kitstart.yml
+      - flake.nix
+      - flake.lock
+      - nix/**
   workflow_dispatch: {}
 permissions:
   contents: read
@@ -96,6 +101,7 @@ jobs:
       - name: Install
         run: npm ci
       - name: Build and smoke the template
+        # TODO(first kitstart release): drop --pre-publish in the release PR.
         # --pre-publish until uikit 0.20, marketing 0.3 and kitstart 0.1 are on
         # npm: the workspace copies carry the old numbers. Drop it with the
         # release; `kitstart-registry.yml` then covers the published set.
