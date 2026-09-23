@@ -1,0 +1,440 @@
+{
+  "aquafix": {
+    "brand": {
+      "id": "aquafix",
+      "name": "Aquafix",
+      "legalName": "Aquafix SAS",
+      "email": "val@aquafix.top",
+      "phone": "+33 4 23 50 06 40",
+      "domain": "aquafix.top",
+      "businessType": "Plumber",
+      "priceRange": "€€"
+    },
+    "i18n": {
+      "locales": [
+        "fr",
+        "en"
+      ],
+      "labels": {
+        "fr": "Français",
+        "en": "English"
+      },
+      "default": "fr",
+      "prefixDefaultLocale": true,
+      "hreflang": {
+        "fr": "fr-FR"
+      }
+    },
+    "ogLocale": {
+      "fr": "fr_FR",
+      "en": "en_GB"
+    },
+    "topology": {
+      "kind": "subdomains",
+      "apex": "directory"
+    },
+    "pages": [
+      {
+        "key": "home",
+        "suffix": ""
+      },
+      {
+        "key": "prices",
+        "suffix": "/prices"
+      },
+      {
+        "key": "guarantee",
+        "suffix": "/guarantee"
+      },
+      {
+        "key": "about",
+        "suffix": "/about"
+      }
+    ],
+    "places": [
+      {
+        "slug": "royat",
+        "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+        "name": {
+          "fr": "Royat",
+          "en": "Royat"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "2 Av. Abbé Védrine",
+            "postalCode": "63130",
+            "locality": "Royat",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": null,
+          "storefrontPhoto": null,
+          "landmark": null
+        },
+        "serviceArea": null,
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": null,
+        "rating": null
+      },
+      {
+        "slug": "clermont-ferrand",
+        "gbpName": "Aquafix — Plombier Chauffagiste Clermont-Ferrand",
+        "name": {
+          "fr": "Clermont-Ferrand",
+          "en": "Clermont-Ferrand"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "36 Rue des Chanelles",
+            "postalCode": "63100",
+            "locality": "Clermont-Ferrand",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": null,
+          "storefrontPhoto": null,
+          "landmark": null
+        },
+        "serviceArea": null,
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": null,
+        "rating": null
+      },
+      {
+        "slug": "desgenettes",
+        "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Desgenettes",
+        "name": {
+          "fr": "Lyon Desgenettes",
+          "en": "Lyon Desgenettes"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "9 Rue Professeur Florence",
+            "postalCode": "69003",
+            "locality": "Lyon",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": null,
+          "storefrontPhoto": null,
+          "landmark": null
+        },
+        "serviceArea": null,
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": null,
+        "rating": null
+      },
+      {
+        "slug": "lyon-est",
+        "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Est",
+        "name": {
+          "fr": "Lyon Est",
+          "en": "Lyon Est"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "9 Rue Philippe Fabia",
+            "postalCode": "69008",
+            "locality": "Lyon",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": null,
+          "storefrontPhoto": null,
+          "landmark": null
+        },
+        "serviceArea": null,
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": null,
+        "rating": null
+      },
+      {
+        "slug": "la-mouche",
+        "gbpName": "Aquafix Plombier Chauffagiste - Lyon, la Mouche",
+        "name": {
+          "fr": "Lyon La Mouche",
+          "en": "Lyon La Mouche"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "44 Rue Michel Félizat",
+            "postalCode": "69007",
+            "locality": "Lyon",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": null,
+          "storefrontPhoto": null,
+          "landmark": null
+        },
+        "serviceArea": null,
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": null,
+        "rating": null
+      },
+      {
+        "slug": "lyon-nord",
+        "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Nord",
+        "name": {
+          "fr": "Lyon Nord",
+          "en": "Lyon Nord"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "21 Rue Neyret",
+            "postalCode": "69001",
+            "locality": "Lyon",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": null,
+          "storefrontPhoto": null,
+          "landmark": null
+        },
+        "serviceArea": null,
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": null,
+        "rating": null
+      }
+    ],
+    "publication": "storefront",
+    "legacyRedirects": [
+      {
+        "from": "/thanks",
+        "to": {
+          "null": "/en/thanks"
+        }
+      },
+      {
+        "from": "/prices",
+        "to": {
+          "null": "/en",
+          "fr": "/fr",
+          "en": "/en"
+        }
+      },
+      {
+        "from": "/guarantee",
+        "to": {
+          "null": "/en",
+          "fr": "/fr",
+          "en": "/en"
+        }
+      },
+      {
+        "from": "/about",
+        "to": {
+          "null": "/en",
+          "fr": "/fr",
+          "en": "/en"
+        }
+      }
+    ]
+  },
+  "cleaning": {
+    "brand": {
+      "id": "cleaning",
+      "name": "Clean Co",
+      "legalName": "Clean Co SAS",
+      "email": null,
+      "phone": null,
+      "domain": "clean.example",
+      "businessType": "LocalBusiness"
+    },
+    "i18n": {
+      "locales": [
+        "fr",
+        "en"
+      ],
+      "labels": {
+        "fr": "Français",
+        "en": "English"
+      },
+      "default": "fr",
+      "prefixDefaultLocale": true,
+      "hreflang": {
+        "fr": "fr-FR"
+      }
+    },
+    "ogLocale": {
+      "fr": "fr_FR",
+      "en": "en_GB"
+    },
+    "topology": {
+      "kind": "single",
+      "place": "paris"
+    },
+    "pages": [
+      {
+        "key": "home",
+        "suffix": ""
+      },
+      {
+        "key": "prices",
+        "suffix": "/prices"
+      }
+    ],
+    "places": [
+      {
+        "slug": "paris",
+        "gbpName": "Clean Co Paris",
+        "name": {
+          "fr": "Paris",
+          "en": "Paris"
+        },
+        "presence": {
+          "kind": "service-area"
+        },
+        "serviceArea": [
+          {
+            "kind": "localities",
+            "names": [
+              "Paris",
+              "Boulogne-Billancourt"
+            ]
+          },
+          {
+            "kind": "radius",
+            "center": {
+              "lat": 48.8566,
+              "lng": 2.3522
+            },
+            "km": 12
+          }
+        ],
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": [
+          {
+            "days": [
+              "Monday",
+              "Saturday"
+            ],
+            "opens": "08:00",
+            "closes": "19:00"
+          }
+        ],
+        "rating": null
+      }
+    ],
+    "publication": "service-area",
+    "legacyRedirects": []
+  },
+  "prelaunch": {
+    "brand": {
+      "id": "prelaunch",
+      "name": "Clean Co",
+      "legalName": "Clean Co SAS",
+      "email": null,
+      "phone": null,
+      "domain": null,
+      "businessType": "LocalBusiness"
+    },
+    "i18n": {
+      "locales": [
+        "fr",
+        "en"
+      ],
+      "labels": {
+        "fr": "Français",
+        "en": "English"
+      },
+      "default": "fr",
+      "prefixDefaultLocale": true,
+      "hreflang": {
+        "fr": "fr-FR"
+      }
+    },
+    "ogLocale": {
+      "fr": "fr_FR",
+      "en": "en_GB"
+    },
+    "topology": {
+      "kind": "single",
+      "place": "paris"
+    },
+    "pages": [
+      {
+        "key": "home",
+        "suffix": ""
+      },
+      {
+        "key": "prices",
+        "suffix": "/prices"
+      }
+    ],
+    "places": [
+      {
+        "slug": "paris",
+        "gbpName": "Clean Co Paris",
+        "name": {
+          "fr": "Paris",
+          "en": "Paris"
+        },
+        "presence": {
+          "kind": "service-area"
+        },
+        "serviceArea": [
+          {
+            "kind": "localities",
+            "names": [
+              "Paris",
+              "Boulogne-Billancourt"
+            ]
+          },
+          {
+            "kind": "radius",
+            "center": {
+              "lat": 48.8566,
+              "lng": 2.3522
+            },
+            "km": 12
+          }
+        ],
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": [
+          {
+            "days": [
+              "Monday",
+              "Saturday"
+            ],
+            "opens": "08:00",
+            "closes": "19:00"
+          }
+        ],
+        "rating": null
+      }
+    ],
+    "publication": "service-area",
+    "legacyRedirects": []
+  }
+}

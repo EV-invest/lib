@@ -1,0 +1,822 @@
+{
+  "source": "aquafix tests/l10n.test.ts as of Service-Arb/aquafix#13 fcd7445 (link mode in the path, dead paths gone), plus unprefixed junk",
+  "cases": [
+    {
+      "name": "bare apex, no header → default locale",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "negotiate",
+        "location": "/fr"
+      }
+    },
+    {
+      "name": "Accept-Language by q-value",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/",
+        "query": "",
+        "acceptLanguage": "en-GB,en;q=0.9,fr;q=0.5",
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "negotiate",
+        "location": "/en"
+      }
+    },
+    {
+      "name": "Accept-Language falls through to a later match",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/",
+        "query": "",
+        "acceptLanguage": "de,fr-CH;q=0.8,en;q=0.5",
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "negotiate",
+        "location": "/fr"
+      }
+    },
+    {
+      "name": "Accept-Language with nothing we speak",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/",
+        "query": "",
+        "acceptLanguage": "ja",
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "negotiate",
+        "location": "/fr"
+      }
+    },
+    {
+      "name": "cookie outranks the header",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/",
+        "query": "",
+        "acceptLanguage": "fr",
+        "cookieLang": "en"
+      },
+      "decision": {
+        "kind": "negotiate",
+        "location": "/en"
+      }
+    },
+    {
+      "name": "an unknown cookie is ignored",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": "xx"
+      },
+      "decision": {
+        "kind": "negotiate",
+        "location": "/fr"
+      }
+    },
+    {
+      "name": "passes /quote",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/quote",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "pass"
+      }
+    },
+    {
+      "name": "passes /sitemap.xml",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/sitemap.xml",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "pass"
+      }
+    },
+    {
+      "name": "passes /robots.txt",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/robots.txt",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "pass"
+      }
+    },
+    {
+      "name": "passes /og",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/og",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "pass"
+      }
+    },
+    {
+      "name": "passes /health",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/health",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "pass"
+      }
+    },
+    {
+      "name": "passes /_next/static/x.js",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/_next/static/x.js",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "pass"
+      }
+    },
+    {
+      "name": "passes /wp-login.php",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/wp-login.php",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "pass"
+      }
+    },
+    {
+      "name": "negotiates a point page on its subdomain",
+      "site": "aquafix",
+      "request": {
+        "host": "royat.aquafix.top",
+        "pathname": "/prices",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "negotiate",
+        "location": "/fr/prices"
+      }
+    },
+    {
+      "name": "negotiates a point page through the apex",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/royat/prices",
+        "query": "",
+        "acceptLanguage": "en",
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "negotiate",
+        "location": "/en/royat/prices"
+      }
+    },
+    {
+      "name": "?lang= is a choice, taken out of the URL",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/fr/royat/prices",
+        "query": "lang=en&utm_source=gbp",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "choose",
+        "locale": "en",
+        "location": "/en/royat/prices?utm_source=gbp"
+      }
+    },
+    {
+      "name": "legacy /prices → /en",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/prices",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "moved",
+        "location": "/en"
+      }
+    },
+    {
+      "name": "legacy /about → /en",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/about",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "moved",
+        "location": "/en"
+      }
+    },
+    {
+      "name": "legacy /guarantee → /en",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/guarantee",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "moved",
+        "location": "/en"
+      }
+    },
+    {
+      "name": "legacy /thanks → /en/thanks",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/thanks",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "moved",
+        "location": "/en/thanks"
+      }
+    },
+    {
+      "name": "legacy /fr/prices → /fr",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/fr/prices",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "moved",
+        "location": "/fr"
+      }
+    },
+    {
+      "name": "legacy /fr/about → /fr",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/fr/about",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "moved",
+        "location": "/fr"
+      }
+    },
+    {
+      "name": "legacy /fr/guarantee → /fr",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/fr/guarantee",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "moved",
+        "location": "/fr"
+      }
+    },
+    {
+      "name": "legacy /en/prices → /en",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/en/prices",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "moved",
+        "location": "/en"
+      }
+    },
+    {
+      "name": "the brand's own thank-you page",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/fr/thanks",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "serve",
+        "pathname": "/fr/thanks"
+      }
+    },
+    {
+      "name": "a subdomain home renders the host-mode route",
+      "site": "aquafix",
+      "request": {
+        "host": "royat.aquafix.top",
+        "pathname": "/fr",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "serve",
+        "pathname": "/fr/_royat"
+      }
+    },
+    {
+      "name": "a subdomain page renders the host-mode route",
+      "site": "aquafix",
+      "request": {
+        "host": "royat.aquafix.top",
+        "pathname": "/en/prices",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "serve",
+        "pathname": "/en/_royat/prices"
+      }
+    },
+    {
+      "name": "a dead path on a subdomain is that point's 404",
+      "site": "aquafix",
+      "request": {
+        "host": "royat.aquafix.top",
+        "pathname": "/fr/nope",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": "_royat"
+      }
+    },
+    {
+      "name": "a dead sub-path of a page on a subdomain",
+      "site": "aquafix",
+      "request": {
+        "host": "royat.aquafix.top",
+        "pathname": "/en/prices/nope",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "en",
+        "location": "_royat"
+      }
+    },
+    {
+      "name": "a known place's dead page through the apex",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/fr/lyon-nord/nope",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": "lyon-nord"
+      }
+    },
+    {
+      "name": "an unknown place through the apex is the brand's 404",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/fr/nowhere",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": null
+      }
+    },
+    {
+      "name": "an unknown host-mode param is the brand's 404",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/fr/_nowhere/prices",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": null
+      }
+    },
+    {
+      "name": "the reserved segment alone is the brand's 404",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/fr/404",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": null
+      }
+    },
+    {
+      "name": "the 404's own target passes",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/fr/404/404",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "serve",
+        "pathname": "/fr/404/404"
+      }
+    },
+    {
+      "name": "a dead host-mode route",
+      "site": "aquafix",
+      "request": {
+        "host": "localhost:3000",
+        "pathname": "/fr/_royat/nope",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": "_royat"
+      }
+    },
+    {
+      "name": "junk without a language on the apex: default locale",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/royat/nope",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": null
+      }
+    },
+    {
+      "name": "junk without a language follows Accept-Language",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/admin",
+        "query": "",
+        "acceptLanguage": "en",
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "en",
+        "location": null
+      }
+    },
+    {
+      "name": "junk without a language on a subdomain follows the cookie",
+      "site": "aquafix",
+      "request": {
+        "host": "royat.aquafix.top",
+        "pathname": "/nope",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": "en"
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "en",
+        "location": "_royat"
+      }
+    },
+    {
+      "name": "the apex fallback path is served as it is",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/fr/royat/about",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "serve",
+        "pathname": "/fr/royat/about"
+      }
+    },
+    {
+      "name": "the brand page",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/en",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "serve",
+        "pathname": "/en"
+      }
+    },
+    {
+      "name": "a host-mode path passes untouched (Next re-enters with it)",
+      "site": "aquafix",
+      "request": {
+        "host": "localhost:3000",
+        "pathname": "/fr/_royat/prices",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "serve",
+        "pathname": "/fr/_royat/prices"
+      }
+    },
+    {
+      "name": "a local subdomain",
+      "site": "aquafix",
+      "request": {
+        "host": "lyon-nord.localhost:3000",
+        "pathname": "/fr",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "serve",
+        "pathname": "/fr/_lyon-nord"
+      }
+    },
+    {
+      "name": "an unknown subdomain is the apex",
+      "site": "aquafix",
+      "request": {
+        "host": "evil.aquafix.top",
+        "pathname": "/fr",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "serve",
+        "pathname": "/fr"
+      }
+    },
+    {
+      "name": "single: bare URL negotiates",
+      "site": "cleaning",
+      "request": {
+        "host": "clean.example",
+        "pathname": "/",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "negotiate",
+        "location": "/fr"
+      }
+    },
+    {
+      "name": "single: a page negotiates",
+      "site": "cleaning",
+      "request": {
+        "host": "clean.example",
+        "pathname": "/prices",
+        "query": "",
+        "acceptLanguage": "en",
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "negotiate",
+        "location": "/en/prices"
+      }
+    },
+    {
+      "name": "single: home renders the place's host-mode route",
+      "site": "cleaning",
+      "request": {
+        "host": "clean.example",
+        "pathname": "/fr",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "serve",
+        "pathname": "/fr/_paris"
+      }
+    },
+    {
+      "name": "single: a page renders the host-mode route",
+      "site": "cleaning",
+      "request": {
+        "host": "clean.example",
+        "pathname": "/en/prices",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "serve",
+        "pathname": "/en/_paris/prices"
+      }
+    },
+    {
+      "name": "single: a dead path is the place's 404",
+      "site": "cleaning",
+      "request": {
+        "host": "clean.example",
+        "pathname": "/fr/nope",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": "_paris"
+      }
+    },
+    {
+      "name": "single: a dead host-mode route",
+      "site": "cleaning",
+      "request": {
+        "host": "localhost:3000",
+        "pathname": "/fr/_paris/nope",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": "_paris"
+      }
+    },
+    {
+      "name": "single: junk without a language",
+      "site": "cleaning",
+      "request": {
+        "host": "clean.example",
+        "pathname": "/nope",
+        "query": "",
+        "acceptLanguage": "en",
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "en",
+        "location": "_paris"
+      }
+    },
+    {
+      "name": "single: the 404's own target passes",
+      "site": "cleaning",
+      "request": {
+        "host": "clean.example",
+        "pathname": "/fr/404/404",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "serve",
+        "pathname": "/fr/404/404"
+      }
+    },
+    {
+      "name": "single: a host-mode path passes untouched",
+      "site": "cleaning",
+      "request": {
+        "host": "localhost:3000",
+        "pathname": "/fr/_paris/prices",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "serve",
+        "pathname": "/fr/_paris/prices"
+      }
+    },
+    {
+      "name": "single: ?lang= chooses",
+      "site": "cleaning",
+      "request": {
+        "host": "clean.example",
+        "pathname": "/fr/prices",
+        "query": "lang=en",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "choose",
+        "locale": "en",
+        "location": "/en/prices"
+      }
+    },
+    {
+      "name": "single: the form target passes",
+      "site": "cleaning",
+      "request": {
+        "host": "clean.example",
+        "pathname": "/quote",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "pass"
+      }
+    }
+  ]
+}

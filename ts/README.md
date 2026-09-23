@@ -13,6 +13,7 @@ ts/
 ├── experiments/       port of the `experiments` Cargo feature (frontend-only A/B testing)
 ├── settings/          port of the `settings` Cargo feature (typed env settings)
 ├── marketing/         landing-page layer over uikit: motion, form harness, contact tracking
+├── kitstart/          landing-site machinery: routing, places, lead funnel, SEO, Next glue
 └── i18n/              five-locale i18n: registry, URL contract, ICU-subset formatter
 ```
 

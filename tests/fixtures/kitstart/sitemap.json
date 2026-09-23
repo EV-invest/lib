@@ -1,0 +1,1657 @@
+{
+  "source": "Service-Arb/aquafix@33e3198 tests/golden/sitemap-robots.json; cleaning/* and prelaunch/* from the TS builders",
+  "cases": [
+    {
+      "name": "baked aquafix.top",
+      "site": "aquafix",
+      "host": "aquafix.top",
+      "places": [
+        {
+          "slug": "royat",
+          "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+          "name": {
+            "fr": "Royat",
+            "en": "Royat"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "2 Av. Abbé Védrine",
+              "postalCode": "63130",
+              "locality": "Royat",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "clermont-ferrand",
+          "gbpName": "Aquafix — Plombier Chauffagiste Clermont-Ferrand",
+          "name": {
+            "fr": "Clermont-Ferrand",
+            "en": "Clermont-Ferrand"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "36 Rue des Chanelles",
+              "postalCode": "63100",
+              "locality": "Clermont-Ferrand",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "desgenettes",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Desgenettes",
+          "name": {
+            "fr": "Lyon Desgenettes",
+            "en": "Lyon Desgenettes"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "9 Rue Professeur Florence",
+              "postalCode": "69003",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "lyon-est",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Est",
+          "name": {
+            "fr": "Lyon Est",
+            "en": "Lyon Est"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "9 Rue Philippe Fabia",
+              "postalCode": "69008",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "la-mouche",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, la Mouche",
+          "name": {
+            "fr": "Lyon La Mouche",
+            "en": "Lyon La Mouche"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "44 Rue Michel Félizat",
+              "postalCode": "69007",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "lyon-nord",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Nord",
+          "name": {
+            "fr": "Lyon Nord",
+            "en": "Lyon Nord"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "21 Rue Neyret",
+              "postalCode": "69001",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        }
+      ],
+      "expected": {
+        "sitemap": [
+          {
+            "url": "https://aquafix.top/fr",
+            "priority": 1,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://aquafix.top/fr",
+                "en": "https://aquafix.top/en",
+                "x-default": "https://aquafix.top/fr"
+              }
+            }
+          },
+          {
+            "url": "https://aquafix.top/en",
+            "priority": 1,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://aquafix.top/fr",
+                "en": "https://aquafix.top/en",
+                "x-default": "https://aquafix.top/fr"
+              }
+            }
+          }
+        ],
+        "robots": {
+          "rules": [
+            {
+              "userAgent": "*",
+              "allow": "/"
+            },
+            {
+              "userAgent": [
+                "GPTBot",
+                "ClaudeBot",
+                "PerplexityBot",
+                "Google-Extended"
+              ],
+              "allow": "/"
+            }
+          ],
+          "sitemap": "https://aquafix.top/sitemap.xml"
+        }
+      }
+    },
+    {
+      "name": "baked royat.aquafix.top",
+      "site": "aquafix",
+      "host": "royat.aquafix.top",
+      "places": [
+        {
+          "slug": "royat",
+          "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+          "name": {
+            "fr": "Royat",
+            "en": "Royat"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "2 Av. Abbé Védrine",
+              "postalCode": "63130",
+              "locality": "Royat",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "clermont-ferrand",
+          "gbpName": "Aquafix — Plombier Chauffagiste Clermont-Ferrand",
+          "name": {
+            "fr": "Clermont-Ferrand",
+            "en": "Clermont-Ferrand"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "36 Rue des Chanelles",
+              "postalCode": "63100",
+              "locality": "Clermont-Ferrand",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "desgenettes",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Desgenettes",
+          "name": {
+            "fr": "Lyon Desgenettes",
+            "en": "Lyon Desgenettes"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "9 Rue Professeur Florence",
+              "postalCode": "69003",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "lyon-est",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Est",
+          "name": {
+            "fr": "Lyon Est",
+            "en": "Lyon Est"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "9 Rue Philippe Fabia",
+              "postalCode": "69008",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "la-mouche",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, la Mouche",
+          "name": {
+            "fr": "Lyon La Mouche",
+            "en": "Lyon La Mouche"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "44 Rue Michel Félizat",
+              "postalCode": "69007",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "lyon-nord",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Nord",
+          "name": {
+            "fr": "Lyon Nord",
+            "en": "Lyon Nord"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "21 Rue Neyret",
+              "postalCode": "69001",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        }
+      ],
+      "expected": {
+        "sitemap": [],
+        "robots": {
+          "rules": [
+            {
+              "userAgent": "*",
+              "allow": "/"
+            },
+            {
+              "userAgent": [
+                "GPTBot",
+                "ClaudeBot",
+                "PerplexityBot",
+                "Google-Extended"
+              ],
+              "allow": "/"
+            }
+          ],
+          "sitemap": "https://royat.aquafix.top/sitemap.xml"
+        }
+      }
+    },
+    {
+      "name": "baked evil.aquafix.top",
+      "site": "aquafix",
+      "host": "evil.aquafix.top",
+      "places": [
+        {
+          "slug": "royat",
+          "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+          "name": {
+            "fr": "Royat",
+            "en": "Royat"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "2 Av. Abbé Védrine",
+              "postalCode": "63130",
+              "locality": "Royat",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "clermont-ferrand",
+          "gbpName": "Aquafix — Plombier Chauffagiste Clermont-Ferrand",
+          "name": {
+            "fr": "Clermont-Ferrand",
+            "en": "Clermont-Ferrand"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "36 Rue des Chanelles",
+              "postalCode": "63100",
+              "locality": "Clermont-Ferrand",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "desgenettes",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Desgenettes",
+          "name": {
+            "fr": "Lyon Desgenettes",
+            "en": "Lyon Desgenettes"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "9 Rue Professeur Florence",
+              "postalCode": "69003",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "lyon-est",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Est",
+          "name": {
+            "fr": "Lyon Est",
+            "en": "Lyon Est"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "9 Rue Philippe Fabia",
+              "postalCode": "69008",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "la-mouche",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, la Mouche",
+          "name": {
+            "fr": "Lyon La Mouche",
+            "en": "Lyon La Mouche"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "44 Rue Michel Félizat",
+              "postalCode": "69007",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "lyon-nord",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Nord",
+          "name": {
+            "fr": "Lyon Nord",
+            "en": "Lyon Nord"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "21 Rue Neyret",
+              "postalCode": "69001",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        }
+      ],
+      "expected": {
+        "sitemap": [
+          {
+            "url": "https://aquafix.top/fr",
+            "priority": 1,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://aquafix.top/fr",
+                "en": "https://aquafix.top/en",
+                "x-default": "https://aquafix.top/fr"
+              }
+            }
+          },
+          {
+            "url": "https://aquafix.top/en",
+            "priority": 1,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://aquafix.top/fr",
+                "en": "https://aquafix.top/en",
+                "x-default": "https://aquafix.top/fr"
+              }
+            }
+          }
+        ],
+        "robots": {
+          "rules": [
+            {
+              "userAgent": "*",
+              "allow": "/"
+            },
+            {
+              "userAgent": [
+                "GPTBot",
+                "ClaudeBot",
+                "PerplexityBot",
+                "Google-Extended"
+              ],
+              "allow": "/"
+            }
+          ],
+          "sitemap": "https://aquafix.top/sitemap.xml"
+        }
+      }
+    },
+    {
+      "name": "baked royat.localhost:3000",
+      "site": "aquafix",
+      "host": "royat.localhost:3000",
+      "places": [
+        {
+          "slug": "royat",
+          "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+          "name": {
+            "fr": "Royat",
+            "en": "Royat"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "2 Av. Abbé Védrine",
+              "postalCode": "63130",
+              "locality": "Royat",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "clermont-ferrand",
+          "gbpName": "Aquafix — Plombier Chauffagiste Clermont-Ferrand",
+          "name": {
+            "fr": "Clermont-Ferrand",
+            "en": "Clermont-Ferrand"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "36 Rue des Chanelles",
+              "postalCode": "63100",
+              "locality": "Clermont-Ferrand",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "desgenettes",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Desgenettes",
+          "name": {
+            "fr": "Lyon Desgenettes",
+            "en": "Lyon Desgenettes"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "9 Rue Professeur Florence",
+              "postalCode": "69003",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "lyon-est",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Est",
+          "name": {
+            "fr": "Lyon Est",
+            "en": "Lyon Est"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "9 Rue Philippe Fabia",
+              "postalCode": "69008",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "la-mouche",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, la Mouche",
+          "name": {
+            "fr": "Lyon La Mouche",
+            "en": "Lyon La Mouche"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "44 Rue Michel Félizat",
+              "postalCode": "69007",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "lyon-nord",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Nord",
+          "name": {
+            "fr": "Lyon Nord",
+            "en": "Lyon Nord"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "21 Rue Neyret",
+              "postalCode": "69001",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        }
+      ],
+      "expected": {
+        "sitemap": [],
+        "robots": {
+          "rules": [
+            {
+              "userAgent": "*",
+              "allow": "/"
+            },
+            {
+              "userAgent": [
+                "GPTBot",
+                "ClaudeBot",
+                "PerplexityBot",
+                "Google-Extended"
+              ],
+              "allow": "/"
+            }
+          ],
+          "sitemap": "https://royat.aquafix.top/sitemap.xml"
+        }
+      }
+    },
+    {
+      "name": "live royat.aquafix.top",
+      "site": "aquafix",
+      "host": "royat.aquafix.top",
+      "places": [
+        {
+          "slug": "royat",
+          "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+          "name": {
+            "fr": "Royat",
+            "en": "Royat"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "2 Av. Abbé Védrine",
+              "postalCode": "63130",
+              "locality": "Royat",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": "https://cdn.example/royat.jpg",
+            "landmark": {
+              "fr": "En face des thermes",
+              "en": "Opposite the spa"
+            }
+          },
+          "serviceArea": [
+            {
+              "kind": "localities",
+              "names": [
+                "Royat",
+                "Chamalières",
+                "Ceyrat"
+              ]
+            }
+          ],
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": [
+            {
+              "days": [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday"
+              ],
+              "opens": "07:00",
+              "closes": "21:00"
+            }
+          ],
+          "rating": null
+        },
+        {
+          "slug": "clermont-ferrand",
+          "gbpName": "Aquafix — Plombier Chauffagiste Clermont-Ferrand",
+          "name": {
+            "fr": "Clermont-Ferrand",
+            "en": "Clermont-Ferrand"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "36 Rue des Chanelles",
+              "postalCode": "63100",
+              "locality": "Clermont-Ferrand",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "desgenettes",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Desgenettes",
+          "name": {
+            "fr": "Lyon Desgenettes",
+            "en": "Lyon Desgenettes"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "9 Rue Professeur Florence",
+              "postalCode": "69003",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "lyon-est",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Est",
+          "name": {
+            "fr": "Lyon Est",
+            "en": "Lyon Est"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "9 Rue Philippe Fabia",
+              "postalCode": "69008",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "la-mouche",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, la Mouche",
+          "name": {
+            "fr": "Lyon La Mouche",
+            "en": "Lyon La Mouche"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "44 Rue Michel Félizat",
+              "postalCode": "69007",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "lyon-nord",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Nord",
+          "name": {
+            "fr": "Lyon Nord",
+            "en": "Lyon Nord"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "21 Rue Neyret",
+              "postalCode": "69001",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        }
+      ],
+      "expected": {
+        "sitemap": [
+          {
+            "url": "https://royat.aquafix.top/fr",
+            "priority": 1,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://royat.aquafix.top/fr",
+                "en": "https://royat.aquafix.top/en",
+                "x-default": "https://royat.aquafix.top/fr"
+              }
+            }
+          },
+          {
+            "url": "https://royat.aquafix.top/en",
+            "priority": 1,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://royat.aquafix.top/fr",
+                "en": "https://royat.aquafix.top/en",
+                "x-default": "https://royat.aquafix.top/fr"
+              }
+            }
+          },
+          {
+            "url": "https://royat.aquafix.top/fr/prices",
+            "priority": 0.8,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://royat.aquafix.top/fr/prices",
+                "en": "https://royat.aquafix.top/en/prices",
+                "x-default": "https://royat.aquafix.top/fr/prices"
+              }
+            }
+          },
+          {
+            "url": "https://royat.aquafix.top/en/prices",
+            "priority": 0.8,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://royat.aquafix.top/fr/prices",
+                "en": "https://royat.aquafix.top/en/prices",
+                "x-default": "https://royat.aquafix.top/fr/prices"
+              }
+            }
+          },
+          {
+            "url": "https://royat.aquafix.top/fr/guarantee",
+            "priority": 0.8,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://royat.aquafix.top/fr/guarantee",
+                "en": "https://royat.aquafix.top/en/guarantee",
+                "x-default": "https://royat.aquafix.top/fr/guarantee"
+              }
+            }
+          },
+          {
+            "url": "https://royat.aquafix.top/en/guarantee",
+            "priority": 0.8,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://royat.aquafix.top/fr/guarantee",
+                "en": "https://royat.aquafix.top/en/guarantee",
+                "x-default": "https://royat.aquafix.top/fr/guarantee"
+              }
+            }
+          },
+          {
+            "url": "https://royat.aquafix.top/fr/about",
+            "priority": 0.8,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://royat.aquafix.top/fr/about",
+                "en": "https://royat.aquafix.top/en/about",
+                "x-default": "https://royat.aquafix.top/fr/about"
+              }
+            }
+          },
+          {
+            "url": "https://royat.aquafix.top/en/about",
+            "priority": 0.8,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://royat.aquafix.top/fr/about",
+                "en": "https://royat.aquafix.top/en/about",
+                "x-default": "https://royat.aquafix.top/fr/about"
+              }
+            }
+          }
+        ],
+        "robots": {
+          "rules": [
+            {
+              "userAgent": "*",
+              "allow": "/"
+            },
+            {
+              "userAgent": [
+                "GPTBot",
+                "ClaudeBot",
+                "PerplexityBot",
+                "Google-Extended"
+              ],
+              "allow": "/"
+            }
+          ],
+          "sitemap": "https://royat.aquafix.top/sitemap.xml"
+        }
+      }
+    },
+    {
+      "name": "live lyon-nord.aquafix.top",
+      "site": "aquafix",
+      "host": "lyon-nord.aquafix.top",
+      "places": [
+        {
+          "slug": "royat",
+          "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+          "name": {
+            "fr": "Royat",
+            "en": "Royat"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "2 Av. Abbé Védrine",
+              "postalCode": "63130",
+              "locality": "Royat",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": "https://cdn.example/royat.jpg",
+            "landmark": {
+              "fr": "En face des thermes",
+              "en": "Opposite the spa"
+            }
+          },
+          "serviceArea": [
+            {
+              "kind": "localities",
+              "names": [
+                "Royat",
+                "Chamalières",
+                "Ceyrat"
+              ]
+            }
+          ],
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": [
+            {
+              "days": [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday"
+              ],
+              "opens": "07:00",
+              "closes": "21:00"
+            }
+          ],
+          "rating": null
+        },
+        {
+          "slug": "clermont-ferrand",
+          "gbpName": "Aquafix — Plombier Chauffagiste Clermont-Ferrand",
+          "name": {
+            "fr": "Clermont-Ferrand",
+            "en": "Clermont-Ferrand"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "36 Rue des Chanelles",
+              "postalCode": "63100",
+              "locality": "Clermont-Ferrand",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "desgenettes",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Desgenettes",
+          "name": {
+            "fr": "Lyon Desgenettes",
+            "en": "Lyon Desgenettes"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "9 Rue Professeur Florence",
+              "postalCode": "69003",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "lyon-est",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Est",
+          "name": {
+            "fr": "Lyon Est",
+            "en": "Lyon Est"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "9 Rue Philippe Fabia",
+              "postalCode": "69008",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "la-mouche",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, la Mouche",
+          "name": {
+            "fr": "Lyon La Mouche",
+            "en": "Lyon La Mouche"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "44 Rue Michel Félizat",
+              "postalCode": "69007",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        },
+        {
+          "slug": "lyon-nord",
+          "gbpName": "Aquafix Plombier Chauffagiste - Lyon, Nord",
+          "name": {
+            "fr": "Lyon Nord",
+            "en": "Lyon Nord"
+          },
+          "presence": {
+            "kind": "storefront",
+            "address": {
+              "street": "21 Rue Neyret",
+              "postalCode": "69001",
+              "locality": "Lyon",
+              "region": "Auvergne-Rhône-Alpes",
+              "country": "FR"
+            },
+            "geo": null,
+            "storefrontPhoto": null,
+            "landmark": null
+          },
+          "serviceArea": null,
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": null,
+          "rating": null
+        }
+      ],
+      "expected": {
+        "sitemap": [],
+        "robots": {
+          "rules": [
+            {
+              "userAgent": "*",
+              "allow": "/"
+            },
+            {
+              "userAgent": [
+                "GPTBot",
+                "ClaudeBot",
+                "PerplexityBot",
+                "Google-Extended"
+              ],
+              "allow": "/"
+            }
+          ],
+          "sitemap": "https://lyon-nord.aquafix.top/sitemap.xml"
+        }
+      }
+    },
+    {
+      "name": "cleaning clean.example",
+      "site": "cleaning",
+      "host": "clean.example",
+      "places": [
+        {
+          "slug": "paris",
+          "gbpName": "Clean Co Paris",
+          "name": {
+            "fr": "Paris",
+            "en": "Paris"
+          },
+          "presence": {
+            "kind": "service-area"
+          },
+          "serviceArea": [
+            {
+              "kind": "localities",
+              "names": [
+                "Paris",
+                "Boulogne-Billancourt"
+              ]
+            },
+            {
+              "kind": "radius",
+              "center": {
+                "lat": 48.8566,
+                "lng": 2.3522
+              },
+              "km": 12
+            }
+          ],
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": [
+            {
+              "days": [
+                "Monday",
+                "Saturday"
+              ],
+              "opens": "08:00",
+              "closes": "19:00"
+            }
+          ],
+          "rating": null
+        }
+      ],
+      "expected": {
+        "sitemap": [
+          {
+            "url": "https://clean.example/fr",
+            "priority": 1,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://clean.example/fr",
+                "en": "https://clean.example/en",
+                "x-default": "https://clean.example/fr"
+              }
+            }
+          },
+          {
+            "url": "https://clean.example/en",
+            "priority": 1,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://clean.example/fr",
+                "en": "https://clean.example/en",
+                "x-default": "https://clean.example/fr"
+              }
+            }
+          },
+          {
+            "url": "https://clean.example/fr/prices",
+            "priority": 0.8,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://clean.example/fr/prices",
+                "en": "https://clean.example/en/prices",
+                "x-default": "https://clean.example/fr/prices"
+              }
+            }
+          },
+          {
+            "url": "https://clean.example/en/prices",
+            "priority": 0.8,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://clean.example/fr/prices",
+                "en": "https://clean.example/en/prices",
+                "x-default": "https://clean.example/fr/prices"
+              }
+            }
+          }
+        ],
+        "robots": {
+          "rules": [
+            {
+              "userAgent": "*",
+              "allow": "/"
+            },
+            {
+              "userAgent": [
+                "GPTBot",
+                "ClaudeBot",
+                "PerplexityBot",
+                "Google-Extended"
+              ],
+              "allow": "/"
+            }
+          ],
+          "sitemap": "https://clean.example/sitemap.xml"
+        }
+      }
+    },
+    {
+      "name": "cleaning localhost:3000",
+      "site": "cleaning",
+      "host": "localhost:3000",
+      "places": [
+        {
+          "slug": "paris",
+          "gbpName": "Clean Co Paris",
+          "name": {
+            "fr": "Paris",
+            "en": "Paris"
+          },
+          "presence": {
+            "kind": "service-area"
+          },
+          "serviceArea": [
+            {
+              "kind": "localities",
+              "names": [
+                "Paris",
+                "Boulogne-Billancourt"
+              ]
+            },
+            {
+              "kind": "radius",
+              "center": {
+                "lat": 48.8566,
+                "lng": 2.3522
+              },
+              "km": 12
+            }
+          ],
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": [
+            {
+              "days": [
+                "Monday",
+                "Saturday"
+              ],
+              "opens": "08:00",
+              "closes": "19:00"
+            }
+          ],
+          "rating": null
+        }
+      ],
+      "expected": {
+        "sitemap": [
+          {
+            "url": "https://clean.example/fr",
+            "priority": 1,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://clean.example/fr",
+                "en": "https://clean.example/en",
+                "x-default": "https://clean.example/fr"
+              }
+            }
+          },
+          {
+            "url": "https://clean.example/en",
+            "priority": 1,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://clean.example/fr",
+                "en": "https://clean.example/en",
+                "x-default": "https://clean.example/fr"
+              }
+            }
+          },
+          {
+            "url": "https://clean.example/fr/prices",
+            "priority": 0.8,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://clean.example/fr/prices",
+                "en": "https://clean.example/en/prices",
+                "x-default": "https://clean.example/fr/prices"
+              }
+            }
+          },
+          {
+            "url": "https://clean.example/en/prices",
+            "priority": 0.8,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://clean.example/fr/prices",
+                "en": "https://clean.example/en/prices",
+                "x-default": "https://clean.example/fr/prices"
+              }
+            }
+          }
+        ],
+        "robots": {
+          "rules": [
+            {
+              "userAgent": "*",
+              "allow": "/"
+            },
+            {
+              "userAgent": [
+                "GPTBot",
+                "ClaudeBot",
+                "PerplexityBot",
+                "Google-Extended"
+              ],
+              "allow": "/"
+            }
+          ],
+          "sitemap": "https://clean.example/sitemap.xml"
+        }
+      }
+    },
+    {
+      "name": "prelaunch localhost:3000",
+      "site": "prelaunch",
+      "host": "localhost:3000",
+      "places": [
+        {
+          "slug": "paris",
+          "gbpName": "Clean Co Paris",
+          "name": {
+            "fr": "Paris",
+            "en": "Paris"
+          },
+          "presence": {
+            "kind": "service-area"
+          },
+          "serviceArea": [
+            {
+              "kind": "localities",
+              "names": [
+                "Paris",
+                "Boulogne-Billancourt"
+              ]
+            },
+            {
+              "kind": "radius",
+              "center": {
+                "lat": 48.8566,
+                "lng": 2.3522
+              },
+              "km": 12
+            }
+          ],
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": [
+            {
+              "days": [
+                "Monday",
+                "Saturday"
+              ],
+              "opens": "08:00",
+              "closes": "19:00"
+            }
+          ],
+          "rating": null
+        }
+      ],
+      "expected": {
+        "sitemap": [],
+        "robots": {
+          "rules": [
+            {
+              "userAgent": "*",
+              "disallow": "/"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

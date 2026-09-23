@@ -22,7 +22,9 @@ lib/                 (repo: EV-invest/lib)
 │   ├── error-monitoring/
 │   ├── experiments/
 │   ├── settings/
-│   └── marketing/
+│   ├── marketing/
+│   └── kitstart/
+├── tests/fixtures/  test vectors both ports read (kitstart)
 ├── docs/
 │   ├── ARCHITECTURE.md          (this file)
 │   └── .readme_assets/          README fragments (README.md is generated)
