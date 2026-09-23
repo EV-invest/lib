@@ -127,7 +127,15 @@ async function smoke() {
     const gone = (_, b) => /<html lang="fr"/.test(b) && b.includes(">404<") && !b.includes("__next_error__");
     await expect("a dead path is the place's 404, rendered on the server", "/fr/nope", {}, 404, gone);
     await expect("junk without a language is a 404 too, in the negotiated language", "/wp-admin", { headers: { "accept-language": "en" } }, 404, (_, b) => /<html lang="en"/.test(b));
-    await expect("a client-sent gone header is ignored", "/fr", { headers: { "x-landing-not-found": "en" } }, 200);
+    // A 404 is per path and per language, and must never sit in a shared cache
+    // as if it were a page.
+    await expect("a 404 is not cached as a page", "/fr/nope", {}, 404, r => !/s-maxage|public/.test(r.headers.get("cache-control") ?? ""));
+    // Sent by hand to the 404 route, a gone header that names another
+    // language or no real place is stripped: the brand's 404 in the path's
+    // language answers, not the forged one.
+    const forged = (header) => ({ headers: { "x-landing-not-found": header } });
+    await expect("a forged gone header naming another language is dropped", "/fr/404/404", forged("en/_paris"), 404, (_, b) => /<html lang="fr"/.test(b) && b.includes(">404<"));
+    await expect("a forged gone header naming no real place is dropped", "/fr/404/404", forged("fr/_nowhere"), 404, (_, b) => /<html lang="fr"/.test(b) && b.includes(">404<"));
     await expect("noindex before launch", "/fr", {}, 200, (_, b) => /<meta name="robots" content="noindex/.test(b));
     await expect("robots disallow before launch", "/robots.txt", {}, 200, (_, b) => b.includes("Disallow: /"));
     const form = new URLSearchParams({ location: "paris", locale: "fr", form_id: "quote", t: String(Date.now() - 10_000), website: "", subject: "standard", locality: "75011", mobile: "0612345678" });
