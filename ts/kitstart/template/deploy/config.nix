@@ -12,8 +12,10 @@
 {
   # The mount, not $HOME. Leads are the only durable state this service has.
   LEADS_DB_PATH = "/data/leads.db";
-  # Reached only through Cloudflare (the cloudflared tunnel). Behind your own
-  # ingress instead: "xff:1" (one proxy appending X-Forwarded-For).
+  # "cloudflare" is right only when the origin cannot be reached around the
+  # tunnel (no public port, no ingress of its own): then CF-Connecting-IP is
+  # the visitor. If anything else can reach the pod, a client could write that
+  # header itself — use "xff:<n>" for the n proxies of yours in front instead.
   TRUSTED_PROXY = "cloudflare";
   HOSTNAME = "0.0.0.0";
   PORT = toString port;
