@@ -1,5 +1,6 @@
 use super::{
-	DEFAULT_LOCALE, LOCALES, Locale, MessageValue, MessageValues, Messages, PluralCategory, Translator, format_message, locale_alternates, locale_path, negotiate,
+	DEFAULT_LOCALE, LOCALES, Locale, LocaleRegistry, LocaleRegistryConfig, MessageValue, MessageValues, Messages, PluralCategory, RegistryError, Translator, format_message,
+	locale_alternates, locale_path, negotiate,
 	policy::{MissingContentPolicy, RejectionReason, TranslatedCatalogue, TranslatedEntry, audit, available_in, resolve_catalogue},
 	split_locale_path,
 };
@@ -609,4 +610,87 @@ fn zero_matches_intl_which_differs_per_locale() {
 	assert_eq!(en, "0 roles");
 	assert_eq!(fr, "0 poste");
 	assert_eq!(ru, "0 вакансий");
+}
+
+// ── configurable registry ────────────────────────────────────────────────────
+
+fn storefront_registry(prefix_default_locale: bool) -> LocaleRegistry {
+	LocaleRegistry::new(LocaleRegistryConfig {
+		locales: vec![("fr".into(), "Français".into()), ("en".into(), "English".into())],
+		default: "fr".into(),
+		prefix_default_locale,
+		hreflang: vec![("fr".into(), "fr-FR".into())],
+	})
+	.expect("a valid registry")
+}
+
+#[test]
+fn a_registry_refuses_an_ambiguous_url_contract() {
+	let config = |locales: &[&str], default: &str, hreflang: &[(&str, &str)]| LocaleRegistryConfig {
+		locales: locales.iter().map(|l| ((*l).to_owned(), (*l).to_owned())).collect(),
+		default: default.to_owned(),
+		prefix_default_locale: false,
+		hreflang: hreflang.iter().map(|(l, t)| ((*l).to_owned(), (*t).to_owned())).collect(),
+	};
+	assert_eq!(LocaleRegistry::new(config(&[], "fr", &[])), Err(RegistryError::NoLocales));
+	assert_eq!(LocaleRegistry::new(config(&["fr"], "en", &[])), Err(RegistryError::DefaultNotListed("en".into())));
+	assert_eq!(LocaleRegistry::new(config(&["fr", "fr"], "fr", &[])), Err(RegistryError::ListedTwice("fr".into())));
+	assert_eq!(
+		LocaleRegistry::new(config(&["fr"], "fr", &[("de", "de-DE")])),
+		Err(RegistryError::UnknownHreflangLocale("de".into()))
+	);
+	assert_eq!(
+		LocaleRegistry::new(config(&["fr"], "fr", &[("fr", "X-Default")])),
+		Err(RegistryError::ReservedHreflang("fr".into()))
+	);
+	assert_eq!(
+		LocaleRegistry::new(config(&["fr", "en"], "fr", &[("fr", "EN")])),
+		Err(RegistryError::HreflangCollision("en".into()))
+	);
+}
+
+#[test]
+fn a_prefixed_default_gets_a_prefix_like_every_other_locale() {
+	let i18n = storefront_registry(true);
+	assert_eq!(i18n.locale_path("fr", "/"), "/fr");
+	assert_eq!(i18n.locale_path("fr", "prices"), "/fr/prices");
+	assert_eq!(i18n.split_locale_path("/fr/prices"), ("fr", "/prices".to_owned()));
+	assert_eq!(i18n.split_locale_path("/en"), ("en", "/".to_owned()));
+	assert_eq!(i18n.split_locale_path("/de/prices"), ("fr", "/de/prices".to_owned()));
+}
+
+#[test]
+fn an_unprefixed_default_keeps_its_explicit_segment_in_the_path() {
+	let i18n = storefront_registry(false);
+	assert_eq!(i18n.locale_path("fr", "/prices"), "/prices");
+	assert_eq!(i18n.locale_path("en", "/"), "/en");
+	assert_eq!(i18n.split_locale_path("/fr/prices"), ("fr", "/fr/prices".to_owned()));
+	assert_eq!(i18n.locale_alternates("/prices"), vec![("fr", "/prices".to_owned()), ("en", "/en/prices".to_owned())]);
+}
+
+#[test]
+fn language_alternates_are_keyed_by_hreflang_with_x_default_last() {
+	let i18n = storefront_registry(true);
+	assert_eq!(
+		i18n.language_alternates("/", "https://royat.aquafix.top/"),
+		vec![
+			("fr-FR".to_owned(), "https://royat.aquafix.top/fr".to_owned()),
+			("en".to_owned(), "https://royat.aquafix.top/en".to_owned()),
+			("x-default".to_owned(), "https://royat.aquafix.top/fr".to_owned()),
+		]
+	);
+}
+
+#[test]
+fn a_registry_negotiates_like_the_five_locale_one() {
+	let i18n = storefront_registry(true);
+	assert_eq!(i18n.negotiate(None), "fr");
+	assert_eq!(i18n.negotiate(Some("en-GB,en;q=0.9,fr;q=0.5")), "en");
+	assert_eq!(i18n.negotiate(Some("de,fr-CH;q=0.8,en;q=0.5")), "fr");
+	assert_eq!(i18n.negotiate(Some("ja")), "fr");
+	assert_eq!(i18n.negotiate(Some("en;q=0,*")), "fr");
+	assert_eq!(i18n.locale("en"), Some("en"));
+	assert_eq!(i18n.locale("EN"), None);
+	assert_eq!(i18n.label("fr"), Some("Français"));
+	assert_eq!(i18n.hreflang_of("en"), "en");
 }

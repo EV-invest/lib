@@ -16,7 +16,9 @@
 //! site, the cabinet and every MFE, and having one place they are declared is the
 //! entire point of putting this in a shared library. Helpers that iterate locales
 //! still take a `locales` slice, so a surface shipping a subset is not forced to
-//! claim all five.
+//! claim all five. A surface outside that set — a brand landing that is `fr` by
+//! default and prefixes every locale — builds a [`LocaleRegistry`] over its own
+//! list and gets the same URL contract and negotiation.
 //!
 //! **Formatting numbers and money is deliberately NOT this module's job.** The
 //! formatter supports `plural` and `select` but not `number`, `date` or
@@ -49,11 +51,13 @@ use std::collections::BTreeMap;
 mod format;
 mod plural;
 pub mod policy;
+mod registry;
 #[cfg(test)]
 mod tests;
 
 pub use format::{MessageValue, MessageValues, format_message};
 pub use plural::PluralCategory;
+pub use registry::{LocaleRegistry, LocaleRegistryConfig, RegistryError};
 
 /// The locales EV publishes, in the order they are offered to a reader.
 /// `En` is first because it is both the default and the authored source.
@@ -294,7 +298,24 @@ pub fn negotiate(header: Option<&str>, locales: &[Locale]) -> Locale {
 	let Some(header) = header else {
 		return DEFAULT_LOCALE;
 	};
+	for tag in ranked_tags(header) {
+		// "ru-RU" and "ru" both match the "ru" catalogue.
+		let base = tag.split('-').next().unwrap_or("");
+		if let Some(hit) = locales.iter().find(|l| l.code() == tag || l.code() == base) {
+			return *hit;
+		}
+		// "*" means "anything", for which the default is as good an answer as any.
+		if tag == "*" {
+			return DEFAULT_LOCALE;
+		}
+	}
+	DEFAULT_LOCALE
+}
 
+/// The language tags of an `Accept-Language` header, lowercased, best first.
+/// Shared by [`negotiate`] and [`LocaleRegistry::negotiate`] so the two cannot
+/// rank one header differently.
+fn ranked_tags(header: &str) -> Vec<String> {
 	let mut ranked: Vec<(String, f64)> = header
 		.split(',')
 		.filter_map(|part| {
@@ -313,19 +334,7 @@ pub fn negotiate(header: Option<&str>, locales: &[Locale]) -> Locale {
 	// Stable sort: equal q-values keep the client's stated order, which is the
 	// tie-break the header itself intends.
 	ranked.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-
-	for (tag, _) in ranked {
-		// "ru-RU" and "ru" both match the "ru" catalogue.
-		let base = tag.split('-').next().unwrap_or("");
-		if let Some(hit) = locales.iter().find(|l| l.code() == tag || l.code() == base) {
-			return *hit;
-		}
-		// "*" means "anything", for which the default is as good an answer as any.
-		if tag == "*" {
-			return DEFAULT_LOCALE;
-		}
-	}
-	DEFAULT_LOCALE
+	ranked.into_iter().map(|(tag, _)| tag).collect()
 }
 
 /// Every locale's URL for one page — the shape an `hreflang` cluster wants.
