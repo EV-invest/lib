@@ -69,6 +69,8 @@ mod query;
 mod routing;
 mod site;
 mod sitemap;
+#[cfg(test)]
+mod tests;
 
 pub use antispam::{HONEYPOT_FIELD, MIN_FILL_MS, RENDERED_AT_FIELD, RateLimiter, SpamVerdict, Submission, check_timing, screen};
 pub use contact::{ContactChannel, contact_channel, tel_href, whatsapp_href};
