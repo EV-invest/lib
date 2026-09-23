@@ -227,6 +227,11 @@
           text = ''
             cd "$(git rev-parse --show-toplevel)/ts/kitstart"
             shots=test/visual/__screenshots__
+            # kitstart links the workspace kit and marketing layer; a linked
+            # directory ships whatever `dist/` it has, so build them first.
+            for pkg in uikit marketing; do
+              (cd "../$pkg" && { [ -d node_modules ] || npm ci --ignore-scripts; } && npm run build >/dev/null)
+            done
             [ -d node_modules ] || npm ci --ignore-scripts
             KITSTART_VISUAL_OUT="$PWD/test/visual/dist" npx vitest run test/visual/gallery.node.test.tsx
             cp ${visual.tailwind} test/visual/dist/tailwind.js
