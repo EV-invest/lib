@@ -7,7 +7,7 @@ import type { Place } from "../core/place/types";
 import { createPlaceView } from "../core/place/view";
 import { createRouting, THANKS } from "../core/routing";
 import { bakedPlace, contactOf, type Site } from "../core/site";
-import { clientKey } from "../server/client-key";
+import { clientKey, type ProxyTrust } from "../server/client-key";
 import type { ServerEnv } from "../server/env";
 import { openLeadStore } from "../server/lead-store";
 import type { LeadNotifier } from "../server/notify";
@@ -29,8 +29,8 @@ export interface UnavailableCopy {
 }
 
 export interface QuoteRouteDeps<L extends string> {
-  env: () => Pick<ServerEnv, "leadsDb" | "posthogKey" | "posthogHost">;
-  /** Built once at boot so a missing sender fails startup, not a lead. */
+  env: () => Pick<ServerEnv, "leadsDb" | "posthogKey" | "posthogHost" | "trustedProxy">;
+  /** Built once (and at boot, by the brand) so a missing sender fails startup, not a lead. */
   notifier: () => LeadNotifier;
   /** The self-contained 500's words, when the store refused the lead. */
   unavailable: (locale: L, place: Place<L> | null) => UnavailableCopy;
@@ -45,6 +45,41 @@ export interface QuoteRouteDeps<L extends string> {
 
 /** The Rust server's body limit; a quote is a few short fields. */
 const MAX_BODY = 64 * 1024;
+
+/** Outside production, with no `TRUSTED_PROXY`: the one hop a dev server has. */
+const DEV_TRUST: ProxyTrust = { xffHops: 1 };
+
+class TooLarge extends Error {}
+
+/**
+ * The form, read with a hard cut-off: `Content-Length` is only the client's
+ * word, and a chunked body has none, so the bytes are counted as they arrive.
+ */
+async function readForm(request: Request): Promise<FormData> {
+  if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY) throw new TooLarge();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  if (request.body) {
+    const reader = request.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_BODY) {
+        await reader.cancel();
+        throw new TooLarge();
+      }
+      chunks.push(value);
+    }
+  }
+  const body = new Uint8Array(new ArrayBuffer(size));
+  let at = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, at);
+    at += chunk.byteLength;
+  }
+  return new Response(body, { headers: { "content-type": request.headers.get("content-type") ?? "" } }).formData();
+}
 
 const escape = (s: string): string =>
   s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
@@ -63,6 +98,7 @@ export function quoteRoute<L extends string, P extends string>(
   const defer = deps.defer ?? after;
   const log = deps.log ?? console;
   let store: LeadStore | undefined;
+  let notifier: LeadNotifier | undefined;
   const leadStore = (): LeadStore => {
     store ??= deps.store ? deps.store() : openLeadStore(deps.env().leadsDb);
     return store;
@@ -89,18 +125,28 @@ export function quoteRoute<L extends string, P extends string>(
   }
 
   return async request => {
-    if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY) return new Response(null, { status: 413 });
     let form: FormData;
     try {
-      form = await request.formData();
-    } catch {
-      return new Response(null, { status: 400 });
+      form = await readForm(request);
+    } catch (error) {
+      return new Response(null, { status: error instanceof TooLarge ? 413 : 400 });
     }
-    const env = deps.env();
-    const outcome = await accept(form, clientKey(request.headers), {
+    let env: ReturnType<QuoteRouteDeps<L>["env"]>;
+    try {
+      env = deps.env();
+    } catch (error) {
+      // A broken setting must still answer with the phone, never a bare 500.
+      log.error("quote: the server environment is unusable", error);
+      const locale = form.get("locale");
+      return unavailable(null, typeof locale === "string" && site.i18n.isLocale(locale) ? locale : site.i18n.defaultLocale);
+    }
+    const outcome = await accept(form, clientKey(request.headers, env.trustedProxy ?? DEV_TRUST), {
       insert: lead => leadStore().insert(lead),
       defer,
-      notify: (lead, id) => deps.notifier().notify(lead, id),
+      notify: (lead, id) => {
+        notifier ??= deps.notifier();
+        return notifier.notify(lead, id);
+      },
       capture: (lead, formId) =>
         analyticsSink({ key: env.posthogKey, host: env.posthogHost, brandId: site.brand.id }, lead.placeSlug).capture(EVENTS.leadSubmit, {
           form_id: formId,
