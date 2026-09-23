@@ -18,6 +18,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 interface MetaCase {
   name: string;
+  site: string;
   kind: "place" | "brand" | "status";
   place?: Place<Locale>;
   locale?: Locale;
@@ -27,9 +28,10 @@ interface MetaCase {
   expected: unknown;
 }
 
-describe("<head> metadata against aquafix's goldens", () => {
+describe("<head> metadata against the shared fixtures", () => {
   const { cases } = fixture<{ cases: MetaCase[] }>("metadata.json");
   it.each(cases.map(c => [c.name, c] as const))("%s", (_, c) => {
+    const site = fixtureSite(c.site);
     const description = c.copy.description ?? "";
     if (c.kind === "status") return expect(text(statusMetadata(site, c.copy.title))).toBe(text(c.expected));
     if (!c.locale) throw new Error("case has no locale");
