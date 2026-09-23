@@ -1,0 +1,118 @@
+/*
+ * @evinvest/marketing/motion.css — the zero-JS motion engine.
+ *
+ * Animates the markup of `@evinvest/marketing/motion-css` (`data-ev-motion`,
+ * `data-ev-stagger`). Import it once, next to the kit's tokens:
+ *
+ *   @import "@evinvest/marketing/motion.css";
+ *
+ * Rules of the house, same as the JS primitives:
+ * - `opacity` and `translate` only — both stay on the compositor, and
+ *   `translate` leaves a consumer's `transform` (a hover scale) alone.
+ * - The hidden state exists only inside the keyframes (`both` fill). A browser
+ *   that runs none of this shows every block at rest; nothing is ever stuck
+ *   invisible.
+ * - `prefers-reduced-motion` collapses movement to a plain fade; a `Settle`
+ *   simply stands still.
+ * - Zero specificity (`:where`), so any utility class overrides it.
+ *
+ * The timings mirror `core/motion-tokens.ts`; a test keeps them in step.
+ */
+
+:root {
+  --ev-motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ev-motion-dur-base: 450ms;
+  --ev-motion-dur-slow: 700ms;
+  --ev-motion-rise: 16px;
+  --ev-motion-settle-opacity: 0.6;
+  --ev-motion-stagger: 70ms;
+  /* Scroll reveals: from the element's first pixel entering to a third of the
+     way up — the band the JS version's -80px margin fires in. */
+  --ev-motion-view-range: entry 0% cover 30%;
+}
+
+@keyframes ev-rise {
+  from {
+    opacity: 0;
+    translate: var(--ev-from-x, 0) var(--ev-from-y, 0);
+  }
+}
+
+@keyframes ev-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ev-settle {
+  from {
+    opacity: var(--ev-motion-settle-opacity);
+    translate: 0 calc(var(--ev-motion-rise) / 2);
+  }
+}
+
+/* A word must be a box for `translate` to apply; separators stay text nodes. */
+:where([data-ev-motion="word"]) {
+  display: inline-block;
+  --ev-from-y: 0.45em;
+}
+
+/* ── time-based: on mount ─────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+  :where([data-ev-motion="mount"]) {
+    animation: ev-rise var(--ev-dur, var(--ev-motion-dur-slow)) var(--ev-motion-ease-out) var(--ev-delay, 0ms) both;
+  }
+
+  :where([data-ev-motion="settle"]) {
+    animation: ev-settle var(--ev-dur, var(--ev-motion-dur-base)) var(--ev-motion-ease-out) both;
+  }
+
+  :where([data-ev-stagger="mount"] > [data-ev-motion="item"], [data-ev-stagger="mount"] > [data-ev-motion="word"]) {
+    animation: ev-rise var(--ev-dur, var(--ev-motion-dur-slow)) var(--ev-motion-ease-out)
+      calc(var(--ev-delay, 0ms) + var(--ev-i, 0) * var(--ev-step, var(--ev-motion-stagger))) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(
+      [data-ev-motion="mount"],
+      [data-ev-stagger="mount"] > [data-ev-motion="item"],
+      [data-ev-stagger="mount"] > [data-ev-motion="word"]
+    ) {
+    /* All at once: a sequence of fades is still motion. */
+    animation: ev-fade var(--ev-dur, var(--ev-motion-dur-slow)) var(--ev-motion-ease-out) var(--ev-delay, 0ms) both;
+  }
+}
+
+/* ── scroll-linked: in view ───────────────────────────────────────────── */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    :where([data-ev-motion="view"]) {
+      animation: ev-rise linear both;
+      animation-timeline: view();
+      animation-range: var(--ev-motion-view-range);
+    }
+
+    /* Staggered siblings share the viewport, so the cascade is an offset in
+       scroll distance: each item starts its range a little later. */
+    :where([data-ev-stagger="view"] > [data-ev-motion="item"], [data-ev-stagger="view"] > [data-ev-motion="word"]) {
+      animation: ev-rise linear both;
+      animation-timeline: view();
+      animation-range: entry calc(var(--ev-i, 0) * 4%) cover calc(30% + var(--ev-i, 0) * 4%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :where(
+        [data-ev-motion="view"],
+        [data-ev-stagger="view"] > [data-ev-motion="item"],
+        [data-ev-stagger="view"] > [data-ev-motion="word"]
+      ) {
+      animation: ev-fade linear both;
+      animation-timeline: view();
+      animation-range: var(--ev-motion-view-range);
+    }
+  }
+}

@@ -20,14 +20,42 @@
     "./react": {
       "types": "./dist/react.d.ts",
       "import": "./dist/react.js"
+    },
+    "./motion": {
+      "types": "./dist/motion.d.ts",
+      "import": "./dist/motion.js"
+    },
+    "./motion-css": {
+      "types": "./dist/motion-css.d.ts",
+      "import": "./dist/motion-css.js"
+    },
+    "./motion.css": "./styles/motion.css",
+    "./tracker": {
+      "types": "./dist/tracker.d.ts",
+      "import": "./dist/tracker.js"
+    },
+    "./click-to-load": {
+      "types": "./dist/click-to-load.d.ts",
+      "import": "./dist/click-to-load.js"
+    },
+    "./form": {
+      "types": "./dist/form.d.ts",
+      "import": "./dist/form.js"
+    },
+    "./next": {
+      "types": "./dist/next.d.ts",
+      "import": "./dist/next.js"
     }
   },
   "types": "./dist/index.d.ts",
   "main": "./dist/index.js",
   "files": [
-    "dist"
+    "dist",
+    "styles"
   ],
-  "sideEffects": false,
+  "sideEffects": [
+    "*.css"
+  ],
   "engines": {
     "node": ">=20"
   },

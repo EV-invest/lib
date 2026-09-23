@@ -34,14 +34,23 @@ sources import.
 No icon library: the two glyphs it draws (a check, a play triangle) are inline
 SVG.
 
-Two entry points:
+Entry points — import the narrowest one; each ships only what it names:
 
-- `.` — **server-safe core**: no `"use client"`, no hooks, no DOM. Motion
-  tokens, `accented`, validation helpers, contact-link helpers, JSON-LD.
-  Import these from Server Components and you get real values, not client
-  references.
-- `./react` — a **`"use client"` bundle**: the motion primitives, the form
-  harness and field, the tracker, the facade, document typography.
+| Entry | Side | What | Pulls `motion` |
+|---|---|---|---|
+| `.` | server-safe | motion tokens, `accented`, validation, contact-link helpers, JSON-LD | no |
+| `./tracker` | client | `ContactLinkTracker` | no |
+| `./click-to-load` | client | `ClickToLoad`, `YouTubeFacade` | no |
+| `./form` | client | `useValidatedForm`, `TextField`, `SentPanel` | no |
+| `./motion` | client | the motion primitives on `motion` | **yes** |
+| `./motion-css` | server-safe | the same primitives, no JavaScript | no |
+| `./motion.css` | stylesheet | the engine `./motion-css` needs | no |
+| `./next` | build-time | `withMotionEngine` | no |
+| `./react` | client | everything client above, one barrel (kept for existing call sites) | **yes** |
+
+Importing the tracker from `./react` used to bring `motion` along (~30 KB gz):
+the barrel was one bundle. The client entries are now split with shared
+chunks, so `./tracker` is the tracker.
 
 ## Install
 
@@ -61,7 +70,7 @@ scan the bundle next to the kit's:
 The motion primitives and the tracker use inline styles for the parts that must
 hold without that scan (the visually-hidden headline copy, `display: contents`).
 
-## Motion — `./react`
+## Motion — `./motion`, or `./motion-css` with no JavaScript
 
 | Primitive | Use for | Trigger |
 |---|---|---|
@@ -93,12 +102,48 @@ easing or a duration.
 
 ```tsx
 import { STAGGER, accented } from "@evinvest/marketing";
-import { Reveal, SplitText, Stagger, StaggerItem } from "@evinvest/marketing/react";
+import { Reveal, SplitText, Stagger, StaggerItem } from "@evinvest/marketing/motion";
 
 <h1><SplitText>{accented({ text: t("hero.title") })}</SplitText></h1>
 <Stagger>{cards.map(c => <StaggerItem key={c.id}>…</StaggerItem>)}</Stagger>
 <Reveal delay={STAGGER * 2}>…</Reveal>
 ```
+
+### Switching the engine per site — `withMotionEngine`
+
+A light landing does not need an animation runtime. The same primitives exist
+as Server Components animated by CSS (`./motion-css` + `./motion.css`), and one
+build-time flag picks which one `@evinvest/marketing/motion` resolves to — app
+code never changes:
+
+```ts
+// next.config.ts
+import { withMotionEngine } from "@evinvest/marketing/next";
+export default withMotionEngine(config, process.env.MOTION_ENGINE === "js" ? "js" : "css");
+```
+
+```css
+/* the Tailwind entrypoint, for the css engine */
+@import "@evinvest/marketing/motion.css";
+```
+
+It is a build flag, not a runtime one, on purpose: a runtime switch could pick
+which component renders but not what the browser downloads, and the bytes are
+the point. Only `@evinvest/marketing/motion` is aliased — code importing the
+`./react` barrel keeps the JS engine.
+
+What the CSS engine does differently:
+
+- **Mount animations** (`onMount`, `Settle`, `SplitText`) are plain keyframes
+  with the same curve, durations and stagger as the tokens (a test holds the
+  two in step).
+- **Scroll reveals are scroll-linked** (`animation-timeline: view()`), not
+  fired once: progress follows the element through the viewport. A browser
+  without scroll timelines (Firefox today) shows the block at rest.
+- **Nothing is ever hidden outside a keyframe** — with the stylesheet missing
+  or unsupported, every block is simply there. Reduced motion collapses to a
+  fade, as in the JS engine.
+- **`CountUp` renders the final figure** and does not count.
 
 `accented` turns `"Fix it *today*.\nCall us"` into text, an accent `<span>` and
 a `<br>` — one catalogue key a translator can reorder. Call the **function**
