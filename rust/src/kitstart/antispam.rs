@@ -55,11 +55,18 @@ pub fn check_timing(rendered_at: Option<&str>, now_ms: i64) -> Option<SpamVerdic
 /// A fixed-window counter per client address, in memory. Per process by
 /// design: a speed bump for one bot hammering one pod, not an accounting
 /// system, and a restart forgetting it costs nothing.
+///
+/// Bounded: past [`RateLimiter::MAX_KEYS`] live addresses, every new one
+/// shares a single overflow window. A spray of forged addresses then throttles
+/// itself instead of growing the map without limit, and the addresses already
+/// tracked keep their own windows.
 #[derive(Clone, Debug)]
 pub struct RateLimiter {
 	limit: u32,
 	window_ms: i64,
 	hits: HashMap<String, Window>,
+	overflow: Window,
+	pruned_at: Option<i64>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -68,30 +75,56 @@ struct Window {
 	count: u32,
 }
 
+impl Window {
+	/// Count one hit, restarting the window once it has run out.
+	fn hit(&mut self, now_ms: i64, window_ms: i64, limit: u32) -> bool {
+		if now_ms - self.start >= window_ms {
+			*self = Self { start: now_ms, count: 0 };
+		}
+		self.count = self.count.saturating_add(1);
+		self.count <= limit
+	}
+}
+
 impl RateLimiter {
+	/// Distinct addresses tracked before new ones share the overflow window.
+	pub const MAX_KEYS: usize = 10_000;
+	/// Expired windows are swept at most this often; a hit on an expired one
+	/// restarts it anyway, so sweeping is only about memory.
+	const PRUNE_EVERY_MS: i64 = 1_000;
+
 	pub fn new(limit: u32, window_ms: i64) -> Self {
 		Self {
 			limit,
 			window_ms,
 			hits: HashMap::new(),
+			overflow: Window { start: i64::MIN / 2, count: 0 },
+			pruned_at: None,
 		}
 	}
 
 	/// `true` if this hit is allowed.
 	pub fn hit(&mut self, key: &str, now_ms: i64) -> bool {
-		// Linear in the live keys, fine at a landing page's volume, and it keeps
-		// the map from outgrowing one window of distinct addresses.
-		self.hits.retain(|_, w| now_ms - w.start < self.window_ms);
-		match self.hits.get_mut(key) {
-			Some(window) => {
-				window.count = window.count.saturating_add(1);
-				window.count <= self.limit
-			}
-			None => {
-				self.hits.insert(key.to_owned(), Window { start: now_ms, count: 1 });
-				true
-			}
+		if self.pruned_at.is_none_or(|at| now_ms - at >= Self::PRUNE_EVERY_MS) {
+			self.hits.retain(|_, w| now_ms - w.start < self.window_ms);
+			self.pruned_at = Some(now_ms);
 		}
+		let (window_ms, limit) = (self.window_ms, self.limit);
+		if let Some(window) = self.hits.get_mut(key) {
+			return window.hit(now_ms, window_ms, limit);
+		}
+		if self.hits.len() >= Self::MAX_KEYS {
+			return self.overflow.hit(now_ms, window_ms, limit);
+		}
+		let mut window = Window { start: now_ms, count: 0 };
+		let allowed = window.hit(now_ms, window_ms, limit);
+		self.hits.insert(key.to_owned(), window);
+		allowed
+	}
+
+	/// Addresses with a window of their own right now.
+	pub fn tracked(&self) -> usize {
+		self.hits.len()
 	}
 }
 
@@ -104,16 +137,22 @@ pub struct Submission<'a> {
 	pub now_ms: i64,
 }
 
-/// The barriers in order: honeypot, timing, then the rate limit — so a bot the
-/// first two catch does not spend a real visitor's share of the limit.
+/// The barriers in order: honeypot, rate limit, timing.
+///
+/// Every submission that gets past the honeypot spends the limit, whatever its
+/// render stamp says. The stamp comes from the client, so a bot that leaves it
+/// out must not thereby skip the limiter: a `too-fast` lead is still stored
+/// and notified (flagged), and only the limit stops a flood of them. The
+/// limit is also checked before the stamp so that a flooding key reads as
+/// `rate-limited`, the verdict that is not notified.
 pub fn screen(submission: Submission<'_>, limiter: &mut RateLimiter) -> Option<SpamVerdict> {
 	if submission.honeypot.is_some_and(|h| !h.trim().is_empty()) {
 		return Some(SpamVerdict::Honeypot);
 	}
-	if let Some(verdict) = check_timing(submission.rendered_at, submission.now_ms) {
-		return Some(verdict);
+	if !limiter.hit(submission.client_key, submission.now_ms) {
+		return Some(SpamVerdict::RateLimited);
 	}
-	(!limiter.hit(submission.client_key, submission.now_ms)).then_some(SpamVerdict::RateLimited)
+	check_timing(submission.rendered_at, submission.now_ms)
 }
 
 #[cfg(test)]
@@ -144,6 +183,37 @@ mod tests {
 	}
 
 	#[test]
+	fn expired_windows_restart_and_are_swept() {
+		let mut limiter = RateLimiter::new(1, 1_000);
+		assert!(limiter.hit("a", 0));
+		assert!(limiter.hit("b", 500));
+		assert!(!limiter.hit("a", 999));
+		// The sweep at 1 400 drops the spent window of "a"; a new one starts.
+		assert!(limiter.hit("a", 1_400));
+		assert_eq!(limiter.tracked(), 2);
+		// No sweep yet at 2 000; the next one, a second after the last, drops
+		// the spent windows of "a" and "b".
+		assert!(limiter.hit("c", 2_000));
+		assert_eq!(limiter.tracked(), 3);
+		assert!(limiter.hit("d", 2_400));
+		assert_eq!(limiter.tracked(), 2);
+	}
+
+	#[test]
+	fn past_the_key_cap_new_addresses_share_one_window() {
+		let mut limiter = RateLimiter::new(2, 60_000);
+		for i in 0..RateLimiter::MAX_KEYS {
+			assert!(limiter.hit(&format!("10.0.{i}"), 0));
+		}
+		assert!(limiter.hit("spray-1", 1));
+		assert!(limiter.hit("spray-2", 2));
+		assert!(!limiter.hit("spray-3", 3));
+		assert_eq!(limiter.tracked(), RateLimiter::MAX_KEYS);
+		// A tracked address keeps its own window.
+		assert!(limiter.hit("10.0.0", 4));
+	}
+
+	#[test]
 	fn the_honeypot_wins_and_a_caught_bot_spends_no_limit() {
 		let mut limiter = RateLimiter::new(1, 60_000);
 		let old = (NOW - 10_000).to_string();
@@ -156,5 +226,21 @@ mod tests {
 		assert_eq!(screen(submission(Some("spam.example")), &mut limiter), Some(SpamVerdict::Honeypot));
 		assert_eq!(screen(submission(None), &mut limiter), None);
 		assert_eq!(screen(submission(Some(" ")), &mut limiter), Some(SpamVerdict::RateLimited));
+	}
+
+	#[test]
+	fn a_missing_stamp_does_not_skip_the_limit() {
+		const LIMIT: u32 = 3;
+		let mut limiter = RateLimiter::new(LIMIT, 60_000);
+		let unstamped = Submission {
+			honeypot: None,
+			rendered_at: None,
+			client_key: "bot",
+			now_ms: NOW,
+		};
+		for _ in 0..LIMIT {
+			assert_eq!(screen(unstamped, &mut limiter), Some(SpamVerdict::TooFast));
+		}
+		assert_eq!(screen(unstamped, &mut limiter), Some(SpamVerdict::RateLimited));
 	}
 }
