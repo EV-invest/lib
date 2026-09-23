@@ -14,9 +14,164 @@ stays in the brand.
 | Import | Runtime | What |
 |---|---|---|
 | `@evinvest/kitstart` | anywhere (edge, client, server) | `defineSite`, places, routing (`createRouting`), the lead schema and funnel (`createAcceptLead`), antispam, JSON-LD / sitemap / robots builders, analytics events, the copy contract |
+| `@evinvest/kitstart/server` | Node, `server-only` | `createServerEnv`, `createPlaceSource`, the lead store (`openLeadStore` by `LEADS_DB_URL`: `sqlite:` today, `postgres://` a stub that refuses at boot), `checkLeadStore`, `leadNotifier`, `sendMail`, `clientKey` |
+| `@evinvest/kitstart/proxy` | edge | `createProxy(site)`, `PROXY_MATCHER` |
+| `@evinvest/kitstart/next` | Next server (routes, RSC) | `quoteRoute`, `sitemapRoute`, `robotsRoute`, `ogRoute`, `healthRoute`, `createPlaceLoader`, `loadLocale`, `placeMetadata` / `brandMetadata` / `statusMetadata`, `metadataBase` |
+| `@evinvest/kitstart/next/config` | `next.config.ts`, `vitest.config.ts` | `withLanding`, `buildEnv` and the `assets/` readers |
+| `@evinvest/kitstart/react` | either side | `LangSwitch`, `CallBar`, `StatusScreen`, `PlaceDirectory`, `AreaChips`, `Coverage`, `MapFacade` (client), `QuoteFormShell`, `Faq`, `AnalyticsBoundary` (client), plus the kit and marketing pieces a landing composes with |
+| `@evinvest/kitstart/testing` | a brand's vitest | `describeLandingContract(site, { globalsCss, proxySource, text })`, `describeLeadStoreContract(name, harness)`, `storefrontPlace`, `serviceAreaPlace`, `testLead` |
+| `@evinvest/kitstart/testing/e2e` | a brand's Playwright | `defineSectionSuite(sections)`, `settle(page, selector)`, `BREAKPOINTS` |
+| bin `kitstart-size` | plain node | `kitstart-size [<build root>] [--route …] [--budget …]`: first-load JS of a place page against `tests/bundle_budget.txt`; fails closed |
 
-More subpaths (`./server`, `./proxy`, `./next`, `./react`, `./testing`) land
-in the following PRs of the stack.
+`vitest` and `@playwright/test` are optional peers, needed only by the
+suites.
+
+## A new brand
+
+`template/` (shipped in the tarball too) is the skeleton: a `single`-topology,
+service-area site before launch (no `site` in `assets/card.toml` → noindex,
+robots disallow), with every route file a few literal lines over a factory.
+Copy it, then follow its README. CI builds it on every PR exactly as a brand
+would — packed tarballs, `next build`, its own tests, `kitstart-size`, and a
+live standalone server answering `/`, `/fr`, a page, a 404, the form POST, the
+OG card and robots (`npm run check:template`).
+
+## Nix: `lib.mkLanding`
+
+The lib flake exports the flake a landing shares (`nix/mk-landing.nix`), so a
+brand's `flake.nix` is its own config plus one call — `template/flake.nix` is
+the whole of one:
+
+```nix
+inputs.ev.url = "github:EV-invest/lib?ref=@evinvest/kitstart-v0.1.0"; # the version in package-lock.json
+inputs.ev.inputs.v_flakes.follows = "v_flakes";
+
+landing = ev.lib.mkLanding {
+  pkgs, root, pname, sitePort, buildFiles,        # required
+  prodEnv ? { },                                  # baked into the image (deploy/config.nix)
+  v_flakes ? null,                                # without it: no `container`
+  nodejs ? pkgs.nodejs_22, nodeRuntime ? pkgs.nodejs-slim_22,
+  budgetFile ? "tests/bundle_budget.txt", gatedRoute ? "/[locale]/[location]",
+  requiredFiles ? [ ],                            # must be in the standalone output (OG fonts)
+  mounts ? [ "/data" ], criticality ? "high",
+  smoke ? { page = "/fr"; },                      # + host, og, quote = { field = value; }
+  containerAttr ? ".#container",
+  checkKitstartVersion ? true,
+  e2eConfig ? "tests/e2e",
+};
+# → { site, bundleBudget, packages.{default,site,container}, containers,
+#     checks.{site,bundle-budget}, apps.{default,help,dev,test,accept-test,size,container-smoke},
+#     devShell }
+```
+
+- `site`: the hermetic `next build` from `package-lock.json` through
+  `importNpmLock` (dependencies keyed on the manifest and the lock only;
+  foreign optional native binaries never fetched — the self-check's lock
+  carries a Windows-only package with a bogus integrity to prove it).
+- `container`: the OCI image on node-slim, `prodEnv` baked in.
+- `checks.bundle-budget`: `kitstart-size` on the Nix build.
+- `apps.test` (tsc, lint, vitest, build, size, Playwright on the flake's
+  pinned browsers), `accept-test` (Linux only), `size`, `dev`, `help`.
+- `apps.container-smoke`: boots the image with a host port docker picks
+  (`-p 127.0.0.1::<port>`: landing ports sit in Linux's ephemeral range), checks
+  `/health`, the 302, the page, the OG card and the form POST landing in the
+  mount, then boots it again with every `prodEnv` key blanked and wants 500.
+
+**Versions move together.** mkLanding refuses a lock whose
+`@evinvest/kitstart` differs from the lib revision's
+`ts/kitstart/package.json`: the size gate runs the lib's copy of the bin, and
+the two must be one release. Pin the flake to the matching
+`@evinvest/kitstart-vX.Y.Z` tag.
+
+## Widgets
+
+Structural only — where behaviour matters more than look. Marketing sections
+(hero, prices, reviews…) stay in the brand until two brands hold the same one.
+Each widget is a Server Component unless it needs the browser (`MapFacade`,
+`AnalyticsBoundary`), styled with the kit's token roles only, restyled through
+`className`. `QuoteFormShell` is headless: it owns the hidden fields and the
+honeypot the funnel reads; the visible fields are the brand's children.
+`StatusScreen` takes the brand's name and marks as props, so the client error
+boundary never imports the site config.
+
+Tailwind v4 does not scan `node_modules`; the brand's `globals.css` names the
+package:
+
+```css
+/* app/globals.css; from src/app/ it is ../../node_modules/… */
+@source "../node_modules/@evinvest/kitstart/dist";
+```
+
+Visual baselines: `test/visual/` renders each widget to a static page
+(`react-dom/server` over the kit's `tokens.css`), and `nix run
+.#kitstart-visual` captures and compares them byte for byte on Linux. PNGs
+come from the `kitstart-visual` CI artifact only.
+
+## Thin `app/` routes
+
+Segment config, `config.matcher` and `next/font/local` must be literals in the
+route file — Next reads them statically — so the literal stays in the brand's
+file and the handler comes from a factory:
+
+```ts
+// proxy.ts
+export const proxy = createProxy(site);
+export const config = { matcher: ["/((?!_next/|.*\\.[a-z0-9]+$).*)"] };
+
+// app/quote/route.ts
+export const dynamic = "force-dynamic";
+export const POST = quoteRoute(site, { env: serverEnv, notifier, unavailable });
+
+// app/sitemap.ts — reads the Host header, so it is dynamic; pages are not
+export const dynamic = "force-dynamic";
+export default sitemapRoute(site, places);
+
+// app/[locale]/[location]/layout.tsx — ISR: no page reads the request
+export function generateStaticParams() { return []; }
+export const revalidate = 600;
+```
+
+`createPlaceLoader(site, places)(params)` returns the `PlaceView` for a page,
+reading the link mode from the `location` param (`_royat` = host mode).
+
+**Dead paths.** Next 16 answers a `notFound()` with an empty shell it fills in
+after hydration — a blank page without JavaScript. So the proxy knows the dead
+paths itself (`decide` → `gone`) and rewrites each to `/<locale>/404/404`, a
+path no route matches, with the language and place in `GONE_HEADER`. The
+brand's `app/global-not-found.tsx` (`experimental.globalNotFound`, set by
+`withLanding`) reads that header — the only thing that does — and renders the
+404 on the server with `statusTarget(site, parseGoneHeader(…))`. The
+`notFound()` boundary under `[locale]` stays for what the proxy cannot foresee
+(a place the live source withdrew); it and `error.tsx` are client modules and
+take `brandStatusTarget({ locales, phone }, locale)`, never the site config,
+which would carry every place into every page's bundle. Redirects the proxy
+chooses per visitor answer `Cache-Control: private, no-store`.
+
+## Server invariants
+
+- **A page's place loader never throws on the live source.** Pages are cached
+  (ISR); a cold render that throws is Next's bare `Internal Server Error`
+  with no phone on it. A 5xx or an unreachable source serves the baked place
+  (`noindex` until the gate fields are back); only a 410, or a 404 in the
+  source's own JSON, withdraws a place — a bare 404 is an ingress, not the
+  source. The sitemap is the one strict reader (`getPlaceStrict` throws).
+- **The lead is durable before anything else happens.** Every `LeadStore`
+  adapter passes `describeLeadStoreContract` and migrates itself to
+  `LEAD_SCHEMA_VERSION` on open. SQLite keeps the Rust server's columns
+  (`job`, `zip`, `mobile`) and recognises every earlier table in place.
+- **Mail is checked at boot.** With `SMTP_URL` set, `leadNotifier` throws when
+  it is built if the URL is malformed (the error never repeats it), there is
+  no sender (`LEAD_NOTIFY_FROM`, or `leads@<domain>`) or no recipient
+  (`LEAD_NOTIFY_TO`, or the brand's email). Both are bare addresses
+  (`leads@brand.fr`), not `Name <…>`. Off loopback, a server without TLS gets
+  nothing; past `MAIL_PER_MINUTE` a minute the lead is stored and only logged.
+- **The rate limit knows whose address it counts.** `TRUSTED_PROXY` is
+  `cloudflare` (only `CF-Connecting-IP`) or `xff:<n>` (the n-th
+  `X-Forwarded-For` hop from the right); production refuses to boot without it.
+- **SQLite wants one writer node.** The file lives on a ReadWriteOnce volume
+  mounted by one node; pods on it take turns through `busy_timeout`. A shared
+  network filesystem is not a place for it — that is what the Postgres port
+  is for.
 
 ## The site
 

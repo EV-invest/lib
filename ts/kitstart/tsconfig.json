@@ -3,22 +3,32 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "types": ["node"],
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "node"
+    ],
     "jsx": "react-jsx",
-
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
-
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "declaration": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "noEmit": true
+    "noEmit": true,
+    "rewriteRelativeImportExtensions": true
   },
-  "include": ["src", "test", "vitest.config.ts", "eslint.config.mjs"]
+  "include": [
+    "src",
+    "test",
+    "vitest.config.ts",
+    "eslint.config.mjs"
+  ]
 }

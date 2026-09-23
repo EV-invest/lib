@@ -7,10 +7,15 @@ name: kitstart
   pull_request:
     paths:
       - ts/kitstart/**
+      - rust/src/kitstart/**
+      - rust/src/i18n/**
       - ts/uikit/**
       - ts/marketing/**
       - tests/fixtures/kitstart/**
       - .github/workflows/kitstart.yml
+      - flake.nix
+      - flake.lock
+      - nix/**
   push:
     branches: [main]
     paths:
@@ -61,3 +66,120 @@ jobs:
         run: npm run build
       - name: Verify the tarball
         run: node scripts/verify-pack.mjs
+
+  # `template/` built as a brand would — against the packed tarballs — through
+  # `next build`, its own tests, the bundle budget and a live standalone
+  # server: the only place the factories meet a real Next build.
+  template:
+    name: template (next build + smoke)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ts/kitstart
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14'
+          cache: npm
+          cache-dependency-path: |
+            ts/kitstart/package-lock.json
+            ts/uikit/package-lock.json
+            ts/marketing/package-lock.json
+      - name: Build the workspace packages it links and packs
+        run: |
+          for pkg in uikit marketing; do
+            (cd "../$pkg" && npm ci --ignore-scripts && npm run build)
+          done
+      - name: Install
+        run: npm ci
+      - name: Build and smoke the template
+        # --pre-publish until uikit 0.20, marketing 0.3 and kitstart 0.1 are on
+        # npm: the workspace copies carry the old numbers. Drop it with the
+        # release; `kitstart-registry.yml` then covers the published set.
+        run: npm run check:template -- --pre-publish
+
+  # `lib.mkLanding` on a stand-in brand: the hermetic npm build from its
+  # lockfile, the standalone install checks, the size gate and the OCI image.
+  mk-landing:
+    name: lib.mkLanding
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: 'lazy-trees = true'
+      - name: Build the fixture, its budget check and its image
+        run: |
+          nix build --no-link \
+            .#checks.x86_64-linux.mk-landing-site \
+            .#checks.x86_64-linux.mk-landing-budget \
+            .#checks.x86_64-linux.mk-landing-container
+      - name: Boot the image and hold it to the container contract
+        run: nix run .#mk-landing-smoke
+
+  # The Rust port of the core (`kitstart` feature) against the same fixtures.
+  # Skipped until the feature is in the tree (EV-invest/lib#149).
+  rust:
+    name: rust kitstart (fixtures, clippy, wasm32)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Is the Rust port here?
+        id: port
+        run: |
+          if [ -d rust/src/kitstart ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "present=false" >> "$GITHUB_OUTPUT"; fi
+      - name: Install Nix
+        if: steps.port.outputs.present == 'true'
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: 'lazy-trees = true'
+      - name: Fixtures
+        if: steps.port.outputs.present == 'true'
+        run: nix develop --command env RUSTC_WRAPPER= cargo test --features kitstart kitstart
+      - name: Clippy
+        if: steps.port.outputs.present == 'true'
+        run: nix develop --command env RUSTC_WRAPPER= cargo clippy --features kitstart --all-targets -- -D warnings
+      - name: wasm32
+        if: steps.port.outputs.present == 'true'
+        run: nix develop --command env RUSTC_WRAPPER= cargo check --target wasm32-unknown-unknown --no-default-features --features kitstart
+
+  # Renders the widget gallery on the pinned linux stack, publishes the PNGs as
+  # the `kitstart-visual` artifact (the only honest source of baselines — a mac
+  # renders different glyphs), and fails when they differ from the committed
+  # ones. To accept a change:
+  #
+  #   rm -f ts/kitstart/test/visual/__screenshots__/*.png
+  #   gh run download <run-id> -n kitstart-visual -D ts/kitstart/test/visual/__screenshots__
+  visual:
+    name: nix run .#kitstart-visual
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: 'lazy-trees = true'
+      - name: Render and capture
+        run: nix run .#kitstart-visual -- --update
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: kitstart-visual
+          path: ts/kitstart/test/visual/__screenshots__/*.png
+          if-no-files-found: error
+          retention-days: 14
+      - name: Compare with the committed baselines
+        run: |
+          changed="$(git status --porcelain -- ts/kitstart/test/visual/__screenshots__)"
+          if [ -n "$changed" ]; then
+            echo "$changed"
+            echo "::error::widget baselines differ from this render — review the kitstart-visual artifact and commit it if intended"
+            exit 1
+          fi

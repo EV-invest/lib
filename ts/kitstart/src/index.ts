@@ -5,13 +5,17 @@
  */
 
 export {
+  assertLaunchable,
   bakedPlace,
+  cardFact,
   contactOf,
   defineSite,
   ogLocaleOf,
+  openLaunchBlockers,
   perLocale,
   type BrandFacts,
   type LegacyRedirect,
+  type OwnerTodo,
   type PageSuffix,
   type Site,
   type SiteConfig,
@@ -21,6 +25,7 @@ export {
 export {
   createPlaceView,
   freshRating,
+  parseInstant,
   isPublished,
   mergeLive,
   parsePlaceLive,
@@ -153,6 +158,8 @@ export type {
   StatusScreenText,
 } from "./core/content";
 
+
+export { brandStatusTarget, statusTarget, type StatusTarget } from "./core/status";
 
 // A landing needs these beside the machinery; re-exported by name so a brand
 // imports one package and the list here is the whole surface.

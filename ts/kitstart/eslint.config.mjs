@@ -14,7 +14,7 @@ const layer = (name) => [`../${name}`, `../${name}/*`, `../../${name}`, `../../$
 const restrict = (patterns) => ({ "no-restricted-imports": ["error", { patterns }] });
 
 export default tseslint.config(
-  { ignores: ["dist/**", "node_modules/**", "template/**"] },
+  { ignores: ["dist/**", "node_modules/**", "template/**", "test/visual/dist/**"] },
   ...tseslint.configs.recommended,
   {
     // `_x` is a parameter a signature needs and the body does not read.
@@ -30,7 +30,7 @@ export default tseslint.config(
   {
     files: ["src/proxy/**"],
     rules: restrict([
-      { group: ["node:*", "react", "react/*", "server-only", "next/headers", "next/navigation"], message: "the proxy runs on the edge" },
+      { group: ["node:*", "react", "react/*", "server-only", "next/headers*", "next/navigation*"], message: "the proxy runs on the edge" },
       { group: [...layer("server"), ...layer("next"), ...layer("react")], message: "the proxy reads only the core" },
     ]),
   },
@@ -42,9 +42,20 @@ export default tseslint.config(
     ]),
   },
   {
+    files: ["src/testing/**"],
+    rules: restrict([
+      { group: ["next", "next/*", "react", "react/*", "server-only"], message: "the suites run in a brand's vitest or Playwright, not in Next" },
+      { group: [...layer("server"), ...layer("next"), ...layer("proxy"), ...layer("react")], message: "the suites read only the core" },
+    ]),
+  },
+  {
+    files: ["src/cli/**"],
+    rules: restrict([{ group: ["@*", "next", "next/*", "react", "react/*", "../*"], message: "the bin runs on plain node, builtins only" }]),
+  },
+  {
     files: ["src/react/**"],
     rules: restrict([
-      { group: ["node:*", "server-only", "next/server", "next/headers", "next/og"], message: "react widgets render on either side" },
+      { group: ["node:*", "server-only", "next/server*", "next/headers*", "next/og*"], message: "react widgets render on either side" },
       { group: [...layer("server"), ...layer("next"), ...layer("proxy")], message: "react widgets never reach the server or next layers" },
     ]),
   },

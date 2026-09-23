@@ -1,0 +1,3 @@
+# The fixture's one chunk gzips to well under this; the check proves the gate
+# runs on the hermetic build, not that a real page is light.
+10000
