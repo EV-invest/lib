@@ -15,33 +15,53 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./server": {
       "types": "./dist/server/index.d.ts",
-      "import": "./dist/server/index.js"
+      "import": "./dist/server/index.js",
+      "default": "./dist/server/index.js"
     },
     "./proxy": {
       "types": "./dist/proxy/index.d.ts",
-      "import": "./dist/proxy/index.js"
+      "import": "./dist/proxy/index.js",
+      "default": "./dist/proxy/index.js"
     },
     "./next": {
       "types": "./dist/next/index.d.ts",
-      "import": "./dist/next/index.js"
+      "import": "./dist/next/index.js",
+      "default": "./dist/next/index.js"
     },
     "./next/config": {
       "types": "./dist/next/config/index.d.ts",
-      "import": "./dist/next/config/index.js"
+      "import": "./dist/next/config/index.js",
+      "default": "./dist/next/config/index.js"
     },
     "./react": {
       "types": "./dist/react/index.d.ts",
-      "import": "./dist/react/index.js"
+      "import": "./dist/react/index.js",
+      "default": "./dist/react/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js",
+      "default": "./dist/testing/index.js"
+    },
+    "./testing/e2e": {
+      "types": "./dist/testing/e2e.d.ts",
+      "import": "./dist/testing/e2e.js",
+      "default": "./dist/testing/e2e.js"
     }
   },
   "types": "./dist/index.d.ts",
   "main": "./dist/index.js",
+  "bin": {
+    "kitstart-size": "./dist/cli/kitstart-size.js"
+  },
   "files": [
-    "dist"
+    "dist",
+    "template"
   ],
   "sideEffects": false,
   "engines": {
@@ -53,22 +73,46 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "prepare": "npm run build",
-    "prepublishOnly": "node scripts/verify-pack.mjs"
+    "prepublishOnly": "node scripts/verify-pack.mjs",
+    "check:template": "node scripts/check-template.mjs"
   },
   "peerDependencies": {
     "@evinvest/analytics": ">=0.3.0 <1",
     "@evinvest/i18n": ">=0.9.0 <1",
     "@evinvest/marketing": ">=0.3.0 <1",
     "@evinvest/uikit": ">=0.20.0 <1",
+    "@playwright/test": ">=1.50",
     "next": "^16",
     "react": "^19",
-    "server-only": "*"
+    "server-only": "*",
+    "vitest": ">=3"
+  },
+  "peerDependenciesMeta": {
+    "@evinvest/uikit": {
+      "optional": true
+    },
+    "@playwright/test": {
+      "optional": true
+    },
+    "next": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "server-only": {
+      "optional": true
+    },
+    "vitest": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@evinvest/analytics": "^0.3.0",
     "@evinvest/i18n": "^0.9.0",
     "@evinvest/marketing": "file:../marketing",
     "@evinvest/uikit": "file:../uikit",
+    "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^22.10.0",
@@ -84,18 +128,10 @@
     "typescript-eslint": "^8.46.0",
     "vitest": "^3.2.4"
   },
-  "peerDependenciesMeta": {
-    "@evinvest/uikit": {
-      "optional": true
-    },
-    "next": {
-      "optional": true
-    },
-    "react": {
-      "optional": true
-    },
-    "server-only": {
-      "optional": true
-    }
-  }
+  "kitstartPack": [
+    "template/package.json",
+    "template/proxy.ts",
+    "template/app/[locale]/[location]/layout.tsx",
+    "dist/cli/kitstart-size.js"
+  ]
 }

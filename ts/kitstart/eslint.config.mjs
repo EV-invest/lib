@@ -42,6 +42,17 @@ export default tseslint.config(
     ]),
   },
   {
+    files: ["src/testing/**"],
+    rules: restrict([
+      { group: ["next", "next/*", "react", "react/*", "server-only"], message: "the suites run in a brand's vitest or Playwright, not in Next" },
+      { group: [...layer("server"), ...layer("next"), ...layer("proxy"), ...layer("react")], message: "the suites read only the core" },
+    ]),
+  },
+  {
+    files: ["src/cli/**"],
+    rules: restrict([{ group: ["@*", "next", "next/*", "react", "react/*", "../*"], message: "the bin runs on plain node, builtins only" }]),
+  },
+  {
     files: ["src/react/**"],
     rules: restrict([
       { group: ["node:*", "server-only", "next/server*", "next/headers*", "next/og*"], message: "react widgets render on either side" },

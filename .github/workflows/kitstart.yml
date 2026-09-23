@@ -64,6 +64,40 @@ jobs:
       - name: Verify the tarball
         run: node scripts/verify-pack.mjs
 
+  # `template/` built as a brand would — against the packed tarballs — through
+  # `next build`, its own tests, the bundle budget and a live standalone
+  # server: the only place the factories meet a real Next build.
+  template:
+    name: template (next build + smoke)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ts/kitstart
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14'
+          cache: npm
+          cache-dependency-path: |
+            ts/kitstart/package-lock.json
+            ts/uikit/package-lock.json
+            ts/marketing/package-lock.json
+      - name: Build the workspace packages it links and packs
+        run: |
+          for pkg in uikit marketing; do
+            (cd "../$pkg" && npm ci --ignore-scripts && npm run build)
+          done
+      - name: Install
+        run: npm ci
+      - name: Build and smoke the template
+        # --pre-publish until uikit 0.20, marketing 0.3 and kitstart 0.1 are on
+        # npm: the workspace copies carry the old numbers. Drop it with the
+        # release; `kitstart-registry.yml` then covers the published set.
+        run: npm run check:template -- --pre-publish
+
   # Renders the widget gallery on the pinned linux stack, publishes the PNGs as
   # the `kitstart-visual` artifact (the only honest source of baselines — a mac
   # renders different glyphs), and fails when they differ from the committed

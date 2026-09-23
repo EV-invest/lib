@@ -87,6 +87,16 @@ describe("the proxy", () => {
     }
   });
 
+  it("keeps its own header on the 404 route's second pass, and only a well-formed one", () => {
+    const pass = (value: string, path = "/fr/404/404") => proxy(request(`https://aquafix.top${path}`, { host: "localhost:3000", [GONE_HEADER]: value }));
+    // Kept: untouched, so Next hands it to the global not-found page.
+    expect(pass("fr/_royat").headers.get("x-middleware-override-headers")).toBeNull();
+    expect(pass("fr").headers.get("x-middleware-override-headers")).toBeNull();
+    // Another language than the path's, or no real place: stripped.
+    expect(pass("en/_royat").headers.get("x-middleware-override-headers")).not.toBeNull();
+    expect(pass("fr/_nowhere").headers.get("x-middleware-override-headers")).not.toBeNull();
+  });
+
   it("keeps a per-visitor redirect out of every cache", () => {
     expect(proxy(request("https://aquafix.top/")).headers.get("cache-control")).toBe("private, no-store");
     expect(proxy(request("https://aquafix.top/fr?lang=en")).headers.get("cache-control")).toBe("private, no-store");

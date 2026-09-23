@@ -1,0 +1,8 @@
+# Maximum gzip bytes of first-load JavaScript on a place page
+# (`/[locale]/[location]`), checked by `kitstart-size` after `next build`
+# (and by `mkLanding`'s bundle-budget check on the Nix build).
+#
+# Measured on the untouched template: 152,780 B gz (Next 16.3.6, Turbopack),
+# about 70 KB of it react-dom and 43 KB the app-router runtime. Set from the
+# first measurement plus a few percent; raise it only in a commit that says why.
+158000
