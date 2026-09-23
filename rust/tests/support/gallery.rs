@@ -415,12 +415,18 @@ fn d_input() -> Element {
 		div { class: "flex w-64 flex-col gap-2",
 			Input { placeholder: "Default" }
 			Input { disabled: true, placeholder: "Disabled" }
+			Input { size: Size::Lg, placeholder: "Large" }
 		}
 	}
 }
 
 fn d_textarea() -> Element {
-	rsx! { Textarea { class: "w-64", placeholder: "Investment thesis…" } }
+	rsx! {
+		div { class: "flex w-64 flex-col gap-2",
+			Textarea { placeholder: "Investment thesis…" }
+			Textarea { size: Size::Lg, placeholder: "Large" }
+		}
+	}
 }
 
 fn d_checkbox() -> Element {
