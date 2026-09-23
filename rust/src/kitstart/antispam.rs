@@ -56,16 +56,17 @@ pub fn check_timing(rendered_at: Option<&str>, now_ms: i64) -> Option<SpamVerdic
 /// design: a speed bump for one bot hammering one pod, not an accounting
 /// system, and a restart forgetting it costs nothing.
 ///
-/// Bounded: past [`RateLimiter::MAX_KEYS`] live addresses, every new one
-/// shares a single overflow window. A spray of forged addresses then throttles
-/// itself instead of growing the map without limit, and the addresses already
-/// tracked keep their own windows.
+/// Bounded: past `max_keys` distinct addresses in one window, new ones count
+/// against one shared overflow bucket — a spray of forged addresses throttles
+/// itself instead of growing the map, and the addresses already tracked keep
+/// their own windows. Expired windows are swept at most once a second; a hit
+/// on an expired one restarts it anyway, so sweeping is only about memory.
 #[derive(Clone, Debug)]
 pub struct RateLimiter {
 	limit: u32,
 	window_ms: i64,
+	max_keys: usize,
 	hits: HashMap<String, Window>,
-	overflow: Window,
 	pruned_at: Option<i64>,
 }
 
@@ -75,30 +76,25 @@ struct Window {
 	count: u32,
 }
 
-impl Window {
-	/// Count one hit, restarting the window once it has run out.
-	fn hit(&mut self, now_ms: i64, window_ms: i64, limit: u32) -> bool {
-		if now_ms - self.start >= window_ms {
-			*self = Self { start: now_ms, count: 0 };
-		}
-		self.count = self.count.saturating_add(1);
-		self.count <= limit
-	}
-}
+/// The bucket keys past the cap share. No client key can collide with it: a
+/// client key is an address, and no address carries a NUL.
+pub const RATE_LIMIT_OVERFLOW_KEY: &str = "\u{0}overflow";
 
 impl RateLimiter {
-	/// Distinct addresses tracked before new ones share the overflow window.
+	/// Distinct addresses tracked before new ones share the overflow bucket.
 	pub const MAX_KEYS: usize = 10_000;
-	/// Expired windows are swept at most this often; a hit on an expired one
-	/// restarts it anyway, so sweeping is only about memory.
 	const PRUNE_EVERY_MS: i64 = 1_000;
 
 	pub fn new(limit: u32, window_ms: i64) -> Self {
+		Self::with_max_keys(limit, window_ms, Self::MAX_KEYS)
+	}
+
+	pub fn with_max_keys(limit: u32, window_ms: i64, max_keys: usize) -> Self {
 		Self {
 			limit,
 			window_ms,
+			max_keys,
 			hits: HashMap::new(),
-			overflow: Window { start: i64::MIN / 2, count: 0 },
 			pruned_at: None,
 		}
 	}
@@ -109,20 +105,24 @@ impl RateLimiter {
 			self.hits.retain(|_, w| now_ms - w.start < self.window_ms);
 			self.pruned_at = Some(now_ms);
 		}
-		let (window_ms, limit) = (self.window_ms, self.limit);
-		if let Some(window) = self.hits.get_mut(key) {
-			return window.hit(now_ms, window_ms, limit);
+		let bucket = if self.hits.contains_key(key) || self.hits.len() < self.max_keys {
+			key
+		} else {
+			RATE_LIMIT_OVERFLOW_KEY
+		};
+		match self.hits.get_mut(bucket) {
+			Some(window) if now_ms - window.start < self.window_ms => {
+				window.count = window.count.saturating_add(1);
+				window.count <= self.limit
+			}
+			_ => {
+				self.hits.insert(bucket.to_owned(), Window { start: now_ms, count: 1 });
+				true
+			}
 		}
-		if self.hits.len() >= Self::MAX_KEYS {
-			return self.overflow.hit(now_ms, window_ms, limit);
-		}
-		let mut window = Window { start: now_ms, count: 0 };
-		let allowed = window.hit(now_ms, window_ms, limit);
-		self.hits.insert(key.to_owned(), window);
-		allowed
 	}
 
-	/// Addresses with a window of their own right now.
+	/// Buckets held right now, the overflow one included.
 	pub fn tracked(&self) -> usize {
 		self.hits.len()
 	}
@@ -208,7 +208,7 @@ mod tests {
 		assert!(limiter.hit("spray-1", 1));
 		assert!(limiter.hit("spray-2", 2));
 		assert!(!limiter.hit("spray-3", 3));
-		assert_eq!(limiter.tracked(), RateLimiter::MAX_KEYS);
+		assert_eq!(limiter.tracked(), RateLimiter::MAX_KEYS + 1);
 		// A tracked address keeps its own window.
 		assert!(limiter.hit("10.0.0", 4));
 	}
