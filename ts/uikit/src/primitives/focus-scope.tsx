@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 
 // `tabindex="-1"` opts an element out of Tab order whatever its tag, so the

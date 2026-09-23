@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { AVATAR, AVATAR_IMAGE, AVATAR_FALLBACK } from "../generated/avatar";

@@ -22,9 +22,9 @@ none yet.
 **Zero runtime dependencies.** Peers:
 
 - `react` 18 or 19 — required;
-- `motion` 12 or 13 — **optional**, needed by `./react` (the motion
+- `motion` 12 or 13 — **optional**, needed by `./motion` and `./react` (the motion
   primitives);
-- `@evinvest/uikit` ≥ 0.18 — **optional**, needed by `./react` (`TextField`
+- `@evinvest/uikit` ≥ 0.18 — **optional**, needed by `./form`, `./click-to-load` and `./react` (`TextField`
   is built on its `Field` / `Input` / `Textarea`; classes use only its tokens).
 
 Both are optional because the `.` core imports neither; a consumer of
@@ -34,14 +34,23 @@ sources import.
 No icon library: the two glyphs it draws (a check, a play triangle) are inline
 SVG.
 
-Two entry points:
+Entry points — import the narrowest one; each ships only what it names:
 
-- `.` — **server-safe core**: no `"use client"`, no hooks, no DOM. Motion
-  tokens, `accented`, validation helpers, contact-link helpers, JSON-LD.
-  Import these from Server Components and you get real values, not client
-  references.
-- `./react` — a **`"use client"` bundle**: the motion primitives, the form
-  harness and field, the tracker, the facade, document typography.
+| Entry | Side | What | Pulls `motion` |
+|---|---|---|---|
+| `.` | server-safe | motion tokens, `accented`, validation, contact-link helpers, JSON-LD | no |
+| `./tracker` | client | `ContactLinkTracker` | no |
+| `./click-to-load` | client | `ClickToLoad`, `YouTubeFacade` — needs `@evinvest/uikit` | no |
+| `./form` | client | `useValidatedForm`, `TextField`, `SentPanel` — needs `@evinvest/uikit` | no |
+| `./motion` | client | the motion primitives on `motion` | **yes** |
+| `./motion-css` | server-safe | the same primitives, no JavaScript | no |
+| `./motion.css` | stylesheet | the engine `./motion-css` needs | no |
+| `./next` | build-time | `withMotionEngine` | no |
+| `./react` | client | everything client above, one barrel (kept for existing call sites) | **yes** |
+
+Importing the tracker from `./react` used to bring `motion` along (~30 KB gz):
+the barrel was one bundle. The client entries are now split with shared
+chunks, so `./tracker` is the tracker.
 
 ## Install
 
@@ -61,7 +70,7 @@ scan the bundle next to the kit's:
 The motion primitives and the tracker use inline styles for the parts that must
 hold without that scan (the visually-hidden headline copy, `display: contents`).
 
-## Motion — `./react`
+## Motion — `./motion`, or `./motion-css` with no JavaScript
 
 | Primitive | Use for | Trigger |
 |---|---|---|
@@ -93,12 +102,59 @@ easing or a duration.
 
 ```tsx
 import { STAGGER, accented } from "@evinvest/marketing";
-import { Reveal, SplitText, Stagger, StaggerItem } from "@evinvest/marketing/react";
+import { Reveal, SplitText, Stagger, StaggerItem } from "@evinvest/marketing/motion";
 
 <h1><SplitText>{accented({ text: t("hero.title") })}</SplitText></h1>
 <Stagger>{cards.map(c => <StaggerItem key={c.id}>…</StaggerItem>)}</Stagger>
 <Reveal delay={STAGGER * 2}>…</Reveal>
 ```
+
+### Switching the engine per site — `withMotionEngine`
+
+A light landing does not need an animation runtime. The same primitives exist
+as Server Components animated by CSS (`./motion-css` + `./motion.css`), and one
+build-time flag picks which one `@evinvest/marketing/motion` resolves to — app
+code never changes:
+
+```ts
+// next.config.ts
+import { withMotionEngine } from "@evinvest/marketing/next";
+export default withMotionEngine(config, process.env.MOTION_ENGINE === "js" ? "js" : "css");
+```
+
+```css
+/* the Tailwind entrypoint, for the css engine — into a layer, so a Tailwind
+   utility on the same element (an `animate-*`, a `translate-*`) still wins:
+   in v4 utilities are layered, and unlayered CSS beats every layer */
+@import "@evinvest/marketing/motion.css" layer(components);
+```
+
+It is a build flag, not a runtime one, on purpose: a runtime switch could pick
+which component renders but not what the browser downloads, and the bytes are
+the point. Only `@evinvest/marketing/motion` is aliased — code importing the
+`./react` barrel keeps the JS engine.
+
+What the CSS engine does differently:
+
+- **Mount animations** (`onMount`, `Settle`, `SplitText`) are plain keyframes
+  with the same curve, durations and stagger as the tokens (a test holds the
+  two in step).
+- **Scroll reveals are scroll-linked** (`animation-timeline: view()`), not
+  fired once: progress follows the element from its first pixel entering the
+  viewport to fully in, and reverses on the way back. A block already on
+  screen at load is at rest. `delay` and `duration` on a scroll `Reveal` are
+  ignored — scroll position drives it, not time. A browser without scroll
+  timelines (Firefox today) shows the block at rest.
+- **`Stagger` numbers its direct `StaggerItem` children only.** One wrapped in
+  another element, or returned by your own component, is not counted — the JS
+  engine's variants reach any depth. Keep items as direct children.
+- **Motion-only props are dropped.** `whileHover`, `transition`, `variants`,
+  `MotionValue`s in `style` and the like mean nothing to CSS; they are removed
+  rather than written to the DOM.
+- **Nothing is ever hidden outside a keyframe** — with the stylesheet missing
+  or unsupported, every block is simply there. Reduced motion collapses to a
+  fade, as in the JS engine.
+- **`CountUp` renders the final figure** and does not count.
 
 `accented` turns `"Fix it *today*.\nCall us"` into text, an accent `<span>` and
 a `<br>` — one catalogue key a translator can reorder. Call the **function**
@@ -126,7 +182,7 @@ export const validateLead = (f: { name: string; phone: string }) =>
 ```tsx
 // lead-form.tsx
 "use client";
-import { SentPanel, TextField, useValidatedForm } from "@evinvest/marketing/react";
+import { SentPanel, TextField, useValidatedForm } from "@evinvest/marketing/form";
 
 const form = useValidatedForm({
   initial: { name: "", phone: "" },
@@ -160,7 +216,7 @@ return (
 ## Contact-link tracking
 
 ```tsx
-import { ContactLinkTracker } from "@evinvest/marketing/react";
+import { ContactLinkTracker } from "@evinvest/marketing/tracker";
 
 <ContactLinkTracker onContact={({ channel, href, data }) => capture("contact_clicked", { channel, ...data })}>
   {children}
@@ -184,7 +240,7 @@ live in the core, so links are built and classified by the same rule.
 ## Click-to-load facade
 
 ```tsx
-import { ClickToLoad, YouTubeFacade } from "@evinvest/marketing/react";
+import { ClickToLoad, YouTubeFacade } from "@evinvest/marketing/click-to-load";
 
 <ClickToLoad
   className="relative aspect-video"

@@ -9,6 +9,8 @@
 // Runs from `prepublishOnly`, which `npm pack` does not trigger, so the nested pack below
 // cannot recurse.
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { posix } from "node:path";
 
 const REQUIRED = [
   "package.json",
@@ -47,4 +49,27 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
-console.log(`verify-pack: ${REQUIRED.length} required paths present in the tarball`);
+// The kit ships one file per module, so the fixed list above no longer covers
+// what a consumer loads. Walk the module graph from the entry through every
+// relative import, as the tarball has it: a module `files` or the build left
+// out is an import that fails on install, not at publish.
+const RELATIVE = /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)["'](\.{1,2}\/[^"']+)["']/g;
+const seen = new Set();
+const broken = [];
+const queue = ["dist/index.js"];
+while (queue.length > 0) {
+  const file = queue.pop();
+  if (seen.has(file)) continue;
+  seen.add(file);
+  for (const [, spec] of readFileSync(file, "utf8").matchAll(RELATIVE)) {
+    const target = posix.normalize(posix.join(posix.dirname(file), spec));
+    if (!shipped.has(target)) broken.push(`${file} → ${spec}`);
+    else if (target.endsWith(".js")) queue.push(target);
+  }
+}
+if (broken.length > 0) {
+  console.error(`refusing to publish: imports that resolve to nothing in the tarball:\n  ${broken.join("\n  ")}`);
+  process.exit(1);
+}
+
+console.log(`verify-pack: ${REQUIRED.length} required paths present, ${seen.size} modules reachable from dist/index.js all shipped`);

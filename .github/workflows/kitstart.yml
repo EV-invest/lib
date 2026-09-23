@@ -7,6 +7,8 @@ name: kitstart
   pull_request:
     paths:
       - ts/kitstart/**
+      - ts/uikit/**
+      - ts/marketing/**
       - tests/fixtures/kitstart/**
       - .github/workflows/kitstart.yml
       - flake.nix
@@ -15,6 +17,8 @@ name: kitstart
     branches: [main]
     paths:
       - ts/kitstart/**
+      - ts/uikit/**
+      - ts/marketing/**
       - tests/fixtures/kitstart/**
       - .github/workflows/kitstart.yml
   workflow_dispatch: {}
@@ -36,7 +40,17 @@ jobs:
           # `node:sqlite` without a flag needs >= 22.13 (the lead store).
           node-version: '22.14'
           cache: npm
-          cache-dependency-path: ts/kitstart/package-lock.json
+          cache-dependency-path: |
+            ts/kitstart/package-lock.json
+            ts/uikit/package-lock.json
+            ts/marketing/package-lock.json
+      # The workspace packages kitstart develops against (`file:` devDependencies):
+      # built here, because a linked directory ships whatever `dist/` it has.
+      - name: Build the workspace packages it links
+        run: |
+          for pkg in uikit marketing; do
+            (cd "../$pkg" && npm ci --ignore-scripts && npm run build)
+          done
       - name: Install
         run: npm ci
       - name: Typecheck
