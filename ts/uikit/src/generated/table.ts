@@ -8,9 +8,9 @@ export const TABLE_HEADER = "[&_tr]:border-b";
 
 export const TABLE_BODY = "[&_tr:last-child]:border-0";
 
-export const TABLE_FOOTER = "bg-muted/50 border-t font-medium [&>tr]:last:border-b-0";
+export const TABLE_FOOTER = "bg-muted/50 border-t border-border font-medium [&>tr]:last:border-b-0";
 
-export const TABLE_ROW = "hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors";
+export const TABLE_ROW = "hover:bg-muted/50 data-[state=selected]:bg-muted border-b border-border transition-colors";
 
 export const TABLE_HEAD = "text-ink h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]";
 

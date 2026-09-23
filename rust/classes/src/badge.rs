@@ -26,7 +26,7 @@ pub enum BadgeVariant {
 		class = "border-transparent bg-accent-error text-on-accent-error [a&]:hover:bg-accent-error/90 focus-visible:ring-accent-error/20 focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
 	)]
 	Destructive,
-	#[tw(class = "text-ink [a&]:hover:bg-hover [a&]:hover:text-ink")]
+	#[tw(class = "border-border text-ink [a&]:hover:bg-hover [a&]:hover:text-ink")]
 	Outline,
 	#[tw(class = "border-transparent bg-positive/20 text-positive")]
 	Success,

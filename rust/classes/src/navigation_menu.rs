@@ -28,6 +28,7 @@ pub const NAVIGATION_MENU_CONTENT: &str = "data-[motion^=from-]:animate-in data-
                        group-data-[viewport=false]/navigation-menu:overflow-hidden \
                        group-data-[viewport=false]/navigation-menu:rounded-md \
                        group-data-[viewport=false]/navigation-menu:border \
+                       group-data-[viewport=false]/navigation-menu:border-border \
                        group-data-[viewport=false]/navigation-menu:shadow \
                        group-data-[viewport=false]/navigation-menu:duration-200 \
                        **:data-[slot=navigation-menu-link]:focus:ring-0 \
@@ -46,4 +47,4 @@ pub const NAVIGATION_MENU_INDICATOR: &str = "data-[state=visible]:animate-in dat
 pub const NAVIGATION_MENU_VIEWPORT: &str = "origin-top-center bg-popover text-ink data-[state=open]:animate-in \
                               data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-90 \
                               relative mt-1.5 h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden \
-                              rounded-md border shadow md:w-[var(--radix-navigation-menu-viewport-width)]";
+                              rounded-md border border-border shadow md:w-[var(--radix-navigation-menu-viewport-width)]";

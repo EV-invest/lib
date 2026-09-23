@@ -94,7 +94,7 @@ pub fn SelectContent(#[props(default)] class: String, children: Element) -> Elem
 	}
 	let cls = cn!(
 		"bg-popover text-ink absolute top-full left-0 z-50 mt-1 max-h-96 min-w-[8rem] \
-		 overflow-x-hidden overflow-y-auto rounded-md border shadow-md",
+		 overflow-x-hidden overflow-y-auto rounded-md border border-border shadow-md",
 		class
 	);
 	rsx! {

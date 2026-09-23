@@ -1,4 +1,4 @@
-pub const CARD: &str = "bg-card text-ink flex flex-col gap-6 rounded-xl border py-6 shadow-sm";
+pub const CARD: &str = "bg-card text-ink flex flex-col gap-6 rounded-xl border border-border py-6 shadow-sm";
 
 pub const CARD_HEADER: &str = "@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-2 px-6 \
      has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6";

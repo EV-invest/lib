@@ -6,9 +6,9 @@ pub const TABLE_HEADER: &str = "[&_tr]:border-b";
 
 pub const TABLE_BODY: &str = "[&_tr:last-child]:border-0";
 
-pub const TABLE_FOOTER: &str = "bg-muted/50 border-t font-medium [&>tr]:last:border-b-0";
+pub const TABLE_FOOTER: &str = "bg-muted/50 border-t border-border font-medium [&>tr]:last:border-b-0";
 
-pub const TABLE_ROW: &str = "hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors";
+pub const TABLE_ROW: &str = "hover:bg-muted/50 data-[state=selected]:bg-muted border-b border-border transition-colors";
 
 pub const TABLE_HEAD: &str = "text-ink h-10 px-2 text-left align-middle font-medium whitespace-nowrap \
                              [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]";

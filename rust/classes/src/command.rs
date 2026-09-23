@@ -2,11 +2,11 @@ pub const COMMAND_ROOT: &str = "bg-popover text-ink flex h-full w-full flex-col 
 
 pub const COMMAND_DIALOG_OVERLAY: &str = "fixed inset-0 z-50 bg-black/50";
 
-pub const COMMAND_DIALOG_CONTENT: &str = "fixed top-1/2 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-lg border p-0 shadow-lg";
+pub const COMMAND_DIALOG_CONTENT: &str = "fixed top-1/2 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-lg border border-border p-0 shadow-lg";
 
 pub const COMMAND_DIALOG_COMMAND: &str = "[&_[data-slot=command-input-wrapper]]:h-12 [&_[data-slot=command-input]]:h-12";
 
-pub const COMMAND_INPUT_WRAPPER: &str = "flex h-9 items-center gap-2 border-b px-3";
+pub const COMMAND_INPUT_WRAPPER: &str = "flex h-9 items-center gap-2 border-b border-border px-3";
 
 pub const COMMAND_INPUT: &str = "placeholder:text-ink-soft flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50";
 

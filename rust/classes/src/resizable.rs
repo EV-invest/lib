@@ -7,4 +7,4 @@ pub const RESIZABLE_HANDLE: &str = "bg-border focus-visible:ring-ring relative f
                                     data-[panel-group-direction=vertical]:after:h-1 data-[panel-group-direction=vertical]:after:w-full \
                                     data-[panel-group-direction=vertical]:after:translate-x-0 data-[panel-group-direction=vertical]:after:-translate-y-1/2 \
                                     [&[data-panel-group-direction=vertical]>div]:rotate-90";
-pub const RESIZABLE_HANDLE_GRIP: &str = "bg-border z-10 flex h-4 w-3 items-center justify-center rounded-xs border";
+pub const RESIZABLE_HANDLE_GRIP: &str = "bg-border z-10 flex h-4 w-3 items-center justify-center rounded-xs border border-border";
