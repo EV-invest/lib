@@ -1,0 +1,45 @@
+/**
+ * `@evinvest/kitstart/react` — the structural widgets every landing shares,
+ * where behaviour matters more than look. Server components by default; only
+ * `MapFacade` and `AnalyticsBoundary` are client modules, each its own file
+ * with its own `"use client"`, so a page pays for what it renders.
+ *
+ * Styled with the kit's token roles only (`text-ink`, `border-border`,
+ * `bg-card`…); a brand restyles through `className` and its palette. Tailwind
+ * must scan the package: `@source "../node_modules/@evinvest/kitstart/dist";`.
+ */
+export { AnalyticsBoundary } from "./AnalyticsBoundary";
+export { AreaChips } from "./AreaChips";
+export { CallBar, type CallBarProps } from "./CallBar";
+export { Coverage, type CoverageProps } from "./Coverage";
+export { Faq, type FaqProps } from "./Faq";
+export { LangSwitch, type LangSwitchProps } from "./LangSwitch";
+export { MapFacade, type MapFacadeProps } from "./MapFacade";
+export { PlaceDirectory, type PlaceDirectoryProps } from "./PlaceDirectory";
+export { QuoteFormShell, type QuoteFormShellProps } from "./QuoteFormShell";
+export { StatusScreen, type StatusScreenProps } from "./StatusScreen";
+
+// The kit's pieces a landing composes with, by name — the list is the surface.
+// TODO(EV-invest/lib#140): once the kit ships one module per file, these stop
+// dragging its client half into a page that only renders a `Button`, and
+// `cn` / `buttonVariants` become callable on the server and join the list.
+export {
+  Badge,
+  Button,
+  Check,
+  Display,
+  Eyebrow,
+  Field,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+  Prose,
+  Section,
+  SectionHead,
+  Separator,
+  Textarea,
+} from "@evinvest/uikit";
+export { JsonLd } from "@evinvest/marketing";
+// TODO(EV-invest/lib#141): from `@evinvest/marketing/tracker` and `/click-to-load`.
+export { ClickToLoad, ContactLinkTracker } from "@evinvest/marketing/react";
