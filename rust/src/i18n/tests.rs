@@ -694,3 +694,12 @@ fn a_registry_negotiates_like_the_five_locale_one() {
 	assert_eq!(i18n.label("fr"), Some("Français"));
 	assert_eq!(i18n.hreflang_of("en"), "en");
 }
+
+#[test]
+fn a_non_finite_q_value_is_no_preference() {
+	// Rust's float parser reads `inf` and `NaN`, which `parseFloat` does not;
+	// either would otherwise outrank or poison every real preference.
+	assert_eq!(negotiate(Some("ru;q=inf,de;q=0.5"), &LOCALES), Locale::De);
+	assert_eq!(negotiate(Some("ru;q=NaN,de;q=0.5"), &LOCALES), Locale::De);
+	assert_eq!(storefront_registry(true).negotiate(Some("en;q=inf,fr;q=0.1")), "fr");
+}

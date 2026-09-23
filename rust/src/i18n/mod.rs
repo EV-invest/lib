@@ -324,8 +324,9 @@ fn ranked_tags(header: &str) -> Vec<String> {
 			let quality = params
 				.map(str::trim)
 				.find_map(|p| p.strip_prefix("q="))
-				// A malformed q= sorts last rather than poisoning the comparison.
-				.map_or(1.0, |q| q.parse::<f64>().unwrap_or(0.0));
+				// A malformed or non-finite q= (`inf`, `NaN` — Rust parses both) is
+				// dropped rather than outranking every real preference.
+				.map_or(1.0, |q| q.parse::<f64>().ok().filter(|q| q.is_finite()).unwrap_or(0.0));
 			// q=0 is an explicit refusal of that language, not a weak preference.
 			(!tag.is_empty() && quality > 0.0).then_some((tag, quality))
 		})
