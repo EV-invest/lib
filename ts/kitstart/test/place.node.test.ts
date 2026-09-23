@@ -59,6 +59,8 @@ describe("the publication gate as a policy", () => {
     if (front.kind !== "storefront") throw new Error("fixture");
     const blank = royat({ presence: { ...front, landmark: { fr: "Place", en: " " } } });
     expect(publicationGaps(blank, STOREFRONT_GATE)).toContain("landmark");
+    const empty = royat({ presence: { ...front, landmark: {} as Record<"fr" | "en", string> } });
+    expect(publicationGaps(empty, STOREFRONT_GATE)).toContain("landmark");
   });
 });
 
