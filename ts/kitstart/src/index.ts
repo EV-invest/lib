@@ -22,6 +22,7 @@ export {
 export {
   createPlaceView,
   freshRating,
+  parseInstant,
   isPublished,
   mergeLive,
   parsePlaceLive,
