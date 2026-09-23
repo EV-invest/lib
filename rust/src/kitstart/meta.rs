@@ -41,7 +41,8 @@ pub struct OpenGraph {
 	pub site_name: String,
 	pub title: String,
 	pub description: String,
-	pub url: String,
+	/// `None` on a site with no domain: a relative URL names no page.
+	pub url: Option<String>,
 	pub locale: String,
 	pub alternate_locales: Vec<String>,
 	/// The card, rendered at `/og` on the apex.
@@ -79,18 +80,19 @@ impl PageMeta {
 			out.set("alternates", Object::new().with("canonical", &alternates.canonical).with("languages", languages));
 		}
 		if let Some(og) = &self.open_graph {
-			out.set(
-				"openGraph",
-				Object::new()
-					.with("type", "website")
-					.with("siteName", &og.site_name)
-					.with("title", &og.title)
-					.with("description", &og.description)
-					.with("url", &og.url)
-					.with("locale", &og.locale)
-					.with("alternateLocale", og.alternate_locales.clone())
-					.with("images", vec![Object::new().with("url", &og.image).with("width", width).with("height", height)]),
-			);
+			let mut graph = Object::new()
+				.with("type", "website")
+				.with("siteName", &og.site_name)
+				.with("title", &og.title)
+				.with("description", &og.description);
+			if let Some(url) = &og.url {
+				graph.set("url", url);
+			}
+			let graph = graph
+				.with("locale", &og.locale)
+				.with("alternateLocale", og.alternate_locales.clone())
+				.with("images", vec![Object::new().with("url", &og.image).with("width", width).with("height", height)]);
+			out.set("openGraph", graph);
 		}
 		if self.twitter_card {
 			out.set("twitter", Object::new().with("card", "summary_large_image"));
@@ -116,7 +118,13 @@ fn other_og_locales(site: &Site, locale: &str) -> Vec<String> {
 	site.i18n().locales().filter(|l| *l != locale).map(|l| site.og_locale_of(l)).collect()
 }
 
+/// A site with no domain is off the web: nothing indexed or followed.
+const OFF_THE_WEB: Robots = Robots { index: false, follow: false };
+
 /// The `<head>` of one of a place's pages.
+///
+/// On a site with no domain there is no canonical to name, so `alternates`
+/// and the Open Graph URL are left out rather than written relative.
 pub fn place_meta(view: &PlaceView<'_>, page: Page<'_>, copy: &PageMetaCopy) -> PageMeta {
 	let site = view.site;
 	let brand = &site.brand().name;
@@ -125,15 +133,22 @@ pub fn place_meta(view: &PlaceView<'_>, page: Page<'_>, copy: &PageMetaCopy) -> 
 	} else {
 		format!("{} · {brand}", copy.title)
 	};
-	let canonical = view.url(page.suffix);
 	let path = if page.suffix.is_empty() { "/" } else { page.suffix };
-	let published = site.publication().is_published(view.place, site.brand().domain.as_deref());
+	let origin = site.place_origin(&view.place.slug);
+	let canonical = origin.as_ref().map(|_| view.url(page.suffix));
+	let robots = match &origin {
+		Some(_) => Robots {
+			index: site.publication().is_published(view.place, site.brand().domain.as_deref()),
+			follow: true,
+		},
+		None => OFF_THE_WEB,
+	};
 	PageMeta {
 		description: Some(copy.description.clone()),
-		robots: Some(Robots { index: published, follow: true }),
-		alternates: Some(Alternates {
-			canonical: canonical.clone(),
-			languages: site.i18n().language_alternates(path, &site.place_origin(&view.place.slug).unwrap_or_default()),
+		robots: Some(robots),
+		alternates: origin.as_ref().zip(canonical.clone()).map(|(origin, canonical)| Alternates {
+			canonical,
+			languages: site.i18n().language_alternates(path, origin),
 		}),
 		open_graph: Some(OpenGraph {
 			site_name: brand.clone(),
@@ -150,17 +165,18 @@ pub fn place_meta(view: &PlaceView<'_>, page: Page<'_>, copy: &PageMetaCopy) -> 
 }
 
 /// The `<head>` of the brand's own page on the apex — the directory of places,
-/// or a single site's landing before a place is chosen.
+/// or a single site's landing before a place is chosen. Indexable unless the
+/// site has no domain.
 pub fn brand_meta(site: &Site, locale: &str, copy: &PageMetaCopy) -> PageMeta {
-	let origin = site.origin().unwrap_or_default();
-	let canonical = format!("{origin}{}", site.i18n().locale_path(locale, "/"));
+	let origin = site.origin();
+	let canonical = origin.as_ref().map(|o| format!("{o}{}", site.i18n().locale_path(locale, "/")));
 	PageMeta {
 		title: copy.title.clone(),
 		description: Some(copy.description.clone()),
-		robots: None,
-		alternates: Some(Alternates {
-			canonical: canonical.clone(),
-			languages: site.i18n().language_alternates("/", &origin),
+		robots: origin.is_none().then_some(OFF_THE_WEB),
+		alternates: origin.as_ref().zip(canonical.clone()).map(|(origin, canonical)| Alternates {
+			canonical,
+			languages: site.i18n().language_alternates("/", origin),
 		}),
 		open_graph: Some(OpenGraph {
 			site_name: site.brand().name.clone(),
@@ -180,7 +196,7 @@ pub fn status_meta(site: &Site, title: &str) -> PageMeta {
 	PageMeta {
 		title: format!("{title} · {}", site.brand().name),
 		description: None,
-		robots: Some(Robots { index: false, follow: false }),
+		robots: Some(OFF_THE_WEB),
 		alternates: None,
 		open_graph: None,
 		twitter_card: false,
