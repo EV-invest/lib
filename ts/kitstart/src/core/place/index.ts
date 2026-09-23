@@ -18,7 +18,7 @@ export {
   type PublicationField,
   type PublicationPolicy,
 } from "./publication";
-export { freshRating, RATING_MAX_AGE_DAYS } from "./rating";
+export { freshRating, parseInstant, RATING_MAX_AGE_DAYS } from "./rating";
 export { mergeLive, parsePlaceLive, type PlaceLive } from "./live";
 export {
   createPlaceView,
