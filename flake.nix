@@ -119,6 +119,29 @@
             '';
           };
 
+          mkLandingFixture = import ./nix/mk-landing.nix {
+            inherit pkgs v_flakes;
+            root = ./nix/mk-landing-fixture;
+            pname = "mk-landing-fixture";
+            sitePort = "59099";
+            buildFiles = [ "package.json" "package-lock.json" "build.mjs" ];
+            requiredFiles = [ "assets/fonts/Display.ttf" ];
+            prodEnv = {
+              LEADS_DB_PATH = "/data/leads.db";
+              NODE_ENV = "production";
+              HOSTNAME = "0.0.0.0";
+              PORT = "59099";
+            };
+            smoke = {
+              page = "/fr";
+              og = "/og";
+              quote = { location = "paris"; subject = "standard"; locality = "75011"; mobile = "0612345678"; };
+            };
+            containerAttr = ".#mk-landing-fixture-container";
+            # The stand-in builds no kitstart landing, so it locks no kitstart.
+            checkKitstartVersion = false;
+          };
+
           # ── Visual regression (rust/tests/visual) ───────────────────────────
           # Every input the render reads is pinned here. The suite compares byte
           # for byte, so an unpinned input is not slack — it is a baseline that
@@ -312,27 +335,22 @@
           };
 
           # `lib.mkLanding` against a stand-in brand: the hermetic npm build from
-          # its lockfile, the standalone install checks, and the size gate on
-          # the result. `nix build .#checks.<system>.mk-landing-budget`.
-          checks =
-            let
-              fixture = import ./nix/mk-landing.nix {
-                inherit pkgs v_flakes;
-                root = ./nix/mk-landing-fixture;
-                pname = "mk-landing-fixture";
-                sitePort = "59099";
-                buildFiles = [ "package.json" "package-lock.json" "build.mjs" ];
-                requiredFiles = [ "assets/fonts/Display.ttf" ];
-              };
-            in
-            {
-              mk-landing-site = fixture.checks.site;
-              mk-landing-budget = fixture.checks.bundle-budget;
-            }
-            # The image is Linux's; the kitstart workflow builds it there.
-            // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
-              mk-landing-container = fixture.packages.container;
-            };
+          # its lockfile (a Windows-only optional package with a bogus integrity
+          # proves the platform pruning), the standalone install checks, the size
+          # gate, and on Linux the image and its smoke:
+          #   nix build .#checks.<system>.mk-landing-budget
+          #   nix run .#mk-landing-smoke            (Linux + docker)
+          checks = {
+            mk-landing-site = mkLandingFixture.checks.site;
+            mk-landing-budget = mkLandingFixture.checks.bundle-budget;
+          }
+          # The image is Linux's; the kitstart workflow builds and smokes it there.
+          // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
+            mk-landing-container = mkLandingFixture.packages.container;
+          };
+
+          packages.mk-landing-fixture-container = mkLandingFixture.packages.container or mkLandingFixture.site;
+          apps.mk-landing-smoke = mkLandingFixture.apps.container-smoke;
 
           packages.kitstart-visual-snapshots =
             if kitstartDistPath == "" then

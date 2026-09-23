@@ -7,6 +7,8 @@ name: kitstart
   pull_request:
     paths:
       - ts/kitstart/**
+      - rust/src/kitstart/**
+      - rust/src/i18n/**
       - ts/uikit/**
       - ts/marketing/**
       - tests/fixtures/kitstart/**
@@ -117,6 +119,35 @@ jobs:
             .#checks.x86_64-linux.mk-landing-site \
             .#checks.x86_64-linux.mk-landing-budget \
             .#checks.x86_64-linux.mk-landing-container
+      - name: Boot the image and hold it to the container contract
+        run: nix run .#mk-landing-smoke
+
+  # The Rust port of the core (`kitstart` feature) against the same fixtures.
+  # Skipped until the feature is in the tree (EV-invest/lib#149).
+  rust:
+    name: rust kitstart (fixtures, clippy, wasm32)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Is the Rust port here?
+        id: port
+        run: |
+          if [ -d rust/src/kitstart ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "present=false" >> "$GITHUB_OUTPUT"; fi
+      - name: Install Nix
+        if: steps.port.outputs.present == 'true'
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: 'lazy-trees = true'
+      - name: Fixtures
+        if: steps.port.outputs.present == 'true'
+        run: nix develop --command env RUSTC_WRAPPER= cargo test --features kitstart kitstart
+      - name: Clippy
+        if: steps.port.outputs.present == 'true'
+        run: nix develop --command env RUSTC_WRAPPER= cargo clippy --features kitstart --all-targets -- -D warnings
+      - name: wasm32
+        if: steps.port.outputs.present == 'true'
+        run: nix develop --command env RUSTC_WRAPPER= cargo check --target wasm32-unknown-unknown --no-default-features --features kitstart
 
   # Renders the widget gallery on the pinned linux stack, publishes the PNGs as
   # the `kitstart-visual` artifact (the only honest source of baselines — a mac
