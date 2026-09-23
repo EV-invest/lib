@@ -64,9 +64,18 @@ core — never `headers()`, which would make every cached page per-request.
   `LEAD_SCHEMA_VERSION` on open. SQLite keeps the Rust server's columns
   (`job`, `zip`, `mobile`) and recognises every earlier table in place.
 - **Mail is checked at boot.** With `SMTP_URL` set, `leadNotifier` throws when
-  it is built if there is no sender (`LEAD_NOTIFY_FROM`, or `leads@<domain>`)
-  or no recipient (`LEAD_NOTIFY_TO`, or the brand's email). Off loopback, a
-  server without TLS gets nothing.
+  it is built if the URL is malformed (the error never repeats it), there is
+  no sender (`LEAD_NOTIFY_FROM`, or `leads@<domain>`) or no recipient
+  (`LEAD_NOTIFY_TO`, or the brand's email). Both are bare addresses
+  (`leads@brand.fr`), not `Name <…>`. Off loopback, a server without TLS gets
+  nothing; past `MAIL_PER_MINUTE` a minute the lead is stored and only logged.
+- **The rate limit knows whose address it counts.** `TRUSTED_PROXY` is
+  `cloudflare` (only `CF-Connecting-IP`) or `xff:<n>` (the n-th
+  `X-Forwarded-For` hop from the right); production refuses to boot without it.
+- **SQLite wants one writer node.** The file lives on a ReadWriteOnce volume
+  mounted by one node; pods on it take turns through `busy_timeout`. A shared
+  network filesystem is not a place for it — that is what the Postgres port
+  is for.
 
 ## The site
 
@@ -100,6 +109,20 @@ page how to write its links through the route it rewrites to:
 | single site `clean.example/fr/prices` | `/fr/_paris/prices` | `/fr/…` |
 
 `parsePlaceParam("_royat")` reads the mode back out of the `[location]` param.
+
+## Publishing
+
+`package.json` says `0.0.0` on purpose: `nix run .#publish -- minor` bumps it
+to `0.1.0`, the version `template/` asks for (`^0.1.0`). kitstart's peers
+must be on the registry first, so a release is two runs:
+
+1. `nix run .#publish -- minor --npm-only --only @evinvest/uikit --only @evinvest/marketing`,
+   then wait until `npm view @evinvest/uikit version` answers the new one;
+2. `nix run .#publish -- minor --npm-only --only @evinvest/kitstart`.
+
+The first publish of a new name in the scope needs an automation or classic
+token: a granular token cannot create a name. Bump the lib flake revision a
+brand pins (`mkLanding`) in the same PR as its npm version.
 
 ## Shared fixtures with Rust
 

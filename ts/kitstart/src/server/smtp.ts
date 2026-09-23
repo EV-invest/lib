@@ -125,15 +125,27 @@ const hostOf = (url: URL): string => url.hostname.replace(/^\[(.*)\]$/, "$1");
  * `helo` is the name this client greets a remote relay with — the site's own
  * domain; a loopback catcher is greeted as `localhost`.
  */
+/** `SMTP_URL`, checked; the error never repeats it, since it carries the password. */
+export function parseSmtpUrl(value: string | URL): URL {
+  let url: URL;
+  try {
+    url = value instanceof URL ? value : new URL(value);
+  } catch {
+    throw new Error("SMTP_URL is not a URL");
+  }
+  if (url.protocol !== "smtp:" && url.protocol !== "smtps:") throw new Error(`SMTP_URL: unsupported scheme ${url.protocol}`);
+  if (!url.hostname) throw new Error("SMTP_URL: no host");
+  return url;
+}
+
 export interface SendOptions {
   helo: string;
   timeoutMs?: number;
 }
 
-export async function sendMail(smtpUrl: string, mail: Mail, options: SendOptions): Promise<void> {
+export async function sendMail(smtpUrl: string | URL, mail: Mail, options: SendOptions): Promise<void> {
   const timeoutMs = options.timeoutMs ?? TOTAL_TIMEOUT_MS;
-  const url = new URL(smtpUrl);
-  if (url.protocol !== "smtp:" && url.protocol !== "smtps:") throw new Error(`smtp: unsupported scheme ${url.protocol}`);
+  const url = parseSmtpUrl(smtpUrl);
   const deadline = AbortSignal.timeout(timeoutMs);
   let fail: (e: Error) => void = () => undefined;
   const failed = new Promise<never>((_, reject) => (fail = reject));

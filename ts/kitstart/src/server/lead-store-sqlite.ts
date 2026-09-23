@@ -136,8 +136,9 @@ export function openSqliteLeadStore(path: string): SqliteLeadStore {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
   const db = new (sqlite().DatabaseSync)(path);
   try {
-    db.exec("PRAGMA journal_mode = WAL");
+    // The wait first: switching to WAL takes a lock another pod may hold.
     db.exec("PRAGMA busy_timeout = 5000");
+    db.exec("PRAGMA journal_mode = WAL");
     migrate(db);
   } catch (error) {
     // A refused file must not stay open behind the error: the handle would

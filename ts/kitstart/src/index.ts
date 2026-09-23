@@ -54,10 +54,16 @@ export {
 
 export {
   createRouting,
+  GONE,
+  GONE_HEADER,
+  gonePath,
+  goneHeader,
   HOST_MARK,
   LANG_COOKIE,
   LANG_COOKIE_MAX_AGE,
+  parseGoneHeader,
   parsePlaceParam,
+  PASS_PATHS,
   placeParam,
   pointSuffixes,
   THANKS,
@@ -83,7 +89,9 @@ export {
 export {
   checkTiming,
   HONEYPOT_FIELD,
+  LEGACY_HONEYPOT_FIELDS,
   MIN_FILL_MS,
+  RATE_LIMIT_MAX_KEYS,
   RateLimiter,
   RENDERED_AT_FIELD,
   screen,
@@ -146,7 +154,6 @@ export type {
   StatusScreenText,
 } from "./core/content";
 
-export { memoByKey } from "./core/memo";
 
 export { statusTarget, type StatusTarget } from "./core/status";
 
