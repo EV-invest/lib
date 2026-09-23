@@ -155,7 +155,7 @@ export type {
 } from "./core/content";
 
 
-export { statusTarget, type StatusTarget } from "./core/status";
+export { brandStatusTarget, statusTarget, type StatusTarget } from "./core/status";
 
 // A landing needs these beside the machinery; re-exported by name so a brand
 // imports one package and the list here is the whole surface.

@@ -48,9 +48,20 @@ export const revalidate = 600;
 ```
 
 `createPlaceLoader(site, places)(params)` returns the `PlaceView` for a page,
-reading the link mode from the `location` param (`_royat` = host mode). The
-not-found and error boundaries use `statusTarget(site, useParams())` from the
-core — never `headers()`, which would make every cached page per-request.
+reading the link mode from the `location` param (`_royat` = host mode).
+
+**Dead paths.** Next 16 answers a `notFound()` with an empty shell it fills in
+after hydration — a blank page without JavaScript. So the proxy knows the dead
+paths itself (`decide` → `gone`) and rewrites each to `/<locale>/404/404`, a
+path no route matches, with the language and place in `GONE_HEADER`. The
+brand's `app/global-not-found.tsx` (`experimental.globalNotFound`, set by
+`withLanding`) reads that header — the only thing that does — and renders the
+404 on the server with `statusTarget(site, parseGoneHeader(…))`. The
+`notFound()` boundary under `[locale]` stays for what the proxy cannot foresee
+(a place the live source withdrew); it and `error.tsx` are client modules and
+take `brandStatusTarget({ locales, phone }, locale)`, never the site config,
+which would carry every place into every page's bundle. Redirects the proxy
+chooses per visitor answer `Cache-Control: private, no-store`.
 
 ## Server invariants
 
