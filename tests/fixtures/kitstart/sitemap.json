@@ -1,5 +1,5 @@
 {
-  "source": "Service-Arb/aquafix@33e3198 tests/golden/sitemap-robots.json",
+  "source": "Service-Arb/aquafix@33e3198 tests/golden/sitemap-robots.json; cleaning/* and prelaunch/* from the TS builders",
   "cases": [
     {
       "name": "baked aquafix.top",
@@ -1357,6 +1357,299 @@
             }
           ],
           "sitemap": "https://lyon-nord.aquafix.top/sitemap.xml"
+        }
+      }
+    },
+    {
+      "name": "cleaning clean.example",
+      "site": "cleaning",
+      "host": "clean.example",
+      "places": [
+        {
+          "slug": "paris",
+          "gbpName": "Clean Co Paris",
+          "name": {
+            "fr": "Paris",
+            "en": "Paris"
+          },
+          "presence": {
+            "kind": "service-area"
+          },
+          "serviceArea": [
+            {
+              "kind": "localities",
+              "names": [
+                "Paris",
+                "Boulogne-Billancourt"
+              ]
+            },
+            {
+              "kind": "radius",
+              "center": {
+                "lat": 48.8566,
+                "lng": 2.3522
+              },
+              "km": 12
+            }
+          ],
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": [
+            {
+              "days": [
+                "Monday",
+                "Saturday"
+              ],
+              "opens": "08:00",
+              "closes": "19:00"
+            }
+          ],
+          "rating": null
+        }
+      ],
+      "expected": {
+        "sitemap": [
+          {
+            "url": "https://clean.example/fr",
+            "priority": 1,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://clean.example/fr",
+                "en": "https://clean.example/en",
+                "x-default": "https://clean.example/fr"
+              }
+            }
+          },
+          {
+            "url": "https://clean.example/en",
+            "priority": 1,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://clean.example/fr",
+                "en": "https://clean.example/en",
+                "x-default": "https://clean.example/fr"
+              }
+            }
+          },
+          {
+            "url": "https://clean.example/fr/prices",
+            "priority": 0.8,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://clean.example/fr/prices",
+                "en": "https://clean.example/en/prices",
+                "x-default": "https://clean.example/fr/prices"
+              }
+            }
+          },
+          {
+            "url": "https://clean.example/en/prices",
+            "priority": 0.8,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://clean.example/fr/prices",
+                "en": "https://clean.example/en/prices",
+                "x-default": "https://clean.example/fr/prices"
+              }
+            }
+          }
+        ],
+        "robots": {
+          "rules": [
+            {
+              "userAgent": "*",
+              "allow": "/"
+            },
+            {
+              "userAgent": [
+                "GPTBot",
+                "ClaudeBot",
+                "PerplexityBot",
+                "Google-Extended"
+              ],
+              "allow": "/"
+            }
+          ],
+          "sitemap": "https://clean.example/sitemap.xml"
+        }
+      }
+    },
+    {
+      "name": "cleaning localhost:3000",
+      "site": "cleaning",
+      "host": "localhost:3000",
+      "places": [
+        {
+          "slug": "paris",
+          "gbpName": "Clean Co Paris",
+          "name": {
+            "fr": "Paris",
+            "en": "Paris"
+          },
+          "presence": {
+            "kind": "service-area"
+          },
+          "serviceArea": [
+            {
+              "kind": "localities",
+              "names": [
+                "Paris",
+                "Boulogne-Billancourt"
+              ]
+            },
+            {
+              "kind": "radius",
+              "center": {
+                "lat": 48.8566,
+                "lng": 2.3522
+              },
+              "km": 12
+            }
+          ],
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": [
+            {
+              "days": [
+                "Monday",
+                "Saturday"
+              ],
+              "opens": "08:00",
+              "closes": "19:00"
+            }
+          ],
+          "rating": null
+        }
+      ],
+      "expected": {
+        "sitemap": [
+          {
+            "url": "https://clean.example/fr",
+            "priority": 1,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://clean.example/fr",
+                "en": "https://clean.example/en",
+                "x-default": "https://clean.example/fr"
+              }
+            }
+          },
+          {
+            "url": "https://clean.example/en",
+            "priority": 1,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://clean.example/fr",
+                "en": "https://clean.example/en",
+                "x-default": "https://clean.example/fr"
+              }
+            }
+          },
+          {
+            "url": "https://clean.example/fr/prices",
+            "priority": 0.8,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://clean.example/fr/prices",
+                "en": "https://clean.example/en/prices",
+                "x-default": "https://clean.example/fr/prices"
+              }
+            }
+          },
+          {
+            "url": "https://clean.example/en/prices",
+            "priority": 0.8,
+            "alternates": {
+              "languages": {
+                "fr-FR": "https://clean.example/fr/prices",
+                "en": "https://clean.example/en/prices",
+                "x-default": "https://clean.example/fr/prices"
+              }
+            }
+          }
+        ],
+        "robots": {
+          "rules": [
+            {
+              "userAgent": "*",
+              "allow": "/"
+            },
+            {
+              "userAgent": [
+                "GPTBot",
+                "ClaudeBot",
+                "PerplexityBot",
+                "Google-Extended"
+              ],
+              "allow": "/"
+            }
+          ],
+          "sitemap": "https://clean.example/sitemap.xml"
+        }
+      }
+    },
+    {
+      "name": "prelaunch localhost:3000",
+      "site": "prelaunch",
+      "host": "localhost:3000",
+      "places": [
+        {
+          "slug": "paris",
+          "gbpName": "Clean Co Paris",
+          "name": {
+            "fr": "Paris",
+            "en": "Paris"
+          },
+          "presence": {
+            "kind": "service-area"
+          },
+          "serviceArea": [
+            {
+              "kind": "localities",
+              "names": [
+                "Paris",
+                "Boulogne-Billancourt"
+              ]
+            },
+            {
+              "kind": "radius",
+              "center": {
+                "lat": 48.8566,
+                "lng": 2.3522
+              },
+              "km": 12
+            }
+          ],
+          "channels": {
+            "phone": null,
+            "whatsapp": null
+          },
+          "hours": [
+            {
+              "days": [
+                "Monday",
+                "Saturday"
+              ],
+              "opens": "08:00",
+              "closes": "19:00"
+            }
+          ],
+          "rating": null
+        }
+      ],
+      "expected": {
+        "sitemap": [],
+        "robots": {
+          "rules": [
+            {
+              "userAgent": "*",
+              "disallow": "/"
+            }
+          ]
         }
       }
     }
