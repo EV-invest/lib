@@ -1,3 +1,4 @@
+import { parseInstant } from "./rating";
 import type { DayOfWeek, Geo, OpeningHours, Place, PostalAddress, Rating, ServiceArea } from "./types";
 
 /**
@@ -50,7 +51,7 @@ function rating(v: unknown): Rating | undefined {
   const value = num(v.value);
   const count = num(v.count);
   const fetchedAt = str(v.fetchedAt);
-  if (value === undefined || count === undefined || !fetchedAt || Number.isNaN(Date.parse(fetchedAt))) return undefined;
+  if (value === undefined || count === undefined || !fetchedAt || parseInstant(fetchedAt) === null) return undefined;
   if (value < 1 || value > 5 || count < 0) return undefined;
   return { value, count, fetchedAt };
 }
