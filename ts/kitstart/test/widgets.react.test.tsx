@@ -1,0 +1,159 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { contactOf, createAcceptLead, placeUrl, RateLimiter, type Place, type StatusCopy, type StatusScreenText } from "../src/index";
+import { AreaChips, CallBar, Coverage, Faq, LangSwitch, PlaceDirectory, QuoteFormShell, StatusScreen } from "../src/react/index";
+import { fixtureSite } from "./support/fixtures";
+
+const site = fixtureSite("aquafix");
+const cleaning = fixtureSite("cleaning");
+const royat = site.places[0] as Place<"fr" | "en">;
+const paris = cleaning.places[0] as Place<"fr" | "en">;
+type F = { phone: string };
+const f: F = { phone: "+33 4 23 50 06 40" };
+
+describe("LangSwitch", () => {
+  it("links every language through ?lang= and marks the current one", () => {
+    render(<LangSwitch current="en" locales={["fr", "en"]} hrefs={{ fr: "/fr/prices", en: "/en/prices" }} />);
+    expect(screen.getByText("FR")).toHaveAttribute("href", "/fr/prices?lang=fr");
+    expect(screen.getByText("EN")).toHaveAttribute("aria-current", "true");
+    expect(screen.getByText("FR")).not.toHaveAttribute("aria-current");
+  });
+});
+
+describe("CallBar", () => {
+  const copy = { locale: "fr" as const, f, t: { callLabel: (x: F) => `Appeler ${x.phone}`, whatsappMessage: () => "Bonjour", whatsappShort: "WhatsApp", ctaShort: "Devis" } };
+
+  it("offers the phone, WhatsApp and the form", () => {
+    render(<CallBar copy={copy} phone="+33 4 23 50 06 40" whatsapp="+33 6 12 34 56 78" quoteHref="/fr#quote" />);
+    expect(screen.getByLabelText("Appeler +33 4 23 50 06 40")).toHaveAttribute("href", "tel:+33423500640");
+    expect(screen.getByText("WhatsApp").closest("a")).toHaveAttribute("href", "https://wa.me/33612345678?text=Bonjour");
+    expect(screen.getByText("Devis").closest("a")).toHaveAttribute("data-intent", "form_open");
+  });
+
+  it("leaves out a channel the place does not have", () => {
+    render(<CallBar copy={copy} phone={null} whatsapp={null} quoteHref="/fr#quote" />);
+    expect(screen.queryByText("☎")).toBeNull();
+    expect(screen.queryByText("WhatsApp")).toBeNull();
+    expect(screen.getByText("Devis")).toBeInTheDocument();
+  });
+});
+
+describe("StatusScreen", () => {
+  const t: StatusScreenText<F> = {
+    callLabel: x => `Appeler ${x.phone}`,
+    backHome: "Accueil",
+    tryAgain: "Réessayer",
+    statusStrip: ["Prix fixe", "Garantie 12 mois"],
+    facts: () => ["SIRET 000", "Décennale —"],
+  };
+  const notFound: StatusCopy<F> = {
+    code: "404",
+    title: "Introuvable",
+    eyebrow: "ERREUR",
+    headline: ["Cette page ", "n’existe pas"],
+    body: () => "Mais nous oui.",
+    primary: "call",
+    secondary: "home",
+  };
+  const target = { phone: "+33 4 23 50 06 40", home: "/fr", retry: "/fr", langHrefs: { fr: "/fr", en: "/en" } };
+
+  it("prints the status, the offer strip, the facts and the phone", () => {
+    render(<StatusScreen copy={{ locale: "fr", t, f }} status={notFound} target={target} locales={["fr", "en"]} brandName="Aquafix" />);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Cette page n’existe pas");
+    expect(screen.getByText("Appeler +33 4 23 50 06 40").closest("a")).toHaveAttribute("href", "tel:+33423500640");
+    expect(screen.getByText("Accueil").closest("a")).toHaveAttribute("href", "/fr");
+    expect(screen.getByText("SIRET 000 · DÉCENNALE —")).toBeInTheDocument();
+    expect(screen.getByLabelText("Aquafix")).toHaveAttribute("href", "/fr");
+  });
+
+  it("never renders a dead call button for a brand with no phone", () => {
+    render(<StatusScreen copy={{ locale: "fr", t, f }} status={notFound} target={{ ...target, phone: null }} locales={["fr", "en"]} brandName="Clean" />);
+    expect(screen.queryByText(/Appeler/)).toBeNull();
+    // The primary falls back to home, and the duplicate secondary is dropped.
+    expect(screen.getAllByText("Accueil")).toHaveLength(1);
+  });
+});
+
+describe("PlaceDirectory", () => {
+  it("links each place to its canonical home with its phone, and prints no address for a service area", () => {
+    const places = [royat, { ...paris, slug: "paris" }];
+    render(
+      <PlaceDirectory
+        places={places}
+        locale="fr"
+        hrefOf={p => placeUrl(site, p.slug, "fr", "")}
+        phoneOf={p => contactOf(site, p).phone}
+        openLabel="Ouvrir"
+      />,
+    );
+    const links = screen.getAllByText(/Ouvrir/);
+    expect(links[0]).toHaveAttribute("href", "https://royat.aquafix.top/fr");
+    expect(screen.getByText(/2 Av\. Abbé Védrine/)).toBeInTheDocument();
+    expect(document.querySelectorAll("address")).toHaveLength(1);
+  });
+});
+
+describe("Coverage", () => {
+  it("shows a storefront's map behind a click, and a service area only its chips", () => {
+    const { unmount } = render(<Coverage place={royat} locale="fr" map={{ title: "Carte", show: "Voir la carte" }} />);
+    expect(screen.getByText("Royat")).toBeInTheDocument();
+    expect(document.querySelector("iframe")).toBeNull();
+    fireEvent.click(screen.getByText("Voir la carte"));
+    expect(document.querySelector("iframe")?.getAttribute("src")).toContain("output=embed");
+    unmount();
+    render(<Coverage place={paris} locale="fr" map={{ title: "Carte", show: "Voir la carte" }} />);
+    expect(screen.getByText("Boulogne-Billancourt")).toBeInTheDocument();
+    expect(screen.queryByText("Voir la carte")).toBeNull();
+  });
+
+  it("renders nothing for no areas", () => {
+    const { container } = render(<AreaChips areas={[]} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe("Faq", () => {
+  it("is <details>, opening without a script", () => {
+    render(<Faq items={[{ q: "Q1", a: "A1" }]} />);
+    expect(screen.getByText("Q1").closest("details")).not.toHaveAttribute("open");
+    expect(screen.getByText("A1")).toBeInTheDocument();
+  });
+});
+
+describe("QuoteFormShell", () => {
+  it("posts what the funnel reads — and the funnel accepts it", async () => {
+    const NOW = 1_800_000_000_000;
+    render(
+      <QuoteFormShell placeSlug="royat" locale="en" renderedAt={NOW - 10_000} honeypotLabel="Website">
+        <input name="job" defaultValue="other" />
+        <input name="zip" defaultValue="63130" />
+        <input name="mobile" defaultValue="0612345678" />
+      </QuoteFormShell>,
+    );
+    const form = document.querySelector("form#quote");
+    if (!(form instanceof HTMLFormElement)) throw new Error("no form");
+    expect(form).toHaveAttribute("method", "post");
+    expect(form).toHaveAttribute("action", "/quote");
+    const insert = vi.fn(async () => 1);
+    const outcome = await createAcceptLead(site)(new FormData(form), "k", {
+      insert,
+      defer: () => undefined,
+      notify: async () => undefined,
+      capture: () => undefined,
+      limiter: new RateLimiter(5, 60_000),
+      now: NOW,
+      log: { warn: vi.fn(), error: vi.fn() },
+    });
+    expect(outcome).toMatchObject({ kind: "stored", locale: "en", formId: "quote", lead: { placeSlug: "royat", subject: "other", spamVerdict: null } });
+  });
+
+  it("carries no place on the brand's own pages", () => {
+    render(
+      <QuoteFormShell placeSlug={null} locale="fr" renderedAt={0} honeypotLabel="Website">
+        <span />
+      </QuoteFormShell>,
+    );
+    expect(document.querySelector('input[name="location"]')).toBeNull();
+    expect(document.querySelector('input[name="website"]')?.getAttribute("tabindex")).toBe("-1");
+  });
+});

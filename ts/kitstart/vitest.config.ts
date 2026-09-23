@@ -15,7 +15,10 @@ export default defineConfig({
     // `*.react.test.tsx` in jsdom.
     projects: [
       { extends: true, test: { name: "node", environment: "node", include: ["test/**/*.node.test.{ts,tsx}"] } },
-      { extends: true, test: { name: "react", environment: "jsdom", include: ["test/**/*.react.test.tsx"] } },
+      {
+        extends: true,
+        test: { name: "react", environment: "jsdom", setupFiles: ["./test/setup.react.ts"], include: ["test/**/*.react.test.tsx"] },
+      },
     ],
   },
 });
