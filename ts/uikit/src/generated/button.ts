@@ -5,7 +5,7 @@ export const BUTTON_BASE = "inline-flex items-center justify-center gap-2 whites
 export const buttonVariantClasses = {
   "primary": "bg-primary text-on-primary hover:bg-primary/90 focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
   "secondary": "bg-secondary text-on-secondary hover:bg-secondary/80 focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-  "outline": "border bg-transparent shadow-xs hover:bg-hover hover:text-ink",
+  "outline": "border border-input bg-transparent shadow-xs hover:bg-hover hover:text-ink",
   "ghost": "hover:bg-hover hover:text-ink",
   "destructive": "bg-accent-error text-on-accent-error hover:bg-accent-error/90 focus-visible:ring-accent-error/20 focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
   "link": "text-primary-ink underline-offset-4 hover:underline",

@@ -1,4 +1,4 @@
-pub const ACCORDION_ITEM: &str = "border-b last:border-b-0";
+pub const ACCORDION_ITEM: &str = "border-b border-border last:border-b-0";
 pub const ACCORDION_HEADER: &str = "flex";
 pub const ACCORDION_TRIGGER: &str = "focus-visible:border-ring focus-visible:ring-ring/50 flex flex-1 items-start justify-between gap-4 \
                                  rounded-md py-4 text-left text-sm font-medium transition-all outline-none hover:underline \

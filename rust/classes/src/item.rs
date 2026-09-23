@@ -52,7 +52,7 @@ pub enum ItemSize {
 pub enum ItemMediaVariant {
 	#[tw(default, class = "bg-transparent")]
 	Bare,
-	#[tw(class = "size-8 border rounded-sm bg-muted [&_svg:not([class*='size-'])]:size-4")]
+	#[tw(class = "size-8 border border-border rounded-sm bg-muted [&_svg:not([class*='size-'])]:size-4")]
 	Icon,
 	#[tw(class = "size-10 rounded-sm overflow-hidden [&_img]:size-full [&_img]:object-cover")]
 	Image,

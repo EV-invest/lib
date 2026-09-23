@@ -10,7 +10,7 @@ use crate::{
 /// `FIELD_TITLE`, body reuses `FIELD_DESCRIPTION`) in a subtle bordered container,
 /// NOT a coloured alert. With `collapsible`, renders as a native `<details>`
 /// disclosure for free keyboard support and find-in-page auto-expand.
-const SECTION_DESCRIPTOR: &str = "flex flex-col gap-2 rounded-lg border bg-hover p-4 text-left";
+const SECTION_DESCRIPTOR: &str = "flex flex-col gap-2 rounded-lg border border-border bg-hover p-4 text-left";
 
 #[component]
 pub fn SectionDescriptor(

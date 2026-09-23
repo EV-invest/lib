@@ -1,4 +1,4 @@
-pub const MENUBAR_ROOT: &str = "bg-background flex h-9 items-center gap-1 rounded-md border p-1 shadow-xs";
+pub const MENUBAR_ROOT: &str = "bg-background flex h-9 items-center gap-1 rounded-md border border-border p-1 shadow-xs";
 pub const MENUBAR_TRIGGER: &str = "focus:bg-hover focus:text-ink data-[state=open]:bg-hover \
                        data-[state=open]:text-ink flex items-center rounded-sm px-2 py-1 text-sm \
                        font-medium outline-hidden select-none";
@@ -6,7 +6,7 @@ pub const MENUBAR_CONTENT: &str = "bg-popover text-ink data-[state=open]:animate
                        data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 \
                        data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 \
                        data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 absolute z-50 \
-                       min-w-[12rem] overflow-hidden rounded-md border p-1 shadow-md";
+                       min-w-[12rem] overflow-hidden rounded-md border border-border p-1 shadow-md";
 pub const MENUBAR_ITEM: &str = "focus:bg-hover focus:text-ink data-[variant=destructive]:text-accent-error \
                     data-[variant=destructive]:focus:bg-accent-error/10 data-[variant=destructive]:focus:text-accent-error \
                     data-[variant=destructive]:*:[svg]:!text-accent-error [&_svg:not([class*='text-'])]:text-ink-soft \
@@ -33,4 +33,4 @@ pub const MENUBAR_SUB_CONTENT: &str = "bg-popover text-ink data-[state=open]:ani
                            data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 \
                            data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 \
                            data-[side=top]:slide-in-from-bottom-2 absolute z-50 min-w-[8rem] overflow-hidden rounded-md \
-                           border p-1 shadow-lg";
+                           border border-border p-1 shadow-lg";

@@ -27,7 +27,7 @@ pub enum ButtonVariant {
 		class = "bg-secondary text-on-secondary hover:bg-secondary/80 focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
 	)]
 	Secondary,
-	#[tw(class = "border bg-transparent shadow-xs hover:bg-hover hover:text-ink")]
+	#[tw(class = "border border-input bg-transparent shadow-xs hover:bg-hover hover:text-ink")]
 	Outline,
 	#[tw(class = "hover:bg-hover hover:text-ink")]
 	Ghost,

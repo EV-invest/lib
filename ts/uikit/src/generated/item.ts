@@ -23,7 +23,7 @@ export const ITEM_MEDIA_BASE = "flex shrink-0 items-center justify-center gap-2 
 
 export const itemMediaVariants = {
   "bare": "bg-transparent",
-  "icon": "size-8 border rounded-sm bg-muted [&_svg:not([class*='size-'])]:size-4",
+  "icon": "size-8 border border-border rounded-sm bg-muted [&_svg:not([class*='size-'])]:size-4",
   "image": "size-10 rounded-sm overflow-hidden [&_img]:size-full [&_img]:object-cover",
 } as const;
 export type ItemMediaVariant = keyof typeof itemMediaVariants;

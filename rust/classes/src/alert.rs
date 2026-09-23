@@ -16,7 +16,7 @@ pub const ALERT_DESCRIPTION: &str = "text-ink-soft col-start-2 grid justify-item
 #[derive(PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum AlertVariant {
-	#[tw(default, class = "bg-card text-ink")]
+	#[tw(default, class = "bg-card text-ink border-border")]
 	Neutral,
 	#[tw(class = "text-accent-error bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-ink-mid")]
 	Destructive,

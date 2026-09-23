@@ -4,7 +4,7 @@ use tailwind_fuse::{AsTailwindClass, TwVariant};
 // `data-vaul-drawer-direction` + `data-state`; no tw-animate-css utilities here,
 // and no Tailwind `transition` either — it would fight the motion.css `transform`
 // transition at equal specificity.
-pub const DRAWER_CONTENT_BASE: &str = "bg-background fixed z-50 flex h-auto border";
+pub const DRAWER_CONTENT_BASE: &str = "bg-background fixed z-50 flex h-auto border border-border";
 
 /// Scrim behind the panel; its fade is motion.css, keyed on `data-slot="drawer-overlay"` + `data-state`.
 pub const DRAWER_OVERLAY: &str = "fixed inset-0 z-50 bg-black/50";
