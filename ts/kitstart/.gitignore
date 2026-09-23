@@ -1,2 +1,4 @@
 dist/
 node_modules/
+test/visual/dist/
+test/visual/node_modules
