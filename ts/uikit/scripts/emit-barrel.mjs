@@ -10,10 +10,12 @@
 // module the barrel names — and all of them ship to the browser. TypeScript's
 // transpile keeps each re-export as written and elides the type-only ones.
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
-const root = join(import.meta.dirname, "..");
+// Not `import.meta.dirname`: that needs Node 20.11, and `engines` says 20.
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const { outputText } = ts.transpileModule(readFileSync(join(root, "src/index.ts"), "utf8"), {
   compilerOptions: {
     module: ts.ModuleKind.ESNext,
