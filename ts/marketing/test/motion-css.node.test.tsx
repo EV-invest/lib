@@ -20,7 +20,7 @@ describe("the CSS motion engine", () => {
       </Reveal>,
     );
     expect(out).toBe(
-      '<div data-ev-motion="mount" style="--ev-from-x:16px;--ev-dur:700ms;--ev-delay:100ms" class="x">a</div>',
+      '<div data-ev-motion="mount" class="x" style="--ev-from-x:16px;--ev-dur:700ms;--ev-delay:100ms">a</div>',
     );
   });
 
@@ -56,6 +56,22 @@ describe("the CSS motion engine", () => {
     expect(out.match(/aria-hidden="true" data-ev-motion="word"/g)).toHaveLength(3);
   });
 
+  it("drops props only `motion` understands instead of writing them to the DOM", () => {
+    const motionValue = { get: () => 1, set: () => undefined };
+    const props = {
+      whileHover: { scale: 1.1 },
+      transition: { duration: 1 },
+      initial: false,
+      onAnimationComplete: () => undefined,
+      style: { color: "red", opacity: motionValue },
+      "data-x": "kept",
+    } as unknown as React.ComponentProps<typeof Reveal>;
+    const out = html(<Reveal onMount {...props}>a</Reveal>);
+    expect(out).not.toMatch(/whileHover|transition=|initial=|onAnimationComplete|opacity/i);
+    expect(out).toContain('data-x="kept"');
+    expect(out).toContain("color:red");
+  });
+
   it("renders the final figure where the JS counter would count", () => {
     expect(html(<CountUp value={1234.5} locale="fr-FR" decimals={1} suffix=" €" />)).toBe(
       "<span>1 234,5 €</span>",
@@ -76,6 +92,20 @@ describe("motion.css", () => {
   it("hides nothing outside a keyframe — a browser running none of it shows everything", () => {
     const outsideKeyframes = stylesheet.replace(/@keyframes[^{]+\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "");
     expect(outsideKeyframes).not.toMatch(/(?<![-\w])opacity\s*:/);
+  });
+
+  it("keeps every scroll window inside the entry phase — no tail left half-arrived", () => {
+    // Reveal ends by `entry 100%`; a stagger item's window is offset ≤ 40% and 60% wide.
+    expect(stylesheet).toMatch(/--ev-motion-view-range:\s*entry 0% entry 100%;/);
+    expect(stylesheet).toMatch(/--ev-offset:\s*min\(calc\(var\(--ev-i, 0\) \* 5%\), 40%\);/);
+    expect(stylesheet).toMatch(/animation-range:\s*entry var\(--ev-offset\) entry calc\(var\(--ev-offset\) \+ 60%\);/);
+    expect(stylesheet).not.toMatch(/\bcover\b/);
+  });
+
+  it("does not let an offset or an index inherit into a nested primitive", () => {
+    for (const name of ["--ev-from-x", "--ev-from-y", "--ev-i"]) {
+      expect(stylesheet).toMatch(new RegExp(`@property ${name} \\{[^}]*inherits: false;`));
+    }
   });
 
   it("answers the reduced-motion preference for both triggers", () => {

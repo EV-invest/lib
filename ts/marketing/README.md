@@ -40,8 +40,8 @@ Entry points — import the narrowest one; each ships only what it names:
 |---|---|---|---|
 | `.` | server-safe | motion tokens, `accented`, validation, contact-link helpers, JSON-LD | no |
 | `./tracker` | client | `ContactLinkTracker` | no |
-| `./click-to-load` | client | `ClickToLoad`, `YouTubeFacade` | no |
-| `./form` | client | `useValidatedForm`, `TextField`, `SentPanel` | no |
+| `./click-to-load` | client | `ClickToLoad`, `YouTubeFacade` — needs `@evinvest/uikit` | no |
+| `./form` | client | `useValidatedForm`, `TextField`, `SentPanel` — needs `@evinvest/uikit` | no |
 | `./motion` | client | the motion primitives on `motion` | **yes** |
 | `./motion-css` | server-safe | the same primitives, no JavaScript | no |
 | `./motion.css` | stylesheet | the engine `./motion-css` needs | no |
@@ -123,8 +123,10 @@ export default withMotionEngine(config, process.env.MOTION_ENGINE === "js" ? "js
 ```
 
 ```css
-/* the Tailwind entrypoint, for the css engine */
-@import "@evinvest/marketing/motion.css";
+/* the Tailwind entrypoint, for the css engine — into a layer, so a Tailwind
+   utility on the same element (an `animate-*`, a `translate-*`) still wins:
+   in v4 utilities are layered, and unlayered CSS beats every layer */
+@import "@evinvest/marketing/motion.css" layer(components);
 ```
 
 It is a build flag, not a runtime one, on purpose: a runtime switch could pick
@@ -138,8 +140,17 @@ What the CSS engine does differently:
   with the same curve, durations and stagger as the tokens (a test holds the
   two in step).
 - **Scroll reveals are scroll-linked** (`animation-timeline: view()`), not
-  fired once: progress follows the element through the viewport. A browser
-  without scroll timelines (Firefox today) shows the block at rest.
+  fired once: progress follows the element from its first pixel entering the
+  viewport to fully in, and reverses on the way back. A block already on
+  screen at load is at rest. `delay` and `duration` on a scroll `Reveal` are
+  ignored — scroll position drives it, not time. A browser without scroll
+  timelines (Firefox today) shows the block at rest.
+- **`Stagger` numbers its direct `StaggerItem` children only.** One wrapped in
+  another element, or returned by your own component, is not counted — the JS
+  engine's variants reach any depth. Keep items as direct children.
+- **Motion-only props are dropped.** `whileHover`, `transition`, `variants`,
+  `MotionValue`s in `style` and the like mean nothing to CSS; they are removed
+  rather than written to the DOM.
 - **Nothing is ever hidden outside a keyframe** — with the stylesheet missing
   or unsupported, every block is simply there. Reduced motion collapses to a
   fade, as in the JS engine.
