@@ -75,6 +75,13 @@ async function smoke() {
     await expect("robots disallow before launch", "/robots.txt", {}, 200, (_, b) => b.includes("Disallow: /"));
     const form = new URLSearchParams({ location: "paris", locale: "fr", form_id: "quote", t: String(Date.now() - 10_000), website: "", subject: "standard", locality: "75011", mobile: "0612345678" });
     await expect("the form posts without JavaScript", "/quote", { method: "POST", body: form }, 303, r => r.headers.get("location") === "/fr/thanks");
+    // A suspected bot gets the same 303, so the redirect proves nothing: the row does.
+    const { DatabaseSync } = await import("node:sqlite");
+    const db = new DatabaseSync(join(dir, "data/leads.db"), { readOnly: true });
+    const row = db.prepare("SELECT zip, location_id, spam_verdict FROM leads WHERE mobile = ?").get("0612345678");
+    db.close();
+    if (row?.zip !== "75011" || row?.location_id !== "paris" || row?.spam_verdict !== null) throw new Error(`the lead row is wrong: ${JSON.stringify(row)}`);
+    console.log("✓ the lead is in the store, unflagged");
     await expect("the thank-you page", "/fr/thanks", {}, 200);
     await expect("the OG card", "/og?l=paris&lang=fr", {}, 200, r => r.headers.get("content-type") === "image/png");
   } finally {
