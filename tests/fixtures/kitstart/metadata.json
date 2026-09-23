@@ -1,0 +1,1678 @@
+{
+  "source": "Service-Arb/aquafix@33e3198 tests/golden/metadata.json",
+  "cases": [
+    {
+      "name": "royat/fr/home",
+      "kind": "place",
+      "site": "aquafix",
+      "place": {
+        "slug": "royat",
+        "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+        "name": {
+          "fr": "Royat",
+          "en": "Royat"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "2 Av. Abbé Védrine",
+            "postalCode": "63130",
+            "locality": "Royat",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": null,
+          "storefrontPhoto": null,
+          "landmark": null
+        },
+        "serviceArea": null,
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": null,
+        "rating": null
+      },
+      "locale": "fr",
+      "page": "home",
+      "mode": "host",
+      "copy": {
+        "title": "Plombier à Royat — prix fixe, réparé aujourd’hui",
+        "description": "Plombiers à Royat. Tarif fixe écrit avant de commencer, une fenêtre d’arrivée de 2 heures ou le déplacement est offert, et une garantie de 12 mois. Prix publiés pour neuf interventions."
+      },
+      "expected": {
+        "title": "Aquafix — Plombier à Royat — prix fixe, réparé aujourd’hui",
+        "description": "Plombiers à Royat. Tarif fixe écrit avant de commencer, une fenêtre d’arrivée de 2 heures ou le déplacement est offert, et une garantie de 12 mois. Prix publiés pour neuf interventions.",
+        "robots": {
+          "index": false,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://royat.aquafix.top/fr",
+          "languages": {
+            "fr-FR": "https://royat.aquafix.top/fr",
+            "en": "https://royat.aquafix.top/en",
+            "x-default": "https://royat.aquafix.top/fr"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "Aquafix — Plombier à Royat — prix fixe, réparé aujourd’hui",
+          "description": "Plombiers à Royat. Tarif fixe écrit avant de commencer, une fenêtre d’arrivée de 2 heures ou le déplacement est offert, et une garantie de 12 mois. Prix publiés pour neuf interventions.",
+          "url": "https://royat.aquafix.top/fr",
+          "locale": "fr_FR",
+          "alternateLocale": [
+            "en_GB"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=fr&l=royat&p=home",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "royat/fr/prices",
+      "kind": "place",
+      "site": "aquafix",
+      "place": {
+        "slug": "royat",
+        "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+        "name": {
+          "fr": "Royat",
+          "en": "Royat"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "2 Av. Abbé Védrine",
+            "postalCode": "63130",
+            "locality": "Royat",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": null,
+          "storefrontPhoto": null,
+          "landmark": null
+        },
+        "serviceArea": null,
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": null,
+        "rating": null
+      },
+      "locale": "fr",
+      "page": "prices",
+      "mode": "host",
+      "copy": {
+        "title": "Chaque intervention, chaque chiffre",
+        "description": "La liste complète des prix Aquafix à Royat : neuf interventions, de vrais tarifs fixes TTC, et les questions que tout le monde pose avant de réserver."
+      },
+      "expected": {
+        "title": "Chaque intervention, chaque chiffre · Aquafix",
+        "description": "La liste complète des prix Aquafix à Royat : neuf interventions, de vrais tarifs fixes TTC, et les questions que tout le monde pose avant de réserver.",
+        "robots": {
+          "index": false,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://royat.aquafix.top/fr/prices",
+          "languages": {
+            "fr-FR": "https://royat.aquafix.top/fr/prices",
+            "en": "https://royat.aquafix.top/en/prices",
+            "x-default": "https://royat.aquafix.top/fr/prices"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "Chaque intervention, chaque chiffre · Aquafix",
+          "description": "La liste complète des prix Aquafix à Royat : neuf interventions, de vrais tarifs fixes TTC, et les questions que tout le monde pose avant de réserver.",
+          "url": "https://royat.aquafix.top/fr/prices",
+          "locale": "fr_FR",
+          "alternateLocale": [
+            "en_GB"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=fr&l=royat&p=prices",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "royat/fr/guarantee",
+      "kind": "place",
+      "site": "aquafix",
+      "place": {
+        "slug": "royat",
+        "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+        "name": {
+          "fr": "Royat",
+          "en": "Royat"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "2 Av. Abbé Védrine",
+            "postalCode": "63130",
+            "locality": "Royat",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": null,
+          "storefrontPhoto": null,
+          "landmark": null
+        },
+        "serviceArea": null,
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": null,
+        "rating": null
+      },
+      "locale": "fr",
+      "page": "guarantee",
+      "mode": "host",
+      "copy": {
+        "title": "Ce que nous promettons vraiment",
+        "description": "Les quatre craintes que l’on a en appelant un plombier, les conditions écrites qui suppriment chacune d’elles, et le déroulement d’une intervention Aquafix du début à la fin."
+      },
+      "expected": {
+        "title": "Ce que nous promettons vraiment · Aquafix",
+        "description": "Les quatre craintes que l’on a en appelant un plombier, les conditions écrites qui suppriment chacune d’elles, et le déroulement d’une intervention Aquafix du début à la fin.",
+        "robots": {
+          "index": false,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://royat.aquafix.top/fr/guarantee",
+          "languages": {
+            "fr-FR": "https://royat.aquafix.top/fr/guarantee",
+            "en": "https://royat.aquafix.top/en/guarantee",
+            "x-default": "https://royat.aquafix.top/fr/guarantee"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "Ce que nous promettons vraiment · Aquafix",
+          "description": "Les quatre craintes que l’on a en appelant un plombier, les conditions écrites qui suppriment chacune d’elles, et le déroulement d’une intervention Aquafix du début à la fin.",
+          "url": "https://royat.aquafix.top/fr/guarantee",
+          "locale": "fr_FR",
+          "alternateLocale": [
+            "en_GB"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=fr&l=royat&p=guarantee",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "royat/fr/about",
+      "kind": "place",
+      "site": "aquafix",
+      "place": {
+        "slug": "royat",
+        "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+        "name": {
+          "fr": "Royat",
+          "en": "Royat"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "2 Av. Abbé Védrine",
+            "postalCode": "63130",
+            "locality": "Royat",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": null,
+          "storefrontPhoto": null,
+          "landmark": null
+        },
+        "serviceArea": null,
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": null,
+        "rating": null
+      },
+      "locale": "fr",
+      "page": "about",
+      "mode": "host",
+      "copy": {
+        "title": "Quatre plombiers et un rayon de 30 km",
+        "description": "Qui se présente chez vous, comment ils sont assurés, et exactement où autour de Royat nous acceptons — ou refusons — de nous déplacer."
+      },
+      "expected": {
+        "title": "Quatre plombiers et un rayon de 30 km · Aquafix",
+        "description": "Qui se présente chez vous, comment ils sont assurés, et exactement où autour de Royat nous acceptons — ou refusons — de nous déplacer.",
+        "robots": {
+          "index": false,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://royat.aquafix.top/fr/about",
+          "languages": {
+            "fr-FR": "https://royat.aquafix.top/fr/about",
+            "en": "https://royat.aquafix.top/en/about",
+            "x-default": "https://royat.aquafix.top/fr/about"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "Quatre plombiers et un rayon de 30 km · Aquafix",
+          "description": "Qui se présente chez vous, comment ils sont assurés, et exactement où autour de Royat nous acceptons — ou refusons — de nous déplacer.",
+          "url": "https://royat.aquafix.top/fr/about",
+          "locale": "fr_FR",
+          "alternateLocale": [
+            "en_GB"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=fr&l=royat&p=about",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "royat/en/home",
+      "kind": "place",
+      "site": "aquafix",
+      "place": {
+        "slug": "royat",
+        "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+        "name": {
+          "fr": "Royat",
+          "en": "Royat"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "2 Av. Abbé Védrine",
+            "postalCode": "63130",
+            "locality": "Royat",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": null,
+          "storefrontPhoto": null,
+          "landmark": null
+        },
+        "serviceArea": null,
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": null,
+        "rating": null
+      },
+      "locale": "en",
+      "page": "home",
+      "mode": "host",
+      "copy": {
+        "title": "Plumber in Royat — fixed price, fixed today",
+        "description": "Plumbers in Royat. A written flat rate before we start, a 2-hour arrival window or the call-out is free, and a 12-month warranty. Published prices for nine jobs."
+      },
+      "expected": {
+        "title": "Aquafix — Plumber in Royat — fixed price, fixed today",
+        "description": "Plumbers in Royat. A written flat rate before we start, a 2-hour arrival window or the call-out is free, and a 12-month warranty. Published prices for nine jobs.",
+        "robots": {
+          "index": false,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://royat.aquafix.top/en",
+          "languages": {
+            "fr-FR": "https://royat.aquafix.top/fr",
+            "en": "https://royat.aquafix.top/en",
+            "x-default": "https://royat.aquafix.top/fr"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "Aquafix — Plumber in Royat — fixed price, fixed today",
+          "description": "Plumbers in Royat. A written flat rate before we start, a 2-hour arrival window or the call-out is free, and a 12-month warranty. Published prices for nine jobs.",
+          "url": "https://royat.aquafix.top/en",
+          "locale": "en_GB",
+          "alternateLocale": [
+            "fr_FR"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=en&l=royat&p=home",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "royat/en/prices",
+      "kind": "place",
+      "site": "aquafix",
+      "place": {
+        "slug": "royat",
+        "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+        "name": {
+          "fr": "Royat",
+          "en": "Royat"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "2 Av. Abbé Védrine",
+            "postalCode": "63130",
+            "locality": "Royat",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": null,
+          "storefrontPhoto": null,
+          "landmark": null
+        },
+        "serviceArea": null,
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": null,
+        "rating": null
+      },
+      "locale": "en",
+      "page": "prices",
+      "mode": "host",
+      "copy": {
+        "title": "Every job, every number",
+        "description": "The full Aquafix price list in Royat: nine jobs, real flat rates including TVA, and the questions everybody asks before booking."
+      },
+      "expected": {
+        "title": "Every job, every number · Aquafix",
+        "description": "The full Aquafix price list in Royat: nine jobs, real flat rates including TVA, and the questions everybody asks before booking.",
+        "robots": {
+          "index": false,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://royat.aquafix.top/en/prices",
+          "languages": {
+            "fr-FR": "https://royat.aquafix.top/fr/prices",
+            "en": "https://royat.aquafix.top/en/prices",
+            "x-default": "https://royat.aquafix.top/fr/prices"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "Every job, every number · Aquafix",
+          "description": "The full Aquafix price list in Royat: nine jobs, real flat rates including TVA, and the questions everybody asks before booking.",
+          "url": "https://royat.aquafix.top/en/prices",
+          "locale": "en_GB",
+          "alternateLocale": [
+            "fr_FR"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=en&l=royat&p=prices",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "royat/en/guarantee",
+      "kind": "place",
+      "site": "aquafix",
+      "place": {
+        "slug": "royat",
+        "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+        "name": {
+          "fr": "Royat",
+          "en": "Royat"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "2 Av. Abbé Védrine",
+            "postalCode": "63130",
+            "locality": "Royat",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": null,
+          "storefrontPhoto": null,
+          "landmark": null
+        },
+        "serviceArea": null,
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": null,
+        "rating": null
+      },
+      "locale": "en",
+      "page": "guarantee",
+      "mode": "host",
+      "copy": {
+        "title": "What we actually promise",
+        "description": "The four things people fear about calling a plumber, the written terms that remove each one, and how an Aquafix job runs start to finish."
+      },
+      "expected": {
+        "title": "What we actually promise · Aquafix",
+        "description": "The four things people fear about calling a plumber, the written terms that remove each one, and how an Aquafix job runs start to finish.",
+        "robots": {
+          "index": false,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://royat.aquafix.top/en/guarantee",
+          "languages": {
+            "fr-FR": "https://royat.aquafix.top/fr/guarantee",
+            "en": "https://royat.aquafix.top/en/guarantee",
+            "x-default": "https://royat.aquafix.top/fr/guarantee"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "What we actually promise · Aquafix",
+          "description": "The four things people fear about calling a plumber, the written terms that remove each one, and how an Aquafix job runs start to finish.",
+          "url": "https://royat.aquafix.top/en/guarantee",
+          "locale": "en_GB",
+          "alternateLocale": [
+            "fr_FR"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=en&l=royat&p=guarantee",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "royat/en/about",
+      "kind": "place",
+      "site": "aquafix",
+      "place": {
+        "slug": "royat",
+        "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+        "name": {
+          "fr": "Royat",
+          "en": "Royat"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "2 Av. Abbé Védrine",
+            "postalCode": "63130",
+            "locality": "Royat",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": null,
+          "storefrontPhoto": null,
+          "landmark": null
+        },
+        "serviceArea": null,
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": null,
+        "rating": null
+      },
+      "locale": "en",
+      "page": "about",
+      "mode": "host",
+      "copy": {
+        "title": "Four plumbers and a 30 km radius",
+        "description": "Who turns up, how they are insured, and exactly where around Royat we will and will not drive."
+      },
+      "expected": {
+        "title": "Four plumbers and a 30 km radius · Aquafix",
+        "description": "Who turns up, how they are insured, and exactly where around Royat we will and will not drive.",
+        "robots": {
+          "index": false,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://royat.aquafix.top/en/about",
+          "languages": {
+            "fr-FR": "https://royat.aquafix.top/fr/about",
+            "en": "https://royat.aquafix.top/en/about",
+            "x-default": "https://royat.aquafix.top/fr/about"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "Four plumbers and a 30 km radius · Aquafix",
+          "description": "Who turns up, how they are insured, and exactly where around Royat we will and will not drive.",
+          "url": "https://royat.aquafix.top/en/about",
+          "locale": "en_GB",
+          "alternateLocale": [
+            "fr_FR"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=en&l=royat&p=about",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "royat-published/fr/home",
+      "kind": "place",
+      "site": "aquafix",
+      "place": {
+        "slug": "royat",
+        "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+        "name": {
+          "fr": "Royat",
+          "en": "Royat"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "2 Av. Abbé Védrine",
+            "postalCode": "63130",
+            "locality": "Royat",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": {
+            "lat": 45.7667,
+            "lng": 3.0514
+          },
+          "storefrontPhoto": "https://cdn.example/royat.jpg",
+          "landmark": {
+            "fr": "En face des thermes",
+            "en": "Opposite the spa"
+          }
+        },
+        "serviceArea": [
+          {
+            "kind": "localities",
+            "names": [
+              "Royat",
+              "Chamalières",
+              "Ceyrat"
+            ]
+          }
+        ],
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": [
+          {
+            "days": [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday"
+            ],
+            "opens": "07:00",
+            "closes": "21:00"
+          }
+        ],
+        "rating": {
+          "value": 4.7,
+          "count": 31,
+          "fetchedAt": "2026-09-20T00:00:00Z"
+        }
+      },
+      "locale": "fr",
+      "page": "home",
+      "mode": "host",
+      "copy": {
+        "title": "Plombier à Royat — prix fixe, réparé aujourd’hui",
+        "description": "Plombiers à Royat. Tarif fixe écrit avant de commencer, une fenêtre d’arrivée de 2 heures ou le déplacement est offert, et une garantie de 12 mois. Prix publiés pour neuf interventions."
+      },
+      "expected": {
+        "title": "Aquafix — Plombier à Royat — prix fixe, réparé aujourd’hui",
+        "description": "Plombiers à Royat. Tarif fixe écrit avant de commencer, une fenêtre d’arrivée de 2 heures ou le déplacement est offert, et une garantie de 12 mois. Prix publiés pour neuf interventions.",
+        "robots": {
+          "index": true,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://royat.aquafix.top/fr",
+          "languages": {
+            "fr-FR": "https://royat.aquafix.top/fr",
+            "en": "https://royat.aquafix.top/en",
+            "x-default": "https://royat.aquafix.top/fr"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "Aquafix — Plombier à Royat — prix fixe, réparé aujourd’hui",
+          "description": "Plombiers à Royat. Tarif fixe écrit avant de commencer, une fenêtre d’arrivée de 2 heures ou le déplacement est offert, et une garantie de 12 mois. Prix publiés pour neuf interventions.",
+          "url": "https://royat.aquafix.top/fr",
+          "locale": "fr_FR",
+          "alternateLocale": [
+            "en_GB"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=fr&l=royat&p=home",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "royat-published/fr/prices",
+      "kind": "place",
+      "site": "aquafix",
+      "place": {
+        "slug": "royat",
+        "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+        "name": {
+          "fr": "Royat",
+          "en": "Royat"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "2 Av. Abbé Védrine",
+            "postalCode": "63130",
+            "locality": "Royat",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": {
+            "lat": 45.7667,
+            "lng": 3.0514
+          },
+          "storefrontPhoto": "https://cdn.example/royat.jpg",
+          "landmark": {
+            "fr": "En face des thermes",
+            "en": "Opposite the spa"
+          }
+        },
+        "serviceArea": [
+          {
+            "kind": "localities",
+            "names": [
+              "Royat",
+              "Chamalières",
+              "Ceyrat"
+            ]
+          }
+        ],
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": [
+          {
+            "days": [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday"
+            ],
+            "opens": "07:00",
+            "closes": "21:00"
+          }
+        ],
+        "rating": {
+          "value": 4.7,
+          "count": 31,
+          "fetchedAt": "2026-09-20T00:00:00Z"
+        }
+      },
+      "locale": "fr",
+      "page": "prices",
+      "mode": "host",
+      "copy": {
+        "title": "Chaque intervention, chaque chiffre",
+        "description": "La liste complète des prix Aquafix à Royat : neuf interventions, de vrais tarifs fixes TTC, et les questions que tout le monde pose avant de réserver."
+      },
+      "expected": {
+        "title": "Chaque intervention, chaque chiffre · Aquafix",
+        "description": "La liste complète des prix Aquafix à Royat : neuf interventions, de vrais tarifs fixes TTC, et les questions que tout le monde pose avant de réserver.",
+        "robots": {
+          "index": true,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://royat.aquafix.top/fr/prices",
+          "languages": {
+            "fr-FR": "https://royat.aquafix.top/fr/prices",
+            "en": "https://royat.aquafix.top/en/prices",
+            "x-default": "https://royat.aquafix.top/fr/prices"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "Chaque intervention, chaque chiffre · Aquafix",
+          "description": "La liste complète des prix Aquafix à Royat : neuf interventions, de vrais tarifs fixes TTC, et les questions que tout le monde pose avant de réserver.",
+          "url": "https://royat.aquafix.top/fr/prices",
+          "locale": "fr_FR",
+          "alternateLocale": [
+            "en_GB"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=fr&l=royat&p=prices",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "royat-published/fr/guarantee",
+      "kind": "place",
+      "site": "aquafix",
+      "place": {
+        "slug": "royat",
+        "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+        "name": {
+          "fr": "Royat",
+          "en": "Royat"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "2 Av. Abbé Védrine",
+            "postalCode": "63130",
+            "locality": "Royat",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": {
+            "lat": 45.7667,
+            "lng": 3.0514
+          },
+          "storefrontPhoto": "https://cdn.example/royat.jpg",
+          "landmark": {
+            "fr": "En face des thermes",
+            "en": "Opposite the spa"
+          }
+        },
+        "serviceArea": [
+          {
+            "kind": "localities",
+            "names": [
+              "Royat",
+              "Chamalières",
+              "Ceyrat"
+            ]
+          }
+        ],
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": [
+          {
+            "days": [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday"
+            ],
+            "opens": "07:00",
+            "closes": "21:00"
+          }
+        ],
+        "rating": {
+          "value": 4.7,
+          "count": 31,
+          "fetchedAt": "2026-09-20T00:00:00Z"
+        }
+      },
+      "locale": "fr",
+      "page": "guarantee",
+      "mode": "host",
+      "copy": {
+        "title": "Ce que nous promettons vraiment",
+        "description": "Les quatre craintes que l’on a en appelant un plombier, les conditions écrites qui suppriment chacune d’elles, et le déroulement d’une intervention Aquafix du début à la fin."
+      },
+      "expected": {
+        "title": "Ce que nous promettons vraiment · Aquafix",
+        "description": "Les quatre craintes que l’on a en appelant un plombier, les conditions écrites qui suppriment chacune d’elles, et le déroulement d’une intervention Aquafix du début à la fin.",
+        "robots": {
+          "index": true,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://royat.aquafix.top/fr/guarantee",
+          "languages": {
+            "fr-FR": "https://royat.aquafix.top/fr/guarantee",
+            "en": "https://royat.aquafix.top/en/guarantee",
+            "x-default": "https://royat.aquafix.top/fr/guarantee"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "Ce que nous promettons vraiment · Aquafix",
+          "description": "Les quatre craintes que l’on a en appelant un plombier, les conditions écrites qui suppriment chacune d’elles, et le déroulement d’une intervention Aquafix du début à la fin.",
+          "url": "https://royat.aquafix.top/fr/guarantee",
+          "locale": "fr_FR",
+          "alternateLocale": [
+            "en_GB"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=fr&l=royat&p=guarantee",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "royat-published/fr/about",
+      "kind": "place",
+      "site": "aquafix",
+      "place": {
+        "slug": "royat",
+        "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+        "name": {
+          "fr": "Royat",
+          "en": "Royat"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "2 Av. Abbé Védrine",
+            "postalCode": "63130",
+            "locality": "Royat",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": {
+            "lat": 45.7667,
+            "lng": 3.0514
+          },
+          "storefrontPhoto": "https://cdn.example/royat.jpg",
+          "landmark": {
+            "fr": "En face des thermes",
+            "en": "Opposite the spa"
+          }
+        },
+        "serviceArea": [
+          {
+            "kind": "localities",
+            "names": [
+              "Royat",
+              "Chamalières",
+              "Ceyrat"
+            ]
+          }
+        ],
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": [
+          {
+            "days": [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday"
+            ],
+            "opens": "07:00",
+            "closes": "21:00"
+          }
+        ],
+        "rating": {
+          "value": 4.7,
+          "count": 31,
+          "fetchedAt": "2026-09-20T00:00:00Z"
+        }
+      },
+      "locale": "fr",
+      "page": "about",
+      "mode": "host",
+      "copy": {
+        "title": "Quatre plombiers et un rayon de 30 km",
+        "description": "Qui se présente chez vous, comment ils sont assurés, et exactement où autour de Royat nous acceptons — ou refusons — de nous déplacer."
+      },
+      "expected": {
+        "title": "Quatre plombiers et un rayon de 30 km · Aquafix",
+        "description": "Qui se présente chez vous, comment ils sont assurés, et exactement où autour de Royat nous acceptons — ou refusons — de nous déplacer.",
+        "robots": {
+          "index": true,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://royat.aquafix.top/fr/about",
+          "languages": {
+            "fr-FR": "https://royat.aquafix.top/fr/about",
+            "en": "https://royat.aquafix.top/en/about",
+            "x-default": "https://royat.aquafix.top/fr/about"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "Quatre plombiers et un rayon de 30 km · Aquafix",
+          "description": "Qui se présente chez vous, comment ils sont assurés, et exactement où autour de Royat nous acceptons — ou refusons — de nous déplacer.",
+          "url": "https://royat.aquafix.top/fr/about",
+          "locale": "fr_FR",
+          "alternateLocale": [
+            "en_GB"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=fr&l=royat&p=about",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "royat-published/en/home",
+      "kind": "place",
+      "site": "aquafix",
+      "place": {
+        "slug": "royat",
+        "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+        "name": {
+          "fr": "Royat",
+          "en": "Royat"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "2 Av. Abbé Védrine",
+            "postalCode": "63130",
+            "locality": "Royat",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": {
+            "lat": 45.7667,
+            "lng": 3.0514
+          },
+          "storefrontPhoto": "https://cdn.example/royat.jpg",
+          "landmark": {
+            "fr": "En face des thermes",
+            "en": "Opposite the spa"
+          }
+        },
+        "serviceArea": [
+          {
+            "kind": "localities",
+            "names": [
+              "Royat",
+              "Chamalières",
+              "Ceyrat"
+            ]
+          }
+        ],
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": [
+          {
+            "days": [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday"
+            ],
+            "opens": "07:00",
+            "closes": "21:00"
+          }
+        ],
+        "rating": {
+          "value": 4.7,
+          "count": 31,
+          "fetchedAt": "2026-09-20T00:00:00Z"
+        }
+      },
+      "locale": "en",
+      "page": "home",
+      "mode": "host",
+      "copy": {
+        "title": "Plumber in Royat — fixed price, fixed today",
+        "description": "Plumbers in Royat. A written flat rate before we start, a 2-hour arrival window or the call-out is free, and a 12-month warranty. Published prices for nine jobs."
+      },
+      "expected": {
+        "title": "Aquafix — Plumber in Royat — fixed price, fixed today",
+        "description": "Plumbers in Royat. A written flat rate before we start, a 2-hour arrival window or the call-out is free, and a 12-month warranty. Published prices for nine jobs.",
+        "robots": {
+          "index": true,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://royat.aquafix.top/en",
+          "languages": {
+            "fr-FR": "https://royat.aquafix.top/fr",
+            "en": "https://royat.aquafix.top/en",
+            "x-default": "https://royat.aquafix.top/fr"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "Aquafix — Plumber in Royat — fixed price, fixed today",
+          "description": "Plumbers in Royat. A written flat rate before we start, a 2-hour arrival window or the call-out is free, and a 12-month warranty. Published prices for nine jobs.",
+          "url": "https://royat.aquafix.top/en",
+          "locale": "en_GB",
+          "alternateLocale": [
+            "fr_FR"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=en&l=royat&p=home",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "royat-published/en/prices",
+      "kind": "place",
+      "site": "aquafix",
+      "place": {
+        "slug": "royat",
+        "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+        "name": {
+          "fr": "Royat",
+          "en": "Royat"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "2 Av. Abbé Védrine",
+            "postalCode": "63130",
+            "locality": "Royat",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": {
+            "lat": 45.7667,
+            "lng": 3.0514
+          },
+          "storefrontPhoto": "https://cdn.example/royat.jpg",
+          "landmark": {
+            "fr": "En face des thermes",
+            "en": "Opposite the spa"
+          }
+        },
+        "serviceArea": [
+          {
+            "kind": "localities",
+            "names": [
+              "Royat",
+              "Chamalières",
+              "Ceyrat"
+            ]
+          }
+        ],
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": [
+          {
+            "days": [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday"
+            ],
+            "opens": "07:00",
+            "closes": "21:00"
+          }
+        ],
+        "rating": {
+          "value": 4.7,
+          "count": 31,
+          "fetchedAt": "2026-09-20T00:00:00Z"
+        }
+      },
+      "locale": "en",
+      "page": "prices",
+      "mode": "host",
+      "copy": {
+        "title": "Every job, every number",
+        "description": "The full Aquafix price list in Royat: nine jobs, real flat rates including TVA, and the questions everybody asks before booking."
+      },
+      "expected": {
+        "title": "Every job, every number · Aquafix",
+        "description": "The full Aquafix price list in Royat: nine jobs, real flat rates including TVA, and the questions everybody asks before booking.",
+        "robots": {
+          "index": true,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://royat.aquafix.top/en/prices",
+          "languages": {
+            "fr-FR": "https://royat.aquafix.top/fr/prices",
+            "en": "https://royat.aquafix.top/en/prices",
+            "x-default": "https://royat.aquafix.top/fr/prices"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "Every job, every number · Aquafix",
+          "description": "The full Aquafix price list in Royat: nine jobs, real flat rates including TVA, and the questions everybody asks before booking.",
+          "url": "https://royat.aquafix.top/en/prices",
+          "locale": "en_GB",
+          "alternateLocale": [
+            "fr_FR"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=en&l=royat&p=prices",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "royat-published/en/guarantee",
+      "kind": "place",
+      "site": "aquafix",
+      "place": {
+        "slug": "royat",
+        "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+        "name": {
+          "fr": "Royat",
+          "en": "Royat"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "2 Av. Abbé Védrine",
+            "postalCode": "63130",
+            "locality": "Royat",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": {
+            "lat": 45.7667,
+            "lng": 3.0514
+          },
+          "storefrontPhoto": "https://cdn.example/royat.jpg",
+          "landmark": {
+            "fr": "En face des thermes",
+            "en": "Opposite the spa"
+          }
+        },
+        "serviceArea": [
+          {
+            "kind": "localities",
+            "names": [
+              "Royat",
+              "Chamalières",
+              "Ceyrat"
+            ]
+          }
+        ],
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": [
+          {
+            "days": [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday"
+            ],
+            "opens": "07:00",
+            "closes": "21:00"
+          }
+        ],
+        "rating": {
+          "value": 4.7,
+          "count": 31,
+          "fetchedAt": "2026-09-20T00:00:00Z"
+        }
+      },
+      "locale": "en",
+      "page": "guarantee",
+      "mode": "host",
+      "copy": {
+        "title": "What we actually promise",
+        "description": "The four things people fear about calling a plumber, the written terms that remove each one, and how an Aquafix job runs start to finish."
+      },
+      "expected": {
+        "title": "What we actually promise · Aquafix",
+        "description": "The four things people fear about calling a plumber, the written terms that remove each one, and how an Aquafix job runs start to finish.",
+        "robots": {
+          "index": true,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://royat.aquafix.top/en/guarantee",
+          "languages": {
+            "fr-FR": "https://royat.aquafix.top/fr/guarantee",
+            "en": "https://royat.aquafix.top/en/guarantee",
+            "x-default": "https://royat.aquafix.top/fr/guarantee"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "What we actually promise · Aquafix",
+          "description": "The four things people fear about calling a plumber, the written terms that remove each one, and how an Aquafix job runs start to finish.",
+          "url": "https://royat.aquafix.top/en/guarantee",
+          "locale": "en_GB",
+          "alternateLocale": [
+            "fr_FR"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=en&l=royat&p=guarantee",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "royat-published/en/about",
+      "kind": "place",
+      "site": "aquafix",
+      "place": {
+        "slug": "royat",
+        "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+        "name": {
+          "fr": "Royat",
+          "en": "Royat"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "2 Av. Abbé Védrine",
+            "postalCode": "63130",
+            "locality": "Royat",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": {
+            "lat": 45.7667,
+            "lng": 3.0514
+          },
+          "storefrontPhoto": "https://cdn.example/royat.jpg",
+          "landmark": {
+            "fr": "En face des thermes",
+            "en": "Opposite the spa"
+          }
+        },
+        "serviceArea": [
+          {
+            "kind": "localities",
+            "names": [
+              "Royat",
+              "Chamalières",
+              "Ceyrat"
+            ]
+          }
+        ],
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": [
+          {
+            "days": [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday"
+            ],
+            "opens": "07:00",
+            "closes": "21:00"
+          }
+        ],
+        "rating": {
+          "value": 4.7,
+          "count": 31,
+          "fetchedAt": "2026-09-20T00:00:00Z"
+        }
+      },
+      "locale": "en",
+      "page": "about",
+      "mode": "host",
+      "copy": {
+        "title": "Four plumbers and a 30 km radius",
+        "description": "Who turns up, how they are insured, and exactly where around Royat we will and will not drive."
+      },
+      "expected": {
+        "title": "Four plumbers and a 30 km radius · Aquafix",
+        "description": "Who turns up, how they are insured, and exactly where around Royat we will and will not drive.",
+        "robots": {
+          "index": true,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://royat.aquafix.top/en/about",
+          "languages": {
+            "fr-FR": "https://royat.aquafix.top/fr/about",
+            "en": "https://royat.aquafix.top/en/about",
+            "x-default": "https://royat.aquafix.top/fr/about"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "Four plumbers and a 30 km radius · Aquafix",
+          "description": "Who turns up, how they are insured, and exactly where around Royat we will and will not drive.",
+          "url": "https://royat.aquafix.top/en/about",
+          "locale": "en_GB",
+          "alternateLocale": [
+            "fr_FR"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=en&l=royat&p=about",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "brand/fr",
+      "kind": "brand",
+      "site": "aquafix",
+      "locale": "fr",
+      "copy": {
+        "title": "Aquafix — plombiers chauffagistes à Clermont-Ferrand et Lyon",
+        "description": "Aquafix, plomberie et chauffage : un tarif fixe écrit avant les travaux, une fenêtre d’arrivée de 2 heures et une garantie de 12 mois. Six points entre Clermont-Ferrand et Lyon."
+      },
+      "expected": {
+        "title": "Aquafix — plombiers chauffagistes à Clermont-Ferrand et Lyon",
+        "description": "Aquafix, plomberie et chauffage : un tarif fixe écrit avant les travaux, une fenêtre d’arrivée de 2 heures et une garantie de 12 mois. Six points entre Clermont-Ferrand et Lyon.",
+        "alternates": {
+          "canonical": "https://aquafix.top/fr",
+          "languages": {
+            "fr-FR": "https://aquafix.top/fr",
+            "en": "https://aquafix.top/en",
+            "x-default": "https://aquafix.top/fr"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "Aquafix — plombiers chauffagistes à Clermont-Ferrand et Lyon",
+          "description": "Aquafix, plomberie et chauffage : un tarif fixe écrit avant les travaux, une fenêtre d’arrivée de 2 heures et une garantie de 12 mois. Six points entre Clermont-Ferrand et Lyon.",
+          "url": "https://aquafix.top/fr",
+          "locale": "fr_FR",
+          "alternateLocale": [
+            "en_GB"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=fr",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "status/fr",
+      "kind": "status",
+      "site": "aquafix",
+      "copy": {
+        "title": "Demande reçue"
+      },
+      "expected": {
+        "title": "Demande reçue · Aquafix",
+        "robots": {
+          "index": false,
+          "follow": false
+        }
+      }
+    },
+    {
+      "name": "brand/en",
+      "kind": "brand",
+      "site": "aquafix",
+      "locale": "en",
+      "copy": {
+        "title": "Aquafix — plumbers in Clermont-Ferrand and Lyon",
+        "description": "Aquafix plumbing and heating: a written flat rate before work starts, a 2-hour arrival window and a 12-month warranty. Six points across Clermont-Ferrand and Lyon."
+      },
+      "expected": {
+        "title": "Aquafix — plumbers in Clermont-Ferrand and Lyon",
+        "description": "Aquafix plumbing and heating: a written flat rate before work starts, a 2-hour arrival window and a 12-month warranty. Six points across Clermont-Ferrand and Lyon.",
+        "alternates": {
+          "canonical": "https://aquafix.top/en",
+          "languages": {
+            "fr-FR": "https://aquafix.top/fr",
+            "en": "https://aquafix.top/en",
+            "x-default": "https://aquafix.top/fr"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "Aquafix — plumbers in Clermont-Ferrand and Lyon",
+          "description": "Aquafix plumbing and heating: a written flat rate before work starts, a 2-hour arrival window and a 12-month warranty. Six points across Clermont-Ferrand and Lyon.",
+          "url": "https://aquafix.top/en",
+          "locale": "en_GB",
+          "alternateLocale": [
+            "fr_FR"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=en",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    },
+    {
+      "name": "status/en",
+      "kind": "status",
+      "site": "aquafix",
+      "copy": {
+        "title": "Request received"
+      },
+      "expected": {
+        "title": "Request received · Aquafix",
+        "robots": {
+          "index": false,
+          "follow": false
+        }
+      }
+    },
+    {
+      "name": "royat/fr/home (path mode)",
+      "kind": "place",
+      "site": "aquafix",
+      "place": {
+        "slug": "royat",
+        "gbpName": "Aquafix Plombier Chauffagiste - Clermont-Ferrand, Royat",
+        "name": {
+          "fr": "Royat",
+          "en": "Royat"
+        },
+        "presence": {
+          "kind": "storefront",
+          "address": {
+            "street": "2 Av. Abbé Védrine",
+            "postalCode": "63130",
+            "locality": "Royat",
+            "region": "Auvergne-Rhône-Alpes",
+            "country": "FR"
+          },
+          "geo": null,
+          "storefrontPhoto": null,
+          "landmark": null
+        },
+        "serviceArea": null,
+        "channels": {
+          "phone": null,
+          "whatsapp": null
+        },
+        "hours": null,
+        "rating": null
+      },
+      "locale": "fr",
+      "page": "home",
+      "mode": "path",
+      "copy": {
+        "title": "Plombier à Royat — prix fixe, réparé aujourd’hui",
+        "description": "Plombiers à Royat. Tarif fixe écrit avant de commencer, une fenêtre d’arrivée de 2 heures ou le déplacement est offert, et une garantie de 12 mois. Prix publiés pour neuf interventions."
+      },
+      "expected": {
+        "title": "Aquafix — Plombier à Royat — prix fixe, réparé aujourd’hui",
+        "description": "Plombiers à Royat. Tarif fixe écrit avant de commencer, une fenêtre d’arrivée de 2 heures ou le déplacement est offert, et une garantie de 12 mois. Prix publiés pour neuf interventions.",
+        "robots": {
+          "index": false,
+          "follow": true
+        },
+        "alternates": {
+          "canonical": "https://royat.aquafix.top/fr",
+          "languages": {
+            "fr-FR": "https://royat.aquafix.top/fr",
+            "en": "https://royat.aquafix.top/en",
+            "x-default": "https://royat.aquafix.top/fr"
+          }
+        },
+        "openGraph": {
+          "type": "website",
+          "siteName": "Aquafix",
+          "title": "Aquafix — Plombier à Royat — prix fixe, réparé aujourd’hui",
+          "description": "Plombiers à Royat. Tarif fixe écrit avant de commencer, une fenêtre d’arrivée de 2 heures ou le déplacement est offert, et une garantie de 12 mois. Prix publiés pour neuf interventions.",
+          "url": "https://royat.aquafix.top/fr",
+          "locale": "fr_FR",
+          "alternateLocale": [
+            "en_GB"
+          ],
+          "images": [
+            {
+              "url": "https://aquafix.top/og?lang=fr&l=royat&p=home",
+              "width": 1200,
+              "height": 630
+            }
+          ]
+        },
+        "twitter": {
+          "card": "summary_large_image"
+        }
+      }
+    }
+  ]
+}
