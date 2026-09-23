@@ -68,7 +68,13 @@ export function createPlaceSource<L extends string, P extends string>(site: Site
     } catch (cause) {
       return { kind: "unreachable", cause };
     }
-    if (response.status === 404) return { kind: "missing" };
+    // Withdrawn is the source's own word: a 410, or a 404 it answered in its
+    // JSON. A bare 404 is as likely an ingress with no route yet — a failing
+    // source, which keeps the baked place.
+    if (response.status === 410) return { kind: "missing" };
+    if (response.status === 404) {
+      return response.headers.get("content-type")?.includes("application/json") ? { kind: "missing" } : { kind: "failed", status: 404 };
+    }
     if (!response.ok) return { kind: "failed", status: response.status };
     try {
       return { kind: "live", place: mergeLive(baked, parsePlaceLive(await response.json(), site.i18n.locales)) };
