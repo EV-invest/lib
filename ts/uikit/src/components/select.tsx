@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
+import { selectTriggerSizeClasses, type SelectTriggerSize } from "../generated/select";
 import { useControllableState } from "../primitives/use-controllable-state";
 import { useFloating } from "../primitives/use-floating";
 import { useDismissableLayer } from "../primitives/dismissable-layer";
@@ -122,7 +123,7 @@ function textOf(node: unknown): string {
 }
 
 export interface SelectTriggerProps extends React.ComponentProps<"button"> {
-  size?: "sm" | "md";
+  size?: SelectTriggerSize;
 }
 
 export function SelectTrigger({
@@ -149,7 +150,8 @@ export function SelectTrigger({
         setOpen(!open);
       }}
       className={cn(
-        "border-input data-[placeholder]:text-ink-soft [&_svg:not([class*='text-'])]:text-ink-soft focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error flex w-fit items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "border-input data-[placeholder]:text-ink-soft [&_svg:not([class*='text-'])]:text-ink-soft focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error flex w-fit items-center justify-between gap-2 rounded-[var(--control-radius)] border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        selectTriggerSizeClasses[size],
         className,
       )}
       {...(props as Record<string, unknown>)}

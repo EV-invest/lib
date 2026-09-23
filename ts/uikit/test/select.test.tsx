@@ -75,6 +75,23 @@ describe("Select", () => {
     expect(screen.getByRole("combobox")).toHaveAttribute("data-size", "md");
   });
 
+  it("sizes the trigger from the shared form scale", () => {
+    const { unmount } = render(tree());
+    expect(screen.getByRole("combobox")).toHaveClass("h-9", "rounded-[var(--control-radius)]");
+    unmount();
+    render(
+      <Select>
+        <SelectTrigger size="lg">
+          <SelectValue placeholder="Pick" />
+        </SelectTrigger>
+      </Select>,
+    );
+    const trigger = screen.getByRole("combobox");
+    expect(trigger).toHaveAttribute("data-size", "lg");
+    expect(trigger).toHaveClass("h-12", "px-4", "text-base");
+    expect(trigger).not.toHaveClass("text-sm");
+  });
+
   it("shows the chosen item's label, not its value, before the popover ever opened", () => {
     render(tree({ defaultValue: "b" }));
     const value = document.querySelector('[data-slot="select-value"]')!;
