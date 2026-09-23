@@ -509,7 +509,7 @@ fn a_service_area_business_says_where_it_goes_and_never_where_it_is() {
 	for absent in ["\"address\"", "\"geo\"", "\"hasMap\"", "\"image\"", "\"telephone\""] {
 		assert!(!graph.contains(absent), "{absent} in {graph}");
 	}
-	assert!(graph.contains(r#""areaServed":[{"@type":"Place","name":"Paris"},{"@type":"Place","name":"Boulogne-Billancourt"},{"@type":"GeoCircle","geoMidpoint":{"@type":"GeoCoordinates","latitude":48.8566,"longitude":2.3522},"geoRadius":12000}]"#), "{graph}");
+	assert!(graph.contains(r#""areaServed":[{"@type":"City","name":"Paris"},{"@type":"City","name":"Boulogne-Billancourt"},{"@type":"GeoCircle","geoMidpoint":{"@type":"GeoCoordinates","latitude":48.8566,"longitude":2.3522},"geoRadius":12000}]"#), "{graph}");
 	// The offer is priced for the first commune the zone names.
 	assert!(graph.contains(r#""areaServed":{"@type":"City","name":"Paris"}"#), "{graph}");
 	assert!(graph.contains(r#""@id":"https://clean.example/#business""#), "{graph}");

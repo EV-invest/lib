@@ -12,7 +12,7 @@ use jiff::Timestamp;
 
 use super::{
 	json::{Json, Object},
-	place::{Place, ServiceArea},
+	place::{Place, Presence, ServiceArea},
 	site::{Page, PlaceView, Site},
 };
 
@@ -69,9 +69,15 @@ pub fn organization_node(site: &Site) -> Object {
 		.compact()
 }
 
-/// Named communes as `Place`s, a radius as a `GeoCircle`.
+/// A radius as a `GeoCircle`; named communes as `City` for a service-area
+/// business and as `Place` for a storefront — which is what aquafix's indexed
+/// pages already say, so its goldens do not move.
 pub fn area_served_nodes(place: &Place) -> Vec<Object> {
-	let named = place.served_localities().into_iter().map(|name| Object::typed("Place").with("name", name));
+	let commune = match place.presence {
+		Presence::ServiceArea => "City",
+		Presence::Storefront(_) => "Place",
+	};
+	let named = place.served_localities().into_iter().map(|name| Object::typed(commune).with("name", name));
 	let circles = place.service_area.iter().flatten().filter_map(|area| match area {
 		ServiceArea::Radius { center, km } => Some(
 			Object::typed("GeoCircle")
