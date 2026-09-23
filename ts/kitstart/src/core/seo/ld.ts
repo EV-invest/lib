@@ -70,9 +70,14 @@ function days(place: Place<string>): JsonLdNode[] | undefined {
   }));
 }
 
-/** Named communes as `Place`s, a radius as a `GeoCircle`. */
+/**
+ * A radius as a `GeoCircle`; named communes as `City` for a service-area
+ * business (the design's shape, §3.4) and as `Place` for a storefront, which
+ * is what aquafix's indexed pages already say — its goldens do not move.
+ */
 export function areaServedNodes(place: Place<string>): JsonLdNode[] {
-  const named: JsonLdNode[] = servedLocalities(place).map(name => ({ "@type": "Place", name }));
+  const type = place.presence.kind === "service-area" ? "City" : "Place";
+  const named: JsonLdNode[] = servedLocalities(place).map(name => ({ "@type": type, name }));
   const circles: JsonLdNode[] = (place.serviceArea ?? []).flatMap(area =>
     area.kind === "radius"
       ? [

@@ -74,8 +74,8 @@ describe("a service-area business in schema.org", () => {
   it("says where it goes: its communes and its radius", () => {
     expect(node).toMatchObject({
       areaServed: [
-        { "@type": "Place", name: "Royat" },
-        { "@type": "Place", name: "Ceyrat" },
+        { "@type": "City", name: "Royat" },
+        { "@type": "City", name: "Ceyrat" },
         { "@type": "GeoCircle", geoMidpoint: { "@type": "GeoCoordinates", latitude: 45.77, longitude: 3.05 }, geoRadius: 15000 },
       ],
     });
