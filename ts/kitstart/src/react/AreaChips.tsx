@@ -1,4 +1,4 @@
-import { cx } from "./cx";
+import { cn } from "@evinvest/uikit";
 
 /**
  * Where the van goes, as chips. A visitor's first question is whether you
@@ -7,7 +7,7 @@ import { cx } from "./cx";
 export function AreaChips({ areas, className }: { areas: readonly string[]; className?: string }) {
   if (areas.length === 0) return null;
   return (
-    <ul className={cx("flex flex-wrap gap-2 md:gap-2.5", className)}>
+    <ul className={cn("flex flex-wrap gap-2 md:gap-2.5", className)}>
       {areas.map(area => (
         <li key={area} className="rounded-full border border-border bg-muted px-4 py-2 text-sm font-medium text-ink-mid">
           {area}

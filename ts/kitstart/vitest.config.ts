@@ -4,6 +4,9 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   esbuild: { jsx: "automatic" },
   resolve: {
+    // The kit and the marketing layer are linked from the workspace, each with
+    // its own `node_modules`; one React instance for all of them, or hooks break.
+    dedupe: ["react", "react-dom", "@evinvest/uikit"],
     alias: {
       // The marker throws outside a React Server bundle; under test the server
       // modules are exercised directly, which is the point.

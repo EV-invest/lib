@@ -1,5 +1,5 @@
+import { cn } from "@evinvest/uikit";
 import { telHref } from "@evinvest/marketing";
-import { cx } from "./cx";
 import type { ReactNode } from "react";
 import { storefrontOf, type Place } from "../core/place/types";
 
@@ -26,7 +26,7 @@ export interface PlaceDirectoryProps<L extends string> {
 export function PlaceDirectory<L extends string>(props: PlaceDirectoryProps<L>) {
   const { places, head, id = "points", className } = props;
   return (
-    <div id={id} className={cx("flex flex-col gap-7 md:gap-10", className)}>
+    <div id={id} className={cn("flex flex-col gap-7 md:gap-10", className)}>
       {head}
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {places.map(place => (

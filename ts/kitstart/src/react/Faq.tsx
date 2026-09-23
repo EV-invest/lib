@@ -1,4 +1,4 @@
-import { cx } from "./cx";
+import { cn } from "@evinvest/uikit";
 import type { ReactNode } from "react";
 import type { QuestionAnswer } from "../core/seo/ld";
 
@@ -16,7 +16,7 @@ export interface FaqProps {
 
 export function Faq({ items, head, id = "faq", className }: FaqProps) {
   return (
-    <div id={id} className={cx("flex flex-col gap-6 md:gap-11", className)}>
+    <div id={id} className={cn("flex flex-col gap-6 md:gap-11", className)}>
       {head}
       <div className="overflow-hidden rounded-xl border border-border bg-background">
         {items.map(item => (

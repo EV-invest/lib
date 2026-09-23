@@ -116,13 +116,13 @@ const SCENARIOS: readonly { name: string; widths: Widths; node: ReactElement }[]
       <QuoteFormShell placeSlug="royat" locale="fr" renderedAt={0} honeypotLabel="Site web" className="max-w-md rounded-xl bg-card p-6">
         <Field className="flex flex-col gap-2">
           <FieldLabel>Intervention</FieldLabel>
-          <NativeSelect name="job" defaultValue="other">
+          <NativeSelect name="job" size="lg" defaultValue="other">
             <NativeSelectOption value="other">Autre</NativeSelectOption>
           </NativeSelect>
         </Field>
         <Field className="flex flex-col gap-2">
           <FieldLabel>Commune ou code postal</FieldLabel>
-          <Input name="zip" placeholder="63130" />
+          <Input name="zip" size="lg" placeholder="63130" />
         </Field>
         <Button type="submit" size="xl">
           Recevoir le prix

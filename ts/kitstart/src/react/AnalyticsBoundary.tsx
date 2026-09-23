@@ -1,8 +1,6 @@
 "use client";
 
-// TODO(EV-invest/lib#141): import `ContactLinkTracker` from
-// `@evinvest/marketing/tracker`, which carries no motion; `./react` does.
-import { ContactLinkTracker } from "@evinvest/marketing/react";
+import { ContactLinkTracker } from "@evinvest/marketing/tracker";
 import { usePathname } from "next/navigation.js";
 import { useEffect, useMemo, type ReactNode } from "react";
 import { analyticsSink, countsAsPageView, EVENTS, type AnalyticsTarget, type IntentChannel } from "../core/analytics";

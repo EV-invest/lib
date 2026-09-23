@@ -1,9 +1,7 @@
 "use client";
 
-// TODO(EV-invest/lib#141): import `ClickToLoad` from `@evinvest/marketing/click-to-load`
-// once it exists; `./react` is one client bundle with motion in it.
-import { ClickToLoad } from "@evinvest/marketing/react";
-import { cx } from "./cx";
+import { ClickToLoad } from "@evinvest/marketing/click-to-load";
+import { cn } from "@evinvest/uikit";
 
 /**
  * Google's map behind a click. Until the visitor asks, the page holds a button
@@ -27,7 +25,7 @@ export function MapFacade({ query, title, show, address, className }: MapFacadeP
   const src = `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
   return (
     <ClickToLoad
-      className={cx("relative aspect-video w-full overflow-hidden rounded-xl border border-border bg-muted md:aspect-[21/9]", className)}
+      className={cn("relative aspect-video w-full overflow-hidden rounded-xl border border-border bg-muted md:aspect-[21/9]", className)}
       placeholder={load => (
         <button type="button" onClick={load} className="flex size-full flex-col items-center justify-center gap-2 px-6 text-center hover:bg-hover">
           <span className="font-display text-lg font-bold text-ink">{show}</span>

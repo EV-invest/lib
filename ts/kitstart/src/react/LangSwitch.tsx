@@ -1,4 +1,4 @@
-import { cx } from "./cx";
+import { cn } from "@evinvest/uikit";
 
 /**
  * `FR · EN`, each linking to the same page in that language. The `?lang=` is
@@ -16,7 +16,7 @@ export interface LangSwitchProps<L extends string> {
 
 export function LangSwitch<L extends string>({ current, locales, hrefs, className }: LangSwitchProps<L>) {
   return (
-    <span className={cx("flex items-center gap-1.5", className)}>
+    <span className={cn("flex items-center gap-1.5", className)}>
       {locales.map((locale, i) => (
         <span key={locale} className="flex items-center gap-1.5">
           {i > 0 && <span className="opacity-40">·</span>}

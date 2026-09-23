@@ -20,13 +20,14 @@ export { QuoteFormShell, type QuoteFormShellProps } from "./QuoteFormShell";
 export { StatusScreen, type StatusScreenProps } from "./StatusScreen";
 
 // The kit's pieces a landing composes with, by name — the list is the surface.
-// TODO(EV-invest/lib#140): once the kit ships one module per file, these stop
-// dragging its client half into a page that only renders a `Button`, and
-// `cn` / `buttonVariants` become callable on the server and join the list.
+// The kit ships one module per file with its own boundary, so a page that
+// renders a `Button` pays for the button, and `cn` works on the server.
 export {
   Badge,
   Button,
+  buttonVariants,
   Check,
+  cn,
   Display,
   Eyebrow,
   Field,
@@ -41,5 +42,5 @@ export {
   Textarea,
 } from "@evinvest/uikit";
 export { JsonLd } from "@evinvest/marketing";
-// TODO(EV-invest/lib#141): from `@evinvest/marketing/tracker` and `/click-to-load`.
-export { ClickToLoad, ContactLinkTracker } from "@evinvest/marketing/react";
+export { ClickToLoad } from "@evinvest/marketing/click-to-load";
+export { ContactLinkTracker } from "@evinvest/marketing/tracker";

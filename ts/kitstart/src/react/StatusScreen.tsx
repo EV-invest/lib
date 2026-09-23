@@ -1,6 +1,5 @@
 import { telHref } from "@evinvest/marketing";
-import { Button, Check } from "@evinvest/uikit";
-import { cx } from "./cx";
+import { Button, Check, cn } from "@evinvest/uikit";
 import type { ReactNode } from "react";
 import type { CopySlice, StatusAction, StatusCopy, StatusScreenText } from "../core/content";
 import type { StatusTarget } from "../core/status";
@@ -45,7 +44,7 @@ export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>
   const primary = action(status.primary) ?? action("home");
   const secondary = action(status.secondary);
   return (
-    <div className={cx("relative flex min-h-screen flex-col bg-background", className)}>
+    <div className={cn("relative flex min-h-screen flex-col bg-background", className)}>
       <header className="relative flex items-center gap-5 border-b border-border px-5 py-4 md:px-12 md:py-5">
         <a href={target.home} aria-label={brandName} className="text-ink">
           {logo ?? <span className="font-display text-xl font-bold">{brandName}</span>}
