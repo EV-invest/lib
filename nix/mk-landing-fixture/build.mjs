@@ -3,7 +3,10 @@
 // /health, the bare URL's 302, a page, the OG card, a form POST whose lead
 // lands in the data mount — and a 500 everywhere without its prod env.
 import { mkdirSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 
+// The vendored dependency installed from its override, not the registry.
+if (createRequire(import.meta.url)("fixture-vendored") !== "vendored") throw new Error("fixture-vendored missing");
 const chunk = "self.__chunk=" + JSON.stringify("x".repeat(4096)) + ";";
 mkdirSync(".next/standalone/.next/static/chunks", { recursive: true });
 mkdirSync(".next/standalone/assets/fonts", { recursive: true });

@@ -140,6 +140,9 @@
             containerAttr = ".#mk-landing-fixture-container";
             # The stand-in builds no kitstart landing, so it locks no kitstart.
             checkKitstartVersion = false;
+            # A package the registry does not have (its `resolved` 404s), served
+            # from a vendored tarball — how a brand builds before a release.
+            packageSourceOverrides."node_modules/fixture-vendored" = ./nix/mk-landing-fixture/vendor/fixture-vendored-1.0.0.tgz;
           };
 
           # ── Visual regression (rust/tests/visual) ───────────────────────────
