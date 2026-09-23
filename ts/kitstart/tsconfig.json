@@ -29,9 +29,5 @@
     "test",
     "vitest.config.ts",
     "eslint.config.mjs"
-  ],
-  "exclude": [
-    "test/visual/gallery.spec.ts",
-    "test/visual/playwright.config.ts"
   ]
 }
