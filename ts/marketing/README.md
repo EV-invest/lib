@@ -22,9 +22,9 @@ none yet.
 **Zero runtime dependencies.** Peers:
 
 - `react` 18 or 19 — required;
-- `motion` 12 or 13 — **optional**, needed by `./react` (the motion
+- `motion` 12 or 13 — **optional**, needed by `./motion` and `./react` (the motion
   primitives);
-- `@evinvest/uikit` ≥ 0.18 — **optional**, needed by `./react` (`TextField`
+- `@evinvest/uikit` ≥ 0.18 — **optional**, needed by `./form`, `./click-to-load` and `./react` (`TextField`
   is built on its `Field` / `Input` / `Textarea`; classes use only its tokens).
 
 Both are optional because the `.` core imports neither; a consumer of
@@ -171,7 +171,7 @@ export const validateLead = (f: { name: string; phone: string }) =>
 ```tsx
 // lead-form.tsx
 "use client";
-import { SentPanel, TextField, useValidatedForm } from "@evinvest/marketing/react";
+import { SentPanel, TextField, useValidatedForm } from "@evinvest/marketing/form";
 
 const form = useValidatedForm({
   initial: { name: "", phone: "" },
@@ -205,7 +205,7 @@ return (
 ## Contact-link tracking
 
 ```tsx
-import { ContactLinkTracker } from "@evinvest/marketing/react";
+import { ContactLinkTracker } from "@evinvest/marketing/tracker";
 
 <ContactLinkTracker onContact={({ channel, href, data }) => capture("contact_clicked", { channel, ...data })}>
   {children}
@@ -229,7 +229,7 @@ live in the core, so links are built and classified by the same rule.
 ## Click-to-load facade
 
 ```tsx
-import { ClickToLoad, YouTubeFacade } from "@evinvest/marketing/react";
+import { ClickToLoad, YouTubeFacade } from "@evinvest/marketing/click-to-load";
 
 <ClickToLoad
   className="relative aspect-video"
