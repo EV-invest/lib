@@ -44,7 +44,7 @@ describe("the declared peers", () => {
   it("are what the sources import", () => {
     const manifest = JSON.parse(readFileSync(join(SRC, "../package.json"), "utf8"));
     const imported = new Set<string>();
-    for (const dir of ["core", "server", "next", "proxy", "react"]) {
+    for (const dir of ["core", "server", "next", "proxy", "react", "testing", "cli"]) {
       for (const { text } of files(dir)) {
         for (const [, spec = ""] of text.matchAll(/from\s+"([^."][^"]*)"/g)) {
           if (spec.startsWith("node:")) continue;
