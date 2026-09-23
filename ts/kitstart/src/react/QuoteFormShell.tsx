@@ -15,7 +15,11 @@ export interface QuoteFormShellProps {
   /** The place the lead is for, or `null` on the brand's own pages. */
   placeSlug: string | null;
   locale: string;
-  /** When the page rendered, ms since the epoch: the time trap's stamp. */
+  /**
+   * When the page rendered, ms since the epoch: the time trap's stamp. Under
+   * ISR that is when the cache was filled, not when the visitor arrived — so
+   * the stamp only ever marks a lead `too-fast`, it never withholds one.
+   */
   renderedAt: number;
   /** The honeypot's label — read only by a bot filling every field. */
   honeypotLabel: string;
@@ -25,6 +29,9 @@ export interface QuoteFormShellProps {
   className?: string;
   children: ReactNode;
 }
+
+/** The mobile field's attributes: the numeric keypad and the phone's autofill. */
+export const PHONE_INPUT_PROPS = { type: "tel", inputMode: "tel", autoComplete: "tel" } as const;
 
 export function QuoteFormShell(props: QuoteFormShellProps) {
   const { placeSlug, locale, renderedAt, honeypotLabel, formId = "quote", action = "/quote", id = "quote", className, children } = props;

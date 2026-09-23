@@ -29,7 +29,9 @@ function source(): string {
  * is read from the container when the page renders, never inlined.
  */
 export function AnalyticsBoundary({ target, placeSlug, children }: { target: AnalyticsTarget; placeSlug: string | null; children: ReactNode }) {
-  const sink = useMemo(() => analyticsSink(target, placeSlug), [target, placeSlug]);
+  // On the target's values: a server layout hands a fresh object every render.
+  const { key, host, brandId } = target;
+  const sink = useMemo(() => analyticsSink({ key, host, brandId }, placeSlug), [key, host, brandId, placeSlug]);
   const pathname = usePathname();
 
   useEffect(() => {

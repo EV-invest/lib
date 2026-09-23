@@ -40,16 +40,25 @@ export function ogRoute<L extends string, P extends string>(
 ): (request: Request) => Promise<Response> {
   const width = options.width ?? 1200;
   const height = options.height ?? 630;
+  // Read once per process, like the cards; a failed read is retried next time.
+  let fonts: Promise<OgFont[]> | undefined;
+  const loadFonts = (): Promise<OgFont[]> => {
+    fonts ??= options.fonts().catch((error: unknown) => {
+      fonts = undefined;
+      throw error;
+    });
+    return fonts;
+  };
   const card = memoByKey(async (key: string): Promise<ArrayBuffer> => {
     const [slug = "", lang = "", p = ""] = key.split("|");
     const locale = site.i18n.isLocale(lang) ? lang : site.i18n.defaultLocale;
     const page = site.pageKeys.find(k => k === p) ?? "home";
-    const fonts = await options.fonts();
+    const faces = await loadFonts();
     // An empty list would replace `next/og`'s bundled face with nothing.
     const image = new ImageResponse(options.draw({ locale, place: bakedPlace(site, slug) ?? null, page }), {
       width,
       height,
-      ...(fonts.length > 0 ? { fonts } : {}),
+      ...(faces.length > 0 ? { fonts: faces } : {}),
     });
     return image.arrayBuffer();
   });

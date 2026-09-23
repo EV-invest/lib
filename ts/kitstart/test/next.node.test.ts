@@ -3,10 +3,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createPlaceView, statusTarget, type Lead, type LeadStore, type Place } from "../src/index";
+import { brandStatusTarget, createPlaceView, statusTarget, type Lead, type LeadStore, type Place } from "../src/index";
 import { brandMetadata, createPlaceLoader, healthRoute, ogRoute, placeMetadata, quoteRoute, statusMetadata } from "../src/next/index";
 import { buildEnv, withLanding } from "../src/next/config/index";
-import { createProxy, PROXY_MATCHER } from "../src/proxy/index";
+import { createProxy, GONE_HEADER, PROXY_MATCHER } from "../src/proxy/index";
 import { createPlaceSource } from "../src/server/index";
 import { fixture, fixtureSite } from "./support/fixtures";
 
@@ -70,9 +70,44 @@ describe("the proxy", () => {
     expect(res.headers.get("x-middleware-override-headers")).toBeNull();
   });
 
+  it("sends a dead path to the 404 route, telling it the language and the place", () => {
+    const res = proxy(request("https://royat.aquafix.top/fr/nope", { host: "royat.aquafix.top" }));
+    expect(new URL(res.headers.get("x-middleware-rewrite") ?? "").pathname).toBe("/fr/404/404");
+    expect(res.headers.get(`x-middleware-request-${GONE_HEADER}`)).toBe("fr/_royat");
+    const junk = proxy(request("https://aquafix.top/wp-admin", { "accept-language": "en" }));
+    expect(new URL(junk.headers.get("x-middleware-rewrite") ?? "").pathname).toBe("/en/404/404");
+    expect(junk.headers.get(`x-middleware-request-${GONE_HEADER}`)).toBe("en");
+  });
+
+  it("strips a client-sent gone header on every onward branch", () => {
+    for (const url of ["https://aquafix.top/quote", "https://aquafix.top/fr", "https://royat.aquafix.top/fr/prices"]) {
+      const res = proxy(request(url, { host: new URL(url).host, [GONE_HEADER]: "en/_lyon-nord" }));
+      expect(res.headers.get("x-middleware-override-headers")?.split(","), url).not.toContain(GONE_HEADER);
+      expect(res.headers.get(`x-middleware-request-${GONE_HEADER}`), url).toBeNull();
+    }
+  });
+
+  it("keeps a per-visitor redirect out of every cache", () => {
+    expect(proxy(request("https://aquafix.top/")).headers.get("cache-control")).toBe("private, no-store");
+    expect(proxy(request("https://aquafix.top/fr?lang=en")).headers.get("cache-control")).toBe("private, no-store");
+  });
+
   it("publishes the matcher a brand's proxy.ts spells out", () => {
     expect(new RegExp(`^${PROXY_MATCHER}$`).test("/fr/prices")).toBe(true);
     expect(new RegExp(`^${PROXY_MATCHER}$`).test("/_next/static/x.js")).toBe(false);
+  });
+});
+
+describe("the brand's status target for a client boundary", () => {
+  it("needs two facts, not the site", () => {
+    expect(brandStatusTarget({ locales: ["fr", "en"], phone: null }, "en", { retry: "/en/x" })).toEqual({
+      locale: "en",
+      place: null,
+      phone: null,
+      home: "/en",
+      retry: "/en/x",
+      langHrefs: { fr: "/fr", en: "/en" },
+    });
   });
 });
 
@@ -130,7 +165,7 @@ describe("the quote route", () => {
   };
   const route = (store: LeadStore, log = { warn: vi.fn(), error: vi.fn() }) =>
     quoteRoute(site, {
-      env: () => ({ leadsDb: { kind: "sqlite", path: ":memory:" }, posthogKey: null, posthogHost: "https://eu.i.posthog.com" }),
+      env: () => ({ leadsDb: { kind: "sqlite", path: ":memory:" }, posthogKey: null, posthogHost: "https://eu.i.posthog.com", trustedProxy: null }),
       notifier: () => ({ notify: async () => undefined }),
       unavailable: locale => ({ title: `500 ${locale}`, heading: "Oops <b>", body: "Call us", callLabel: "Call" }),
       store: () => store,
@@ -150,7 +185,7 @@ describe("the quote route", () => {
 
   it("sends an invalid lead back to the form, and a lead with no place to the brand", async () => {
     const res = await quoteRoute({ ...site, lead: { ...site.lead, validate: () => "no" } }, {
-      env: () => ({ leadsDb: { kind: "sqlite", path: ":memory:" }, posthogKey: null, posthogHost: "x" }),
+      env: () => ({ leadsDb: { kind: "sqlite", path: ":memory:" }, posthogKey: null, posthogHost: "x", trustedProxy: null }),
       notifier: () => ({ notify: async () => undefined }),
       unavailable: () => ({ title: "", heading: "", body: "", callLabel: "" }),
       store: () => memory(),
@@ -167,6 +202,31 @@ describe("the quote route", () => {
     expect(html).toContain('href="tel:+33423500640"');
     expect(html).toContain("Oops &lt;b&gt;");
     expect(html).toContain('name="robots" content="noindex"');
+  });
+
+  it("cuts a chunked body off at 64 KiB, whatever Content-Length says", async () => {
+    const chunk = new Uint8Array(16 * 1024).fill(97);
+    const body = new ReadableStream<Uint8Array>({
+      start(c) {
+        for (let i = 0; i < 8; i++) c.enqueue(chunk);
+        c.close();
+      },
+    });
+    const req = new Request("https://aquafix.top/quote", { method: "POST", body, headers: { "content-type": "application/x-www-form-urlencoded" }, duplex: "half" } as RequestInit);
+    expect((await route(memory())(req)).status).toBe(413);
+  });
+
+  it("answers the phone page, not a bare 500, when the environment is unusable", async () => {
+    const res = await quoteRoute(site, {
+      env: () => {
+        throw new Error("LEADS_DB_URL is not a URL");
+      },
+      notifier: () => ({ notify: async () => undefined }),
+      unavailable: () => ({ title: "t", heading: "h", body: "b", callLabel: "Call" }),
+      log: { warn: vi.fn(), error: vi.fn() },
+    })(post({}));
+    expect(res.status).toBe(500);
+    expect(await res.text()).toContain('href="tel:+33423500640"');
   });
 
   it("refuses an oversized body and a body that is not a form", async () => {
@@ -193,8 +253,9 @@ describe("the OG route", () => {
 describe("health", () => {
   it("answers ok, or 503 when the brand's check fails", async () => {
     expect((await healthRoute()()).status).toBe(200);
-    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     expect((await healthRoute(async () => Promise.reject(new Error("db")))()).status).toBe(503);
+    spy.mockRestore();
   });
 });
 
@@ -217,7 +278,7 @@ describe("withLanding", () => {
       expireTime: 86_400,
       images: { unoptimized: true },
       outputFileTracingIncludes: { "/og": ["./assets/fonts/*.ttf"] },
-      experimental: { isrFlushToDisk: false, typedEnv: true },
+      experimental: { isrFlushToDisk: false, globalNotFound: true, typedEnv: true },
       env: { EXTRA: "1", SITE_CARD_EMAIL: "hi@clean.example" },
     });
   });

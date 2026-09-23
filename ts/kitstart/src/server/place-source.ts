@@ -41,6 +41,12 @@ export interface PlaceSource<L extends string> {
    * 5xx tells it to keep its last copy.
    */
   listPlaces(locale: L, mode: "page" | "sitemap"): Promise<Place<L>[]>;
+  /**
+   * One place, strictly — for a sitemap, which lists one host's place and
+   * must fail (a 5xx a crawler retries) rather than shrink. `null` only when
+   * the source withdrew it.
+   */
+  getPlaceStrict(slug: string, locale: L): Promise<Place<L> | null>;
 }
 
 export const PLACE_REVALIDATE_SECONDS = 600;
@@ -68,7 +74,13 @@ export function createPlaceSource<L extends string, P extends string>(site: Site
     } catch (cause) {
       return { kind: "unreachable", cause };
     }
-    if (response.status === 404) return { kind: "missing" };
+    // Withdrawn is the source's own word: a 410, or a 404 it answered in its
+    // JSON. A bare 404 is as likely an ingress with no route yet — a failing
+    // source, which keeps the baked place.
+    if (response.status === 410) return { kind: "missing" };
+    if (response.status === 404) {
+      return response.headers.get("content-type")?.includes("application/json") ? { kind: "missing" } : { kind: "failed", status: 404 };
+    }
     if (!response.ok) return { kind: "failed", status: response.status };
     try {
       return { kind: "live", place: mergeLive(baked, parsePlaceLive(await response.json(), site.i18n.locales)) };
@@ -100,6 +112,24 @@ export function createPlaceSource<L extends string, P extends string>(site: Site
         case "failed":
           log.error(`live place ${slug}: source answered ${fetched.status}, serving baked`);
           return place;
+      }
+    },
+
+    async getPlaceStrict(slug, locale) {
+      const place = baked(slug);
+      if (!place) return null;
+      const base = options.baseUrl();
+      if (!base) return place;
+      const fetched = await fetchOne(base, place, locale);
+      switch (fetched.kind) {
+        case "live":
+          return fetched.place;
+        case "missing":
+          return null;
+        case "unreachable":
+          throw new PlaceSourceError(`place ${slug} unreachable`, { cause: fetched.cause });
+        case "failed":
+          throw new PlaceSourceError(`place ${slug}: source answered ${fetched.status}`);
       }
     },
 

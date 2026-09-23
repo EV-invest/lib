@@ -47,6 +47,8 @@ export function withLanding(config: NextConfig, options: LandingOptions): NextCo
       "*": ["node_modules/sharp/**", "node_modules/@img/**"],
       ...config.outputFileTracingExcludes,
     },
-    experimental: { isrFlushToDisk: false, ...config.experimental },
+    // `app/global-not-found.tsx` answers every path no route matches — the proxy
+    // sends dead paths there (`gone`); the root layout lives under `[locale]`.
+    experimental: { isrFlushToDisk: false, globalNotFound: true, ...config.experimental },
   };
 }

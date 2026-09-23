@@ -5,6 +5,7 @@ import {
   freshRating,
   isPublished,
   mergeLive,
+  parseInstant,
   parsePlaceLive,
   placeUrl,
   publicationGaps,
@@ -59,6 +60,8 @@ describe("the publication gate as a policy", () => {
     if (front.kind !== "storefront") throw new Error("fixture");
     const blank = royat({ presence: { ...front, landmark: { fr: "Place", en: " " } } });
     expect(publicationGaps(blank, STOREFRONT_GATE)).toContain("landmark");
+    const empty = royat({ presence: { ...front, landmark: {} as Record<"fr" | "en", string> } });
+    expect(publicationGaps(empty, STOREFRONT_GATE)).toContain("landmark");
   });
 });
 
@@ -173,6 +176,16 @@ describe("the rating", () => {
     expect(freshRating(rated("2026-08-01T00:00:00Z"), NOW)).toBeNull();
     expect(freshRating(rated("2026-10-01T00:00:00Z"), NOW)).toBeNull();
     expect(freshRating(rated("not a date"), NOW)).toBeNull();
+  });
+
+  it("reads an instant only with an offset, or a bare date as UTC — never in the server's zone", () => {
+    expect(parseInstant("2026-09-20")).toBe(Date.UTC(2026, 8, 20));
+    expect(parseInstant("2026-09-20T10:00:00Z")).toBe(Date.UTC(2026, 8, 20, 10));
+    expect(parseInstant("2026-09-20T12:00:00+02:00")).toBe(Date.UTC(2026, 8, 20, 10));
+    expect(parseInstant("2026-09-01T10:00:00")).toBeNull();
+    expect(parseInstant("Sep 1 2026")).toBeNull();
+    expect(freshRating(rated("2026-09-20T10:00:00"), NOW)).toBeNull();
+    expect(parsePlaceLive({ rating: { value: 4, count: 3, fetchedAt: "2026-09-20T10:00:00" } }, ["fr"])).toEqual({});
   });
 });
 
