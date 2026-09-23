@@ -11,9 +11,9 @@ use std::{collections::BTreeMap, path::PathBuf};
 use jiff::Timestamp;
 
 use super::{
-	BrandFacts, Channels, DayOfWeek, Decision, Geo, Json, LegacyRedirect, LinkMode, Object, OfferInput, OpeningHours, PageGraphCopy, PageMetaCopy, Place, PlaceView, PostalAddress, Presence,
-	PublicationField, QuestionAnswer, Rating, RequestFacts, SERVICE_AREA_GATE, STOREFRONT_GATE, ServiceArea, Site, SiteConfig, Storefront, Topology, brand_meta, decide, place_graph,
-	place_meta, robots_for, sitemap_for, sitemap_json, status_meta,
+	BrandFacts, Channels, DayOfWeek, Decision, Geo, Json, LegacyRedirect, LinkMode, MIN_FILL_MS, Object, OfferInput, OpeningHours, PageGraphCopy, PageMetaCopy, Place, PlaceView,
+	PostalAddress, Presence, PublicationField, QuestionAnswer, RateLimiter, Rating, RequestFacts, SERVICE_AREA_GATE, STOREFRONT_GATE, ServiceArea, Site, SiteConfig, SpamVerdict, Storefront,
+	Submission, Topology, brand_meta, decide, place_graph, place_meta, robots_for, screen, sitemap_for, sitemap_json, status_meta,
 };
 use crate::i18n::{LocaleRegistry, LocaleRegistryConfig};
 
@@ -469,6 +469,10 @@ fn routing_decisions_match_the_shared_table() {
 			"serve" => Decision::Serve {
 				pathname: text(field(decision, "pathname")),
 			},
+			"gone" => Decision::Gone {
+				locale: text(field(decision, "locale")),
+				location: opt_text(decision, "location"),
+			},
 			other => panic!("unknown decision {other}"),
 		};
 		let actual = decide(&site, &facts);
@@ -478,6 +482,33 @@ fn routing_decisions_match_the_shared_table() {
 				text(field(case, "site")),
 				text(field(case, "name"))
 			));
+		}
+	}
+	assert_clean(&failures);
+}
+
+#[test]
+fn antispam_matches_the_shared_steps() {
+	let file = fixture("antispam.json");
+	assert_eq!(num(field(&file, "minFillMs")) as i64, MIN_FILL_MS, "the fixture's fill time is this port's");
+	let mut failures = Vec::new();
+	for case in cases(&file) {
+		let mut limiter = RateLimiter::with_max_keys(num(field(case, "limit")) as u32, num(field(case, "windowMs")) as i64, num(field(case, "maxKeys")) as usize);
+		for (i, step) in list(field(case, "steps")).iter().enumerate() {
+			let honeypot = opt_text(step, "honeypot");
+			let rendered_at = opt_text(step, "renderedAt");
+			let client_key = text(field(step, "clientKey"));
+			let submission = Submission {
+				honeypot: honeypot.as_deref(),
+				rendered_at: rendered_at.as_deref(),
+				client_key: &client_key,
+				now_ms: num(field(step, "now")) as i64,
+			};
+			let actual = screen(submission, &mut limiter).map_or("ok", SpamVerdict::as_str);
+			let expected = text(field(step, "expected"));
+			if actual != expected {
+				failures.push(format!("── {} step {i}: expected {expected}, got {actual}", text(field(case, "name"))));
+			}
 		}
 	}
 	assert_clean(&failures);
@@ -584,6 +615,14 @@ fn a_site_refuses_a_config_the_router_could_not_read() {
 	assert!(refuse(&|c| c.pages.push(("prices".into(), "/other".into()))).contains("twice"));
 	assert!(refuse(&|c| c.pages.push(("faq".into(), "/faq/".into()))).contains("suffix"));
 	assert!(refuse(&|c| c.places[0].slug = "_paris".into()).contains("[a-z0-9-]"));
+	assert!(
+		refuse(&|c| {
+			c.places[0].slug = "404".into();
+			c.topology = Topology::Single { place: "404".into() };
+		})
+		.contains("reserved")
+	);
+	assert!(refuse(&|c| c.pages.push(("faq".into(), "/faq//more".into()))).contains("suffix"));
 	assert!(refuse(&|c| c.topology = Topology::Single { place: "lyon".into() }).contains("lyon"));
 }
 

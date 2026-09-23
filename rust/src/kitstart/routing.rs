@@ -10,6 +10,9 @@
 //! ?lang=<l> on a page            → cookie for a year, 303 to the clean URL
 //! a legacy redirect's path       → 301 to where it moved
 //! unprefixed page                → 302 to /<cookie ?? Accept-Language>/…
+//! any other path                 → gone: the 404 in the path's (or the
+//!                                  negotiated) locale, for its place
+//! /quote, /og, /health, /_next/…, a file with an extension → pass
 //! ```
 //!
 //! The link mode rides in the path, never in a request header: a page that
@@ -37,6 +40,52 @@ pub const LANG_PARAM: &str = "lang";
 
 /// The prefix a place route param carries in host link mode.
 pub const HOST_MARK: &str = "_";
+
+/// How a dead path reaches a 404 a visitor without JavaScript can read: the
+/// router rewrites it to [`gone_path`], which no route matches, so the
+/// framework's server-rendered not-found page answers, told the locale and
+/// place through [`GONE_HEADER`]. Reserved: no place may take it as a slug.
+pub const GONE: &str = "404";
+
+/// Set only by the router on a `Gone` rewrite, and stripped from every other
+/// request, so a client cannot choose which 404 it is shown.
+pub const GONE_HEADER: &str = "x-landing-not-found";
+
+/// Paths that are not pages and pass untouched, besides `/_next/…` and any
+/// file with an extension: the form target, the OG card and the probe.
+pub const PASS_PATHS: [&str; 3] = ["/quote", "/og", "/health"];
+
+/// The path no route matches, in a locale.
+pub fn gone_path(locale: &str) -> String {
+	format!("/{locale}/{GONE}/{GONE}")
+}
+
+/// `fr` or `fr/_royat`: the 404's locale and, if it has one, its place param.
+pub fn gone_header(locale: &str, location: Option<&str>) -> String {
+	match location {
+		Some(location) if !location.is_empty() => format!("{locale}/{location}"),
+		_ => locale.to_owned(),
+	}
+}
+
+/// Inverse of [`gone_header`]; anything absent or malformed reads as nothing.
+pub fn parse_gone_header(value: Option<&str>) -> (Option<&str>, Option<&str>) {
+	let mut parts = value.unwrap_or("").split('/');
+	let locale = parts.next().filter(|l| !l.is_empty());
+	let location = parts.next().filter(|l| !l.is_empty());
+	if parts.next().is_some() {
+		return (None, None);
+	}
+	(locale, location)
+}
+
+fn is_infrastructure(pathname: &str) -> bool {
+	if PASS_PATHS.contains(&pathname) || pathname.starts_with("/_next/") {
+		return true;
+	}
+	let last = pathname.rsplit('/').next().unwrap_or("");
+	last.rsplit_once('.').is_some_and(|(_, ext)| !ext.is_empty() && ext.bytes().all(|b| b.is_ascii_alphanumeric()))
+}
 
 /// The route param for a slug in a mode: `_royat` on its host, `royat`
 /// through the apex.
@@ -80,6 +129,10 @@ pub enum Decision {
 	Moved { location: String },
 	/// Render `pathname` (a rewrite when it differs from the request's).
 	Serve { pathname: String },
+	/// A dead path: rewrite to [`gone_path`]`(locale)` with [`GONE_HEADER`]
+	/// set to [`gone_header`]`(locale, location)`. `location` is a place's
+	/// route param (`_royat` in host mode) or `None` for the brand's 404.
+	Gone { locale: String, location: Option<String> },
 }
 
 /// The place a host names: `royat.<domain>` → `royat`, `royat.localhost:3000`
@@ -116,11 +169,33 @@ pub fn decide(site: &Site, req: &RequestFacts<'_>) -> Decision {
 	let query = Query::parse(req.query);
 	let suffixes = place_suffixes(site);
 	let (locale, rest) = split(site, req.pathname);
+	if locale.is_none() && is_infrastructure(req.pathname) {
+		return Decision::Pass;
+	}
+	let gone = |locale: &str, location: Option<&str>| Decision::Gone {
+		locale: locale.to_owned(),
+		location: location.map(str::to_owned),
+	};
 
-	// A cached page renders by running the router again, host-less, on the
-	// path it was rewritten to; that path must come out as it went in.
-	if locale.is_some() && host_mode_route(site, &rest) {
-		return Decision::Serve { pathname: req.pathname.to_owned() };
+	if let Some(locale) = locale {
+		// The 404's own target passes, keeping the header it was sent with.
+		if rest == format!("/{GONE}/{GONE}") {
+			return Decision::Serve { pathname: req.pathname.to_owned() };
+		}
+		// A cached page renders by running the router again, host-less, on the
+		// path it was rewritten to; that path must come out as it went in.
+		let (first, suffix) = head_and_tail(&rest);
+		if first.starts_with(HOST_MARK) {
+			let (slug, _) = parse_place_param(first);
+			if !site.has_place(slug) {
+				return gone(locale, None);
+			}
+			return if suffixes.contains(&suffix.as_str()) {
+				Decision::Serve { pathname: req.pathname.to_owned() }
+			} else {
+				gone(locale, Some(first))
+			};
+		}
 	}
 
 	let slug = host_slug(site, req.host);
@@ -133,35 +208,54 @@ pub fn decide(site: &Site, req: &RequestFacts<'_>) -> Decision {
 		}
 	}
 
-	if is_page(site, &suffixes, &rest, slug) {
-		let page = if rest.is_empty() { "/" } else { rest.as_str() };
-		if let Some(asked) = query.get(LANG_PARAM).and_then(|l| i18n.locale(l)) {
-			// The visitor chose, so record it and take the query back out — a
-			// shared or bookmarked link should not keep re-asserting a locale.
-			return Decision::Choose {
-				location: with_query(&i18n.locale_path(asked, page), &query),
-				locale: asked.to_owned(),
-			};
-		}
-		if locale.is_none() {
-			let chosen = req.cookie_lang.and_then(|c| i18n.locale(c)).unwrap_or_else(|| i18n.negotiate(req.accept_language));
-			return Decision::Negotiate {
-				location: with_query(&i18n.locale_path(chosen, page), &query),
-			};
-		}
+	let page = is_page(site, &suffixes, &rest, slug);
+	let page_path = if rest.is_empty() { "/" } else { rest.as_str() };
+	if page && let Some(asked) = query.get(LANG_PARAM).and_then(|l| i18n.locale(l)) {
+		// The visitor chose, so record it and take the query back out — a
+		// shared or bookmarked link should not keep re-asserting a locale.
+		return Decision::Choose {
+			location: with_query(&i18n.locale_path(asked, page_path), &query),
+			locale: asked.to_owned(),
+		};
 	}
 
+	let host_param = slug.map(|s| place_param(s, LinkMode::Host));
 	let Some(locale) = locale else {
-		return Decision::Pass;
+		let chosen = req.cookie_lang.and_then(|c| i18n.locale(c)).unwrap_or_else(|| i18n.negotiate(req.accept_language));
+		if page {
+			return Decision::Negotiate {
+				location: with_query(&i18n.locale_path(chosen, page_path), &query),
+			};
+		}
+		// Junk without a locale still gets a readable 404, in the locale the
+		// visitor would have been sent to.
+		return gone(chosen, host_param.as_deref());
 	};
-	match slug {
-		// Every prefixed path on a place's host belongs to that place, page or
-		// not: `/fr/nonsense` is that place's 404, not the brand's.
-		Some(slug) => Decision::Serve {
-			pathname: format!("/{locale}/{}{rest}", place_param(slug, LinkMode::Host)),
-		},
-		None => Decision::Serve { pathname: req.pathname.to_owned() },
+
+	// Every prefixed path on a place's host belongs to that place: `/fr/nope`
+	// is that place's 404, not the brand's.
+	if let Some(param) = host_param {
+		return if page {
+			Decision::Serve {
+				pathname: format!("/{locale}/{param}{rest}"),
+			}
+		} else {
+			gone(locale, Some(&param))
+		};
 	}
+	if page {
+		return Decision::Serve { pathname: req.pathname.to_owned() };
+	}
+	let (first, _) = head_and_tail(&rest);
+	gone(locale, site.has_place(first).then_some(first))
+}
+
+/// `"/royat/prices"` → `("royat", "/prices")`; `"/royat"` → `("royat", "")`.
+fn head_and_tail(rest: &str) -> (&str, String) {
+	let mut segments = rest.split('/').skip(1);
+	let first = segments.next().unwrap_or("");
+	let more: Vec<&str> = segments.collect();
+	(first, if more.is_empty() { String::new() } else { format!("/{}", more.join("/")) })
 }
 
 /// `location` with the request's query, minus the `lang` choice.
@@ -185,12 +279,6 @@ fn split<'a>(site: &'a Site, pathname: &str) -> (Option<&'a str>, String) {
 	(None, if trimmed == "/" { String::new() } else { trimmed.to_owned() })
 }
 
-/// `/_royat/…` — already rewritten to a host-mode route.
-fn host_mode_route(site: &Site, rest: &str) -> bool {
-	let first = rest.split('/').nth(1).unwrap_or("");
-	first.strip_prefix(HOST_MARK).is_some_and(|slug| site.has_place(slug))
-}
-
 /// Is `rest` (locale-free) a page this host serves?
 fn is_page(site: &Site, suffixes: &[&str], rest: &str, slug: Option<&str>) -> bool {
 	if slug.is_some() {
@@ -200,9 +288,6 @@ fn is_page(site: &Site, suffixes: &[&str], rest: &str, slug: Option<&str>) -> bo
 	if rest.is_empty() || rest == THANKS {
 		return true;
 	}
-	let mut segments = rest.split('/').skip(1);
-	let first = segments.next().unwrap_or("");
-	let more: Vec<&str> = segments.collect();
-	let suffix = if more.is_empty() { String::new() } else { format!("/{}", more.join("/")) };
+	let (first, suffix) = head_and_tail(rest);
 	site.has_place(first) && suffixes.contains(&suffix.as_str())
 }

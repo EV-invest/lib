@@ -72,7 +72,7 @@ mod sitemap;
 #[cfg(test)]
 mod tests;
 
-pub use antispam::{HONEYPOT_FIELD, MIN_FILL_MS, RENDERED_AT_FIELD, RateLimiter, SpamVerdict, Submission, check_timing, screen};
+pub use antispam::{HONEYPOT_FIELD, MIN_FILL_MS, RATE_LIMIT_OVERFLOW_KEY, RENDERED_AT_FIELD, RateLimiter, SpamVerdict, Submission, check_timing, screen};
 pub use contact::{ContactChannel, contact_channel, tel_href, whatsapp_href};
 pub use json::{Json, Object};
 pub use ld::{
@@ -84,6 +84,9 @@ pub use place::{
 	Channels, DayOfWeek, Geo, OpeningHours, PerLocale, Place, PostalAddress, Presence, PublicationField, PublicationPolicy, RATING_MAX_AGE_DAYS, Rating, SERVICE_AREA_GATE, STOREFRONT_GATE,
 	ServiceArea, Storefront,
 };
-pub use routing::{Decision, HOST_MARK, LANG_COOKIE, LANG_COOKIE_MAX_AGE, LANG_PARAM, RequestFacts, THANKS, decide, host_slug, parse_place_param, place_param, place_suffixes};
+pub use routing::{
+	Decision, GONE, GONE_HEADER, HOST_MARK, LANG_COOKIE, LANG_COOKIE_MAX_AGE, LANG_PARAM, PASS_PATHS, RequestFacts, THANKS, decide, gone_header, gone_path, host_slug, parse_gone_header,
+	parse_place_param, place_param, place_suffixes,
+};
 pub use site::{BrandFacts, Contact, HOME, LegacyRedirect, LinkMode, Page, PlaceView, Site, SiteConfig, SiteError, Topology, place_href};
 pub use sitemap::{AI_CRAWLERS, RobotsFile, SitemapEntry, robots_for, sitemap_for, sitemap_json, sitemap_xml};

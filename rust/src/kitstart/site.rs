@@ -4,7 +4,10 @@
 
 use std::collections::BTreeMap;
 
-use super::place::{Place, PublicationField, PublicationPolicy};
+use super::{
+	place::{Place, PublicationField, PublicationPolicy},
+	routing::GONE,
+};
 use crate::i18n::LocaleRegistry;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -76,6 +79,8 @@ pub enum SiteError {
 	PlaceListedTwice(String),
 	/// A slug must be `[a-z0-9-]`, not starting with `-`.
 	BadPlaceSlug(String),
+	/// `404` names the 404's own route.
+	ReservedPlaceSlug(String),
 	UnknownSinglePlace(String),
 }
 
@@ -87,6 +92,7 @@ impl std::fmt::Display for SiteError {
 			Self::BadPageSuffix(suffix) => write!(f, "page suffix {suffix:?} must be \"\" or \"/<page>\""),
 			Self::PlaceListedTwice(slug) => write!(f, "place slug {slug:?} is listed twice"),
 			Self::BadPlaceSlug(slug) => write!(f, "place slug {slug:?} must be [a-z0-9-], not starting with \"-\""),
+			Self::ReservedPlaceSlug(slug) => write!(f, "place slug {slug:?} is reserved for the 404 route"),
 			Self::UnknownSinglePlace(slug) => write!(f, "topology place {slug:?} is not one of the places"),
 		}
 	}
@@ -133,7 +139,8 @@ impl Site {
 			if keys.contains(&key.as_str()) {
 				return Err(SiteError::PageListedTwice(key.clone()));
 			}
-			if !suffix.is_empty() && (!suffix.starts_with('/') || suffix.ends_with('/')) {
+			// One spelling per page: `/prices/` would be a second URL for `/prices`.
+			if !suffix.is_empty() && (!suffix.starts_with('/') || suffix.ends_with('/') || suffix.contains("//")) {
 				return Err(SiteError::BadPageSuffix(suffix.clone()));
 			}
 			keys.push(key);
@@ -152,6 +159,10 @@ impl Site {
 			let valid = slug.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-') && !slug.is_empty() && !slug.starts_with('-');
 			if !valid {
 				return Err(SiteError::BadPlaceSlug(slug.to_owned()));
+			}
+			// `/<locale>/404/404` is the router's route to the 404.
+			if slug == GONE {
+				return Err(SiteError::ReservedPlaceSlug(slug.to_owned()));
 			}
 			slugs.push(slug);
 		}
