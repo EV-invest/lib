@@ -1,5 +1,6 @@
 "use client";
 
+import { brandStatusTarget } from "@evinvest/kitstart";
 import { StatusScreen } from "@evinvest/kitstart/react";
 import { useParams, usePathname } from "next/navigation";
 import { copyFor } from "@/entities/content";
@@ -15,15 +16,9 @@ export function ServerError() {
   const params = useParams<{ locale?: string }>();
   const pathname = usePathname();
   const locale = i18n.isLocale(params?.locale) ? params.locale : i18n.defaultLocale;
+  const target = brandStatusTarget({ locales: i18n.locales, phone: BRAND_PUBLIC.phone }, locale, { retry: pathname });
   const copy = copyFor(locale, { place: BRAND_PUBLIC.name, phone: BRAND_PUBLIC.phone });
-  const langHrefs = { fr: "/fr", en: "/en" } as const;
   return (
-    <StatusScreen
-      copy={copy}
-      status={copy.t.serverError}
-      target={{ phone: BRAND_PUBLIC.phone, home: `/${locale}`, retry: pathname, langHrefs }}
-      locales={i18n.locales}
-      brandName={BRAND_PUBLIC.name}
-    />
+    <StatusScreen copy={copy} status={copy.t.serverError} target={target} locales={i18n.locales} labels={i18n.labels} brandName={BRAND_PUBLIC.name} />
   );
 }

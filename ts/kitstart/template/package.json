@@ -14,7 +14,8 @@
     "start": "node .next/standalone/server.js",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "size": "kitstart-size"
+    "size": "kitstart-size",
+    "lint": "eslint . && steiger ./src"
   },
   "dependencies": {
     "@evinvest/analytics": "^0.3.0",
@@ -28,10 +29,14 @@
     "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@feature-sliced/steiger-plugin": "^0.7.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.20.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "16.3.6",
+    "steiger": "^0.6.0",
     "tailwindcss": "^4.3.3",
     "typescript": "5.9.3",
     "vitest": "^3.2.4"

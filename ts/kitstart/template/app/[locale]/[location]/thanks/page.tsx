@@ -2,7 +2,7 @@ import { statusTarget } from "@evinvest/kitstart";
 import { statusMetadata } from "@evinvest/kitstart/next";
 import { StatusScreen } from "@evinvest/kitstart/react";
 import type { Metadata } from "next";
-import { loadPlace } from "@/entities/place/server";
+import { loadPlace } from "@/views/place/server";
 import { site } from "@/shared/config/site";
 
 type Props = { params: Promise<{ locale: string; location: string }> };

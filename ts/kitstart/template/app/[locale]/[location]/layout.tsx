@@ -1,6 +1,6 @@
 import { AnalyticsBoundary } from "@evinvest/kitstart/react";
 import type { ReactNode } from "react";
-import { loadPlace } from "@/entities/place/server";
+import { loadPlace } from "@/views/place/server";
 import { serverEnv } from "@/shared/config/env";
 import { site } from "@/shared/config/site";
 

@@ -11,6 +11,7 @@ import {
   JsonLd,
   NativeSelect,
   NativeSelectOption,
+  PHONE_INPUT_PROPS,
   QuoteFormShell,
   Section,
 } from "@evinvest/kitstart/react";
@@ -55,7 +56,7 @@ export function PlaceHome({ view, copy, renderedAt }: { view: PlaceView<Locale>;
             </Field>
             <Field className="flex flex-col gap-2">
               <FieldLabel>{t.quoteLabels.mobile}</FieldLabel>
-              <Input name={LEAD.wire.mobile} size="lg" type="tel" autoComplete="tel" required />
+              <Input name={LEAD.wire.mobile} size="lg" {...PHONE_INPUT_PROPS} required />
             </Field>
             <Button type="submit" size="xl">
               {t.quoteForm.submit}
@@ -69,7 +70,7 @@ export function PlaceHome({ view, copy, renderedAt }: { view: PlaceView<Locale>;
           <Faq items={t.faqs} />
         </Section>
       </main>
-      <CallBar copy={copy} phone={contact.phone} whatsapp={contact.whatsapp} quoteHref={view.href("#quote")} />
+      <CallBar id="callbar" label={t.contactLabel} copy={copy} phone={contact.phone} whatsapp={contact.whatsapp} quoteHref={view.href("#quote")} />
     </>
   );
 }

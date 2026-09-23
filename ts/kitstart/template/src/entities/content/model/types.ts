@@ -24,6 +24,10 @@ export type Said = CoreSaid<Facts>;
  */
 export interface Text extends CoreText<PageKey, Facts> {
   hero: { title: Said; lede: string };
+  /** The apex of a network of places: its `<head>` and the directory's link. */
+  brandPage: { title: string; description: string; open: string };
+  /** The contact bar's accessible name. */
+  contactLabel: string;
   coverageTitle: string;
   subjects: Record<Subject, string>;
   quoteLabels: { subject: string; locality: string; mobile: string };
