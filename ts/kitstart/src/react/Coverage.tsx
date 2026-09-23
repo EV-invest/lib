@@ -1,3 +1,4 @@
+import { cn } from "@evinvest/uikit";
 import type { ReactNode } from "react";
 import { servedLocalities, storefrontOf, type Place } from "../core/place/types";
 import { AreaChips } from "./AreaChips";
@@ -23,7 +24,7 @@ export function Coverage<L extends string>({ place, locale, map, head, className
   const front = storefrontOf(place);
   const address = front && `${front.address.street}, ${front.address.postalCode} ${front.address.locality}`;
   return (
-    <div className={className ?? "flex flex-col gap-6 md:gap-8"}>
+    <div className={cn("flex flex-col gap-6 md:gap-8", className)}>
       {head}
       <AreaChips areas={servedLocalities(place)} />
       {front?.landmark && <p className="text-sm text-ink-soft">{front.landmark[locale]}</p>}

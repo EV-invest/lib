@@ -17,18 +17,27 @@ export interface CallBarProps<L extends string, F> {
   whatsapp: string | null;
   /** Where the form is: `view.href("#quote")`. */
   quoteHref: string;
+  /** The bar's accessible name: "Contact". */
+  label: string;
+  /** For a page that anchors or shoots the bar (`#callbar` in e2e). */
+  id?: string;
   className?: string;
   /** The brand's CTA face (type, weight), applied to every button. */
   buttonClassName?: string;
 }
 
-export function CallBar<L extends string, F>({ copy, phone, whatsapp, quoteHref, className, buttonClassName }: CallBarProps<L, F>) {
+export function CallBar<L extends string, F>({ copy, phone, whatsapp, quoteHref, label, id, className, buttonClassName }: CallBarProps<L, F>) {
   const { t, f } = copy;
   return (
-    <div id="callbar" className={cn("sticky bottom-0 z-30 flex gap-2 border-t border-border bg-background px-3 py-2.5 shadow-overlay md:hidden", className)}>
+    <nav
+      id={id}
+      aria-label={label}
+      className={cn("sticky bottom-0 z-30 flex gap-2 border-t border-border bg-background px-3 py-2.5 shadow-overlay md:hidden", className)}
+    >
       {phone && (
         <Button href={telHref(phone)} size="xl" variant="outline" aria-label={t.callLabel(f)} className={cn("shrink-0 px-4", buttonClassName)}>
-          ☎
+          {/* The kit has no phone glyph; the button's name is its label. */}
+          <span aria-hidden="true">☎</span>
         </Button>
       )}
       {whatsapp && (
@@ -39,6 +48,6 @@ export function CallBar<L extends string, F>({ copy, phone, whatsapp, quoteHref,
       <Button href={quoteHref} size="xl" data-intent="form_open" className={cn("flex-1 px-3", buttonClassName)}>
         {t.ctaShort}
       </Button>
-    </div>
+    </nav>
   );
 }

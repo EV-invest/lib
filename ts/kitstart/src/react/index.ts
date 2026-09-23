@@ -6,17 +6,18 @@
  *
  * Styled with the kit's token roles only (`text-ink`, `border-border`,
  * `bg-card`…); a brand restyles through `className` and its palette. Tailwind
- * must scan the package: `@source "../node_modules/@evinvest/kitstart/dist";`.
+ * must scan the package: `@source "<path to>/node_modules/@evinvest/kitstart/dist";`,
+ * relative to the stylesheet (`../../node_modules/…` from `src/app/`).
  */
 export { AnalyticsBoundary } from "./AnalyticsBoundary";
 export { AreaChips } from "./AreaChips";
 export { CallBar, type CallBarProps } from "./CallBar";
 export { Coverage, type CoverageProps } from "./Coverage";
 export { Faq, type FaqProps } from "./Faq";
-export { LangSwitch, type LangSwitchProps } from "./LangSwitch";
+export { LangSwitch, withLang, type LangSwitchProps } from "./LangSwitch";
 export { MapFacade, type MapFacadeProps } from "./MapFacade";
 export { PlaceDirectory, type PlaceDirectoryProps } from "./PlaceDirectory";
-export { QuoteFormShell, type QuoteFormShellProps } from "./QuoteFormShell";
+export { PHONE_INPUT_PROPS, QuoteFormShell, type QuoteFormShellProps } from "./QuoteFormShell";
 export { StatusScreen, type StatusScreenProps } from "./StatusScreen";
 
 // The kit's pieces a landing composes with, by name — the list is the surface.
