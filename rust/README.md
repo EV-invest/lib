@@ -16,6 +16,7 @@ rust/
 │   ├── experiments/       the `experiments` feature (frontend-only A/B testing)
 │   ├── settings/          the `settings` feature (typed env settings)
 │   ├── i18n/              the `i18n` feature (five-locale internationalisation)
+│   ├── kitstart/          the `kitstart` feature (pure core of a small-business landing)
 │   └── otel/              the `otel` feature (OpenTelemetry logs + traces, native-only)
 └── tests/              integration tests
 ```
@@ -60,6 +61,15 @@ catalogue is portable between them and neither can drift alone. The CLDR plural
 rules and number grouping are hand-written for exactly EV's five locales rather
 than pulling ICU4X into a wasm bundle — see the module note on why that is a
 deliberate ceiling, not a shortcut. It mirrors `@evinvest/i18n`.
+
+`kitstart` is the pure core of a small-business landing — the place model
+(storefront or service area), the publication gate, request routing, schema.org
+JSON-LD, `<head>` metadata, sitemap and robots, the quote form's spam barriers.
+No I/O and wasm-safe; the caller passes `now`. It mirrors the core of
+`@evinvest/kitstart`, and both ports run the vectors in
+[`../tests/fixtures/kitstart/`](../tests/fixtures/kitstart), compared as text so
+key order is pinned as well. Its locale set comes from
+`ev_lib::i18n::LocaleRegistry`, the configurable half of `i18n`.
 
 Each feature mirrors a TypeScript package in [`../ts`](../ts). cargo runs from the
 repo root — pass `-p ev` for feature flags. See
