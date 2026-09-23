@@ -1,22 +1,8 @@
 import { defineConfig } from "tsup";
 
-// Re-emits ONLY the client subpath, with `clean: false`, after the main `tsup`
-// run — see the race described in `tsup.config.ts`. Kept identical to config
-// #2 there.
-export default defineConfig({
-  entry: { react: "src/react/index.ts" },
-  format: ["esm"],
-  dts: true,
-  clean: false,
-  sourcemap: true,
-  target: "es2022",
-  external: [
-    "react",
-    "react-dom",
-    "react/jsx-runtime",
-    "motion",
-    "motion/react",
-    "@evinvest/uikit",
-  ],
-  banner: { js: '"use client";' },
-});
+import { clientConfig, nextConfig } from "./tsup.config";
+
+// Re-emits the entries that do not clean — the client ones and the Next
+// helpers — after the main `tsup` run, so their declarations survive the race
+// described in `tsup.config.ts`.
+export default defineConfig([clientConfig, nextConfig]);
