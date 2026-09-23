@@ -3,7 +3,7 @@
 //! `contactChannel`, so a Rust page links the same number the same way and a
 //! click tracker classifies it the same way.
 
-use super::query::encode_uri_component;
+use super::query::{encode_uri_component, percent_decode};
 
 /// The channel a contact link opens.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -36,6 +36,8 @@ const WHATSAPP_HOSTS: [&str; 3] = ["wa.me", "api.whatsapp.com", "web.whatsapp.co
 /// assert_eq!(contact_channel("tel:+33423500640"), Some(ContactChannel::Phone));
 /// assert_eq!(contact_channel("https://wa.me/33423500640"), Some(ContactChannel::Whatsapp));
 /// assert_eq!(contact_channel("/fr/prices"), None);
+/// assert_eq!(contact_channel("https://wa%2Eme\\33423500640"), Some(ContactChannel::Whatsapp));
+/// assert_eq!(contact_channel("https://wa.me.evil.example/33"), None);
 /// ```
 pub fn contact_channel(href: &str) -> Option<ContactChannel> {
 	let value = href.trim().to_lowercase();
@@ -49,10 +51,21 @@ pub fn contact_channel(href: &str) -> Option<ContactChannel> {
 		return Some(ContactChannel::Whatsapp);
 	}
 	let rest = value.strip_prefix("https://").or_else(|| value.strip_prefix("http://"))?;
-	let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
+	WHATSAPP_HOSTS.contains(&url_host(rest).as_str()).then_some(ContactChannel::Whatsapp)
+}
+
+/// The host of an `http(s)` URL after its `//`, as the WHATWG URL parser —
+/// what the TypeScript port asks — reads it: tabs and newlines dropped, `\`
+/// ending the authority like `/`, userinfo and port cut, percent-escapes
+/// decoded. `https://wa.me\x`, `https://u@wa.me:443` and `https://wa%2Eme`
+/// all name `wa.me` to a browser, so they do here.
+fn url_host(after_scheme: &str) -> String {
+	let cleaned: String = after_scheme.chars().filter(|c| !matches!(c, '\t' | '\n' | '\r')).collect();
+	let cleaned = cleaned.trim_start_matches(['/', '\\']);
+	let authority = cleaned.split(['/', '\\', '?', '#']).next().unwrap_or("");
 	let host_port = authority.rsplit_once('@').map_or(authority, |(_, host)| host);
-	let host = host_port.split(':').next().unwrap_or("");
-	WHATSAPP_HOSTS.contains(&host).then_some(ContactChannel::Whatsapp)
+	let host = host_port.rsplit_once(':').map_or(host_port, |(host, _)| host);
+	percent_decode(host).to_lowercase()
 }
 
 /// `tel:` href from a number as printed. RFC 3966 allows only digits, `+` and

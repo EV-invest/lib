@@ -70,12 +70,17 @@ fn form_encode(s: &str) -> String {
 }
 
 fn form_decode(s: &str) -> String {
+	// A `%2B` decodes to `+` after this, so it stays a plus, as it must.
+	percent_decode(&s.replace('+', " "))
+}
+
+/// Percent-escapes decoded; invalid UTF-8 replaced, a malformed escape kept.
+pub(crate) fn percent_decode(s: &str) -> String {
 	let bytes = s.as_bytes();
 	let mut out = Vec::with_capacity(bytes.len());
 	let mut i = 0;
 	while i < bytes.len() {
 		match bytes[i] {
-			b'+' => out.push(b' '),
 			b'%' => match (bytes.get(i + 1).and_then(hex), bytes.get(i + 2).and_then(hex)) {
 				(Some(hi), Some(lo)) => {
 					out.push(hi << 4 | lo);
