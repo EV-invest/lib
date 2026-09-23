@@ -8,8 +8,13 @@
 
 use std::collections::HashMap;
 
-/// The field a human never sees and a form-filling bot fills.
-pub const HONEYPOT_FIELD: &str = "website";
+/// The field a human never sees and a form-filling bot fills. Named so that
+/// a browser's autofill has nothing to put in it: a real visitor's saved
+/// website must not read as a bot.
+pub const HONEYPOT_FIELD: &str = "hp_ref";
+/// The trap's names on pages cached before it was renamed; a submission from
+/// one of those still carries it there, so these are read too.
+pub const LEGACY_HONEYPOT_FIELDS: &[&str] = &["website"];
 /// When the form was rendered, in ms since the epoch.
 pub const RENDERED_AT_FIELD: &str = "t";
 /// Faster than this from render to submit is a script, not a person.

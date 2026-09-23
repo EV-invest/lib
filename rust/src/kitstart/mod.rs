@@ -72,7 +72,7 @@ mod sitemap;
 #[cfg(test)]
 mod tests;
 
-pub use antispam::{HONEYPOT_FIELD, MIN_FILL_MS, RATE_LIMIT_OVERFLOW_KEY, RENDERED_AT_FIELD, RateLimiter, SpamVerdict, Submission, check_timing, screen};
+pub use antispam::{HONEYPOT_FIELD, LEGACY_HONEYPOT_FIELDS, MIN_FILL_MS, RATE_LIMIT_OVERFLOW_KEY, RENDERED_AT_FIELD, RateLimiter, SpamVerdict, Submission, check_timing, screen};
 pub use contact::{ContactChannel, contact_channel, tel_href, whatsapp_href};
 pub use json::{Json, Object};
 pub use ld::{
