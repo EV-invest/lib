@@ -13,6 +13,7 @@ name: kitstart
       - .github/workflows/kitstart.yml
       - flake.nix
       - flake.lock
+      - nix/**
   push:
     branches: [main]
     paths:
@@ -94,6 +95,25 @@ jobs:
         run: npm ci
       - name: Build and smoke the template
         run: npm run check:template
+
+  # `lib.mkLanding` on a stand-in brand: the hermetic npm build from its
+  # lockfile, the standalone install checks, the size gate and the OCI image.
+  mk-landing:
+    name: lib.mkLanding
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: 'lazy-trees = true'
+      - name: Build the fixture, its budget check and its image
+        run: |
+          nix build --no-link \
+            .#checks.x86_64-linux.mk-landing-site \
+            .#checks.x86_64-linux.mk-landing-budget \
+            .#checks.x86_64-linux.mk-landing-container
 
   # Renders the widget gallery on the pinned linux stack, publishes the PNGs as
   # the `kitstart-visual` artifact (the only honest source of baselines — a mac
