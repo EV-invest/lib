@@ -41,6 +41,12 @@ export interface PlaceSource<L extends string> {
    * 5xx tells it to keep its last copy.
    */
   listPlaces(locale: L, mode: "page" | "sitemap"): Promise<Place<L>[]>;
+  /**
+   * One place, strictly — for a sitemap, which lists one host's place and
+   * must fail (a 5xx a crawler retries) rather than shrink. `null` only when
+   * the source withdrew it.
+   */
+  getPlaceStrict(slug: string, locale: L): Promise<Place<L> | null>;
 }
 
 export const PLACE_REVALIDATE_SECONDS = 600;
@@ -106,6 +112,24 @@ export function createPlaceSource<L extends string, P extends string>(site: Site
         case "failed":
           log.error(`live place ${slug}: source answered ${fetched.status}, serving baked`);
           return place;
+      }
+    },
+
+    async getPlaceStrict(slug, locale) {
+      const place = baked(slug);
+      if (!place) return null;
+      const base = options.baseUrl();
+      if (!base) return place;
+      const fetched = await fetchOne(base, place, locale);
+      switch (fetched.kind) {
+        case "live":
+          return fetched.place;
+        case "missing":
+          return null;
+        case "unreachable":
+          throw new PlaceSourceError(`place ${slug} unreachable`, { cause: fetched.cause });
+        case "failed":
+          throw new PlaceSourceError(`place ${slug}: source answered ${fetched.status}`);
       }
     },
 

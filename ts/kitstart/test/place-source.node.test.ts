@@ -63,6 +63,16 @@ describe("one place from the live source", () => {
   });
 });
 
+describe("one place, strictly", () => {
+  it("throws on a failing source instead of dropping the place", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 503 })));
+    await expect(live().getPlaceStrict("royat", "fr")).rejects.toThrow(/503/);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 410 })));
+    expect(await live().getPlaceStrict("royat", "fr")).toBeNull();
+    expect(await live(null).getPlaceStrict("paris", "fr")).toBeNull();
+  });
+});
+
 describe("every place", () => {
   it("keeps the sitemap strict on a dead or failing source", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("fetch failed"))));
