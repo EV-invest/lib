@@ -103,7 +103,14 @@ Each widget is a Server Component unless it needs the browser (`MapFacade`,
 `StatusScreen`, `PlaceDirectory`, `Coverage`), through its named parts:
 `classNames={{ list: "rounded-none", answer: "px-2" }}`, merged after the
 kit's classes so the brand's utility wins. No descendant selectors: they
-break silently when a widget's markup moves. `QuoteFormShell` is headless: it owns the hidden fields and the
+break silently when a widget's markup moves. A size in a part keeps the
+kit's line height: tailwind-merge drops an earlier `leading-*` for any later
+font size, so the widgets put their `leading-*` after the brand's classes —
+`code: "text-[88px]"` stays `leading-none`. To change the line height, name
+it (`"text-[88px] leading-tight"`, or `"text-lg/7"`). The header's language
+switch is `StatusScreen`'s `lang`: below `md` it takes a row of its own
+(`order-last w-full`); `lang: "order-none w-auto"` keeps one row.
+`QuoteFormShell` is headless: it owns the hidden fields and the
 honeypot the funnel reads; the visible fields are the brand's children.
 `StatusScreen` takes the brand's name and marks as props, so the client error
 boundary never imports the site config.
