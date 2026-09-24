@@ -89,20 +89,6 @@ pub fn area_served_nodes(place: &Place) -> Vec<Object> {
 	named.chain(circles).collect()
 }
 
-fn opening_hours(place: &Place) -> Option<Vec<Object>> {
-	place.hours.as_ref().map(|hours| {
-		hours
-			.iter()
-			.map(|h| {
-				Object::typed("OpeningHoursSpecification")
-					.with("dayOfWeek", h.days.iter().map(|d| Json::from(d.as_str())).collect::<Vec<_>>())
-					.with("opens", &h.opens)
-					.with("closes", &h.closes)
-			})
-			.collect()
-	})
-}
-
 /// The business behind one place.
 pub fn business_node(view: &PlaceView<'_>, now: Timestamp) -> Object {
 	let site = view.site;
@@ -147,14 +133,6 @@ pub fn business_node(view: &PlaceView<'_>, now: Timestamp) -> Object {
 		.extend(extra)
 		.compact()
 }
-
-/// The town an offer is priced for: a storefront's own, or the first commune
-/// served.
-fn city_of(place: &Place) -> Option<Object> {
-	let name = place.storefront().map(|f| f.address.locality.as_str()).or_else(|| place.served_localities().first().copied())?;
-	Some(Object::typed("City").with("name", name))
-}
-
 /// One `Service` + `Offer` per price row: the same number as the table cell,
 /// tax included.
 pub fn offer_nodes(site: &Site, place: &Place, offers: &[OfferInput]) -> Vec<Object> {
@@ -185,7 +163,6 @@ pub fn offer_nodes(site: &Site, place: &Place, offers: &[OfferInput]) -> Vec<Obj
 		})
 		.collect()
 }
-
 pub fn faq_page_node(items: &[QuestionAnswer]) -> Object {
 	let questions: Vec<Object> = items
 		.iter()
@@ -197,7 +174,6 @@ pub fn faq_page_node(items: &[QuestionAnswer]) -> Object {
 		.collect();
 	Object::typed("FAQPage").with("mainEntity", questions)
 }
-
 /// Home → page. The chain is the route, so a new page cannot forget it.
 pub fn breadcrumb_node(view: &PlaceView<'_>, page: Page<'_>, copy: &PageGraphCopy) -> Object {
 	let site = view.site;
@@ -212,7 +188,6 @@ pub fn breadcrumb_node(view: &PlaceView<'_>, page: Page<'_>, copy: &PageGraphCop
 	}
 	Object::typed("BreadcrumbList").with("itemListElement", items)
 }
-
 /// The `@graph` for one of a place's pages in one locale.
 ///
 /// Render it with [`Json::to_script`] inside `<script type="application/ld+json">`.
@@ -244,4 +219,24 @@ pub fn place_graph(view: &PlaceView<'_>, page: Page<'_>, copy: &PageGraphCopy, n
 		nodes.push(faq_page_node(&copy.faq));
 	}
 	Object::new().with("@context", "https://schema.org").with("@graph", nodes).into()
+}
+fn opening_hours(place: &Place) -> Option<Vec<Object>> {
+	place.hours.as_ref().map(|hours| {
+		hours
+			.iter()
+			.map(|h| {
+				Object::typed("OpeningHoursSpecification")
+					.with("dayOfWeek", h.days.iter().map(|d| Json::from(d.as_str())).collect::<Vec<_>>())
+					.with("opens", &h.opens)
+					.with("closes", &h.closes)
+			})
+			.collect()
+	})
+}
+
+/// The town an offer is priced for: a storefront's own, or the first commune
+/// served.
+fn city_of(place: &Place) -> Option<Object> {
+	let name = place.storefront().map(|f| f.address.locality.as_str()).or_else(|| place.served_localities().first().copied())?;
+	Some(Object::typed("City").with("name", name))
 }

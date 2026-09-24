@@ -15,6 +15,10 @@ use super::{
 	site::{Page, PlaceView, Site},
 };
 
+/// The OG card's size — the one Open Graph and Twitter both crop well.
+pub const OG_IMAGE_SIZE: (u32, u32) = (1200, 630);
+/// A site with no domain is off the web: nothing indexed or followed.
+const OFF_THE_WEB: Robots = Robots { index: false, follow: false };
 /// What `<head>` reads for one page: the title as the copy writes it, and the
 /// description every reader of the page (head, OG card, sitemap) shares.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -48,9 +52,6 @@ pub struct OpenGraph {
 	/// The card, rendered at `/og` on the apex.
 	pub image: String,
 }
-
-/// The OG card's size — the one Open Graph and Twitter both crop well.
-pub const OG_IMAGE_SIZE: (u32, u32) = (1200, 630);
 
 /// One page's `<head>`. A field left `None` is not emitted.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -114,13 +115,6 @@ pub fn og_image_url(site: &Site, slug: Option<&str>, locale: &str, page: Option<
 	format!("{}/og?{query}", site.origin().unwrap_or_default())
 }
 
-fn other_og_locales(site: &Site, locale: &str) -> Vec<String> {
-	site.i18n().locales().filter(|l| *l != locale).map(|l| site.og_locale_of(l)).collect()
-}
-
-/// A site with no domain is off the web: nothing indexed or followed.
-const OFF_THE_WEB: Robots = Robots { index: false, follow: false };
-
 /// The `<head>` of one of a place's pages.
 ///
 /// On a site with no domain there is no canonical to name, so `alternates`
@@ -163,7 +157,6 @@ pub fn place_meta(view: &PlaceView<'_>, page: Page<'_>, copy: &PageMetaCopy) -> 
 		title,
 	}
 }
-
 /// The `<head>` of the brand's own page on the apex — the directory of places,
 /// or a single site's landing before a place is chosen. Indexable unless the
 /// site has no domain.
@@ -190,7 +183,6 @@ pub fn brand_meta(site: &Site, locale: &str, copy: &PageMetaCopy) -> PageMeta {
 		twitter_card: true,
 	}
 }
-
 /// A status page — 404, 500, the thank-you — is never indexed nor listed.
 pub fn status_meta(site: &Site, title: &str) -> PageMeta {
 	PageMeta {
@@ -201,4 +193,7 @@ pub fn status_meta(site: &Site, title: &str) -> PageMeta {
 		open_graph: None,
 		twitter_card: false,
 	}
+}
+fn other_og_locales(site: &Site, locale: &str) -> Vec<String> {
+	site.i18n().locales().filter(|l| *l != locale).map(|l| site.og_locale_of(l)).collect()
 }

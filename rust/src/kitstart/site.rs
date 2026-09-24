@@ -10,6 +10,8 @@ use super::{
 };
 use crate::i18n::LocaleRegistry;
 
+/// The key of the page every place has.
+pub const HOME: &str = "home";
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BrandFacts {
 	/// `brand_id` in analytics, the `data-brand` palette scope.
@@ -50,7 +52,7 @@ impl LegacyRedirect {
 	}
 }
 
-/// Everything a site is declared with; [`Site::new`] validates it.
+/// Everything a site is declared with; [`Site::try_new`] validates it.
 #[derive(Clone, Debug)]
 pub struct SiteConfig {
 	pub brand: BrandFacts,
@@ -114,9 +116,6 @@ impl Page<'_> {
 	}
 }
 
-/// The key of the page every place has.
-pub const HOME: &str = "home";
-
 /// How a place's links are written on a page. On its own host a page is
 /// `/fr/prices` (`Host`); reached through the apex it is `/fr/<slug>/prices`
 /// (`Path`). The router says which by the route it rewrites to.
@@ -133,7 +132,7 @@ pub struct Site {
 }
 
 impl Site {
-	pub fn new(config: SiteConfig) -> Result<Self, SiteError> {
+	pub fn try_new(config: SiteConfig) -> Result<Self, SiteError> {
 		let mut keys: Vec<&str> = Vec::with_capacity(config.pages.len());
 		for (key, suffix) in &config.pages {
 			if keys.contains(&key.as_str()) {
@@ -208,7 +207,7 @@ impl Site {
 	}
 
 	pub fn home(&self) -> Page<'_> {
-		self.page(HOME).expect("Site::new refuses a config without a home page")
+		self.page(HOME).expect("Site::try_new refuses a config without a home page")
 	}
 
 	pub fn place_slugs(&self) -> impl Iterator<Item = &str> {

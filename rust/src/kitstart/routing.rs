@@ -79,14 +79,6 @@ pub fn parse_gone_header(value: Option<&str>) -> (Option<&str>, Option<&str>) {
 	(locale, location)
 }
 
-fn is_infrastructure(pathname: &str) -> bool {
-	if PASS_PATHS.contains(&pathname) || pathname.starts_with("/_next/") {
-		return true;
-	}
-	let last = pathname.rsplit('/').next().unwrap_or("");
-	last.rsplit_once('.').is_some_and(|(_, ext)| !ext.is_empty() && ext.bytes().all(|b| b.is_ascii_alphanumeric()))
-}
-
 /// The route param for a slug in a mode: `_royat` on its host, `royat`
 /// through the apex.
 pub fn place_param(slug: &str, mode: LinkMode) -> String {
@@ -95,7 +87,6 @@ pub fn place_param(slug: &str, mode: LinkMode) -> String {
 		LinkMode::Path => slug.to_owned(),
 	}
 }
-
 /// Inverse of [`place_param`].
 pub fn parse_place_param(param: &str) -> (&str, LinkMode) {
 	match param.strip_prefix(HOST_MARK) {
@@ -103,7 +94,6 @@ pub fn parse_place_param(param: &str) -> (&str, LinkMode) {
 		None => (param, LinkMode::Path),
 	}
 }
-
 /// What the router reads off a request.
 #[derive(Clone, Copy, Debug)]
 pub struct RequestFacts<'a> {
@@ -115,7 +105,6 @@ pub struct RequestFacts<'a> {
 	pub accept_language: Option<&'a str>,
 	pub cookie_lang: Option<&'a str>,
 }
-
 /// What to do with a request.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Decision {
@@ -134,7 +123,6 @@ pub enum Decision {
 	/// route param (`_royat` in host mode) or `None` for the brand's 404.
 	Gone { locale: String, location: Option<String> },
 }
-
 /// The place a host names: `royat.<domain>` → `royat`, `royat.localhost:3000`
 /// too, for local work. On a `Single` site every host is the one place.
 pub fn host_slug<'a>(site: &'a Site, host: &str) -> Option<&'a str> {
@@ -151,19 +139,10 @@ pub fn host_slug<'a>(site: &'a Site, host: &str) -> Option<&'a str> {
 	}
 	None
 }
-
-fn strip_port(host: &str) -> &str {
-	match host.rsplit_once(':') {
-		Some((name, port)) if !port.is_empty() && port.bytes().all(|b| b.is_ascii_digit()) => name,
-		_ => host,
-	}
-}
-
 /// Every suffix the router treats as a page of a place.
 pub fn place_suffixes(site: &Site) -> Vec<&str> {
 	site.pages().map(|p| p.suffix).chain([THANKS]).collect()
 }
-
 pub fn decide(site: &Site, req: &RequestFacts<'_>) -> Decision {
 	let i18n = site.i18n();
 	let query = Query::parse(req.query);
@@ -248,6 +227,20 @@ pub fn decide(site: &Site, req: &RequestFacts<'_>) -> Decision {
 	}
 	let (first, _) = head_and_tail(&rest);
 	gone(locale, site.has_place(first).then_some(first))
+}
+fn is_infrastructure(pathname: &str) -> bool {
+	if PASS_PATHS.contains(&pathname) || pathname.starts_with("/_next/") {
+		return true;
+	}
+	let last = pathname.rsplit('/').next().unwrap_or("");
+	last.rsplit_once('.').is_some_and(|(_, ext)| !ext.is_empty() && ext.bytes().all(|b| b.is_ascii_alphanumeric()))
+}
+
+fn strip_port(host: &str) -> &str {
+	match host.rsplit_once(':') {
+		Some((name, port)) if !port.is_empty() && port.bytes().all(|b| b.is_ascii_digit()) => name,
+		_ => host,
+	}
 }
 
 /// `"/royat/prices"` → `("royat", "/prices")`; `"/royat"` → `("royat", "")`.

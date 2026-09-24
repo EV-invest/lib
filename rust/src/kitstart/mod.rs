@@ -19,7 +19,7 @@
 //!     kitstart::{BrandFacts, Channels, Decision, Place, Presence, RequestFacts, SERVICE_AREA_GATE, Site, SiteConfig, Topology, decide},
 //! };
 //!
-//! let site = Site::new(SiteConfig {
+//! let site = Site::try_new(SiteConfig {
 //!     brand: BrandFacts {
 //!         id: "cleaning".into(),
 //!         name: "Clean Co".into(),
@@ -30,7 +30,7 @@
 //!         business_type: "LocalBusiness".into(),
 //!         price_range: None,
 //!     },
-//!     i18n: LocaleRegistry::new(LocaleRegistryConfig {
+//!     i18n: LocaleRegistry::try_new(LocaleRegistryConfig {
 //!         locales: vec![("fr".into(), "Français".into()), ("en".into(), "English".into())],
 //!         default: "fr".into(),
 //!         prefix_default_locale: true,

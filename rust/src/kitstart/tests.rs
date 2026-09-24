@@ -257,7 +257,7 @@ fn site(name: &str) -> Site {
 	let i18n = field(json, "i18n");
 	let labels = field(i18n, "labels");
 	let topology = field(json, "topology");
-	Site::new(SiteConfig {
+	Site::try_new(SiteConfig {
 		brand: BrandFacts {
 			id: text(field(brand, "id")),
 			name: text(field(brand, "name")),
@@ -268,7 +268,7 @@ fn site(name: &str) -> Site {
 			business_type: text(field(brand, "businessType")),
 			price_range: opt_text(brand, "priceRange"),
 		},
-		i18n: LocaleRegistry::new(LocaleRegistryConfig {
+		i18n: LocaleRegistry::try_new(LocaleRegistryConfig {
 			locales: list(field(i18n, "locales")).iter().map(|l| (text(l), text(field(labels, &text(l))))).collect(),
 			default: text(field(i18n, "default")),
 			prefix_default_locale: matches!(field(i18n, "prefixDefaultLocale"), Json::Bool(true)),
@@ -572,7 +572,7 @@ fn a_single_site_lists_its_one_place_on_the_apex_once_published() {
 fn a_site_without_a_domain_is_closed_to_crawlers() {
 	let mut config = site("cleaning").config().clone();
 	config.brand.domain = None;
-	let site = Site::new(config).expect("a valid site");
+	let site = Site::try_new(config).expect("a valid site");
 	let place = service_area_place();
 	assert_eq!(robots_for(&site, "anything").to_txt(), "User-agent: *\nDisallow: /\n");
 	assert!(sitemap_for(&site, "anything", std::slice::from_ref(&place)).is_empty());
@@ -609,7 +609,7 @@ fn a_site_refuses_a_config_the_router_could_not_read() {
 	let refuse = |edit: &dyn Fn(&mut SiteConfig)| {
 		let mut config = base.clone();
 		edit(&mut config);
-		Site::new(config).expect_err("refused").to_string()
+		Site::try_new(config).expect_err("refused").to_string()
 	};
 	assert!(refuse(&|c| c.pages.retain(|(k, _)| k != "home")).contains("home"));
 	assert!(refuse(&|c| c.pages.push(("prices".into(), "/other".into()))).contains("twice"));

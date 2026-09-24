@@ -5,6 +5,7 @@ use super::{
 	split_locale_path,
 };
 
+type PluralCase = (Locale, &'static str, [(f64, &'static str); 3]);
 fn values(pairs: &[(&str, MessageValue)]) -> MessageValues {
 	pairs.iter().map(|(k, v)| ((*k).to_owned(), v.clone())).collect()
 }
@@ -534,8 +535,6 @@ fn the_default_locale_always_sees_everything() {
 
 // ── interop with the TypeScript mirror ───────────────────────────────────────
 
-type PluralCase = (Locale, &'static str, [(f64, &'static str); 3]);
-
 #[test]
 fn renders_the_real_site_catalogue_plurals_identically_to_intl() {
 	// These five patterns are copied verbatim from site_conductor's shipped
@@ -615,7 +614,7 @@ fn zero_matches_intl_which_differs_per_locale() {
 // ── configurable registry ────────────────────────────────────────────────────
 
 fn storefront_registry(prefix_default_locale: bool) -> LocaleRegistry {
-	LocaleRegistry::new(LocaleRegistryConfig {
+	LocaleRegistry::try_new(LocaleRegistryConfig {
 		locales: vec![("fr".into(), "Français".into()), ("en".into(), "English".into())],
 		default: "fr".into(),
 		prefix_default_locale,
@@ -632,19 +631,19 @@ fn a_registry_refuses_an_ambiguous_url_contract() {
 		prefix_default_locale: false,
 		hreflang: hreflang.iter().map(|(l, t)| ((*l).to_owned(), (*t).to_owned())).collect(),
 	};
-	assert_eq!(LocaleRegistry::new(config(&[], "fr", &[])), Err(RegistryError::NoLocales));
-	assert_eq!(LocaleRegistry::new(config(&["fr"], "en", &[])), Err(RegistryError::DefaultNotListed("en".into())));
-	assert_eq!(LocaleRegistry::new(config(&["fr", "fr"], "fr", &[])), Err(RegistryError::ListedTwice("fr".into())));
+	assert_eq!(LocaleRegistry::try_new(config(&[], "fr", &[])), Err(RegistryError::NoLocales));
+	assert_eq!(LocaleRegistry::try_new(config(&["fr"], "en", &[])), Err(RegistryError::DefaultNotListed("en".into())));
+	assert_eq!(LocaleRegistry::try_new(config(&["fr", "fr"], "fr", &[])), Err(RegistryError::ListedTwice("fr".into())));
 	assert_eq!(
-		LocaleRegistry::new(config(&["fr"], "fr", &[("de", "de-DE")])),
+		LocaleRegistry::try_new(config(&["fr"], "fr", &[("de", "de-DE")])),
 		Err(RegistryError::UnknownHreflangLocale("de".into()))
 	);
 	assert_eq!(
-		LocaleRegistry::new(config(&["fr"], "fr", &[("fr", "X-Default")])),
+		LocaleRegistry::try_new(config(&["fr"], "fr", &[("fr", "X-Default")])),
 		Err(RegistryError::ReservedHreflang("fr".into()))
 	);
 	assert_eq!(
-		LocaleRegistry::new(config(&["fr", "en"], "fr", &[("fr", "EN")])),
+		LocaleRegistry::try_new(config(&["fr", "en"], "fr", &[("fr", "EN")])),
 		Err(RegistryError::HreflangCollision("en".into()))
 	);
 }
