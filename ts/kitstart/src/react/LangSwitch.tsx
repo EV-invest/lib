@@ -31,9 +31,13 @@ export function withLang(href: string, locale: string): string {
   return /^[a-z][a-z0-9+.-]*:/i.test(href) ? `${url.origin}${rest}` : rest;
 }
 
-// A 44 px hit area around each code (WCAG 2.5.8, Apple's HIG), centred on it by
-// a pseudo-element so the visual size and the focus ring stay the link's own.
-const HIT_AREA = "relative after:absolute after:top-1/2 after:left-1/2 after:size-full after:min-h-11 after:min-w-11 after:-translate-x-1/2 after:-translate-y-1/2";
+// A hit area around each code, centred on it by a pseudo-element so the visual
+// size and the focus ring stay the link's own: 44 px tall (Apple's HIG), and
+// 6 px wider on each side — about half the gap-dot-gap between codes, so
+// neighbours never overlap and a tap always lands on the code it is nearest to.
+// That still clears WCAG 2.5.8's 24 px; a full 44 px width would need wider
+// spacing between the codes.
+const HIT_AREA = "relative after:absolute after:top-1/2 after:left-1/2 after:h-full after:min-h-11 after:w-[calc(100%+0.75rem)] after:-translate-x-1/2 after:-translate-y-1/2";
 
 export function LangSwitch<L extends string>({ current, locales, hrefs, labels, label = "Language", className }: LangSwitchProps<L>) {
   return (

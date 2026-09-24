@@ -34,10 +34,10 @@ describe("LangSwitch", () => {
 
   // WCAG 2.5.8: the hit area is a centred pseudo-element, not padding, so the
   // codes keep their visual size and spacing.
-  it("gives each link a 44 px hit area around its own box", () => {
+  it("gives each link a 44 px tall hit area that stops short of its neighbours", () => {
     render(<LangSwitch current="en" locales={["fr", "en"]} hrefs={{ fr: "/fr", en: "/en" }} />);
     for (const code of ["FR", "EN"]) {
-      expect(screen.getByText(code)).toHaveClass("relative", "after:absolute", "after:min-h-11", "after:min-w-11", "after:-translate-x-1/2", "after:-translate-y-1/2");
+      expect(screen.getByText(code)).toHaveClass("relative", "after:absolute", "after:min-h-11", "after:w-[calc(100%+0.75rem)]", "after:-translate-x-1/2", "after:-translate-y-1/2");
       expect(screen.getByText(code).className).not.toMatch(/(^|\s)(p[xy]?-|outline-none)/);
     }
   });
