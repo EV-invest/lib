@@ -6,7 +6,7 @@ Compare serialised output: key order is part of the contract.
 
 | File | Case shape | Expected |
 |---|---|---|
-| `sites.json` | `{ <name>: site }` — `pages` as `[{ key, suffix }]`, `legacyRedirects` as `{ from, to: { "null" \| "<locale>": path } }` (a missing key is "no redirect"), `publication` as `"storefront"` \| `"service-area"` | — |
+| `sites.json` | `{ <name>: site }` — `pages` as `[{ key, suffix }]`, `legacyRedirects` as `{ from, to: { "null" \| "<locale>": path } }` (a missing key is "no redirect"), `publication` as `"storefront"` \| `"service-area"`, `publicFiles` the exact paths it serves as files | — |
 | `decide.json` | `{ site, request: { host, pathname, query, acceptLanguage, cookieLang } }`, `query` the raw string | `decision: { kind, location?, locale?, pathname? }` |
 | `json-ld.json` | `{ site, place, locale, page, mode, copy: { placeName, title, description, offers, faq } }`, top-level `now` | the page's `@graph` |
 | `metadata.json` | `kind: "place"` (`place`, `locale`, `page`, `mode`, `copy: { title, description }`), `"brand"` (`locale`, `copy`), `"status"` (`copy.title`) | the Next `Metadata` object |
@@ -35,8 +35,10 @@ unprefixed junk and the `single` topology aquafix cannot exercise.
 - **Routing.** A dead path is `gone` — the 404 in the path's language, for
   the place it belongs to (`location` is the `[location]` param, `_royat` in
   host mode) or the brand (`null`). A path without a language that is not a
-  page, `/quote`, `/og`, `/health`, `/_next/…` or a file with an extension is
-  `gone` too, in the cookie's or `Accept-Language`'s language.
+  page, `/_next/…`, one of the non-page routes (`/quote`, `/og`, `/health`,
+  `/sitemap.xml`, `/robots.txt`) or one of the site's `publicFiles` is `gone`
+  too, in the cookie's or `Accept-Language`'s language. An extension earns
+  nothing: `/wp-login.php` and `/fr/x.php` are `gone` like any dead path.
   `/<locale>/404/404` is the 404's own route and passes; `404` is a reserved
   slug.
 - **Antispam.** The honeypot outranks everything and spends nothing; every

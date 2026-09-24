@@ -62,6 +62,14 @@ export interface SiteConfig<L extends string, P extends string> {
   /** What the quote form asks and what a lead must have. */
   lead: LeadSchema<string>;
   legacyRedirects?: readonly LegacyRedirect<L>[];
+  /**
+   * Paths the brand serves as files besides the routes every landing has
+   * (`NON_PAGE_ROUTES`): what is in `public/` and the app-root metadata files
+   * (`/icon.svg`, `/favicon.ico`). Exact paths; any other path is a page or
+   * the 404, with or without an extension. `describeLandingContract` with
+   * `root` checks the list against the tree.
+   */
+  publicFiles?: readonly string[];
 }
 
 export interface Site<L extends string, P extends string = string> extends SiteConfig<L, P> {
@@ -87,6 +95,11 @@ export function defineSite<const L extends string, const P extends string>(confi
     if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) throw new Error(`defineSite: place slug "${slug}" must be [a-z0-9-], not starting with "-"`);
     // `/<locale>/404/404` is the proxy's route to the 404 (see `GONE`).
     if (slug === "404") throw new Error(`defineSite: place slug "404" is reserved for the 404 route`);
+  }
+  for (const file of config.publicFiles ?? []) {
+    if (!file.startsWith("/") || file.endsWith("/") || file.startsWith("/_next/")) throw new Error(`defineSite: public file "${file}" must be a path like "/icon.svg"`);
+    // `decide` passes a file only without a language: under one it is a page path.
+    if (config.i18n.isLocale(file.split("/")[1] ?? "")) throw new Error(`defineSite: public file "${file}" must not sit under a language`);
   }
   if (config.topology.kind === "single" && !placeSlugs.includes(config.topology.place)) {
     throw new Error(`defineSite: topology.place "${config.topology.place}" is not one of the places`);

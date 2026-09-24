@@ -16,8 +16,12 @@ import type { Site } from "./site";
  * unprefixed page                → 302 to /<cookie ?? Accept-Language>/…
  * any other path                 → gone: the 404 in the page's (or the
  *                                  negotiated) language, for its place
- * /quote, /og, /health, /_next/…, a file with an extension → pass
+ * /_next/…, a NON_PAGE_ROUTES path, a site's `publicFiles` → pass
  * ```
+ *
+ * A path with an extension is no exception: `/wp-login.php` or `/fr/x.php`
+ * let past would reach `[locale]`, whose `notFound()` Next caches as a page —
+ * a bare 404 without the phone, one ISR entry per scanner's guess.
  *
  * The link mode rides in the path, never in a request header: a page that read
  * a header would render per request, and every page here is cached (ISR). In
@@ -26,7 +30,7 @@ import type { Site } from "./site";
  *
  * The negotiation is a **302**, never a 301: the choice is per visitor and
  * must not be cached as permanent. Only page paths enter it — `/quote`,
- * `/sitemap.xml`, `/og` and assets pass straight through.
+ * `/sitemap.xml`, `/og` and the brand's files pass straight through.
  */
 
 /** Not indexable, not in the sitemap, but negotiated like any other page. */
@@ -76,16 +80,17 @@ export function parseGoneHeader(value: string | null): { locale?: string; locati
 }
 
 /**
- * Paths that are not pages and pass untouched, besides `/_next/…` and any
- * file with an extension (`/sitemap.xml`, `/robots.txt`, assets): the form
- * target, the OG card and the probe.
+ * The routes every landing has outside `[locale]`, which pass untouched: the
+ * form target, the OG card, the probe, the sitemap and robots. Anything else
+ * without a language but `/_next/…` and the site's `publicFiles` is `gone`.
  */
-export const PASS_PATHS: readonly string[] = ["/quote", "/og", "/health"];
+export const NON_PAGE_ROUTES: readonly string[] = ["/quote", "/og", "/health", "/sitemap.xml", "/robots.txt"];
 
-function isInfrastructure(pathname: string): boolean {
-  if (PASS_PATHS.includes(pathname) || pathname.startsWith("/_next/")) return true;
-  const last = pathname.slice(pathname.lastIndexOf("/") + 1);
-  return /\.[a-z0-9]+$/i.test(last);
+/** @deprecated The same list as {@link NON_PAGE_ROUTES}, under its old name. */
+export const PASS_PATHS: readonly string[] = NON_PAGE_ROUTES;
+
+function isInfrastructure(pathname: string, publicFiles: readonly string[]): boolean {
+  return NON_PAGE_ROUTES.includes(pathname) || publicFiles.includes(pathname) || pathname.startsWith("/_next/");
 }
 
 /** The `[location]` param for a slug in a mode: `_royat` on its host, `royat` through the apex. */
@@ -138,6 +143,7 @@ function withQuery(path: string, query: URLSearchParams): string {
 
 export function createRouting<L extends string, P extends string>(site: Site<L, P>): Routing<L> {
   const { i18n, placeSlugs, topology } = site;
+  const publicFiles = site.publicFiles ?? [];
   const suffixes = pointSuffixes(site);
   const hosts = [site.brand.domain, "localhost"].filter((h): h is string => h !== null);
 
@@ -180,7 +186,7 @@ export function createRouting<L extends string, P extends string>(site: Site<L, 
 
   function decide(req: RequestFacts): Decision<L> {
     const { locale, rest } = split(req.pathname);
-    if (locale === null && isInfrastructure(req.pathname)) return { kind: "pass" };
+    if (locale === null && isInfrastructure(req.pathname, publicFiles)) return { kind: "pass" };
 
     if (locale !== null) {
       // The 404's own target passes, keeping the header it was sent with.

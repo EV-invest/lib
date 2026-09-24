@@ -14,7 +14,7 @@
  *
  * ```ts
  * export const proxy = createProxy(site);
- * export const config = { matcher: ["/((?!_next/|.*\\.[a-z0-9]+$).*)"] };
+ * export const config = { matcher: ["/((?!_next/).*)"] };
  * ```
  */
 // `next/server.js`, not `next/server`: `next` has no `exports` map, so plain
@@ -31,11 +31,12 @@ const PER_VISITOR = "private, no-store";
 
 /**
  * The matcher the brand's `proxy.ts` spells out: everything but the build
- * output and files with an extension. `/quote`, `/og` and `/health` enter and
- * pass through `decide`, which owns the list of what is a page. Exported so a
- * contract test can compare the brand's literal against it.
+ * output. Paths with an extension come in too — let past, `/wp-login.php`
+ * would be a cached bare 404 — and `decide`, which owns the list of what is
+ * not a page, passes the real files. Exported so a contract test can compare
+ * the brand's literal against it.
  */
-export const PROXY_MATCHER = "/((?!_next/|.*\\.[a-z0-9]+$).*)";
+export const PROXY_MATCHER = "/((?!_next/).*)";
 
 export function createProxy<L extends string, P extends string>(site: Site<L, P>): (request: NextRequest) => NextResponse {
   const routing = createRouting(site);

@@ -123,7 +123,10 @@ file and the handler comes from a factory:
 ```ts
 // proxy.ts
 export const proxy = createProxy(site);
-export const config = { matcher: ["/((?!_next/|.*\\.[a-z0-9]+$).*)"] };
+// Files too: `decide` passes the routes outside `[locale]` and
+// `site.publicFiles` (`/icon.svg`), and 404s every other path, `/wp-login.php`
+// included — let past, it would be a cached bare 404 without the phone.
+export const config = { matcher: ["/((?!_next/).*)"] };
 
 // app/quote/route.ts
 export const dynamic = "force-dynamic";

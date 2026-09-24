@@ -130,6 +130,11 @@ async function smoke() {
     // A 404 is per path and per language, and must never sit in a shared cache
     // as if it were a page.
     await expect("a 404 is not cached as a page", "/fr/nope", {}, 404, r => !/s-maxage|public/.test(r.headers.get("cache-control") ?? ""));
+    // A scanner's file path is a dead path like any other: past the proxy it
+    // would be Next's bare 404, cached, without the phone.
+    const uncached = r => !/s-maxage|public/.test(r.headers.get("cache-control") ?? "");
+    await expect("a file nobody serves is the place's 404", "/fr/x.php", {}, 404, (r, b) => gone(r, b) && uncached(r));
+    await expect("a file without a language is a 404 too", "/wp-login.php", {}, 404, (r, b) => gone(r, b) && uncached(r));
     // Sent by hand to the 404 route, a gone header that names another
     // language or no real place is stripped: the brand's 404 in the path's
     // language answers, not the forged one.
