@@ -52,6 +52,7 @@
 //!     }],
 //!     publication: SERVICE_AREA_GATE,
 //!     legacy_redirects: vec![],
+//!     public_files: vec![],
 //! })
 //! .unwrap();
 //!
@@ -84,9 +85,13 @@ pub use place::{
 	Channels, DayOfWeek, Geo, OpeningHours, PerLocale, Place, PostalAddress, Presence, PublicationField, PublicationPolicy, RATING_MAX_AGE_DAYS, Rating, SERVICE_AREA_GATE, STOREFRONT_GATE,
 	ServiceArea, Storefront,
 };
+// Re-exporting the old name is the point of keeping it; the deprecation is
+// for callers, who still get the warning where they use it.
+#[allow(deprecated)]
+pub use routing::PASS_PATHS;
 pub use routing::{
-	Decision, GONE, GONE_HEADER, HOST_MARK, LANG_COOKIE, LANG_COOKIE_MAX_AGE, LANG_PARAM, PASS_PATHS, RequestFacts, THANKS, decide, gone_header, gone_path, host_slug, parse_gone_header,
-	parse_place_param, place_param, place_suffixes,
+	Decision, GONE, GONE_HEADER, HOST_MARK, LANG_COOKIE, LANG_COOKIE_MAX_AGE, LANG_PARAM, NON_PAGE_ROUTES, RequestFacts, THANKS, decide, gone_header, gone_path, host_slug,
+	parse_gone_header, parse_place_param, place_param, place_suffixes,
 };
 pub use site::{BrandFacts, Contact, HOME, LegacyRedirect, LinkMode, Page, PlaceView, Site, SiteConfig, SiteError, Topology, place_href};
 pub use sitemap::{AI_CRAWLERS, RobotsFile, SitemapEntry, robots_for, sitemap_for, sitemap_json, sitemap_xml};

@@ -302,6 +302,7 @@ fn site(name: &str) -> Site {
 					.collect(),
 			})
 			.collect(),
+		public_files: opt(json, "publicFiles").map_or_else(Vec::new, |files| list(files).iter().map(text).collect()),
 	})
 	.expect("a valid site")
 }
@@ -623,6 +624,10 @@ fn a_site_refuses_a_config_the_router_could_not_read() {
 		.contains("reserved")
 	);
 	assert!(refuse(&|c| c.pages.push(("faq".into(), "/faq//more".into()))).contains("suffix"));
+	assert!(refuse(&|c| c.public_files.push("icon.svg".into())).contains("public file"));
+	assert!(refuse(&|c| c.public_files.push("/.well-known/".into())).contains("public file"));
+	assert!(refuse(&|c| c.public_files.push("/_next/x.js".into())).contains("public file"));
+	assert!(refuse(&|c| c.public_files.push("/fr/menu.pdf".into())).contains("under a locale"));
 	assert!(refuse(&|c| c.topology = Topology::Single { place: "lyon".into() }).contains("lyon"));
 }
 

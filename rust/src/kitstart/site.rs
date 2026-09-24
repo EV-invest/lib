@@ -69,6 +69,10 @@ pub struct SiteConfig {
 	/// Which fields a place must fill before it may be indexed.
 	pub publication: PublicationPolicy,
 	pub legacy_redirects: Vec<LegacyRedirect>,
+	/// Files served as they are at the root — `/icon.svg`, `/llms.txt`. Only
+	/// these pass the router untouched; any other path with an extension is a
+	/// dead path like the rest.
+	pub public_files: Vec<String>,
 }
 
 /// Why a [`SiteConfig`] was refused.
@@ -84,6 +88,12 @@ pub enum SiteError {
 	/// `404` names the 404's own route.
 	ReservedPlaceSlug(String),
 	UnknownSinglePlace(String),
+	/// A public file must be a path like `/icon.svg`: rooted, not a
+	/// directory, not under `/_next/`.
+	BadPublicFile(String),
+	/// The router passes a file only without a locale; under one it is a
+	/// page path.
+	PublicFileUnderLocale(String),
 }
 
 impl std::fmt::Display for SiteError {
@@ -96,6 +106,8 @@ impl std::fmt::Display for SiteError {
 			Self::BadPlaceSlug(slug) => write!(f, "place slug {slug:?} must be [a-z0-9-], not starting with \"-\""),
 			Self::ReservedPlaceSlug(slug) => write!(f, "place slug {slug:?} is reserved for the 404 route"),
 			Self::UnknownSinglePlace(slug) => write!(f, "topology place {slug:?} is not one of the places"),
+			Self::BadPublicFile(file) => write!(f, "public file {file:?} must be a path like \"/icon.svg\""),
+			Self::PublicFileUnderLocale(file) => write!(f, "public file {file:?} must not sit under a locale"),
 		}
 	}
 }
@@ -169,6 +181,14 @@ impl Site {
 			&& !slugs.contains(&place.as_str())
 		{
 			return Err(SiteError::UnknownSinglePlace(place.clone()));
+		}
+		for file in &config.public_files {
+			if !file.starts_with('/') || file.ends_with('/') || file.starts_with("/_next/") {
+				return Err(SiteError::BadPublicFile(file.clone()));
+			}
+			if config.i18n.is_locale(file.split('/').nth(1).unwrap_or("")) {
+				return Err(SiteError::PublicFileUnderLocale(file.clone()));
+			}
 		}
 		Ok(Self { config })
 	}
