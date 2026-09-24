@@ -77,12 +77,15 @@ landing = ev.lib.mkLanding {
   whose `resolved` 404s.
 - `container`: the OCI image on node-slim, `prodEnv` baked in.
 - `checks.bundle-budget`: `kitstart-size` on the Nix build.
-- `apps.test` (tsc, lint, vitest, build, size, Playwright on the flake's
+- `apps.test` (tsc — the app, then `e2eConfig` as its own project with its own
+  `tsconfig.json` — lint, vitest, build, size, Playwright on the flake's
   pinned browsers), `accept-test` (Linux only), `size`, `dev`, `help`.
 - `apps.container-smoke`: boots the image with a host port docker picks
   (`-p 127.0.0.1::<port>`: landing ports sit in Linux's ephemeral range), checks
   `/health`, the 302, the page, the OG card and the form POST landing in the
-  mount, then boots it again with every `prodEnv` key blanked and wants 500.
+  mount, then boots it again with every `prodEnv` key blanked and wants 500 —
+  and once more with only the lead store's key (`LEADS_DB_PATH` /
+  `LEADS_DB_URL`) blanked, wanting 500 from the store's refusal alone.
 
 **Versions move together.** mkLanding refuses a lock whose
 `@evinvest/kitstart` differs from the lib revision's
