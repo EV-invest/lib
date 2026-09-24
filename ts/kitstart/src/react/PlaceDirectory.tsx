@@ -2,7 +2,7 @@ import { cn } from "@evinvest/uikit";
 import { telHref } from "@evinvest/marketing";
 import type { ReactNode } from "react";
 import { storefrontOf, type Place } from "../core/place/types";
-import type { PartClassNames } from "./parts";
+import { partWithLeading, type PartClassNames } from "./parts";
 
 export type PlaceDirectoryPart = "list" | "card" | "name" | "address" | "phone" | "link";
 
@@ -48,7 +48,7 @@ function PlaceCard<L extends string>({ place, locale, hrefOf, phoneOf, openLabel
     <li className={cn("flex flex-col gap-3 rounded-xl border border-border bg-card p-6 md:p-7", c?.card)}>
       <p className={cn("font-display text-xl font-bold text-ink", c?.name)}>{place.name[locale]}</p>
       {front && (
-        <address className={cn("text-sm not-italic leading-relaxed text-ink-soft", c?.address)}>
+        <address className={partWithLeading("text-sm not-italic text-ink-soft", "leading-relaxed", c?.address)}>
           {front.address.street}
           <br />
           {front.address.postalCode} {front.address.locality}

@@ -17,7 +17,7 @@ export { Coverage, type CoveragePart, type CoverageProps } from "./Coverage";
 export { Faq, type FaqPart, type FaqProps } from "./Faq";
 export { FormSelect, type FormSelectOption, type FormSelectPart, type FormSelectProps } from "./FormSelect";
 export { LangSwitch, withLang, type LangSwitchProps } from "./LangSwitch";
-export { MapFacade, type MapFacadeProps } from "./MapFacade";
+export { MapFacade, type MapFacadePart, type MapFacadeProps } from "./MapFacade";
 export { PlaceDirectory, type PlaceDirectoryPart, type PlaceDirectoryProps } from "./PlaceDirectory";
 export { PHONE_INPUT_PROPS, QuoteFormShell, type QuoteFormShellProps } from "./QuoteFormShell";
 export { StatusScreen, type StatusScreenPart, type StatusScreenProps } from "./StatusScreen";

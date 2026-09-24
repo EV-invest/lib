@@ -4,11 +4,12 @@ import type { ReactNode } from "react";
 import type { CopySlice, StatusAction, StatusCopy, StatusScreenText } from "../core/content";
 import type { StatusTarget } from "../core/status";
 import { LangSwitch } from "./LangSwitch";
-import type { PartClassNames } from "./parts";
+import { partWithLeading, type PartClassNames } from "./parts";
 
 export type StatusScreenPart =
   | "header"
   | "logo"
+  | "lang"
   | "phone"
   | "main"
   | "eyebrow"
@@ -69,7 +70,8 @@ export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>
   return (
     <div className={cn("relative flex min-h-screen flex-col bg-background text-ink", className)}>
       {/* Below md the switch takes a row of its own under the lock-up and the
-          phone, so a 320 px screen never breaks the number across lines. */}
+          phone, so a 320 px screen never breaks the number across lines; a
+          brand keeping one row says so through `lang` (`order-none w-auto`). */}
       <header className={cn("relative flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-5 py-3 md:flex-nowrap md:gap-5 md:px-12 md:py-5", c?.header)}>
         <a href={target.home} aria-label={brandName} className={cn("shrink-0 text-ink", c?.logo)}>
           {logo ?? <span className="font-display text-lg font-bold md:text-xl">{brandName}</span>}
@@ -80,7 +82,7 @@ export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>
           locales={locales}
           hrefs={target.langHrefs}
           {...(labels ? { labels } : {})}
-          className="order-last w-full text-sm font-medium text-ink-soft md:order-none md:w-auto"
+          className={cn("order-last w-full text-sm font-medium text-ink-soft md:order-none md:w-auto", c?.lang)}
         />
         {target.phone && (
           <a href={telHref(target.phone)} className={cn("whitespace-nowrap font-display text-base font-bold text-primary-ink md:text-xl", c?.phone)}>
@@ -91,12 +93,12 @@ export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>
       <main className={cn("relative flex flex-1 flex-col items-center gap-5 px-5 py-12 text-center md:gap-6 md:py-24", c?.main)}>
         {mark}
         <p className={cn("text-xs font-medium tracking-widest text-primary-ink", c?.eyebrow)}>{status.eyebrow}</p>
-        <p className={cn("font-display text-8xl font-bold leading-none tracking-tight text-ink md:text-9xl", c?.code)}>{status.code}</p>
-        <h1 className={cn("font-display text-2xl font-bold leading-snug text-ink md:text-4xl", c?.headline)}>
+        <p className={partWithLeading("font-display text-8xl font-bold tracking-tight text-ink md:text-9xl", "leading-none", c?.code)}>{status.code}</p>
+        <h1 className={partWithLeading("font-display text-2xl font-bold text-ink md:text-4xl", "leading-snug", c?.headline)}>
           {status.headline[0]}
           <span className="text-primary-ink">{status.headline[1]}</span>
         </h1>
-        <p className={cn("max-w-2xl text-base leading-relaxed text-ink-soft md:text-lg", c?.body)}>{status.body(f)}</p>
+        <p className={partWithLeading("max-w-2xl text-base text-ink-soft md:text-lg", "leading-relaxed", c?.body)}>{status.body(f)}</p>
         <div className={cn("flex flex-col gap-3.5 sm:flex-row", c?.actions)}>
           {primary && (
             <Button href={primary.href} size="xl" className={cn(buttonClassName, c?.primaryButton)}>

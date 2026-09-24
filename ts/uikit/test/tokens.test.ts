@@ -3,8 +3,16 @@ import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 
 import { buttonVariants } from "../src/components/button";
+import { CHECKBOX_BASE } from "../src/generated/checkbox";
+import { INPUT_BASE } from "../src/generated/input";
+import { INPUT_GROUP_BASE } from "../src/generated/input-group";
+import { INPUT_OTP_SLOT } from "../src/generated/input-otp";
 import { PROGRESS_INDICATOR, PROGRESS_TRACK } from "../src/generated/progress";
 import { SLIDER_RANGE, SLIDER_TRACK } from "../src/generated/slider";
+import { SWITCH_BASE, SWITCH_THUMB } from "../src/generated/switch";
+import { TEXTAREA_BASE } from "../src/generated/textarea";
+import { RADIO_GROUP_ITEM } from "../src/generated/radio-group";
+import { toggleVariantClasses } from "../src/generated/toggle";
 import { brandFromToml, DERIVED_SCOPE, readContract, readRules, renderPalette, type CssRule } from "../src/palette";
 
 // The shipped sheet, not the repo-root source: a consumer imports this one.
@@ -69,6 +77,20 @@ function ring(scope: Scope): string {
   const ref = formula && /^var\(--([a-z0-9-]+)\)$/.exec(formula);
   if (!ref?.[1]) throw new Error(`the contract's --ring is not a plain reference: ${formula}`);
   return token(ref[1], scope);
+}
+
+/**
+ * A derived line token (`--input`, `--border`) as painted over `surface` in
+ * `scope`: the palette's own hex when it pins one, else the contract's
+ * `color-mix(in srgb, var(--ink) N%, transparent)` composited onto the surface
+ * — the translucent line is only ever seen over whatever is under it.
+ */
+function line(name: string, scope: Scope, surface: string): string {
+  if (scope.rule.declarations.has(name)) return token(name, scope);
+  const formula = derivedRule?.declarations.get(name);
+  const mix = formula && /^color-mix\(in srgb, var\(--([a-z0-9-]+)\) (\d+(?:\.\d+)?)%, transparent\)$/.exec(formula);
+  if (!mix?.[1] || !mix[2]) throw new Error(`the contract's --${name} is not an ink mix: ${formula}`);
+  return composite(token(mix[1], scope), Number(mix[2]) / 100, surface);
 }
 
 function luminance(hex: string): number {
@@ -147,6 +169,24 @@ describe.each(scopes)("palette $label", (scope) => {
     });
   });
 
+  // lib#154. `--input` is the visible boundary of a control that has no fill
+  // (outline button, input, select, checkbox, radio), so it owes the non-text
+  // 3:1 on every surface a control sits on. `--border` stays a divider: it is
+  // decoration, and at 3:1 every card edge would shout.
+  describe("control boundary", () => {
+    it.each(["background", "secondary", "card", "popover"])("--input reads against %s (non-text 3:1)", (surface) => {
+      expect(contrast(line("input", scope, t(surface)), t(surface))).toBeGreaterThanOrEqual(3);
+    });
+
+    it("the unchecked switch thumb still reads on its --input track", () => {
+      expect(SWITCH_BASE).toMatch(/\bdata-\[state=unchecked\]:bg-input\b/);
+      expect(SWITCH_THUMB).toMatch(/\bdata-\[state=unchecked\]:bg-ink\b/);
+      for (const surface of ["background", "card"]) {
+        expect(contrast(t("ink"), line("input", scope, t(surface)))).toBeGreaterThanOrEqual(3);
+      }
+    });
+  });
+
   // A track is a shape under a shape, so it owes two floors at once: the moving
   // part reads on it (3:1) and it reads against the plane it sits on (~1.3:1, or
   // the UI goes flat). Both pairs are painted by the class tables, so the classes
@@ -175,6 +215,24 @@ describe("EV", () => {
   // ever clear 3:1 here, the spec's list of surfaces is what should change.
   it("the fill is under the floor on muted (the spec's stated exception)", () => {
     expect(contrast(token("primary", EV), token("muted", EV))).toBeLessThan(3);
+  });
+});
+
+// The floor above is only worth something if the controls draw their frame with
+// the token it measures, not with the divider.
+describe("outlined controls frame with --input", () => {
+  it.each([
+    ["button outline", buttonVariants({ variant: "outline" })],
+    ["toggle outline", toggleVariantClasses.outline],
+    ["input", INPUT_BASE],
+    ["textarea", TEXTAREA_BASE],
+    ["checkbox", CHECKBOX_BASE],
+    ["radio", RADIO_GROUP_ITEM],
+    ["input group", INPUT_GROUP_BASE],
+    ["otp slot", INPUT_OTP_SLOT],
+  ])("%s", (_, classes) => {
+    expect(classes).toMatch(/(^|\s)border-input(\s|$)/);
+    expect(classes).not.toMatch(/(^|\s)border-border(\s|$)/);
   });
 });
 
