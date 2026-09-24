@@ -98,6 +98,17 @@ describe("StatusScreen", () => {
     expect(screen.getByText("Accueil").closest("a")?.parentElement).toHaveClass("gap-2");
   });
 
+  it("lets a brand keep the language switch on the header's row", () => {
+    const { unmount } = render(<StatusScreen copy={{ locale: "fr", t, f }} status={notFound} target={target} locales={["fr", "en"]} brandName="Aquafix" />);
+    expect(screen.getByRole("navigation")).toHaveClass("order-last", "w-full");
+    unmount();
+    render(<StatusScreen copy={{ locale: "fr", t, f }} status={notFound} target={target} locales={["fr", "en"]} brandName="Aquafix" classNames={{ lang: "order-none w-auto" }} />);
+    const nav = screen.getByRole("navigation");
+    expect(nav.parentElement?.tagName).toBe("HEADER");
+    expect(nav).toHaveClass("order-none", "w-auto", "md:order-none");
+    expect(nav).not.toHaveClass("order-last", "w-full");
+  });
+
   // Shown dark inside a light page, uncoloured text would take the <body>'s ink.
   it("carries its own ink, a legible outline border and an unbreakable phone", () => {
     const { container } = render(
