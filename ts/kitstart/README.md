@@ -77,12 +77,15 @@ landing = ev.lib.mkLanding {
   whose `resolved` 404s.
 - `container`: the OCI image on node-slim, `prodEnv` baked in.
 - `checks.bundle-budget`: `kitstart-size` on the Nix build.
-- `apps.test` (tsc, lint, vitest, build, size, Playwright on the flake's
+- `apps.test` (tsc — the app, then `e2eConfig` as its own project with its own
+  `tsconfig.json` — lint, vitest, build, size, Playwright on the flake's
   pinned browsers), `accept-test` (Linux only), `size`, `dev`, `help`.
 - `apps.container-smoke`: boots the image with a host port docker picks
   (`-p 127.0.0.1::<port>`: landing ports sit in Linux's ephemeral range), checks
   `/health`, the 302, the page, the OG card and the form POST landing in the
-  mount, then boots it again with every `prodEnv` key blanked and wants 500.
+  mount, then boots it again with every `prodEnv` key blanked and wants 500 —
+  and once more with only the lead store's key (`LEADS_DB_PATH` /
+  `LEADS_DB_URL`) blanked, wanting 500 from the store's refusal alone.
 
 **Versions move together.** mkLanding refuses a lock whose
 `@evinvest/kitstart` differs from the lib revision's
@@ -96,7 +99,11 @@ Structural only — where behaviour matters more than look. Marketing sections
 (hero, prices, reviews…) stay in the brand until two brands hold the same one.
 Each widget is a Server Component unless it needs the browser (`MapFacade`,
 `AnalyticsBoundary`), styled with the kit's token roles only, restyled through
-`className`. `QuoteFormShell` is headless: it owns the hidden fields and the
+`className` — and, where a brand needs geometry inside one (`Faq`, `CallBar`,
+`StatusScreen`, `PlaceDirectory`, `Coverage`), through its named parts:
+`classNames={{ list: "rounded-none", answer: "px-2" }}`, merged after the
+kit's classes so the brand's utility wins. No descendant selectors: they
+break silently when a widget's markup moves. `QuoteFormShell` is headless: it owns the hidden fields and the
 honeypot the funnel reads; the visible fields are the brand's children.
 `StatusScreen` takes the brand's name and marks as props, so the client error
 boundary never imports the site config.
@@ -123,7 +130,10 @@ file and the handler comes from a factory:
 ```ts
 // proxy.ts
 export const proxy = createProxy(site);
-export const config = { matcher: ["/((?!_next/|.*\\.[a-z0-9]+$).*)"] };
+// Files too: `decide` passes the routes outside `[locale]` and
+// `site.publicFiles` (`/icon.svg`), and 404s every other path, `/wp-login.php`
+// included — let past, it would be a cached bare 404 without the phone.
+export const config = { matcher: ["/((?!_next/).*)"] };
 
 // app/quote/route.ts
 export const dynamic = "force-dynamic";

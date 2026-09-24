@@ -1,5 +1,5 @@
 {
-  "source": "aquafix tests/l10n.test.ts as of Service-Arb/aquafix#13 fcd7445 (link mode in the path, dead paths gone), plus unprefixed junk",
+  "source": "aquafix tests/l10n.test.ts as of Service-Arb/aquafix#13 fcd7445 (link mode in the path, dead paths gone), plus unprefixed junk; paths with an extension pass only when declared (publicFiles)",
   "cases": [
     {
       "name": "bare apex, no header → default locale",
@@ -176,7 +176,7 @@
       }
     },
     {
-      "name": "passes /wp-login.php",
+      "name": "a file nobody serves is gone, not passed",
       "site": "aquafix",
       "request": {
         "host": "aquafix.top",
@@ -186,7 +186,89 @@
         "cookieLang": null
       },
       "decision": {
-        "kind": "pass"
+        "kind": "gone",
+        "locale": "fr",
+        "location": null
+      }
+    },
+    {
+      "name": "an undeclared favicon is gone",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/favicon.ico",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": null
+      }
+    },
+    {
+      "name": "a file under a language is a dead path",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/fr/x.php",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": null
+      }
+    },
+    {
+      "name": "a file under a place's path is that place's 404",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/fr/royat/x.php",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": "royat"
+      }
+    },
+    {
+      "name": "a file under a language on a subdomain is that point's 404",
+      "site": "aquafix",
+      "request": {
+        "host": "royat.aquafix.top",
+        "pathname": "/fr/x.php",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": "_royat"
+      }
+    },
+    {
+      "name": "a file without a language on a subdomain is that point's 404",
+      "site": "aquafix",
+      "request": {
+        "host": "royat.aquafix.top",
+        "pathname": "/wp-login.php",
+        "query": "",
+        "acceptLanguage": "en",
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "en",
+        "location": "_royat"
       }
     },
     {
@@ -816,6 +898,52 @@
       },
       "decision": {
         "kind": "pass"
+      }
+    },
+    {
+      "name": "single: a declared public file passes",
+      "site": "cleaning",
+      "request": {
+        "host": "clean.example",
+        "pathname": "/icon.svg",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "pass"
+      }
+    },
+    {
+      "name": "single: a public file under a language is a dead path",
+      "site": "cleaning",
+      "request": {
+        "host": "clean.example",
+        "pathname": "/fr/icon.svg",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "fr",
+        "location": "_paris"
+      }
+    },
+    {
+      "name": "single: an undeclared file is the place's 404",
+      "site": "cleaning",
+      "request": {
+        "host": "clean.example",
+        "pathname": "/apple-touch-icon.png",
+        "query": "",
+        "acceptLanguage": "en",
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "gone",
+        "locale": "en",
+        "location": "_paris"
       }
     }
   ]

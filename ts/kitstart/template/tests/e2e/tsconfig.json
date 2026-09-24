@@ -1,0 +1,11 @@
+{
+  // Its own project because `@playwright/test` is not an npm dependency: the
+  // flake supplies it with the pinned browsers, and `nix run .#test` links it
+  // into tests/e2e/node_modules before checking these files.
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "plugins": []
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
+}

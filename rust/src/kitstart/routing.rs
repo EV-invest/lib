@@ -12,7 +12,15 @@
 //! unprefixed page                → 302 to /<cookie ?? Accept-Language>/…
 //! any other path                 → gone: the 404 in the path's (or the
 //!                                  negotiated) locale, for its place
-//! /quote, /og, /health, /_next/…, a file with an extension → pass
+//! /_next/…, a NON_PAGE_ROUTES path, a site's public file → pass
+//! ```
+//!
+//! A path with an extension is no exception: `/wp-login.php` or `/fr/x.php`
+//! let past would reach the locale route, whose not-found a framework may
+//! cache as a page — a bare 404 without the phone, one cache entry per
+//! scanner's guess. Only the files the site declares pass.
+//!
+//! ```text
 //! ```
 //!
 //! The link mode rides in the path, never in a request header: a page that
@@ -51,9 +59,14 @@ pub const GONE: &str = "404";
 /// request, so a client cannot choose which 404 it is shown.
 pub const GONE_HEADER: &str = "x-landing-not-found";
 
-/// Paths that are not pages and pass untouched, besides `/_next/…` and any
-/// file with an extension: the form target, the OG card and the probe.
-pub const PASS_PATHS: [&str; 3] = ["/quote", "/og", "/health"];
+/// Routes that are not pages and pass untouched, besides `/_next/…` and the
+/// site's own [`SiteConfig::public_files`](super::SiteConfig::public_files):
+/// the form target, the OG card, the probe, the sitemap and robots.
+pub const NON_PAGE_ROUTES: [&str; 5] = ["/quote", "/og", "/health", "/sitemap.xml", "/robots.txt"];
+
+/// The same list as [`NON_PAGE_ROUTES`], under its old name.
+#[deprecated(note = "renamed to NON_PAGE_ROUTES")]
+pub const PASS_PATHS: [&str; 5] = NON_PAGE_ROUTES;
 
 /// The path no route matches, in a locale.
 pub fn gone_path(locale: &str) -> String {
@@ -79,14 +92,6 @@ pub fn parse_gone_header(value: Option<&str>) -> (Option<&str>, Option<&str>) {
 	(locale, location)
 }
 
-fn is_infrastructure(pathname: &str) -> bool {
-	if PASS_PATHS.contains(&pathname) || pathname.starts_with("/_next/") {
-		return true;
-	}
-	let last = pathname.rsplit('/').next().unwrap_or("");
-	last.rsplit_once('.').is_some_and(|(_, ext)| !ext.is_empty() && ext.bytes().all(|b| b.is_ascii_alphanumeric()))
-}
-
 /// The route param for a slug in a mode: `_royat` on its host, `royat`
 /// through the apex.
 pub fn place_param(slug: &str, mode: LinkMode) -> String {
@@ -95,7 +100,6 @@ pub fn place_param(slug: &str, mode: LinkMode) -> String {
 		LinkMode::Path => slug.to_owned(),
 	}
 }
-
 /// Inverse of [`place_param`].
 pub fn parse_place_param(param: &str) -> (&str, LinkMode) {
 	match param.strip_prefix(HOST_MARK) {
@@ -103,7 +107,6 @@ pub fn parse_place_param(param: &str) -> (&str, LinkMode) {
 		None => (param, LinkMode::Path),
 	}
 }
-
 /// What the router reads off a request.
 #[derive(Clone, Copy, Debug)]
 pub struct RequestFacts<'a> {
@@ -115,7 +118,6 @@ pub struct RequestFacts<'a> {
 	pub accept_language: Option<&'a str>,
 	pub cookie_lang: Option<&'a str>,
 }
-
 /// What to do with a request.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Decision {
@@ -134,7 +136,6 @@ pub enum Decision {
 	/// route param (`_royat` in host mode) or `None` for the brand's 404.
 	Gone { locale: String, location: Option<String> },
 }
-
 /// The place a host names: `royat.<domain>` → `royat`, `royat.localhost:3000`
 /// too, for local work. On a `Single` site every host is the one place.
 pub fn host_slug<'a>(site: &'a Site, host: &str) -> Option<&'a str> {
@@ -151,25 +152,16 @@ pub fn host_slug<'a>(site: &'a Site, host: &str) -> Option<&'a str> {
 	}
 	None
 }
-
-fn strip_port(host: &str) -> &str {
-	match host.rsplit_once(':') {
-		Some((name, port)) if !port.is_empty() && port.bytes().all(|b| b.is_ascii_digit()) => name,
-		_ => host,
-	}
-}
-
 /// Every suffix the router treats as a page of a place.
 pub fn place_suffixes(site: &Site) -> Vec<&str> {
 	site.pages().map(|p| p.suffix).chain([THANKS]).collect()
 }
-
 pub fn decide(site: &Site, req: &RequestFacts<'_>) -> Decision {
 	let i18n = site.i18n();
 	let query = Query::parse(req.query);
 	let suffixes = place_suffixes(site);
 	let (locale, rest) = split(site, req.pathname);
-	if locale.is_none() && is_infrastructure(req.pathname) {
+	if locale.is_none() && is_infrastructure(site, req.pathname) {
 		return Decision::Pass;
 	}
 	let gone = |locale: &str, location: Option<&str>| Decision::Gone {
@@ -248,6 +240,16 @@ pub fn decide(site: &Site, req: &RequestFacts<'_>) -> Decision {
 	}
 	let (first, _) = head_and_tail(&rest);
 	gone(locale, site.has_place(first).then_some(first))
+}
+fn is_infrastructure(site: &Site, pathname: &str) -> bool {
+	NON_PAGE_ROUTES.contains(&pathname) || site.config().public_files.iter().any(|f| f == pathname) || pathname.starts_with("/_next/")
+}
+
+fn strip_port(host: &str) -> &str {
+	match host.rsplit_once(':') {
+		Some((name, port)) if !port.is_empty() && port.bytes().all(|b| b.is_ascii_digit()) => name,
+		_ => host,
+	}
 }
 
 /// `"/royat/prices"` → `("royat", "/prices")`; `"/royat"` → `("royat", "")`.

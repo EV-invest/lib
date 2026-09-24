@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { isPublished, publicationGaps } from "../core/place/publication";
-import { createRouting, pointSuffixes, THANKS } from "../core/routing";
+import { createRouting, NON_PAGE_ROUTES, pointSuffixes, THANKS } from "../core/routing";
 import { openLaunchBlockers, type OwnerTodo, type Site } from "../core/site";
+import { servedPaths } from "./served-files";
 
 /**
  * What every brand's site config must hold for the machinery to work — run
@@ -11,6 +12,7 @@ import { openLaunchBlockers, type OwnerTodo, type Site } from "../core/site";
  * describeLandingContract(site, {
  *   globalsCss: readFileSync("app/globals.css", "utf8"),
  *   proxySource: readFileSync("proxy.ts", "utf8"),
+ *   root: process.cwd(),
  *   text: TEXT,
  * });
  * ```
@@ -20,6 +22,12 @@ export interface LandingContractOptions<L extends string> {
   globalsCss?: string;
   /** `proxy.ts`: its literal matcher must be the package's. */
   proxySource?: string;
+  /**
+   * The brand's directory: every file `app/` and `public/` serve outside
+   * `[locale]` must pass the proxy — be a `NON_PAGE_ROUTES` path or in
+   * `site.publicFiles` — or it answers 404; and every listed file must exist.
+   */
+  root?: string;
   /** The brand's copy, one per locale — every locale must have one. */
   text?: Readonly<Partial<Record<L, unknown>>>;
   /** Places that must be published once the owner's fields are in. */
@@ -29,7 +37,7 @@ export interface LandingContractOptions<L extends string> {
 }
 
 const SOURCE_LINE = /@source\s+["'][^"']*node_modules\/@evinvest\/kitstart\/dist["']/;
-const MATCHER = "/((?!_next/|.*\\\\.[a-z0-9]+$).*)";
+const MATCHER = "/((?!_next/).*)";
 
 export function describeLandingContract<L extends string, P extends string>(site: Site<L, P>, options: LandingContractOptions<L> = {}): void {
   describe(`landing contract: ${site.brand.id}`, () => {
@@ -100,6 +108,17 @@ export function describeLandingContract<L extends string, P extends string>(site
     if (options.globalsCss !== undefined) {
       it("lets Tailwind scan the package", () => {
         expect(options.globalsCss).toMatch(SOURCE_LINE);
+      });
+    }
+
+    if (options.root !== undefined) {
+      const root = options.root;
+      it("passes exactly the files it serves", () => {
+        const served = servedPaths(root);
+        const listed = site.publicFiles ?? [];
+        const passed = [...NON_PAGE_ROUTES, ...listed];
+        expect(served.filter(p => !passed.includes(p)), "served, but the proxy sends it to the 404: list it in site.publicFiles").toEqual([]);
+        expect(listed.filter(p => !served.includes(p)), "in site.publicFiles, but neither app/ nor public/ serves it").toEqual([]);
       });
     }
 

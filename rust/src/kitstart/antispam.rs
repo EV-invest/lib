@@ -19,6 +19,9 @@ pub const LEGACY_HONEYPOT_FIELDS: &[&str] = &["website"];
 pub const RENDERED_AT_FIELD: &str = "t";
 /// Faster than this from render to submit is a script, not a person.
 pub const MIN_FILL_MS: i64 = 3_000;
+/// The bucket keys past the cap share. No client key can collide with it: a
+/// client key is an address, and no address carries a NUL.
+pub const RATE_LIMIT_OVERFLOW_KEY: &str = "\u{0}overflow";
 /// A render time this far ahead of the clock was forged.
 const MAX_SKEW_MS: i64 = 60_000;
 
@@ -74,17 +77,6 @@ pub struct RateLimiter {
 	hits: HashMap<String, Window>,
 	pruned_at: Option<i64>,
 }
-
-#[derive(Clone, Copy, Debug)]
-struct Window {
-	start: i64,
-	count: u32,
-}
-
-/// The bucket keys past the cap share. No client key can collide with it: a
-/// client key is an address, and no address carries a NUL.
-pub const RATE_LIMIT_OVERFLOW_KEY: &str = "\u{0}overflow";
-
 impl RateLimiter {
 	/// Distinct addresses tracked before new ones share the overflow bucket.
 	pub const MAX_KEYS: usize = 10_000;
@@ -141,7 +133,6 @@ pub struct Submission<'a> {
 	pub client_key: &'a str,
 	pub now_ms: i64,
 }
-
 /// The barriers in order: honeypot, rate limit, timing.
 ///
 /// Every submission that gets past the honeypot spends the limit, whatever its
@@ -158,6 +149,11 @@ pub fn screen(submission: Submission<'_>, limiter: &mut RateLimiter) -> Option<S
 		return Some(SpamVerdict::RateLimited);
 	}
 	check_timing(submission.rendered_at, submission.now_ms)
+}
+#[derive(Clone, Copy, Debug)]
+struct Window {
+	start: i64,
+	count: u32,
 }
 
 #[cfg(test)]

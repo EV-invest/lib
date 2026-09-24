@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { contactOf, createAcceptLead, placeUrl, RateLimiter, type Place, type StatusCopy, type StatusScreenText } from "../src/index";
-import { AreaChips, CallBar, Coverage, Faq, LangSwitch, PlaceDirectory, QuoteFormShell, StatusScreen } from "../src/react/index";
+import { AreaChips, CallBar, Coverage, Faq, LangSwitch, PlaceDirectory, QuoteFormShell, StatusScreen, withLang } from "../src/react/index";
 import { fixtureSite } from "./support/fixtures";
 
 const site = fixtureSite("aquafix");
@@ -24,6 +24,12 @@ describe("LangSwitch", () => {
     expect(screen.getByRole("navigation", { name: "Langue" })).toBeInTheDocument();
     expect(screen.getByLabelText("English")).toHaveAttribute("href", "/en?lang=en");
     expect(screen.getByLabelText("Français")).toHaveAttribute("href", "/fr?x=1&lang=fr#faq");
+  });
+
+  it("keeps an absolute link's origin", () => {
+    expect(withLang("https://royat.aquafix.top/fr/prices?x=1#faq", "en")).toBe("https://royat.aquafix.top/fr/prices?x=1&lang=en#faq");
+    expect(withLang("//royat.aquafix.top/fr", "en")).toBe("//royat.aquafix.top/fr?lang=en");
+    expect(withLang("http://localhost:3000/fr", "fr")).toBe("http://localhost:3000/fr?lang=fr");
   });
 });
 
@@ -79,6 +85,30 @@ describe("StatusScreen", () => {
     // The primary falls back to home, and the duplicate secondary is dropped.
     expect(screen.getAllByText("Accueil")).toHaveLength(1);
   });
+
+  it("styles each part the brand names", () => {
+    const classNames = { header: "py-2", eyebrow: "text-sm", code: "text-7xl", headline: "text-3xl", body: "text-sm", actions: "gap-2" } as const;
+    render(<StatusScreen copy={{ locale: "fr", t, f }} status={notFound} target={target} locales={["fr", "en"]} brandName="Aquafix" classNames={classNames} />);
+    expect(screen.getByLabelText("Aquafix").closest("header")).toHaveClass("py-2");
+    expect(screen.getByText("ERREUR")).toHaveClass("text-sm");
+    expect(screen.getByText("404")).toHaveClass("text-7xl");
+    expect(screen.getByText("404")).not.toHaveClass("text-8xl");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveClass("text-3xl");
+    expect(screen.getByText("Mais nous oui.")).toHaveClass("text-sm");
+    expect(screen.getByText("Accueil").closest("a")?.parentElement).toHaveClass("gap-2");
+  });
+
+  // Shown dark inside a light page, uncoloured text would take the <body>'s ink.
+  it("carries its own ink, a legible outline border and an unbreakable phone", () => {
+    const { container } = render(
+      <StatusScreen copy={{ locale: "fr", t, f }} status={notFound} target={target} locales={["fr", "en"]} brandName="Aquafix" classNames={{ phone: "text-lg", secondaryButton: "px-4" }} />,
+    );
+    expect(container.firstElementChild).toHaveClass("text-ink");
+    expect(screen.getByText("Accueil").closest("a")).toHaveClass("border-ink/50", "px-4");
+    const phone = screen.getAllByText("+33 4 23 50 06 40").find(el => el.closest("header"));
+    expect(phone).toHaveClass("whitespace-nowrap", "text-lg");
+    expect(phone).not.toHaveClass("text-base");
+  });
 });
 
 describe("PlaceDirectory", () => {
@@ -124,6 +154,34 @@ describe("Faq", () => {
     render(<Faq items={[{ q: "Q1", a: "A1" }]} />);
     expect(screen.getByText("Q1").closest("details")).not.toHaveAttribute("open");
     expect(screen.getByText("A1")).toBeInTheDocument();
+  });
+});
+
+// A part's class replaces the kit's conflicting utility, not joins it:
+// that is what lets a brand set geometry without descendant selectors.
+describe("named parts", () => {
+  it("reach their element and win over the kit's own classes", () => {
+    const { unmount } = render(<Faq items={[{ q: "Q1", a: "A1" }]} classNames={{ list: "rounded-none", answer: "px-2" }} />);
+    expect(screen.getByText("Q1").closest("details")?.parentElement).toHaveClass("rounded-none");
+    expect(screen.getByText("Q1").closest("details")?.parentElement).not.toHaveClass("rounded-xl");
+    expect(screen.getByText("A1")).toHaveClass("px-2");
+    expect(screen.getByText("A1")).not.toHaveClass("px-5");
+    unmount();
+
+    const copy = { locale: "fr" as const, f, t: { callLabel: (x: F) => `Appeler ${x.phone}`, whatsappMessage: () => "Bonjour", whatsappShort: "WhatsApp", ctaShort: "Devis" } };
+    render(<CallBar copy={copy} phone="+33 4 23 50 06 40" whatsapp={null} quoteHref="/fr#quote" label="Contact" buttonClassName="font-bold" classNames={{ call: "px-6" }} />);
+    expect(screen.getByLabelText("Appeler +33 4 23 50 06 40")).toHaveClass("px-6", "font-bold");
+    expect(screen.getByText("Devis").closest("a")).not.toHaveClass("px-6");
+  });
+
+  it("style every place card and the coverage chips", () => {
+    render(
+      <PlaceDirectory places={[royat]} locale="fr" hrefOf={() => "/"} phoneOf={() => null} openLabel="Ouvrir" classNames={{ list: "gap-2", card: "p-3" }} />,
+    );
+    expect(screen.getByText("Royat").closest("li")).toHaveClass("p-3");
+    expect(screen.getByText("Royat").closest("ul")).toHaveClass("gap-2");
+    render(<Coverage place={paris} locale="fr" classNames={{ chips: "gap-1" }} />);
+    expect(screen.getByText("Boulogne-Billancourt").closest("ul")).toHaveClass("gap-1");
   });
 });
 

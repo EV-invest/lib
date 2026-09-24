@@ -18,6 +18,81 @@ pub enum Json {
 	List(Vec<Json>),
 	Object(Object),
 }
+impl Json {
+	/// Compact JSON, as `JSON.stringify(value)` writes it.
+	pub fn to_json(&self) -> String {
+		let mut out = String::new();
+		self.write(&mut out, None, 0);
+		out
+	}
+
+	/// Indented JSON, as `JSON.stringify(value, null, 2)` writes it.
+	pub fn to_json_pretty(&self) -> String {
+		let mut out = String::new();
+		self.write(&mut out, Some(2), 0);
+		out
+	}
+
+	/// Compact JSON safe to inline in a `<script>` element: every `<` is
+	/// escaped, so no string value — copy comes from translators and live
+	/// sources — can close the element early.
+	pub fn to_script(&self) -> String {
+		self.to_json().replace('<', "\\u003c")
+	}
+
+	pub fn as_object(&self) -> Option<&Object> {
+		match self {
+			Self::Object(o) => Some(o),
+			_ => None,
+		}
+	}
+
+	fn write(&self, out: &mut String, indent: Option<usize>, depth: usize) {
+		match self {
+			Self::Null => out.push_str("null"),
+			Self::Bool(b) => out.push_str(if *b { "true" } else { "false" }),
+			Self::Num(n) => write_number(out, *n),
+			Self::Str(s) => write_string(out, s),
+			Self::List(items) => {
+				if items.is_empty() {
+					out.push_str("[]");
+					return;
+				}
+				out.push('[');
+				for (i, item) in items.iter().enumerate() {
+					if i > 0 {
+						out.push(',');
+					}
+					newline(out, indent, depth + 1);
+					item.write(out, indent, depth + 1);
+				}
+				newline(out, indent, depth);
+				out.push(']');
+			}
+			Self::Object(object) => {
+				if object.is_empty() {
+					out.push_str("{}");
+					return;
+				}
+				out.push('{');
+				for (i, (key, value)) in object.iter().enumerate() {
+					if i > 0 {
+						out.push(',');
+					}
+					newline(out, indent, depth + 1);
+					write_string(out, key);
+					out.push(':');
+					if indent.is_some() {
+						out.push(' ');
+					}
+					value.write(out, indent, depth + 1);
+				}
+				newline(out, indent, depth);
+				out.push('}');
+			}
+		}
+	}
+}
 
 /// A JSON object in insertion order.
 ///
@@ -102,82 +177,6 @@ impl FromIterator<(String, Json)> for Object {
 			out.set(&key, value);
 		}
 		out
-	}
-}
-
-impl Json {
-	/// Compact JSON, as `JSON.stringify(value)` writes it.
-	pub fn to_json(&self) -> String {
-		let mut out = String::new();
-		self.write(&mut out, None, 0);
-		out
-	}
-
-	/// Indented JSON, as `JSON.stringify(value, null, 2)` writes it.
-	pub fn to_json_pretty(&self) -> String {
-		let mut out = String::new();
-		self.write(&mut out, Some(2), 0);
-		out
-	}
-
-	/// Compact JSON safe to inline in a `<script>` element: every `<` is
-	/// escaped, so no string value — copy comes from translators and live
-	/// sources — can close the element early.
-	pub fn to_script(&self) -> String {
-		self.to_json().replace('<', "\\u003c")
-	}
-
-	pub fn as_object(&self) -> Option<&Object> {
-		match self {
-			Self::Object(o) => Some(o),
-			_ => None,
-		}
-	}
-
-	fn write(&self, out: &mut String, indent: Option<usize>, depth: usize) {
-		match self {
-			Self::Null => out.push_str("null"),
-			Self::Bool(b) => out.push_str(if *b { "true" } else { "false" }),
-			Self::Num(n) => write_number(out, *n),
-			Self::Str(s) => write_string(out, s),
-			Self::List(items) => {
-				if items.is_empty() {
-					out.push_str("[]");
-					return;
-				}
-				out.push('[');
-				for (i, item) in items.iter().enumerate() {
-					if i > 0 {
-						out.push(',');
-					}
-					newline(out, indent, depth + 1);
-					item.write(out, indent, depth + 1);
-				}
-				newline(out, indent, depth);
-				out.push(']');
-			}
-			Self::Object(object) => {
-				if object.is_empty() {
-					out.push_str("{}");
-					return;
-				}
-				out.push('{');
-				for (i, (key, value)) in object.iter().enumerate() {
-					if i > 0 {
-						out.push(',');
-					}
-					newline(out, indent, depth + 1);
-					write_string(out, key);
-					out.push(':');
-					if indent.is_some() {
-						out.push(' ');
-					}
-					value.write(out, indent, depth + 1);
-				}
-				newline(out, indent, depth);
-				out.push('}');
-			}
-		}
 	}
 }
 

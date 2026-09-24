@@ -32,6 +32,7 @@ interface SiteFixture {
   places: Place<Locale>[];
   publication: "storefront" | "service-area";
   legacyRedirects: { from: string; to: Partial<Record<"null" | Locale, string>> }[];
+  publicFiles: string[];
 }
 
 const cache = new Map<string, Site<Locale>>();
@@ -64,6 +65,7 @@ export function fixtureSite(name: string): Site<Locale> {
     publication: f.publication === "storefront" ? STOREFRONT_GATE : SERVICE_AREA_GATE,
     lead: { subjects: ["other"], wire: { subject: "job", locality: "zip", mobile: "mobile" } },
     legacyRedirects: legacy,
+    publicFiles: f.publicFiles,
   });
   cache.set(name, site);
   return site;

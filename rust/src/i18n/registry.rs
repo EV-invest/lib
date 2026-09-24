@@ -14,7 +14,7 @@ use super::ranked_tags;
 ///
 /// ```
 /// use ev_lib::i18n::{LocaleRegistry, LocaleRegistryConfig};
-/// let i18n = LocaleRegistry::new(LocaleRegistryConfig {
+/// let i18n = LocaleRegistry::try_new(LocaleRegistryConfig {
 ///     locales: vec![("fr".into(), "Français".into()), ("en".into(), "English".into())],
 ///     default: "fr".into(),
 ///     prefix_default_locale: true,
@@ -70,13 +70,6 @@ impl std::fmt::Display for RegistryError {
 
 impl std::error::Error for RegistryError {}
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct Entry {
-	code: String,
-	label: String,
-	hreflang: String,
-}
-
 /// One locale set with everything that depends on it: the URL contract,
 /// `hreflang` clusters and `Accept-Language` negotiation.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -85,10 +78,9 @@ pub struct LocaleRegistry {
 	default: usize,
 	prefix_default_locale: bool,
 }
-
 impl LocaleRegistry {
 	/// Validate `config` and build the registry.
-	pub fn new(config: LocaleRegistryConfig) -> Result<Self, RegistryError> {
+	pub fn try_new(config: LocaleRegistryConfig) -> Result<Self, RegistryError> {
 		if config.locales.is_empty() {
 			return Err(RegistryError::NoLocales);
 		}
@@ -228,4 +220,11 @@ impl LocaleRegistry {
 	fn is_prefixed(&self, locale: &str) -> bool {
 		self.prefix_default_locale || locale != self.default_locale()
 	}
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct Entry {
+	code: String,
+	label: String,
+	hreflang: String,
 }

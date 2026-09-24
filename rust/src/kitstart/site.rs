@@ -10,6 +10,8 @@ use super::{
 };
 use crate::i18n::LocaleRegistry;
 
+/// The key of the page every place has.
+pub const HOME: &str = "home";
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BrandFacts {
 	/// `brand_id` in analytics, the `data-brand` palette scope.
@@ -50,7 +52,7 @@ impl LegacyRedirect {
 	}
 }
 
-/// Everything a site is declared with; [`Site::new`] validates it.
+/// Everything a site is declared with; [`Site::try_new`] validates it.
 #[derive(Clone, Debug)]
 pub struct SiteConfig {
 	pub brand: BrandFacts,
@@ -67,6 +69,10 @@ pub struct SiteConfig {
 	/// Which fields a place must fill before it may be indexed.
 	pub publication: PublicationPolicy,
 	pub legacy_redirects: Vec<LegacyRedirect>,
+	/// Files served as they are at the root — `/icon.svg`, `/llms.txt`. Only
+	/// these pass the router untouched; any other path with an extension is a
+	/// dead path like the rest.
+	pub public_files: Vec<String>,
 }
 
 /// Why a [`SiteConfig`] was refused.
@@ -82,6 +88,12 @@ pub enum SiteError {
 	/// `404` names the 404's own route.
 	ReservedPlaceSlug(String),
 	UnknownSinglePlace(String),
+	/// A public file must be a path like `/icon.svg`: rooted, not a
+	/// directory, not under `/_next/`.
+	BadPublicFile(String),
+	/// The router passes a file only without a locale; under one it is a
+	/// page path.
+	PublicFileUnderLocale(String),
 }
 
 impl std::fmt::Display for SiteError {
@@ -94,6 +106,8 @@ impl std::fmt::Display for SiteError {
 			Self::BadPlaceSlug(slug) => write!(f, "place slug {slug:?} must be [a-z0-9-], not starting with \"-\""),
 			Self::ReservedPlaceSlug(slug) => write!(f, "place slug {slug:?} is reserved for the 404 route"),
 			Self::UnknownSinglePlace(slug) => write!(f, "topology place {slug:?} is not one of the places"),
+			Self::BadPublicFile(file) => write!(f, "public file {file:?} must be a path like \"/icon.svg\""),
+			Self::PublicFileUnderLocale(file) => write!(f, "public file {file:?} must not sit under a locale"),
 		}
 	}
 }
@@ -114,9 +128,6 @@ impl Page<'_> {
 	}
 }
 
-/// The key of the page every place has.
-pub const HOME: &str = "home";
-
 /// How a place's links are written on a page. On its own host a page is
 /// `/fr/prices` (`Host`); reached through the apex it is `/fr/<slug>/prices`
 /// (`Path`). The router says which by the route it rewrites to.
@@ -133,7 +144,7 @@ pub struct Site {
 }
 
 impl Site {
-	pub fn new(config: SiteConfig) -> Result<Self, SiteError> {
+	pub fn try_new(config: SiteConfig) -> Result<Self, SiteError> {
 		let mut keys: Vec<&str> = Vec::with_capacity(config.pages.len());
 		for (key, suffix) in &config.pages {
 			if keys.contains(&key.as_str()) {
@@ -170,6 +181,14 @@ impl Site {
 			&& !slugs.contains(&place.as_str())
 		{
 			return Err(SiteError::UnknownSinglePlace(place.clone()));
+		}
+		for file in &config.public_files {
+			if !file.starts_with('/') || file.ends_with('/') || file.starts_with("/_next/") {
+				return Err(SiteError::BadPublicFile(file.clone()));
+			}
+			if config.i18n.is_locale(file.split('/').nth(1).unwrap_or("")) {
+				return Err(SiteError::PublicFileUnderLocale(file.clone()));
+			}
 		}
 		Ok(Self { config })
 	}
@@ -208,7 +227,7 @@ impl Site {
 	}
 
 	pub fn home(&self) -> Page<'_> {
-		self.page(HOME).expect("Site::new refuses a config without a home page")
+		self.page(HOME).expect("Site::try_new refuses a config without a home page")
 	}
 
 	pub fn place_slugs(&self) -> impl Iterator<Item = &str> {

@@ -144,6 +144,13 @@ describe("defineSite's reserved shapes", () => {
     if (!place) throw new Error("fixture");
     expect(() => defineSite({ ...site, places: [{ ...place, slug: "404" }], topology: { kind: "single", place: "404" } })).toThrow(/reserved/);
   });
+
+  it("takes public files only as root paths outside any language", () => {
+    for (const file of ["icon.svg", "/assets/", "/_next/x.js", "/fr/icon.svg"]) {
+      expect(() => defineSite({ ...site, publicFiles: [file] }), file).toThrow(/public file/);
+    }
+    expect(() => defineSite({ ...site, publicFiles: ["/icon.svg", "/fonts/inter.woff2"] })).not.toThrow();
+  });
 });
 
 describe("the gone header", () => {

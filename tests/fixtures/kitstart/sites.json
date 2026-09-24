@@ -253,7 +253,8 @@
           "en": "/en"
         }
       }
-    ]
+    ],
+    "publicFiles": []
   },
   "cleaning": {
     "brand": {
@@ -344,7 +345,11 @@
       }
     ],
     "publication": "service-area",
-    "legacyRedirects": []
+    "legacyRedirects": [],
+    "publicFiles": [
+      "/icon.svg",
+      "/favicon.ico"
+    ]
   },
   "prelaunch": {
     "brand": {
@@ -435,6 +440,10 @@
       }
     ],
     "publication": "service-area",
-    "legacyRedirects": []
+    "legacyRedirects": [],
+    "publicFiles": [
+      "/icon.svg",
+      "/favicon.ico"
+    ]
   }
 }

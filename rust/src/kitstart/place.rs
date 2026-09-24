@@ -14,6 +14,22 @@ use std::{borrow::Cow, collections::BTreeMap};
 
 use jiff::{Timestamp, civil::Date, tz::TimeZone};
 
+/// Google Business Profile API policy: no cached copy older than this.
+pub const RATING_MAX_AGE_DAYS: i64 = 30;
+/// A storefront network: what the place looks like, how to find it, where its
+/// van goes, and when it opens.
+pub const STOREFRONT_GATE: PublicationPolicy = PublicationPolicy {
+	required: Cow::Borrowed(&[
+		PublicationField::StorefrontPhoto,
+		PublicationField::Landmark,
+		PublicationField::ServiceArea,
+		PublicationField::Hours,
+	]),
+};
+/// A service-area business has no front to photograph: its zone and its hours.
+pub const SERVICE_AREA_GATE: PublicationPolicy = PublicationPolicy {
+	required: Cow::Borrowed(&[PublicationField::ServiceArea, PublicationField::Hours]),
+};
 /// Text per locale code — a place name, a landmark.
 pub type PerLocale = BTreeMap<String, String>;
 
@@ -167,8 +183,37 @@ impl Place {
 	}
 }
 
-/// Google Business Profile API policy: no cached copy older than this.
-pub const RATING_MAX_AGE_DAYS: i64 = 30;
+/// The fields that make a place's page about *that* place. Google's spam
+/// policy names "many similar pages that funnel to one business" as doorway
+/// pages, and pages that differ only by address are exactly that. So a place
+/// is indexable only once it says something its neighbours cannot.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum PublicationField {
+	StorefrontPhoto,
+	Landmark,
+	ServiceArea,
+	Hours,
+}
+/// Which fields a place must fill before it may be indexed.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PublicationPolicy {
+	pub required: Cow<'static, [PublicationField]>,
+}
+impl PublicationPolicy {
+	/// What is still missing, in the policy's order; empty means the place may
+	/// be indexed. A landmark counts only when it is written in every locale
+	/// the place is named in, since each of those pages prints it.
+	pub fn gaps(&self, place: &Place) -> Vec<PublicationField> {
+		self.required.iter().copied().filter(|field| !filled(place, *field)).collect()
+	}
+
+	/// An unpublished place still answers — its phone is real and someone may
+	/// have been given the link — but it carries `noindex` and stays out of the
+	/// sitemap. A site with no domain yet publishes nothing.
+	pub fn is_published(&self, place: &Place, domain: Option<&str>) -> bool {
+		domain.is_some() && self.gaps(place).is_empty()
+	}
+}
 
 /// An RFC 3339 instant, or a bare date read as UTC midnight — the shapes
 /// `Date.parse` reads the same everywhere.
@@ -186,56 +231,6 @@ fn parse_instant(value: &str) -> Option<Timestamp> {
 		return None;
 	}
 	value.parse::<Date>().ok()?.to_zoned(TimeZone::UTC).ok().map(|z| z.timestamp())
-}
-
-/// The fields that make a place's page about *that* place. Google's spam
-/// policy names "many similar pages that funnel to one business" as doorway
-/// pages, and pages that differ only by address are exactly that. So a place
-/// is indexable only once it says something its neighbours cannot.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum PublicationField {
-	StorefrontPhoto,
-	Landmark,
-	ServiceArea,
-	Hours,
-}
-
-/// Which fields a place must fill before it may be indexed.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PublicationPolicy {
-	pub required: Cow<'static, [PublicationField]>,
-}
-
-/// A storefront network: what the place looks like, how to find it, where its
-/// van goes, and when it opens.
-pub const STOREFRONT_GATE: PublicationPolicy = PublicationPolicy {
-	required: Cow::Borrowed(&[
-		PublicationField::StorefrontPhoto,
-		PublicationField::Landmark,
-		PublicationField::ServiceArea,
-		PublicationField::Hours,
-	]),
-};
-
-/// A service-area business has no front to photograph: its zone and its hours.
-pub const SERVICE_AREA_GATE: PublicationPolicy = PublicationPolicy {
-	required: Cow::Borrowed(&[PublicationField::ServiceArea, PublicationField::Hours]),
-};
-
-impl PublicationPolicy {
-	/// What is still missing, in the policy's order; empty means the place may
-	/// be indexed. A landmark counts only when it is written in every locale
-	/// the place is named in, since each of those pages prints it.
-	pub fn gaps(&self, place: &Place) -> Vec<PublicationField> {
-		self.required.iter().copied().filter(|field| !filled(place, *field)).collect()
-	}
-
-	/// An unpublished place still answers — its phone is real and someone may
-	/// have been given the link — but it carries `noindex` and stays out of the
-	/// sitemap. A site with no domain yet publishes nothing.
-	pub fn is_published(&self, place: &Place, domain: Option<&str>) -> bool {
-		domain.is_some() && self.gaps(place).is_empty()
-	}
 }
 
 fn filled(place: &Place, field: PublicationField) -> bool {

@@ -19,11 +19,16 @@ export interface LangSwitchProps<L extends string> {
   className?: string;
 }
 
-/** `href` with `lang=<locale>` set, keeping its query and fragment. */
+/**
+ * `href` with `lang=<locale>` set, keeping its query and fragment — and its
+ * origin when it has one: a place's page in path mode links to another host.
+ */
 export function withLang(href: string, locale: string): string {
   const url = new URL(href, "https://x.invalid");
   url.searchParams.set("lang", locale);
-  return `${url.pathname}${url.search}${url.hash}`;
+  const rest = `${url.pathname}${url.search}${url.hash}`;
+  if (href.startsWith("//")) return `//${url.host}${rest}`;
+  return /^[a-z][a-z0-9+.-]*:/i.test(href) ? `${url.origin}${rest}` : rest;
 }
 
 export function LangSwitch<L extends string>({ current, locales, hrefs, labels, label = "Language", className }: LangSwitchProps<L>) {

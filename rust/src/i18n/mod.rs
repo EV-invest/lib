@@ -312,6 +312,109 @@ pub fn negotiate(header: Option<&str>, locales: &[Locale]) -> Locale {
 	DEFAULT_LOCALE
 }
 
+/// Every locale's URL for one page — the shape an `hreflang` cluster wants.
+///
+/// ```
+/// use ev_lib::i18n::{LOCALES, locale_alternates};
+/// let alts = locale_alternates("/team", &LOCALES);
+/// assert_eq!(alts[0].1, "/team");
+/// assert_eq!(alts[1].1, "/ru/team");
+/// ```
+pub fn locale_alternates(path: &str, locales: &[Locale]) -> Vec<(Locale, String)> {
+	locales.iter().map(|&l| (l, locale_path(l, path))).collect()
+}
+/// The inverse of [`locale_path`]: split a request path into its locale and the
+/// locale-free path beneath it. An absent or unrecognised prefix reads as
+/// [`DEFAULT_LOCALE`], so this never fails on arbitrary input.
+///
+/// ```
+/// use ev_lib::i18n::{Locale, split_locale_path};
+/// assert_eq!(split_locale_path("/ru/team"), (Locale::Ru, "/team".to_owned()));
+/// assert_eq!(split_locale_path("/team"), (Locale::En, "/team".to_owned()));
+/// assert_eq!(split_locale_path("/ru"), (Locale::Ru, "/".to_owned()));
+/// ```
+pub fn split_locale_path(pathname: &str) -> (Locale, String) {
+	let clean = if pathname.starts_with('/') { pathname.to_owned() } else { format!("/{pathname}") };
+	let after = &clean[1..];
+	let (head, rest) = match after.find('/') {
+		Some(idx) => (&after[..idx], &after[idx..]),
+		None => (after, ""),
+	};
+	match Locale::parse(head) {
+		Some(locale) if locale != DEFAULT_LOCALE => (locale, if rest.is_empty() { "/".to_owned() } else { rest.to_owned() }),
+		_ => (DEFAULT_LOCALE, clean),
+	}
+}
+/// The path `locale` serves `path` at.
+///
+/// ```
+/// use ev_lib::i18n::{Locale, locale_path};
+/// assert_eq!(locale_path(Locale::En, "/team"), "/team");
+/// assert_eq!(locale_path(Locale::Ru, "/team"), "/ru/team");
+/// assert_eq!(locale_path(Locale::Ru, "/"), "/ru");
+/// ```
+pub fn locale_path(locale: Locale, path: &str) -> String {
+	let clean = if path.starts_with('/') { path.to_owned() } else { format!("/{path}") };
+	if locale == DEFAULT_LOCALE {
+		return clean;
+	}
+	// "/" would otherwise yield "/ru/", and a trailing slash is a distinct URL to
+	// a crawler — one canonical shape per page, so strip it.
+	if clean == "/" { format!("/{locale}") } else { format!("/{locale}{clean}") }
+}
+/// The error [`Locale::from_str`] returns for a tag EV does not publish.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UnknownLocale(pub String);
+/// One of the five locales EV publishes.
+///
+/// Note `Vi` — Vietnamese — is the ISO 639-1 *language* code. `vn` is the ISO
+/// 3166 *country* code for Vietnam and is not a valid `hreflang` / `lang` value;
+/// Google silently discards invalid values, so the distinction is load-bearing.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum Locale {
+	#[default]
+	En,
+	Ru,
+	Vi,
+	Fr,
+	De,
+}
+/// One `t!` call site, as the linker collected it.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Source {
+	pub key: &'static str,
+	pub en: &'static str,
+}
+/// A key registered twice with different English. The catalogue can hold only
+/// one of them, so which one shipped would be decided by link order.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct KeyConflict {
+	pub key: String,
+	pub first: String,
+	pub second: String,
+}
+/// The English catalogue, read out of every [`t!`] site linked into this binary.
+///
+/// Write it to `messages/en/common.json` and compare the committed file against
+/// it in a test — that pair is the Rust half of `evinvest-i18n-{extract,check}`.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn catalogue() -> Result<Messages, Vec<KeyConflict>> {
+	let mut messages = Messages::new();
+	let mut conflicts = Vec::new();
+	for source in inventory::iter::<Source> {
+		match messages.insert(source.key.to_owned(), source.en.to_owned()) {
+			Some(first) if first != source.en => conflicts.push(KeyConflict {
+				key: source.key.to_owned(),
+				first,
+				second: source.en.to_owned(),
+			}),
+			_ => {}
+		}
+	}
+	if conflicts.is_empty() { Ok(messages) } else { Err(conflicts) }
+}
 /// The language tags of an `Accept-Language` header, lowercased, best first.
 /// Shared by [`negotiate`] and [`LocaleRegistry::negotiate`] so the two cannot
 /// rank one header differently.
@@ -338,98 +441,8 @@ fn ranked_tags(header: &str) -> Vec<String> {
 	ranked.into_iter().map(|(tag, _)| tag).collect()
 }
 
-/// Every locale's URL for one page — the shape an `hreflang` cluster wants.
-///
-/// ```
-/// use ev_lib::i18n::{LOCALES, locale_alternates};
-/// let alts = locale_alternates("/team", &LOCALES);
-/// assert_eq!(alts[0].1, "/team");
-/// assert_eq!(alts[1].1, "/ru/team");
-/// ```
-pub fn locale_alternates(path: &str, locales: &[Locale]) -> Vec<(Locale, String)> {
-	locales.iter().map(|&l| (l, locale_path(l, path))).collect()
-}
-
-/// The inverse of [`locale_path`]: split a request path into its locale and the
-/// locale-free path beneath it. An absent or unrecognised prefix reads as
-/// [`DEFAULT_LOCALE`], so this never fails on arbitrary input.
-///
-/// ```
-/// use ev_lib::i18n::{Locale, split_locale_path};
-/// assert_eq!(split_locale_path("/ru/team"), (Locale::Ru, "/team".to_owned()));
-/// assert_eq!(split_locale_path("/team"), (Locale::En, "/team".to_owned()));
-/// assert_eq!(split_locale_path("/ru"), (Locale::Ru, "/".to_owned()));
-/// ```
-pub fn split_locale_path(pathname: &str) -> (Locale, String) {
-	let clean = if pathname.starts_with('/') { pathname.to_owned() } else { format!("/{pathname}") };
-	let after = &clean[1..];
-	let (head, rest) = match after.find('/') {
-		Some(idx) => (&after[..idx], &after[idx..]),
-		None => (after, ""),
-	};
-	match Locale::parse(head) {
-		Some(locale) if locale != DEFAULT_LOCALE => (locale, if rest.is_empty() { "/".to_owned() } else { rest.to_owned() }),
-		_ => (DEFAULT_LOCALE, clean),
-	}
-}
-
-/// The path `locale` serves `path` at.
-///
-/// ```
-/// use ev_lib::i18n::{Locale, locale_path};
-/// assert_eq!(locale_path(Locale::En, "/team"), "/team");
-/// assert_eq!(locale_path(Locale::Ru, "/team"), "/ru/team");
-/// assert_eq!(locale_path(Locale::Ru, "/"), "/ru");
-/// ```
-pub fn locale_path(locale: Locale, path: &str) -> String {
-	let clean = if path.starts_with('/') { path.to_owned() } else { format!("/{path}") };
-	if locale == DEFAULT_LOCALE {
-		return clean;
-	}
-	// "/" would otherwise yield "/ru/", and a trailing slash is a distinct URL to
-	// a crawler — one canonical shape per page, so strip it.
-	if clean == "/" { format!("/{locale}") } else { format!("/{locale}{clean}") }
-}
-
-/// The error [`Locale::from_str`] returns for a tag EV does not publish.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct UnknownLocale(pub String);
-
-/// One of the five locales EV publishes.
-///
-/// Note `Vi` — Vietnamese — is the ISO 639-1 *language* code. `vn` is the ISO
-/// 3166 *country* code for Vietnam and is not a valid `hreflang` / `lang` value;
-/// Google silently discards invalid values, so the distinction is load-bearing.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum Locale {
-	#[default]
-	En,
-	Ru,
-	Vi,
-	Fr,
-	De,
-}
-
-/// One `t!` call site, as the linker collected it.
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct Source {
-	pub key: &'static str,
-	pub en: &'static str,
-}
-
 #[cfg(not(target_arch = "wasm32"))]
 inventory::collect!(Source);
-
-/// A key registered twice with different English. The catalogue can hold only
-/// one of them, so which one shipped would be decided by link order.
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct KeyConflict {
-	pub key: String,
-	pub first: String,
-	pub second: String,
-}
 
 #[cfg(not(target_arch = "wasm32"))]
 impl std::fmt::Display for KeyConflict {
@@ -440,24 +453,3 @@ impl std::fmt::Display for KeyConflict {
 
 #[cfg(not(target_arch = "wasm32"))]
 impl std::error::Error for KeyConflict {}
-
-/// The English catalogue, read out of every [`t!`] site linked into this binary.
-///
-/// Write it to `messages/en/common.json` and compare the committed file against
-/// it in a test — that pair is the Rust half of `evinvest-i18n-{extract,check}`.
-#[cfg(not(target_arch = "wasm32"))]
-pub fn catalogue() -> Result<Messages, Vec<KeyConflict>> {
-	let mut messages = Messages::new();
-	let mut conflicts = Vec::new();
-	for source in inventory::iter::<Source> {
-		match messages.insert(source.key.to_owned(), source.en.to_owned()) {
-			Some(first) if first != source.en => conflicts.push(KeyConflict {
-				key: source.key.to_owned(),
-				first,
-				second: source.en.to_owned(),
-			}),
-			_ => {}
-		}
-	}
-	if conflicts.is_empty() { Ok(messages) } else { Err(conflicts) }
-}

@@ -1,8 +1,9 @@
 # Boots the OCI image a landing ships and holds it to its contract: it answers
 # /health, negotiates the bare URL, renders a page and the OG card from the
 # files it carries, writes a posted lead into its data mount, and refuses to
-# serve at all when its prod env is missing. Linux + docker; the text of
-# mkLanding's `container-smoke` app, which sets every SMOKE_* variable.
+# serve at all when its prod env, or only its lead store, is missing. Linux +
+# docker; the text of mkLanding's `container-smoke` app, which sets every
+# SMOKE_* variable.
 #
 # The host port is docker's choice (`-p 127.0.0.1::<port>`): the container
 # ports landings use sit inside Linux's ephemeral range, and a fixed host port
@@ -20,7 +21,7 @@ docker load <"$image" >/dev/null
 
 cleanup() {
   docker logs smoke 2>&1 | tail -20 || true
-  docker rm -f smoke smoke-bare >/dev/null 2>&1 || true
+  docker rm -f smoke smoke-bare smoke-nostore >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -79,3 +80,20 @@ for _ in $(seq 30); do
   sleep 1
 done
 expect 500 "127.0.0.1:$bare/health"
+
+# The run above blanks every key, so its 500 could come from any of them.
+# This one blanks the lead store's alone, the rest of the prod env in place:
+# a server that then boots would write leads outside the volume.
+if [ -z "${SMOKE_STORE_KEYS:-}" ]; then
+  echo "✘ prodEnv names no lead store (LEADS_DB_PATH or LEADS_DB_URL)" >&2
+  exit 1
+fi
+nostore=()
+for key in $SMOKE_STORE_KEYS; do nostore+=(-e "$key="); done
+docker run -d --name smoke-nostore -p "127.0.0.1::$SMOKE_PORT" "${nostore[@]}" "$SMOKE_IMAGE_NAME" >/dev/null
+nostore_port="$(published smoke-nostore)"
+for _ in $(seq 30); do
+  if [ "$(status "127.0.0.1:$nostore_port/health")" != 000 ]; then break; fi
+  sleep 1
+done
+expect 500 "127.0.0.1:$nostore_port/health"

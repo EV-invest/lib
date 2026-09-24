@@ -7,5 +7,6 @@
  * The Playwright half is `./testing/e2e`.
  */
 export { describeLandingContract, type LandingContractOptions } from "./landing-contract";
+export { servedPaths } from "./served-files";
 export { describeLeadStoreContract, type LeadStoreHarness } from "./lead-store-contract";
 export { serviceAreaPlace, storefrontPlace, testLead } from "./fixtures";

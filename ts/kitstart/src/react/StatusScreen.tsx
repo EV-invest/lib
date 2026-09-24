@@ -4,6 +4,22 @@ import type { ReactNode } from "react";
 import type { CopySlice, StatusAction, StatusCopy, StatusScreenText } from "../core/content";
 import type { StatusTarget } from "../core/status";
 import { LangSwitch } from "./LangSwitch";
+import type { PartClassNames } from "./parts";
+
+export type StatusScreenPart =
+  | "header"
+  | "logo"
+  | "phone"
+  | "main"
+  | "eyebrow"
+  | "code"
+  | "headline"
+  | "body"
+  | "actions"
+  | "primaryButton"
+  | "secondaryButton"
+  | "strip"
+  | "footer";
 
 /**
  * The 404, the 500 and the post-submit confirmation: one screen over a
@@ -13,6 +29,10 @@ import { LangSwitch } from "./LangSwitch";
  *
  * Renders on either side: the error boundary is a client component, so this
  * takes the brand's name and marks as props, never the site config.
+ *
+ * It sets its own `text-ink`: shown on a polarity other than the page's (a
+ * dark screen in a light site), anything uncoloured inside — the outline
+ * button's label — would inherit the `<body>`'s ink and vanish at 1:1.
  */
 export interface StatusScreenProps<L extends string, F> {
   copy: CopySlice<L, StatusScreenText<F>, F>;
@@ -29,10 +49,11 @@ export interface StatusScreenProps<L extends string, F> {
   mark?: ReactNode;
   className?: string;
   buttonClassName?: string;
+  classNames?: PartClassNames<StatusScreenPart>;
 }
 
 export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>) {
-  const { copy, status, target, locales, labels, brandName, logo, mark, className, buttonClassName } = props;
+  const { copy, status, target, locales, labels, brandName, logo, mark, className, buttonClassName, classNames: c } = props;
   const { t, f } = copy;
   const action = (a: StatusAction): { href: string; label: string } | null =>
     a === "call"
@@ -46,41 +67,51 @@ export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>
   const primary = action(status.primary) ?? action("home");
   const secondary = action(status.secondary);
   return (
-    <div className={cn("relative flex min-h-screen flex-col bg-background", className)}>
-      <header className="relative flex items-center gap-5 border-b border-border px-5 py-4 md:px-12 md:py-5">
-        <a href={target.home} aria-label={brandName} className="text-ink">
-          {logo ?? <span className="font-display text-xl font-bold">{brandName}</span>}
+    <div className={cn("relative flex min-h-screen flex-col bg-background text-ink", className)}>
+      {/* Below md the switch takes a row of its own under the lock-up and the
+          phone, so a 320 px screen never breaks the number across lines. */}
+      <header className={cn("relative flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-5 py-3 md:flex-nowrap md:gap-5 md:px-12 md:py-5", c?.header)}>
+        <a href={target.home} aria-label={brandName} className={cn("shrink-0 text-ink", c?.logo)}>
+          {logo ?? <span className="font-display text-lg font-bold md:text-xl">{brandName}</span>}
         </a>
         <div className="flex-1" />
-        <LangSwitch current={copy.locale} locales={locales} hrefs={target.langHrefs} {...(labels ? { labels } : {})} className="text-sm font-medium text-ink-soft" />
+        <LangSwitch
+          current={copy.locale}
+          locales={locales}
+          hrefs={target.langHrefs}
+          {...(labels ? { labels } : {})}
+          className="order-last w-full text-sm font-medium text-ink-soft md:order-none md:w-auto"
+        />
         {target.phone && (
-          <a href={telHref(target.phone)} className="font-display text-base font-bold text-primary-ink md:text-xl">
+          <a href={telHref(target.phone)} className={cn("whitespace-nowrap font-display text-base font-bold text-primary-ink md:text-xl", c?.phone)}>
             {target.phone}
           </a>
         )}
       </header>
-      <main className="relative flex flex-1 flex-col items-center gap-5 px-5 py-12 text-center md:gap-6 md:py-24">
+      <main className={cn("relative flex flex-1 flex-col items-center gap-5 px-5 py-12 text-center md:gap-6 md:py-24", c?.main)}>
         {mark}
-        <p className="text-xs font-medium tracking-widest text-primary-ink">{status.eyebrow}</p>
-        <p className="font-display text-8xl font-bold leading-none tracking-tight text-ink md:text-9xl">{status.code}</p>
-        <h1 className="font-display text-2xl font-bold leading-snug text-ink md:text-4xl">
+        <p className={cn("text-xs font-medium tracking-widest text-primary-ink", c?.eyebrow)}>{status.eyebrow}</p>
+        <p className={cn("font-display text-8xl font-bold leading-none tracking-tight text-ink md:text-9xl", c?.code)}>{status.code}</p>
+        <h1 className={cn("font-display text-2xl font-bold leading-snug text-ink md:text-4xl", c?.headline)}>
           {status.headline[0]}
           <span className="text-primary-ink">{status.headline[1]}</span>
         </h1>
-        <p className="max-w-2xl text-base leading-relaxed text-ink-soft md:text-lg">{status.body(f)}</p>
-        <div className="flex flex-col gap-3.5 sm:flex-row">
+        <p className={cn("max-w-2xl text-base leading-relaxed text-ink-soft md:text-lg", c?.body)}>{status.body(f)}</p>
+        <div className={cn("flex flex-col gap-3.5 sm:flex-row", c?.actions)}>
           {primary && (
-            <Button href={primary.href} size="xl" className={buttonClassName}>
+            <Button href={primary.href} size="xl" className={cn(buttonClassName, c?.primaryButton)}>
               {primary.label}
             </Button>
           )}
           {secondary && secondary.href !== primary?.href && (
-            <Button href={secondary.href} size="xl" variant="outline" className={buttonClassName}>
+            // The kit's outline border is `--border`, 14 % ink: 1.4:1 on the
+            // dark polarity. Half ink clears 3:1 for a control on either one.
+            <Button href={secondary.href} size="xl" variant="outline" className={cn("border-ink/50", buttonClassName, c?.secondaryButton)}>
               {secondary.label}
             </Button>
           )}
         </div>
-        <ul className="flex flex-col items-center gap-3 text-sm sm:flex-row sm:gap-6">
+        <ul className={cn("flex flex-col items-center gap-3 text-sm sm:flex-row sm:gap-6", c?.strip)}>
           {t.statusStrip.map(term => (
             <li key={term} className="flex items-center gap-2">
               <Check />
@@ -89,7 +120,7 @@ export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>
           ))}
         </ul>
       </main>
-      <footer className="relative border-t border-border px-5 py-6 text-xs uppercase tracking-wider text-ink-soft md:px-12 md:py-7">
+      <footer className={cn("relative border-t border-border px-5 py-6 text-xs uppercase tracking-wider text-ink-soft md:px-12 md:py-7", c?.footer)}>
         <p>{t.facts(f).join(" · ")}</p>
       </footer>
     </div>

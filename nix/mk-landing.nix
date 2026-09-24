@@ -232,7 +232,9 @@ let
       ${ensureDeps}
       ${linkPlaywright}
       ${exportPlaywright}
-      echo "▶ tsc";    npm run -s typecheck
+      # The e2e specs are their own project (the root one excludes them: their
+      # `@playwright/test` is the flake's, linked above), so a second tsc.
+      echo "▶ tsc";    npm run -s typecheck && npx tsc --noEmit -p ${lib.escapeShellArg e2eConfig}
       echo "▶ lint";   npm run -s lint
       echo "▶ vitest"; npx vitest run
       echo "▶ build";  npm run -s build >/dev/null
@@ -278,6 +280,8 @@ let
       # them would be one that writes leads outside the volume.
       # (Not the listening address: that is wiring, not the contract.)
       SMOKE_PROD_ENV_KEYS = lib.concatStringsSep " " (lib.subtractLists [ "PORT" "HOSTNAME" ] (builtins.attrNames prodEnv));
+      # Blanked alone in a second run, so the 500 is the store's refusal.
+      SMOKE_STORE_KEYS = lib.concatStringsSep " " (lib.intersectLists [ "LEADS_DB_PATH" "LEADS_DB_URL" ] (builtins.attrNames prodEnv));
     };
     text = builtins.readFile ./container-smoke.sh;
   };
