@@ -18,6 +18,7 @@ export { useControllableState } from "./primitives/use-controllable-state";
 export { Portal, PortalProvider } from "./primitives/portal";
 export type { PortalProps, PortalProviderProps } from "./primitives/portal";
 export { useDismissableLayer } from "./primitives/dismissable-layer";
+export type { DismissEvent } from "./primitives/dismissable-layer";
 export { useFloating } from "./primitives/use-floating";
 export type { Side, Align, FloatingResult } from "./primitives/use-floating";
 export { useFocusScope } from "./primitives/focus-scope";

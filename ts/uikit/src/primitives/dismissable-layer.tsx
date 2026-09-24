@@ -12,6 +12,8 @@ const stack: LayerRef[] = [];
 
 function isInsideHigherLayer(own: LayerRef, target: Node): boolean {
   const index = stack.indexOf(own);
+  // Not on the stack (a listener outliving its cleanup): nothing is above it.
+  if (index < 0) return false;
   return stack.slice(index + 1).some((layer) => layer.current?.contains(target) ?? false);
 }
 
@@ -23,9 +25,14 @@ export type DismissEvent = PointerEvent | KeyboardEvent;
  * dep-light core of every overlay's "click away to close". Pass refs to any
  * nodes that should NOT count as outside (e.g. the trigger), via `exclude`.
  *
- * Layers stack: Escape dismisses only the topmost open layer, and a
- * pointer-down inside a layer opened above this one is not outside it — so a
- * Select's list inside a Dialog closes the list, not the Dialog.
+ * Layers stack, in the order they opened: Escape dismisses only the topmost
+ * layer on this stack, and a pointer-down inside a layer opened above this one
+ * is not outside it — so a Select's list inside a Dialog closes the list, not
+ * the Dialog. The stack knows only the overlays built on this hook: a
+ * `Drawer` or `CommandDialog` (Escape in their own React `onKeyDown`) is not
+ * on it, and a menu that also closes on Escape in its React `onKeyDown` lets
+ * the key bubble through React's tree to what holds it. Moving those onto the
+ * stack is a follow-up.
  *
  * Mirrors the dismiss behaviour Rust expresses with a full-screen backdrop.
  */
@@ -67,7 +74,8 @@ export function useDismissableLayer(opts: {
     document.addEventListener("pointerdown", onPointerDown, true);
     document.addEventListener("keydown", onKeyDown);
     return () => {
-      stack.splice(stack.indexOf(ref), 1);
+      const index = stack.indexOf(ref);
+      if (index >= 0) stack.splice(index, 1);
       document.removeEventListener("pointerdown", onPointerDown, true);
       document.removeEventListener("keydown", onKeyDown);
     };
