@@ -6,7 +6,20 @@ import type { StatusTarget } from "../core/status";
 import { LangSwitch } from "./LangSwitch";
 import type { PartClassNames } from "./parts";
 
-export type StatusScreenPart = "header" | "main" | "eyebrow" | "code" | "headline" | "body" | "actions" | "strip" | "footer";
+export type StatusScreenPart =
+  | "header"
+  | "logo"
+  | "phone"
+  | "main"
+  | "eyebrow"
+  | "code"
+  | "headline"
+  | "body"
+  | "actions"
+  | "primaryButton"
+  | "secondaryButton"
+  | "strip"
+  | "footer";
 
 /**
  * The 404, the 500 and the post-submit confirmation: one screen over a
@@ -16,6 +29,10 @@ export type StatusScreenPart = "header" | "main" | "eyebrow" | "code" | "headlin
  *
  * Renders on either side: the error boundary is a client component, so this
  * takes the brand's name and marks as props, never the site config.
+ *
+ * It sets its own `text-ink`: shown on a polarity other than the page's (a
+ * dark screen in a light site), anything uncoloured inside — the outline
+ * button's label — would inherit the `<body>`'s ink and vanish at 1:1.
  */
 export interface StatusScreenProps<L extends string, F> {
   copy: CopySlice<L, StatusScreenText<F>, F>;
@@ -50,15 +67,23 @@ export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>
   const primary = action(status.primary) ?? action("home");
   const secondary = action(status.secondary);
   return (
-    <div className={cn("relative flex min-h-screen flex-col bg-background", className)}>
-      <header className={cn("relative flex items-center gap-5 border-b border-border px-5 py-4 md:px-12 md:py-5", c?.header)}>
-        <a href={target.home} aria-label={brandName} className="text-ink">
-          {logo ?? <span className="font-display text-xl font-bold">{brandName}</span>}
+    <div className={cn("relative flex min-h-screen flex-col bg-background text-ink", className)}>
+      {/* Below md the switch takes a row of its own under the lock-up and the
+          phone, so a 320 px screen never breaks the number across lines. */}
+      <header className={cn("relative flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-5 py-3 md:flex-nowrap md:gap-5 md:px-12 md:py-5", c?.header)}>
+        <a href={target.home} aria-label={brandName} className={cn("shrink-0 text-ink", c?.logo)}>
+          {logo ?? <span className="font-display text-lg font-bold md:text-xl">{brandName}</span>}
         </a>
         <div className="flex-1" />
-        <LangSwitch current={copy.locale} locales={locales} hrefs={target.langHrefs} {...(labels ? { labels } : {})} className="text-sm font-medium text-ink-soft" />
+        <LangSwitch
+          current={copy.locale}
+          locales={locales}
+          hrefs={target.langHrefs}
+          {...(labels ? { labels } : {})}
+          className="order-last w-full text-sm font-medium text-ink-soft md:order-none md:w-auto"
+        />
         {target.phone && (
-          <a href={telHref(target.phone)} className="font-display text-base font-bold text-primary-ink md:text-xl">
+          <a href={telHref(target.phone)} className={cn("whitespace-nowrap font-display text-base font-bold text-primary-ink md:text-xl", c?.phone)}>
             {target.phone}
           </a>
         )}
@@ -74,12 +99,14 @@ export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>
         <p className={cn("max-w-2xl text-base leading-relaxed text-ink-soft md:text-lg", c?.body)}>{status.body(f)}</p>
         <div className={cn("flex flex-col gap-3.5 sm:flex-row", c?.actions)}>
           {primary && (
-            <Button href={primary.href} size="xl" className={buttonClassName}>
+            <Button href={primary.href} size="xl" className={cn(buttonClassName, c?.primaryButton)}>
               {primary.label}
             </Button>
           )}
           {secondary && secondary.href !== primary?.href && (
-            <Button href={secondary.href} size="xl" variant="outline" className={buttonClassName}>
+            // The kit's outline border is `--border`, 14 % ink: 1.4:1 on the
+            // dark polarity. Half ink clears 3:1 for a control on either one.
+            <Button href={secondary.href} size="xl" variant="outline" className={cn("border-ink/50", buttonClassName, c?.secondaryButton)}>
               {secondary.label}
             </Button>
           )}
