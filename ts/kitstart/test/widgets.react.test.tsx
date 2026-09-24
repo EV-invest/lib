@@ -127,6 +127,34 @@ describe("Faq", () => {
   });
 });
 
+// A part's class replaces the kit's conflicting utility, not joins it:
+// that is what lets a brand set geometry without descendant selectors.
+describe("named parts", () => {
+  it("reach their element and win over the kit's own classes", () => {
+    const { unmount } = render(<Faq items={[{ q: "Q1", a: "A1" }]} classNames={{ list: "rounded-none", answer: "px-2" }} />);
+    expect(screen.getByText("Q1").closest("details")?.parentElement).toHaveClass("rounded-none");
+    expect(screen.getByText("Q1").closest("details")?.parentElement).not.toHaveClass("rounded-xl");
+    expect(screen.getByText("A1")).toHaveClass("px-2");
+    expect(screen.getByText("A1")).not.toHaveClass("px-5");
+    unmount();
+
+    const copy = { locale: "fr" as const, f, t: { callLabel: (x: F) => `Appeler ${x.phone}`, whatsappMessage: () => "Bonjour", whatsappShort: "WhatsApp", ctaShort: "Devis" } };
+    render(<CallBar copy={copy} phone="+33 4 23 50 06 40" whatsapp={null} quoteHref="/fr#quote" label="Contact" buttonClassName="font-bold" classNames={{ call: "px-6" }} />);
+    expect(screen.getByLabelText("Appeler +33 4 23 50 06 40")).toHaveClass("px-6", "font-bold");
+    expect(screen.getByText("Devis").closest("a")).not.toHaveClass("px-6");
+  });
+
+  it("style every place card and the coverage chips", () => {
+    render(
+      <PlaceDirectory places={[royat]} locale="fr" hrefOf={() => "/"} phoneOf={() => null} openLabel="Ouvrir" classNames={{ list: "gap-2", card: "p-3" }} />,
+    );
+    expect(screen.getByText("Royat").closest("li")).toHaveClass("p-3");
+    expect(screen.getByText("Royat").closest("ul")).toHaveClass("gap-2");
+    render(<Coverage place={paris} locale="fr" classNames={{ chips: "gap-1" }} />);
+    expect(screen.getByText("Boulogne-Billancourt").closest("ul")).toHaveClass("gap-1");
+  });
+});
+
 describe("QuoteFormShell", () => {
   it("posts what the funnel reads — and the funnel accepts it", async () => {
     const NOW = 1_800_000_000_000;

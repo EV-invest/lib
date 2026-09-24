@@ -4,6 +4,9 @@ import type { ReactNode } from "react";
 import type { CopySlice, StatusAction, StatusCopy, StatusScreenText } from "../core/content";
 import type { StatusTarget } from "../core/status";
 import { LangSwitch } from "./LangSwitch";
+import type { PartClassNames } from "./parts";
+
+export type StatusScreenPart = "header" | "main" | "eyebrow" | "code" | "headline" | "body" | "actions" | "strip" | "footer";
 
 /**
  * The 404, the 500 and the post-submit confirmation: one screen over a
@@ -29,10 +32,11 @@ export interface StatusScreenProps<L extends string, F> {
   mark?: ReactNode;
   className?: string;
   buttonClassName?: string;
+  classNames?: PartClassNames<StatusScreenPart>;
 }
 
 export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>) {
-  const { copy, status, target, locales, labels, brandName, logo, mark, className, buttonClassName } = props;
+  const { copy, status, target, locales, labels, brandName, logo, mark, className, buttonClassName, classNames: c } = props;
   const { t, f } = copy;
   const action = (a: StatusAction): { href: string; label: string } | null =>
     a === "call"
@@ -47,7 +51,7 @@ export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>
   const secondary = action(status.secondary);
   return (
     <div className={cn("relative flex min-h-screen flex-col bg-background", className)}>
-      <header className="relative flex items-center gap-5 border-b border-border px-5 py-4 md:px-12 md:py-5">
+      <header className={cn("relative flex items-center gap-5 border-b border-border px-5 py-4 md:px-12 md:py-5", c?.header)}>
         <a href={target.home} aria-label={brandName} className="text-ink">
           {logo ?? <span className="font-display text-xl font-bold">{brandName}</span>}
         </a>
@@ -59,16 +63,16 @@ export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>
           </a>
         )}
       </header>
-      <main className="relative flex flex-1 flex-col items-center gap-5 px-5 py-12 text-center md:gap-6 md:py-24">
+      <main className={cn("relative flex flex-1 flex-col items-center gap-5 px-5 py-12 text-center md:gap-6 md:py-24", c?.main)}>
         {mark}
-        <p className="text-xs font-medium tracking-widest text-primary-ink">{status.eyebrow}</p>
-        <p className="font-display text-8xl font-bold leading-none tracking-tight text-ink md:text-9xl">{status.code}</p>
-        <h1 className="font-display text-2xl font-bold leading-snug text-ink md:text-4xl">
+        <p className={cn("text-xs font-medium tracking-widest text-primary-ink", c?.eyebrow)}>{status.eyebrow}</p>
+        <p className={cn("font-display text-8xl font-bold leading-none tracking-tight text-ink md:text-9xl", c?.code)}>{status.code}</p>
+        <h1 className={cn("font-display text-2xl font-bold leading-snug text-ink md:text-4xl", c?.headline)}>
           {status.headline[0]}
           <span className="text-primary-ink">{status.headline[1]}</span>
         </h1>
-        <p className="max-w-2xl text-base leading-relaxed text-ink-soft md:text-lg">{status.body(f)}</p>
-        <div className="flex flex-col gap-3.5 sm:flex-row">
+        <p className={cn("max-w-2xl text-base leading-relaxed text-ink-soft md:text-lg", c?.body)}>{status.body(f)}</p>
+        <div className={cn("flex flex-col gap-3.5 sm:flex-row", c?.actions)}>
           {primary && (
             <Button href={primary.href} size="xl" className={buttonClassName}>
               {primary.label}
@@ -80,7 +84,7 @@ export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>
             </Button>
           )}
         </div>
-        <ul className="flex flex-col items-center gap-3 text-sm sm:flex-row sm:gap-6">
+        <ul className={cn("flex flex-col items-center gap-3 text-sm sm:flex-row sm:gap-6", c?.strip)}>
           {t.statusStrip.map(term => (
             <li key={term} className="flex items-center gap-2">
               <Check />
@@ -89,7 +93,7 @@ export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>
           ))}
         </ul>
       </main>
-      <footer className="relative border-t border-border px-5 py-6 text-xs uppercase tracking-wider text-ink-soft md:px-12 md:py-7">
+      <footer className={cn("relative border-t border-border px-5 py-6 text-xs uppercase tracking-wider text-ink-soft md:px-12 md:py-7", c?.footer)}>
         <p>{t.facts(f).join(" · ")}</p>
       </footer>
     </div>

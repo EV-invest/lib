@@ -2,6 +2,9 @@ import { cn } from "@evinvest/uikit";
 import { telHref } from "@evinvest/marketing";
 import type { ReactNode } from "react";
 import { storefrontOf, type Place } from "../core/place/types";
+import type { PartClassNames } from "./parts";
+
+export type PlaceDirectoryPart = "list" | "card" | "name" | "address" | "phone" | "link";
 
 /**
  * The apex's one job on a `subdomains` site: send the visitor to their place.
@@ -21,6 +24,7 @@ export interface PlaceDirectoryProps<L extends string> {
   head?: ReactNode;
   id?: string;
   className?: string;
+  classNames?: PartClassNames<PlaceDirectoryPart>;
 }
 
 export function PlaceDirectory<L extends string>(props: PlaceDirectoryProps<L>) {
@@ -28,7 +32,7 @@ export function PlaceDirectory<L extends string>(props: PlaceDirectoryProps<L>) 
   return (
     <div id={id} className={cn("flex flex-col gap-7 md:gap-10", className)}>
       {head}
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className={cn("grid gap-4 sm:grid-cols-2 lg:grid-cols-3", props.classNames?.list)}>
         {places.map(place => (
           <PlaceCard key={place.slug} place={place} {...props} />
         ))}
@@ -37,25 +41,25 @@ export function PlaceDirectory<L extends string>(props: PlaceDirectoryProps<L>) 
   );
 }
 
-function PlaceCard<L extends string>({ place, locale, hrefOf, phoneOf, openLabel }: PlaceDirectoryProps<L> & { place: Place<L> }) {
+function PlaceCard<L extends string>({ place, locale, hrefOf, phoneOf, openLabel, classNames: c }: PlaceDirectoryProps<L> & { place: Place<L> }) {
   const phone = phoneOf(place);
   const front = storefrontOf(place);
   return (
-    <li className="flex flex-col gap-3 rounded-xl border border-border bg-card p-6 md:p-7">
-      <p className="font-display text-xl font-bold text-ink">{place.name[locale]}</p>
+    <li className={cn("flex flex-col gap-3 rounded-xl border border-border bg-card p-6 md:p-7", c?.card)}>
+      <p className={cn("font-display text-xl font-bold text-ink", c?.name)}>{place.name[locale]}</p>
       {front && (
-        <address className="text-sm not-italic leading-relaxed text-ink-soft">
+        <address className={cn("text-sm not-italic leading-relaxed text-ink-soft", c?.address)}>
           {front.address.street}
           <br />
           {front.address.postalCode} {front.address.locality}
         </address>
       )}
       {phone && (
-        <a href={telHref(phone)} className="font-display text-lg font-bold text-primary-ink">
+        <a href={telHref(phone)} className={cn("font-display text-lg font-bold text-primary-ink", c?.phone)}>
           {phone}
         </a>
       )}
-      <a href={hrefOf(place)} className="mt-auto text-sm font-medium text-ink underline-offset-4 hover:underline">
+      <a href={hrefOf(place)} className={cn("mt-auto text-sm font-medium text-ink underline-offset-4 hover:underline", c?.link)}>
         {openLabel} →
       </a>
     </li>

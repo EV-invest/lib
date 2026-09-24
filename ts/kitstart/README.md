@@ -96,7 +96,11 @@ Structural only — where behaviour matters more than look. Marketing sections
 (hero, prices, reviews…) stay in the brand until two brands hold the same one.
 Each widget is a Server Component unless it needs the browser (`MapFacade`,
 `AnalyticsBoundary`), styled with the kit's token roles only, restyled through
-`className`. `QuoteFormShell` is headless: it owns the hidden fields and the
+`className` — and, where a brand needs geometry inside one (`Faq`, `CallBar`,
+`StatusScreen`, `PlaceDirectory`, `Coverage`), through its named parts:
+`classNames={{ list: "rounded-none", answer: "px-2" }}`, merged after the
+kit's classes so the brand's utility wins. No descendant selectors: they
+break silently when a widget's markup moves. `QuoteFormShell` is headless: it owns the hidden fields and the
 honeypot the funnel reads; the visible fields are the brand's children.
 `StatusScreen` takes the brand's name and marks as props, so the client error
 boundary never imports the site config.

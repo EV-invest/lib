@@ -1,6 +1,9 @@
 import { telHref, whatsappHref } from "@evinvest/marketing";
 import { Button, cn } from "@evinvest/uikit";
 import type { CallBarText, CopySlice } from "../core/content";
+import type { PartClassNames } from "./parts";
+
+export type CallBarPart = "call" | "whatsapp" | "quote";
 
 /**
  * Pinned to the bottom, mobile only. The header scrolls away with the hero,
@@ -24,9 +27,11 @@ export interface CallBarProps<L extends string, F> {
   className?: string;
   /** The brand's CTA face (type, weight), applied to every button. */
   buttonClassName?: string;
+  /** Per button, after `buttonClassName`: the geometry of each channel. */
+  classNames?: PartClassNames<CallBarPart>;
 }
 
-export function CallBar<L extends string, F>({ copy, phone, whatsapp, quoteHref, label, id, className, buttonClassName }: CallBarProps<L, F>) {
+export function CallBar<L extends string, F>({ copy, phone, whatsapp, quoteHref, label, id, className, buttonClassName, classNames: c }: CallBarProps<L, F>) {
   const { t, f } = copy;
   return (
     <nav
@@ -35,17 +40,17 @@ export function CallBar<L extends string, F>({ copy, phone, whatsapp, quoteHref,
       className={cn("sticky bottom-0 z-30 flex gap-2 border-t border-border bg-background px-3 py-2.5 shadow-overlay md:hidden", className)}
     >
       {phone && (
-        <Button href={telHref(phone)} size="xl" variant="outline" aria-label={t.callLabel(f)} className={cn("shrink-0 px-4", buttonClassName)}>
+        <Button href={telHref(phone)} size="xl" variant="outline" aria-label={t.callLabel(f)} className={cn("shrink-0 px-4", buttonClassName, c?.call)}>
           {/* The kit has no phone glyph; the button's name is its label. */}
           <span aria-hidden="true">☎</span>
         </Button>
       )}
       {whatsapp && (
-        <Button href={whatsappHref(whatsapp, t.whatsappMessage(f))} size="xl" variant="outline" className={cn("flex-1 px-3", buttonClassName)}>
+        <Button href={whatsappHref(whatsapp, t.whatsappMessage(f))} size="xl" variant="outline" className={cn("flex-1 px-3", buttonClassName, c?.whatsapp)}>
           {t.whatsappShort}
         </Button>
       )}
-      <Button href={quoteHref} size="xl" data-intent="form_open" className={cn("flex-1 px-3", buttonClassName)}>
+      <Button href={quoteHref} size="xl" data-intent="form_open" className={cn("flex-1 px-3", buttonClassName, c?.quote)}>
         {t.ctaShort}
       </Button>
     </nav>
