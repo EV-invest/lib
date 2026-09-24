@@ -10,7 +10,8 @@
 //   node scripts/check-template.mjs [--keep] [--pre-publish | --registry]
 //
 // Default: the packed tarballs must satisfy the template's own ranges and
-// kitstart's peers, exactly as a brand's install would demand.
+// kitstart's peers, exactly as a brand's install would demand, and npm installs
+// with --strict-peer-deps (so does --registry).
 // --pre-publish: before the first release the workspace packages carry their
 //   old version numbers; the range checks are skipped (loudly) and npm is
 //   told to ignore peers. Never the mode for a release.
@@ -161,7 +162,9 @@ async function smoke() {
 
 try {
   cpSync(join(kitstart, "template"), dir, { recursive: true });
-  const install = ["install", "--no-audit", "--no-fund"];
+  // Strict peers: a peer range that no longer meets the kit or Next fails the
+  // install here, not as a warning a brand scrolls past.
+  const install = ["install", "--no-audit", "--no-fund", ...(prePublish ? [] : ["--strict-peer-deps"])];
   if (!registry) {
     mkdirSync(packs);
     const tarballs = { "@evinvest/uikit": pack("uikit"), "@evinvest/marketing": pack("marketing"), "@evinvest/kitstart": pack("kitstart") };
