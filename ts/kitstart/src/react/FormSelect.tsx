@@ -57,10 +57,9 @@ export interface FormSelectProps {
 const BOX = "relative inline-flex w-full";
 // The trigger's geometry matched to `NativeSelect`'s at each size: full width,
 // the same text size (16 px on phones, which keeps iOS from zooming).
-// The chevron at full strength and the placeholder in `text-ink-soft`, as the
-// native select draws them: the kit's trigger dims its arrow, and its
-// `data-[placeholder]` rule looks on the button while `SelectValue` marks the span.
-const TRIGGER = "w-full min-w-0 [&>svg]:opacity-100";
+// The chevron at full strength, as the native select draws it: the kit's
+// trigger dims its own arrow.
+const TRIGGER = "w-full min-w-0 text-ink [&>svg]:opacity-100";
 const TRIGGER_TEXT: Record<SelectTriggerSize, string> = { sm: "text-base md:text-sm", md: "text-base md:text-sm", lg: "" };
 
 const subscribe = () => () => {};
@@ -157,7 +156,7 @@ export function FormSelectView({ scripted, ...props }: FormSelectProps & { scrip
           size={size}
           disabled={disabled}
           aria-required={required || undefined}
-          className={cn(TRIGGER, value === "" ? "text-ink-soft" : "text-ink", TRIGGER_TEXT[size], classNames?.trigger)}
+          className={cn(TRIGGER, TRIGGER_TEXT[size], classNames?.trigger)}
           {...aria}
         >
           <SelectValue {...hint} />

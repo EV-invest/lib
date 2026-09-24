@@ -115,7 +115,7 @@ describe("FormSelect after hydration", () => {
     const trigger = screen.getByRole("combobox", { name: "Intervention" });
     expect(trigger).toHaveAttribute("aria-required", "true");
     expect(trigger).toHaveTextContent("Choisir");
-    expect(trigger).toHaveClass("text-ink-soft");
+    expect(trigger.querySelector("[data-placeholder]")).toHaveTextContent("Choisir");
     let valid = true;
     act(() => {
       valid = theForm().checkValidity();
@@ -125,7 +125,7 @@ describe("FormSelect after hydration", () => {
     expect(screen.getByRole("listbox")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("option", { name: "Fuite" }));
     expect(trigger).not.toHaveAttribute("aria-invalid");
-    expect(trigger).toHaveClass("text-ink");
+    expect(trigger.querySelector("[data-placeholder]")).toBeNull();
     expect(theForm().checkValidity()).toBe(true);
     expect(new FormData(theForm()).get("job")).toBe("leak");
   });
