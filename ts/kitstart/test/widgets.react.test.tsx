@@ -31,6 +31,16 @@ describe("LangSwitch", () => {
     expect(withLang("//royat.aquafix.top/fr", "en")).toBe("//royat.aquafix.top/fr?lang=en");
     expect(withLang("http://localhost:3000/fr", "fr")).toBe("http://localhost:3000/fr?lang=fr");
   });
+
+  // WCAG 2.5.8: the hit area is a centred pseudo-element, not padding, so the
+  // codes keep their visual size and spacing.
+  it("gives each link a 44 px tall hit area that stops short of its neighbours", () => {
+    render(<LangSwitch current="en" locales={["fr", "en"]} hrefs={{ fr: "/fr", en: "/en" }} />);
+    for (const code of ["FR", "EN"]) {
+      expect(screen.getByText(code)).toHaveClass("relative", "after:absolute", "after:min-h-11", "after:w-[calc(100%+0.75rem)]", "after:-translate-x-1/2", "after:-translate-y-1/2");
+      expect(screen.getByText(code).className).not.toMatch(/(^|\s)(p[xy]?-|outline-none)/);
+    }
+  });
 });
 
 describe("CallBar", () => {
@@ -96,6 +106,40 @@ describe("StatusScreen", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveClass("text-3xl");
     expect(screen.getByText("Mais nous oui.")).toHaveClass("text-sm");
     expect(screen.getByText("Accueil").closest("a")?.parentElement).toHaveClass("gap-2");
+  });
+
+  it("lets a brand keep the language switch on the header's row", () => {
+    const { unmount } = render(<StatusScreen copy={{ locale: "fr", t, f }} status={notFound} target={target} locales={["fr", "en"]} brandName="Aquafix" />);
+    expect(screen.getByRole("navigation")).toHaveClass("order-last", "w-full");
+    unmount();
+    render(<StatusScreen copy={{ locale: "fr", t, f }} status={notFound} target={target} locales={["fr", "en"]} brandName="Aquafix" classNames={{ lang: "order-none w-auto" }} />);
+    const nav = screen.getByRole("navigation");
+    expect(nav.parentElement?.tagName).toBe("HEADER");
+    expect(nav).toHaveClass("order-none", "w-auto", "md:order-none");
+    expect(nav).not.toHaveClass("order-last", "w-full");
+  });
+
+  // tailwind-merge drops an earlier `leading-*` for a later font size: the
+  // brand's `text-[88px]` must not take the numeral's `leading-none` with it.
+  it("keeps a part's line height when the brand only resizes it", () => {
+    const { unmount } = render(
+      <StatusScreen copy={{ locale: "fr", t, f }} status={notFound} target={target} locales={["fr", "en"]} brandName="Aquafix" classNames={{ code: "text-[88px]", headline: "text-3xl", body: "text-sm" }} />,
+    );
+    expect(screen.getByText("404")).toHaveClass("text-[88px]", "leading-none");
+    expect(screen.getByText("404")).not.toHaveClass("text-8xl");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveClass("text-3xl", "leading-snug");
+    expect(screen.getByText("Mais nous oui.")).toHaveClass("text-sm", "leading-relaxed");
+    unmount();
+    // A line height the brand names wins, whether as `leading-*` or as a size's `/…`.
+    render(
+      <StatusScreen copy={{ locale: "fr", t, f }} status={notFound} target={target} locales={["fr", "en"]} brandName="Aquafix" classNames={{ code: "text-[88px] leading-tight", headline: "text-3xl/9", body: "text-ink/80" }} />,
+    );
+    expect(screen.getByText("404")).toHaveClass("leading-tight");
+    expect(screen.getByText("404")).not.toHaveClass("leading-none");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveClass("text-3xl/9");
+    expect(screen.getByRole("heading", { level: 1 })).not.toHaveClass("leading-snug");
+    // A colour with an opacity is not a size: the kit's line height stays.
+    expect(screen.getByText("Mais nous oui.")).toHaveClass("text-ink/80", "leading-relaxed");
   });
 
   // Shown dark inside a light page, uncoloured text would take the <body>'s ink.
@@ -180,8 +224,22 @@ describe("named parts", () => {
     );
     expect(screen.getByText("Royat").closest("li")).toHaveClass("p-3");
     expect(screen.getByText("Royat").closest("ul")).toHaveClass("gap-2");
-    render(<Coverage place={paris} locale="fr" classNames={{ chips: "gap-1" }} />);
+    render(<Coverage place={paris} locale="fr" classNames={{ chips: "gap-1", chip: "px-3" }} />);
     expect(screen.getByText("Boulogne-Billancourt").closest("ul")).toHaveClass("gap-1");
+    expect(screen.getByText("Boulogne-Billancourt").tagName).toBe("LI");
+    expect(screen.getByText("Boulogne-Billancourt")).toHaveClass("px-3");
+    expect(screen.getByText("Boulogne-Billancourt")).not.toHaveClass("px-4");
+  });
+
+  it("style the coverage map button's two lines", () => {
+    render(<Coverage place={royat} locale="fr" map={{ title: "Carte", show: "Voir la carte" }} classNames={{ mapShow: "text-base", mapAddress: "text-xs" }} />);
+    const show = screen.getByText("Voir la carte");
+    expect(show.closest("button")).not.toBeNull();
+    expect(show).toHaveClass("text-base");
+    expect(show).not.toHaveClass("text-lg");
+    const address = show.nextElementSibling;
+    expect(address).toHaveClass("text-xs");
+    expect(address).not.toHaveClass("text-sm");
   });
 });
 
