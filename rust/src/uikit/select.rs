@@ -35,8 +35,9 @@ pub fn SelectTrigger(#[props(default)] size: Size, #[props(default)] class: Stri
 	let ctx = use_context::<SelectCtx>();
 	let open = ctx.open.get();
 	let data_state = if open { "open" } else { "closed" };
+	// The placeholder mark is on `SelectValue`'s span, not on this button.
 	let cls = cn!(
-		"border-input data-[placeholder]:text-ink-soft [&_svg:not([class*='text-'])]:text-ink-soft \
+		"border-input [&_[data-placeholder]]:text-ink-soft [&_svg:not([class*='text-'])]:text-ink-soft \
 		 focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error \
 		 flex w-fit items-center justify-between gap-2 rounded-[var(--control-radius)] border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs \
 		 transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 \

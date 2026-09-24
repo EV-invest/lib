@@ -32,6 +32,14 @@ describe("Select", () => {
     expect(screen.queryByText("Apple")).toBeNull();
   });
 
+  it("dims the placeholder where SelectValue marks it, on its span", () => {
+    render(tree());
+    const trigger = screen.getByRole("combobox");
+    expect(trigger).toHaveClass("[&_[data-placeholder]]:text-ink-soft");
+    expect(trigger).not.toHaveClass("data-[placeholder]:text-ink-soft");
+    expect(trigger.querySelector("[data-placeholder]")).toHaveTextContent("Pick");
+  });
+
   it("opens the listbox on trigger click", () => {
     render(tree());
     fireEvent.click(screen.getByRole("combobox"));
