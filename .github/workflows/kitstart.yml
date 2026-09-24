@@ -73,8 +73,8 @@ jobs:
         run: node scripts/verify-pack.mjs
 
   # `template/` built as a brand would — against the packed tarballs — through
-  # `next build`, its own tests, the bundle budget and a live standalone
-  # server: the only place the factories meet a real Next build.
+  # `next build`, its own tests, the bundle budget, a live standalone server
+  # and its quote-form e2e: the only place the factories meet a real Next build.
   template:
     name: template (next build + smoke)
     runs-on: ubuntu-latest
@@ -100,11 +100,14 @@ jobs:
           done
       - name: Install
         run: npm ci
-      - name: Build and smoke the template
+      # The runner is kitstart's own `@playwright/test`; its browser matches it.
+      - name: Install the e2e browser
+        run: npx playwright install --with-deps chromium
+      - name: Build, smoke and e2e the template
         # The packed workspace versions must meet the template's ranges and
         # kitstart's peers, strictly; `kitstart-registry.yml` covers the
-        # published set.
-        run: npm run check:template
+        # published set. `--e2e`: the quote form without and with JavaScript.
+        run: npm run check:template -- --e2e
 
   # `lib.mkLanding` on a stand-in brand: the hermetic npm build from its
   # lockfile, the standalone install checks, the size gate and the OCI image.
