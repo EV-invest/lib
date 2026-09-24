@@ -253,6 +253,15 @@ through hydration. Three parts of the kit make that hold:
   opens. An item rendered by a component of yours is learnt when it mounts (on
   the first open), and the trigger updates then; pass `SelectValue` children to
   show something else outright.
+- **`Select` keeps the keyboard where a native one would**: the arrows open it
+  from the trigger, opening focuses the chosen option (else the first), Enter
+  or Space chooses, and Escape, Tab or a choice hands focus back to the trigger
+  — so Tab goes on to the next field, not from the end of the document where
+  the list is portaled. The trigger carries `aria-haspopup="listbox"` and, while
+  open, `aria-controls`. The open list carries the trigger's width as
+  `--select-trigger-width`: `SelectContent className="min-w-(--select-trigger-width)"`
+  keeps it at least as wide as its field. It posts nothing by itself;
+  `FormSelect` in `@evinvest/kitstart/react` pairs it with a form value.
 
 ```tsx
 <form action="/lead" method="post">

@@ -22,6 +22,8 @@ interface SelectContextValue {
   open: boolean;
   setOpen: (next: boolean) => void;
   anchorRef: React.RefObject<HTMLElement | null>;
+  /** The listbox's id, for the trigger's `aria-controls`. */
+  contentId: string;
   /** What `SelectValue` shows for a value: the matching `SelectItem`'s children. */
   labelOf: (value: string) => string;
   registerLabel: (value: string, label: string) => void;
@@ -65,6 +67,7 @@ export function Select({
     ...(onOpenChange ? { onChange: onOpenChange } : {}),
   });
   const anchorRef = React.useRef<HTMLElement | null>(null);
+  const contentId = React.useId();
   // The items live in a closed popover, so they are not mounted when the
   // trigger first renders — on the server least of all. Their labels are read
   // off the element tree instead; items hidden behind a component of the
@@ -90,6 +93,7 @@ export function Select({
         open: isOpen,
         setOpen,
         anchorRef,
+        contentId,
         labelOf,
         registerLabel,
       }}
@@ -134,11 +138,12 @@ export function SelectTrigger({
   className,
   size = "md",
   onClick,
+  onKeyDown,
   children,
   id,
   ...props
 }: SelectTriggerProps) {
-  const { open, setOpen, anchorRef } = useSelect();
+  const { open, setOpen, anchorRef, contentId } = useSelect();
   return (
     <button
       type="button"
@@ -147,11 +152,21 @@ export function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       data-state={open ? "open" : "closed"}
+      aria-haspopup="listbox"
       aria-expanded={open}
+      aria-controls={open ? contentId : undefined}
       ref={anchorRef as React.Ref<HTMLButtonElement>}
       onClick={(e) => {
         onClick?.(e);
         setOpen(!open);
+      }}
+      onKeyDown={(e) => {
+        onKeyDown?.(e);
+        // A native select opens on the arrows too; Enter and Space already click the button.
+        if (!e.defaultPrevented && !open && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+          e.preventDefault();
+          setOpen(true);
+        }
       }}
       className={cn(
         "border-input data-[placeholder]:text-ink-soft [&_svg:not([class*='text-'])]:text-ink-soft focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error flex w-fit items-center justify-between gap-2 rounded-[var(--control-radius)] border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
@@ -205,8 +220,18 @@ export function SelectContent({
   children,
   ...props
 }: SelectContentProps) {
-  const { open, setOpen, anchorRef } = useSelect();
+  const { open, setOpen, anchorRef, contentId } = useSelect();
   const { isPresent, ref: presRef } = usePresence(open);
+  const listRef = React.useRef<HTMLDivElement | null>(null);
+  // The trigger's width as `--select-trigger-width`, for a list at least as
+  // wide as its field (`min-w-(--select-trigger-width)`). Written to the
+  // element like the floating offset, and before placement measures it.
+  React.useLayoutEffect(() => {
+    const anchor = anchorRef.current;
+    if (open && anchor instanceof HTMLElement) {
+      listRef.current?.style.setProperty("--select-trigger-width", `${anchor.offsetWidth}px`);
+    }
+  }, [open, anchorRef]);
   const { floatingRef, style, side } = useFloating({
     anchorRef,
     open,
@@ -224,18 +249,64 @@ export function SelectContent({
     count: items.length,
     orientation: "vertical",
   });
+  const options = () =>
+    Array.from(listRef.current?.querySelectorAll<HTMLElement>("[role='option']") ?? []);
+  // Opening lands on the chosen option, as a native select does, so the
+  // arrows move from where the value is. One effect for both: the item's
+  // `onFocus` sets the active index, and a second effect focusing the stale
+  // index in the same flush would win over it.
+  const landed = React.useRef(false);
+  React.useEffect(() => {
+    if (!open) {
+      landed.current = false;
+      return;
+    }
+    const all = options();
+    let index = activeIndex;
+    if (!landed.current) {
+      landed.current = true;
+      index = Math.max(0, all.findIndex((o) => o.getAttribute("aria-selected") === "true"));
+    }
+    // `preventScroll`: the list may not be placed yet on the frame it opens.
+    all[index]?.focus({ preventScroll: true });
+  }, [open, activeIndex]);
+  // Closing hands focus back to the trigger — unless the visitor already put
+  // it somewhere else (a click on another field) — so Tab goes on from the
+  // field instead of from the end of the document, where the portal lives.
+  const wasOpen = React.useRef(false);
+  React.useEffect(() => {
+    if (open) {
+      wasOpen.current = true;
+      return;
+    }
+    if (!wasOpen.current) return;
+    wasOpen.current = false;
+    const focused = document.activeElement;
+    if (!focused || focused === document.body || listRef.current?.contains(focused)) {
+      anchorRef.current?.focus();
+    }
+  }, [open, anchorRef]);
   if (!isPresent) return null;
   return (
     <Portal>
       <div
         role="listbox"
+        id={contentId}
         data-slot="select-content"
         data-state={open ? "open" : "closed"}
         data-side={side}
-        ref={mergeRefs(floatingRef, dismissRef, presRef)}
+        ref={mergeRefs(floatingRef, dismissRef, presRef, listRef)}
         style={style}
         tabIndex={-1}
-        onKeyDown={onKeyDown}
+        onKeyDown={(e) => {
+          onKeyDown(e);
+          // Not prevented: with focus back on the trigger, the browser's own
+          // Tab moves on to the next field.
+          if (e.key === "Tab") {
+            anchorRef.current?.focus();
+            setOpen(false);
+          }
+        }}
         className={cn(
           "bg-popover text-ink data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-96 min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border border-border shadow-md",
           className,

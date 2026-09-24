@@ -225,4 +225,72 @@ describe("Select", () => {
     );
     expect(document.querySelector('[data-slot="select-value"]')).toHaveTextContent("Custom");
   });
+
+  describe("keyboard", () => {
+    it("opens on ArrowDown and lands on the chosen option", () => {
+      render(tree({ defaultValue: "b" }));
+      const trigger = screen.getByRole("combobox");
+      expect(trigger).toHaveAttribute("aria-haspopup", "listbox");
+      trigger.focus();
+      fireEvent.keyDown(trigger, { key: "ArrowDown" });
+      const listbox = screen.getByRole("listbox");
+      expect(trigger).toHaveAttribute("aria-controls", listbox.id);
+      expect(screen.getByRole("option", { name: "Banana" })).toHaveFocus();
+    });
+
+    it("lands on the first option when nothing is chosen, and the arrows move", () => {
+      render(tree());
+      const trigger = screen.getByRole("combobox");
+      fireEvent.keyDown(trigger, { key: "ArrowUp" });
+      expect(screen.getByRole("option", { name: "Apple" })).toHaveFocus();
+      fireEvent.keyDown(screen.getByRole("listbox"), { key: "ArrowDown" });
+      expect(screen.getByRole("option", { name: "Banana" })).toHaveFocus();
+    });
+
+    it("chooses with Enter and gives focus back to the trigger", () => {
+      render(tree());
+      const trigger = screen.getByRole("combobox");
+      fireEvent.keyDown(trigger, { key: "ArrowDown" });
+      fireEvent.keyDown(screen.getByRole("listbox"), { key: "ArrowDown" });
+      fireEvent.keyDown(screen.getByRole("option", { name: "Banana" }), { key: "Enter" });
+      expect(screen.queryByRole("listbox")).toBeNull();
+      expect(trigger).toHaveTextContent("Banana");
+      expect(trigger).toHaveFocus();
+    });
+
+    it("closes on Escape and on Tab with focus back on the trigger", () => {
+      render(tree());
+      const trigger = screen.getByRole("combobox");
+      fireEvent.keyDown(trigger, { key: "ArrowDown" });
+      fireEvent.keyDown(document, { key: "Escape" });
+      expect(screen.queryByRole("listbox")).toBeNull();
+      expect(trigger).toHaveFocus();
+      fireEvent.keyDown(trigger, { key: "ArrowDown" });
+      fireEvent.keyDown(screen.getByRole("listbox"), { key: "Tab" });
+      expect(screen.queryByRole("listbox")).toBeNull();
+      expect(trigger).toHaveFocus();
+    });
+
+    it("gives the list the trigger's width as a variable", () => {
+      render(tree());
+      const trigger = screen.getByRole("combobox");
+      Object.defineProperty(trigger, "offsetWidth", { configurable: true, value: 240 });
+      fireEvent.click(trigger);
+      expect(screen.getByRole("listbox").style.getPropertyValue("--select-trigger-width")).toBe("240px");
+    });
+
+    it("leaves focus where a click outside put it", () => {
+      render(
+        <>
+          {tree({ defaultOpen: true })}
+          <input aria-label="elsewhere" />
+        </>,
+      );
+      const elsewhere = screen.getByLabelText("elsewhere");
+      fireEvent.pointerDown(elsewhere);
+      elsewhere.focus();
+      expect(screen.queryByRole("listbox")).toBeNull();
+      expect(elsewhere).toHaveFocus();
+    });
+  });
 });
