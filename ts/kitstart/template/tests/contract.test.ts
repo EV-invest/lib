@@ -8,6 +8,7 @@ import { OWNER_TODO, site } from "@/shared/config/site";
 describeLandingContract(site, {
   globalsCss: readFileSync("app/globals.css", "utf8"),
   proxySource: readFileSync("proxy.ts", "utf8"),
+  root: process.cwd(),
   text: TEXT,
   ownerTodo: OWNER_TODO,
 });
