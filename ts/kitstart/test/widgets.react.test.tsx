@@ -109,6 +109,29 @@ describe("StatusScreen", () => {
     expect(nav).not.toHaveClass("order-last", "w-full");
   });
 
+  // tailwind-merge drops an earlier `leading-*` for a later font size: the
+  // brand's `text-[88px]` must not take the numeral's `leading-none` with it.
+  it("keeps a part's line height when the brand only resizes it", () => {
+    const { unmount } = render(
+      <StatusScreen copy={{ locale: "fr", t, f }} status={notFound} target={target} locales={["fr", "en"]} brandName="Aquafix" classNames={{ code: "text-[88px]", headline: "text-3xl", body: "text-sm" }} />,
+    );
+    expect(screen.getByText("404")).toHaveClass("text-[88px]", "leading-none");
+    expect(screen.getByText("404")).not.toHaveClass("text-8xl");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveClass("text-3xl", "leading-snug");
+    expect(screen.getByText("Mais nous oui.")).toHaveClass("text-sm", "leading-relaxed");
+    unmount();
+    // A line height the brand names wins, whether as `leading-*` or as a size's `/…`.
+    render(
+      <StatusScreen copy={{ locale: "fr", t, f }} status={notFound} target={target} locales={["fr", "en"]} brandName="Aquafix" classNames={{ code: "text-[88px] leading-tight", headline: "text-3xl/9", body: "text-ink/80" }} />,
+    );
+    expect(screen.getByText("404")).toHaveClass("leading-tight");
+    expect(screen.getByText("404")).not.toHaveClass("leading-none");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveClass("text-3xl/9");
+    expect(screen.getByRole("heading", { level: 1 })).not.toHaveClass("leading-snug");
+    // A colour with an opacity is not a size: the kit's line height stays.
+    expect(screen.getByText("Mais nous oui.")).toHaveClass("text-ink/80", "leading-relaxed");
+  });
+
   // Shown dark inside a light page, uncoloured text would take the <body>'s ink.
   it("carries its own ink, a legible outline border and an unbreakable phone", () => {
     const { container } = render(

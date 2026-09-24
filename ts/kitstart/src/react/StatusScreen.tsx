@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import type { CopySlice, StatusAction, StatusCopy, StatusScreenText } from "../core/content";
 import type { StatusTarget } from "../core/status";
 import { LangSwitch } from "./LangSwitch";
-import type { PartClassNames } from "./parts";
+import { partWithLeading, type PartClassNames } from "./parts";
 
 export type StatusScreenPart =
   | "header"
@@ -93,12 +93,12 @@ export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>
       <main className={cn("relative flex flex-1 flex-col items-center gap-5 px-5 py-12 text-center md:gap-6 md:py-24", c?.main)}>
         {mark}
         <p className={cn("text-xs font-medium tracking-widest text-primary-ink", c?.eyebrow)}>{status.eyebrow}</p>
-        <p className={cn("font-display text-8xl font-bold leading-none tracking-tight text-ink md:text-9xl", c?.code)}>{status.code}</p>
-        <h1 className={cn("font-display text-2xl font-bold leading-snug text-ink md:text-4xl", c?.headline)}>
+        <p className={partWithLeading("font-display text-8xl font-bold tracking-tight text-ink md:text-9xl", "leading-none", c?.code)}>{status.code}</p>
+        <h1 className={partWithLeading("font-display text-2xl font-bold text-ink md:text-4xl", "leading-snug", c?.headline)}>
           {status.headline[0]}
           <span className="text-primary-ink">{status.headline[1]}</span>
         </h1>
-        <p className={cn("max-w-2xl text-base leading-relaxed text-ink-soft md:text-lg", c?.body)}>{status.body(f)}</p>
+        <p className={partWithLeading("max-w-2xl text-base text-ink-soft md:text-lg", "leading-relaxed", c?.body)}>{status.body(f)}</p>
         <div className={cn("flex flex-col gap-3.5 sm:flex-row", c?.actions)}>
           {primary && (
             <Button href={primary.href} size="xl" className={cn(buttonClassName, c?.primaryButton)}>
