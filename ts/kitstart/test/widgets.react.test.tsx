@@ -191,8 +191,22 @@ describe("named parts", () => {
     );
     expect(screen.getByText("Royat").closest("li")).toHaveClass("p-3");
     expect(screen.getByText("Royat").closest("ul")).toHaveClass("gap-2");
-    render(<Coverage place={paris} locale="fr" classNames={{ chips: "gap-1" }} />);
+    render(<Coverage place={paris} locale="fr" classNames={{ chips: "gap-1", chip: "px-3" }} />);
     expect(screen.getByText("Boulogne-Billancourt").closest("ul")).toHaveClass("gap-1");
+    expect(screen.getByText("Boulogne-Billancourt").tagName).toBe("LI");
+    expect(screen.getByText("Boulogne-Billancourt")).toHaveClass("px-3");
+    expect(screen.getByText("Boulogne-Billancourt")).not.toHaveClass("px-4");
+  });
+
+  it("style the coverage map button's two lines", () => {
+    render(<Coverage place={royat} locale="fr" map={{ title: "Carte", show: "Voir la carte" }} classNames={{ mapShow: "text-base", mapAddress: "text-xs" }} />);
+    const show = screen.getByText("Voir la carte");
+    expect(show.closest("button")).not.toBeNull();
+    expect(show).toHaveClass("text-base");
+    expect(show).not.toHaveClass("text-lg");
+    const address = show.nextElementSibling;
+    expect(address).toHaveClass("text-xs");
+    expect(address).not.toHaveClass("text-sm");
   });
 });
 

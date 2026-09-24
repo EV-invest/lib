@@ -5,7 +5,8 @@ import { AreaChips } from "./AreaChips";
 import { MapFacade } from "./MapFacade";
 import type { PartClassNames } from "./parts";
 
-export type CoveragePart = "chips" | "landmark" | "map";
+/** `chip` is each commune in `chips`; `mapShow` and `mapAddress` are the map button's two lines. */
+export type CoveragePart = "chips" | "chip" | "landmark" | "map" | "mapShow" | "mapAddress";
 
 /**
  * Where a place works: its communes as chips, and — for a storefront only —
@@ -27,12 +28,13 @@ export interface CoverageProps<L extends string> {
 export function Coverage<L extends string>({ place, locale, map, head, className, classNames: c }: CoverageProps<L>) {
   const front = storefrontOf(place);
   const address = front && `${front.address.street}, ${front.address.postalCode} ${front.address.locality}`;
+  const mapParts = { ...(c?.mapShow ? { show: c.mapShow } : {}), ...(c?.mapAddress ? { address: c.mapAddress } : {}) };
   return (
     <div className={cn("flex flex-col gap-6 md:gap-8", className)}>
       {head}
-      <AreaChips areas={servedLocalities(place)} {...(c?.chips ? { className: c.chips } : {})} />
+      <AreaChips areas={servedLocalities(place)} {...(c?.chips ? { className: c.chips } : {})} {...(c?.chip ? { chipClassName: c.chip } : {})} />
       {front?.landmark && <p className={cn("text-sm text-ink-soft", c?.landmark)}>{front.landmark[locale]}</p>}
-      {address && map && <MapFacade query={`${place.gbpName}, ${address}`} title={map.title} show={map.show} address={address} {...(c?.map ? { className: c.map } : {})} />}
+      {address && map && <MapFacade query={`${place.gbpName}, ${address}`} title={map.title} show={map.show} address={address} {...(c?.map ? { className: c.map } : {})} classNames={mapParts} />}
     </div>
   );
 }
