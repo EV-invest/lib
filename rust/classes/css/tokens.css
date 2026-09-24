@@ -439,8 +439,12 @@
   --ink-mid: color-mix(in srgb, var(--ink) 82%, transparent);
   /* the most-used secondary text token, so it has to clear AA on its own */
   --ink-soft: color-mix(in srgb, var(--ink) 65%, transparent);
+  /* a divider: decoration, so it stays quiet */
   --border: color-mix(in srgb, var(--ink) 14%, transparent);
-  --input: color-mix(in srgb, var(--ink) 20%, transparent);
+  /* the only edge an unfilled control has, so it owes the non-text 3:1 on every
+   * surface (lib#154). One mix serves both polarities; light is the binding
+   * side — ink over white needs ~47% to clear it, dark lands near 4:1. */
+  --input: color-mix(in srgb, var(--ink) 48%, transparent);
   --ring: var(--primary-ink);
 }
 
