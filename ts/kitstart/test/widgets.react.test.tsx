@@ -143,12 +143,16 @@ describe("StatusScreen", () => {
   });
 
   // Shown dark inside a light page, uncoloured text would take the <body>'s ink.
-  it("carries its own ink, a legible outline border and an unbreakable phone", () => {
+  // Since uikit 0.21 the kit's outline border clears 3:1 itself; a local
+  // border colour would only override a brand's own.
+  it("carries its own ink, the kit's outline border and an unbreakable phone", () => {
     const { container } = render(
       <StatusScreen copy={{ locale: "fr", t, f }} status={notFound} target={target} locales={["fr", "en"]} brandName="Aquafix" classNames={{ phone: "text-lg", secondaryButton: "px-4" }} />,
     );
     expect(container.firstElementChild).toHaveClass("text-ink");
-    expect(screen.getByText("Accueil").closest("a")).toHaveClass("border-ink/50", "px-4");
+    const secondary = screen.getByText("Accueil").closest("a");
+    expect(secondary).toHaveClass("px-4");
+    expect(secondary).not.toHaveClass("border-ink/50");
     const phone = screen.getAllByText("+33 4 23 50 06 40").find(el => el.closest("header"));
     expect(phone).toHaveClass("whitespace-nowrap", "text-lg");
     expect(phone).not.toHaveClass("text-base");

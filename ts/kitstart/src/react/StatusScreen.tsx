@@ -106,9 +106,7 @@ export function StatusScreen<L extends string, F>(props: StatusScreenProps<L, F>
             </Button>
           )}
           {secondary && secondary.href !== primary?.href && (
-            // The kit's outline border is `--border`, 14 % ink: 1.4:1 on the
-            // dark polarity. Half ink clears 3:1 for a control on either one.
-            <Button href={secondary.href} size="xl" variant="outline" className={cn("border-ink/50", buttonClassName, c?.secondaryButton)}>
+            <Button href={secondary.href} size="xl" variant="outline" className={cn(buttonClassName, c?.secondaryButton)}>
               {secondary.label}
             </Button>
           )}

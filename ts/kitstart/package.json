@@ -80,7 +80,7 @@
     "@evinvest/analytics": ">=0.3.0 <1",
     "@evinvest/i18n": ">=0.9.0 <1",
     "@evinvest/marketing": ">=0.3.0 <1",
-    "@evinvest/uikit": ">=0.20.0 <1",
+    "@evinvest/uikit": ">=0.21.0 <1",
     "next": "^16",
     "react": "^19",
     "server-only": "*"
