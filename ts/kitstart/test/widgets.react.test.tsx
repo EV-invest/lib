@@ -31,6 +31,16 @@ describe("LangSwitch", () => {
     expect(withLang("//royat.aquafix.top/fr", "en")).toBe("//royat.aquafix.top/fr?lang=en");
     expect(withLang("http://localhost:3000/fr", "fr")).toBe("http://localhost:3000/fr?lang=fr");
   });
+
+  // WCAG 2.5.8: the hit area is a centred pseudo-element, not padding, so the
+  // codes keep their visual size and spacing.
+  it("gives each link a 44 px hit area around its own box", () => {
+    render(<LangSwitch current="en" locales={["fr", "en"]} hrefs={{ fr: "/fr", en: "/en" }} />);
+    for (const code of ["FR", "EN"]) {
+      expect(screen.getByText(code)).toHaveClass("relative", "after:absolute", "after:min-h-11", "after:min-w-11", "after:-translate-x-1/2", "after:-translate-y-1/2");
+      expect(screen.getByText(code).className).not.toMatch(/(^|\s)(p[xy]?-|outline-none)/);
+    }
+  });
 });
 
 describe("CallBar", () => {
