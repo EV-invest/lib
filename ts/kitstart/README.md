@@ -18,7 +18,7 @@ stays in the brand.
 | `@evinvest/kitstart/proxy` | edge | `createProxy(site)`, `PROXY_MATCHER` |
 | `@evinvest/kitstart/next` | Next server (routes, RSC) | `quoteRoute`, `sitemapRoute`, `robotsRoute`, `ogRoute`, `healthRoute`, `createPlaceLoader`, `loadLocale`, `placeMetadata` / `brandMetadata` / `statusMetadata`, `metadataBase` |
 | `@evinvest/kitstart/next/config` | `next.config.ts`, `vitest.config.ts` | `withLanding`, `buildEnv` and the `assets/` readers |
-| `@evinvest/kitstart/react` | either side | `LangSwitch`, `CallBar`, `StatusScreen`, `PlaceDirectory`, `AreaChips`, `Coverage`, `MapFacade` (client), `QuoteFormShell`, `Faq`, `AnalyticsBoundary` (client), plus the kit and marketing pieces a landing composes with |
+| `@evinvest/kitstart/react` | either side | `LangSwitch`, `CallBar`, `StatusScreen`, `PlaceDirectory`, `AreaChips`, `Coverage`, `MapFacade` (client), `QuoteFormShell`, `FormSelect` (client), `Faq`, `AnalyticsBoundary` (client), plus the kit and marketing pieces a landing composes with |
 | `@evinvest/kitstart/testing` | a brand's vitest | `describeLandingContract(site, { globalsCss, proxySource, text })`, `describeLeadStoreContract(name, harness)`, `storefrontPlace`, `serviceAreaPlace`, `testLead` |
 | `@evinvest/kitstart/testing/e2e` | a brand's Playwright | `defineSectionSuite(sections)`, `settle(page, selector)`, `BREAKPOINTS` |
 | bin `kitstart-size` | plain node | `kitstart-size [<build root>] [--route …] [--budget …]`: first-load JS of a place page against `tests/bundle_budget.txt`; fails closed |
@@ -45,7 +45,7 @@ brand's `flake.nix` is its own config plus one call — `template/flake.nix` is
 the whole of one:
 
 ```nix
-inputs.ev.url = "github:EV-invest/lib?ref=@evinvest/kitstart-v0.1.0"; # the version in package-lock.json
+inputs.ev.url = "github:EV-invest/lib?ref=@evinvest/kitstart-v0.2.0"; # the version in package-lock.json
 inputs.ev.inputs.v_flakes.follows = "v_flakes";
 
 landing = ev.lib.mkLanding {
@@ -98,7 +98,7 @@ the two must be one release. Pin the flake to the matching
 Structural only — where behaviour matters more than look. Marketing sections
 (hero, prices, reviews…) stay in the brand until two brands hold the same one.
 Each widget is a Server Component unless it needs the browser (`MapFacade`,
-`AnalyticsBoundary`), styled with the kit's token roles only, restyled through
+`AnalyticsBoundary`, `FormSelect`), styled with the kit's token roles only, restyled through
 `className` — and, where a brand needs geometry inside one (`Faq`, `CallBar`,
 `StatusScreen`, `PlaceDirectory`, `Coverage`), through its named parts:
 `classNames={{ list: "rounded-none", answer: "px-2" }}`, merged after the
@@ -114,6 +114,60 @@ switch is `StatusScreen`'s `lang`: below `md` it takes a row of its own
 honeypot the funnel reads; the visible fields are the brand's children.
 `StatusScreen` takes the brand's name and marks as props, so the client error
 boundary never imports the site config.
+
+### `FormSelect`: a choice that posts without JavaScript
+
+A form's select, for the fields inside `QuoteFormShell`. On the server and
+without JavaScript it is the kit's `NativeSelect` — a real `<select name>`
+the form posts as is. After hydration (`useSyncExternalStore`, so the
+server's HTML and the first client render agree) it is the kit's `Select`:
+the list drawn in the palette, never the platform's menu, and the value in an
+input of the same `name`. Both states are one box — height, width, border,
+radius and inset — so the swap moves nothing (checked by the template's e2e,
+which CI runs: `npm run check:template -- --e2e`).
+
+```tsx
+<Field className="flex flex-col gap-2">
+  <FieldLabel>{t.quoteLabels.subject}</FieldLabel>
+  <FormSelect
+    name={LEAD.wire.subject}
+    size="lg"
+    defaultValue={LEAD.subjects[0]}
+    options={LEAD.subjects.map(s => ({ value: s, label: t.subjects[s] }))}
+  />
+</Field>
+```
+
+| Prop | |
+|---|---|
+| `name`, `options: { value, label }[]` | the posted field and its choices (labels are text) |
+| `defaultValue` | without it: empty under a `placeholder`, else the first option — the native rule |
+| `placeholder` | an empty, unpickable choice shown until one is made |
+| `required`, `disabled` | as on a `<select>`: required refuses the submit, disabled posts nothing |
+| `size` | `sm` · `md` · `lg` (the landing's) — the kit's form scale |
+| `id`, `aria-describedby`, `aria-invalid` | inside a `Field` the id comes from it: its `FieldLabel` names the `<select>` before hydration and the trigger after |
+| `className` · `classNames={{ trigger, content, item }}` | the shared box · the control in both states, the list, its rows |
+| `onValueChange` | the chosen value, after hydration |
+
+- **The value survives the swap.** A choice made in the native select before
+  the script arrived is read in the hydration commit; a form `reset` puts the
+  default back in both states. With nothing chosen (under a `placeholder`) it
+  posts nothing, as a native select on its disabled placeholder does.
+- **`required` still refuses the submit.** A `type="hidden"` input is never
+  validated, so under `required` the value rides in a transparent input under
+  the trigger, out of the tab order, the accessibility tree and autofill. An
+  invalid field's trigger takes `aria-invalid` (the error border). On a submit
+  — and only then — the form's first invalid field also takes focus with its
+  list open, where the browser's bubble would have pointed at nothing; a
+  script's `checkValidity()` marks it and moves nothing.
+- **Keyboard and screen readers** are the kit's `Select` (its README has the
+  focus pattern): the arrows open it, opening lands on the chosen option,
+  letters jump, Enter chooses, Escape and Tab close with focus back on the
+  trigger; the trigger is a `combobox` named by the `FieldLabel`, and so is
+  its list, with the kit's focus ring.
+- **Weight.** It is a client module and pulls the kit's `Select` into the
+  page: 3.8 KB gz of first-load JS on the template's place page (152,774 →
+  156,565 B of its 158,000 B budget).
 
 Tailwind v4 does not scan `node_modules`; the brand's `globals.css` names the
 package:

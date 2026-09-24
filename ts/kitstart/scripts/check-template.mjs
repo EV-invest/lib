@@ -7,7 +7,7 @@
 // shows that the pieces meet Next where it is strict: segment config read
 // statically, client boundaries, `server-only`, the proxy on the edge.
 //
-//   node scripts/check-template.mjs [--keep] [--pre-publish | --registry]
+//   node scripts/check-template.mjs [--keep] [--e2e] [--pre-publish | --registry]
 //
 // Default: the packed tarballs must satisfy the template's own ranges and
 // kitstart's peers, exactly as a brand's install would demand, and npm installs
@@ -15,10 +15,17 @@
 // --pre-publish: before the first release the workspace packages carry their
 //   old version numbers; the range checks are skipped (loudly) and npm is
 //   told to ignore peers. Never the mode for a release.
+// --e2e: then the template's own Playwright suite for the quote form
+//   (`tests/e2e/quote-form.spec.ts`) against the standalone build — the form
+//   posting without JavaScript and the kit's list with it. The runner is this
+//   package's `@playwright/test`, linked into `tests/e2e` as a brand's flake
+//   links its own; its browser must be installed (`npx playwright install
+//   chromium`). The section screenshots stay a brand's: their baselines are
+//   Linux captures the template does not carry.
 // --registry: no tarballs — the template installs as it is, from npm; what a
 //   brand gets after a release.
 import { execFileSync, spawn } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -28,6 +35,7 @@ const workspace = resolve(kitstart, "..");
 const keep = process.argv.includes("--keep");
 const prePublish = process.argv.includes("--pre-publish");
 const registry = process.argv.includes("--registry");
+const e2e = process.argv.includes("--e2e");
 
 /** The slice of semver ranges these manifests use: `^x.y.z`, `>=`, `<`, AND by space, `||`, `*`. */
 function satisfies(version, range) {
@@ -160,6 +168,17 @@ async function smoke() {
   }
 }
 
+async function quoteFormE2e() {
+  const e2eDir = join(dir, "tests/e2e");
+  mkdirSync(join(e2eDir, "node_modules/@playwright"), { recursive: true });
+  for (const pkg of ["@playwright/test", "playwright", "playwright-core"]) {
+    symlinkSync(join(kitstart, "node_modules", pkg), join(e2eDir, "node_modules", pkg), "dir");
+  }
+  run("npx", ["tsc", "--noEmit", "-p", "tests/e2e"]);
+  const port = await freePort();
+  run("node", [join(kitstart, "node_modules/@playwright/test/cli.js"), "test", "quote-form.spec.ts", "--reporter=line"], e2eDir, { E2E_PORT: String(port) });
+}
+
 try {
   cpSync(join(kitstart, "template"), dir, { recursive: true });
   // Strict peers: a peer range that no longer meets the kit or Next fails the
@@ -187,6 +206,7 @@ try {
   run("npm", ["run", "build"]);
   run("npx", ["kitstart-size"]);
   await smoke();
+  if (e2e) await quoteFormE2e();
   console.log(`template: ok (${dir})`);
 } finally {
   if (!keep) rmSync(dir, { recursive: true, force: true });

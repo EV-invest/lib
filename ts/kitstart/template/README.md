@@ -22,6 +22,9 @@ launch — `noindex` everywhere until `assets/card.toml` gets a `site`.
 8. `src/entities/content`: `Text extends CoreText`, one object per language,
    checked with `satisfies`. Every word on a page comes from here.
 9. `src/shared/config/lead.ts`: what the form asks (`subjects`, `wire`, `extras`).
+   A choice in the form is `FormSelect`: a native `<select>` until the page
+   hydrates (the form posts without JavaScript), the kit's list after — never
+   a bare `NativeSelect`, whose popup is the platform's menu.
 10. `src/views/`: the brand's sections around the package's widgets.
 11. Tests: `tests/contract.test.ts` runs the landing contract; add the copy's
     own, the e2e sections (`tests/e2e`, baselines from CI on Linux) and set

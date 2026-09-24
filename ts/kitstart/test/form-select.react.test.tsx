@@ -1,0 +1,226 @@
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { Field, FieldLabel, FormSelect, type FormSelectProps } from "../src/react/index";
+
+const OPTIONS = [
+  { value: "leak", label: "Fuite" },
+  { value: "boiler", label: "Chaudière" },
+];
+
+function form(props: Partial<FormSelectProps> = {}): ReactElement {
+  return (
+    <form>
+      <Field className="flex flex-col gap-2">
+        <FieldLabel>Intervention</FieldLabel>
+        <FormSelect name="job" options={OPTIONS} size="lg" {...props} />
+      </Field>
+    </form>
+  );
+}
+
+function theForm(): HTMLFormElement {
+  const el = document.querySelector("form");
+  if (!(el instanceof HTMLFormElement)) throw new Error("no form");
+  return el;
+}
+
+const mounted: HTMLElement[] = [];
+afterEach(() => {
+  for (const el of mounted.splice(0)) el.remove();
+});
+
+/** The server's HTML in the document, then React hydrating it — the page as a visitor gets it. */
+async function hydrate(node: ReactElement, beforeHydration: (root: HTMLElement) => void = () => {}) {
+  const root = document.createElement("div");
+  root.innerHTML = renderToString(node);
+  document.body.append(root);
+  mounted.push(root);
+  beforeHydration(root);
+  await act(async () => {
+    hydrateRoot(root, node);
+  });
+  return root;
+}
+
+describe("FormSelect on the server and without JavaScript", () => {
+  it("is a native <select name> the form posts, labelled by its Field", () => {
+    const root = document.createElement("div");
+    root.innerHTML = renderToString(form({ defaultValue: "boiler" }));
+    const select = root.querySelector("select");
+    expect(select).toHaveAttribute("name", "job");
+    expect(select).toHaveAttribute("data-size", "lg");
+    expect(root.querySelector("label")?.getAttribute("for")).toBe(select?.id);
+    expect(root.querySelector("[role=combobox]")).toBeNull();
+    expect(new FormData(root.querySelector("form") ?? undefined).get("job")).toBe("boiler");
+  });
+
+  it("keeps required and the placeholder on the native control", () => {
+    const root = document.createElement("div");
+    root.innerHTML = renderToString(form({ required: true, placeholder: "Choisir" }));
+    const select = root.querySelector("select");
+    expect(select).toBeRequired();
+    expect(select?.value).toBe("");
+    expect(select?.checkValidity()).toBe(false);
+  });
+});
+
+describe("FormSelect after hydration", () => {
+  it("becomes the kit's Select, with the value in an input of the same name", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    await hydrate(form({ defaultValue: "boiler" }));
+    expect(errors).not.toHaveBeenCalled();
+    errors.mockRestore();
+    expect(document.querySelector("select")).toBeNull();
+    const trigger = screen.getByRole("combobox", { name: "Intervention" });
+    expect(trigger).toHaveTextContent("Chaudière");
+    const hidden = document.querySelector("input[name=job]");
+    expect(hidden).toHaveAttribute("type", "hidden");
+    expect(hidden).toHaveValue("boiler");
+    expect(new FormData(theForm()).get("job")).toBe("boiler");
+  });
+
+  it("keeps a choice made in the native select before the script arrived", async () => {
+    await hydrate(form(), root => {
+      const select = root.querySelector("select");
+      if (select) select.value = "boiler";
+    });
+    expect(new FormData(theForm()).get("job")).toBe("boiler");
+    expect(screen.getByRole("combobox")).toHaveTextContent("Chaudière");
+  });
+
+  it("posts the option chosen in the list", () => {
+    const onValueChange = vi.fn();
+    render(form({ onValueChange }));
+    expect(new FormData(theForm()).get("job")).toBe("leak");
+    fireEvent.click(screen.getByRole("combobox", { name: "Intervention" }));
+    fireEvent.click(screen.getByRole("option", { name: "Chaudière" }));
+    expect(new FormData(theForm()).get("job")).toBe("boiler");
+    expect(onValueChange).toHaveBeenCalledWith("boiler");
+  });
+
+  it("puts the default back on a form reset", () => {
+    render(form({ defaultValue: "leak" }));
+    fireEvent.click(screen.getByRole("combobox"));
+    fireEvent.click(screen.getByRole("option", { name: "Chaudière" }));
+    act(() => theForm().reset());
+    expect(new FormData(theForm()).get("job")).toBe("leak");
+    expect(screen.getByRole("combobox")).toHaveTextContent("Fuite");
+  });
+
+  it("refuses a submit with nothing chosen, and opens the list on the field", () => {
+    const onSubmit = vi.fn((e: { preventDefault: () => void }) => e.preventDefault());
+    render(
+      <form onSubmit={onSubmit}>
+        <Field>
+          <FieldLabel>Intervention</FieldLabel>
+          <FormSelect name="job" options={OPTIONS} required placeholder="Choisir" />
+        </Field>
+        <button type="submit">Envoyer</button>
+      </form>,
+    );
+    const trigger = screen.getByRole("combobox", { name: "Intervention" });
+    expect(trigger).toHaveAttribute("aria-required", "true");
+    expect(trigger.querySelector("[data-placeholder]")).toHaveTextContent("Choisir");
+    fireEvent.click(screen.getByRole("button", { name: "Envoyer" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(trigger).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Fuite" })).toHaveFocus();
+    fireEvent.click(screen.getByRole("option", { name: "Fuite" }));
+    expect(trigger).not.toHaveAttribute("aria-invalid");
+    expect(trigger.querySelector("[data-placeholder]")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Envoyer" }));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(new FormData(theForm()).get("job")).toBe("leak");
+  });
+
+  it.each([
+    ["an icon inside the submit button", false],
+    ["a submit button outside the form, joined by form=", true],
+  ])("treats a click on %s as the submit", (_, outside) => {
+    render(
+      <>
+        <form id="quote-form">
+          <Field>
+            <FieldLabel>Intervention</FieldLabel>
+            <FormSelect name="job" options={OPTIONS} required placeholder="Choisir" />
+          </Field>
+          {!outside && (
+            <button type="submit">
+              <span data-testid="icon">→</span>
+            </button>
+          )}
+        </form>
+        {outside && (
+          <button type="submit" form="quote-form">
+            <span data-testid="icon">→</span>
+          </button>
+        )}
+      </>,
+    );
+    fireEvent.click(screen.getByTestId("icon"));
+    expect(screen.getByRole("combobox", { name: "Intervention" })).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+  });
+
+  it("does not take a button of another form for this one's submit", () => {
+    render(
+      <>
+        <form>
+          <Field>
+            <FieldLabel>Intervention</FieldLabel>
+            <FormSelect name="job" options={OPTIONS} required placeholder="Choisir" />
+          </Field>
+        </form>
+        <form onSubmit={e => e.preventDefault()}>
+          <button type="submit">Autre</button>
+        </form>
+      </>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Autre" }));
+    act(() => {
+      theForm().checkValidity();
+    });
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("marks the field on a script's quiet checkValidity(), and moves nothing", () => {
+    render(form({ required: true, placeholder: "Choisir" }));
+    const trigger = screen.getByRole("combobox", { name: "Intervention" });
+    let valid = true;
+    act(() => {
+      valid = theForm().checkValidity();
+    });
+    expect(valid).toBe(false);
+    expect(trigger).toHaveAttribute("aria-invalid", "true");
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(trigger).not.toHaveFocus();
+  });
+
+  it("posts nothing while nothing is chosen, as a native select on its placeholder", () => {
+    render(form({ placeholder: "Choisir" }));
+    expect(document.querySelector("input[name=job]")).toBeNull();
+    expect(new FormData(theForm()).has("job")).toBe(false);
+    fireEvent.click(screen.getByRole("combobox"));
+    fireEvent.click(screen.getByRole("option", { name: "Fuite" }));
+    expect(new FormData(theForm()).get("job")).toBe("leak");
+  });
+
+  it("keeps the validated input out of the tab order and the accessibility tree", () => {
+    render(form({ required: true, placeholder: "Choisir" }));
+    const input = document.querySelector("input[name=job]");
+    expect(input).toHaveAttribute("tabindex", "-1");
+    expect(input).toHaveAttribute("aria-hidden", "true");
+    expect(input).toHaveAttribute("autocomplete", "off");
+    expect(screen.getAllByRole("combobox")).toHaveLength(1);
+  });
+
+  it("posts nothing while disabled, as a disabled select would", () => {
+    render(form({ disabled: true }));
+    expect(screen.getByRole("combobox")).toBeDisabled();
+    expect(new FormData(theForm()).get("job")).toBeNull();
+  });
+});

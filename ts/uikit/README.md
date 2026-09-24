@@ -253,6 +253,31 @@ through hydration. Three parts of the kit make that hold:
   opens. An item rendered by a component of yours is learnt when it mounts (on
   the first open), and the trigger updates then; pass `SelectValue` children to
   show something else outright.
+- **`Select` keeps focus where a native one would.** Focus moves into the
+  list and back out. The list is portaled, so where it goes is the kit's job,
+  not the DOM order's:
+  - **Opening** (a click, Enter, Space or the arrows on the trigger) focuses the
+    chosen option, else the first, without scrolling the page; the list alone
+    scrolls it into view.
+  - **In the list**, the arrows, Home and End move between options (read from
+    the DOM, so groups, labels, separators and items rendered by your own
+    components all count); typed letters jump to the next option that starts
+    with them; Enter or Space chooses.
+  - **Closing** by a key or a choice (Escape, Tab, Enter) hands focus back to
+    the trigger; Tab then goes on to the next field — inside a `Dialog` or
+    `Drawer` it wraps within the modal as its trap does. A click elsewhere
+    closes it and leaves focus where the click put it: the trigger is never
+    focused on the way out, so its blur (a field's validation) does not fire.
+  - **Escape** closes the topmost overlay only: the list, not the `Dialog` or
+    `Drawer` around it (dismissable layers stack), and a click in the list is
+    not "outside" the modal that holds its trigger.
+  - The trigger carries `aria-haspopup="listbox"` and, while open,
+    `aria-controls`; the list is named by the trigger's label.
+
+  The open list carries the trigger's width as `--select-trigger-width`:
+  `SelectContent className="min-w-(--select-trigger-width)"` keeps it at least
+  as wide as its field. It posts nothing by itself; `FormSelect` in
+  `@evinvest/kitstart/react` pairs it with a form value.
 
 ```tsx
 <form action="/lead" method="post">

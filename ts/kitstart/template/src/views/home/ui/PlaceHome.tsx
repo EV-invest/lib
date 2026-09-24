@@ -7,10 +7,9 @@ import {
   Faq,
   Field,
   FieldLabel,
+  FormSelect,
   Input,
   JsonLd,
-  NativeSelect,
-  NativeSelectOption,
   PHONE_INPUT_PROPS,
   QuoteFormShell,
   Section,
@@ -42,13 +41,12 @@ export function PlaceHome({ view, copy, renderedAt }: { view: PlaceView<Locale>;
             <p className="font-display text-2xl font-bold text-ink">{t.quoteForm.title}</p>
             <Field className="flex flex-col gap-2">
               <FieldLabel>{t.quoteLabels.subject}</FieldLabel>
-              <NativeSelect name={LEAD.wire.subject} size="lg" defaultValue={LEAD.subjects[0]}>
-                {LEAD.subjects.map(s => (
-                  <NativeSelectOption key={s} value={s}>
-                    {t.subjects[s]}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
+              <FormSelect
+                name={LEAD.wire.subject}
+                size="lg"
+                defaultValue={LEAD.subjects[0]}
+                options={LEAD.subjects.map(s => ({ value: s, label: t.subjects[s] }))}
+              />
             </Field>
             <Field className="flex flex-col gap-2">
               <FieldLabel>{t.quoteLabels.locality}</FieldLabel>
