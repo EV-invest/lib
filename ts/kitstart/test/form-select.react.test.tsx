@@ -137,6 +137,56 @@ describe("FormSelect after hydration", () => {
     expect(new FormData(theForm()).get("job")).toBe("leak");
   });
 
+  it.each([
+    ["an icon inside the submit button", false],
+    ["a submit button outside the form, joined by form=", true],
+  ])("treats a click on %s as the submit", (_, outside) => {
+    render(
+      <>
+        <form id="quote-form">
+          <Field>
+            <FieldLabel>Intervention</FieldLabel>
+            <FormSelect name="job" options={OPTIONS} required placeholder="Choisir" />
+          </Field>
+          {!outside && (
+            <button type="submit">
+              <span data-testid="icon">→</span>
+            </button>
+          )}
+        </form>
+        {outside && (
+          <button type="submit" form="quote-form">
+            <span data-testid="icon">→</span>
+          </button>
+        )}
+      </>,
+    );
+    fireEvent.click(screen.getByTestId("icon"));
+    expect(screen.getByRole("combobox", { name: "Intervention" })).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+  });
+
+  it("does not take a button of another form for this one's submit", () => {
+    render(
+      <>
+        <form>
+          <Field>
+            <FieldLabel>Intervention</FieldLabel>
+            <FormSelect name="job" options={OPTIONS} required placeholder="Choisir" />
+          </Field>
+        </form>
+        <form onSubmit={e => e.preventDefault()}>
+          <button type="submit">Autre</button>
+        </form>
+      </>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Autre" }));
+    act(() => {
+      theForm().checkValidity();
+    });
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
   it("marks the field on a script's quiet checkValidity(), and moves nothing", () => {
     render(form({ required: true, placeholder: "Choisir" }));
     const trigger = screen.getByRole("combobox", { name: "Intervention" });

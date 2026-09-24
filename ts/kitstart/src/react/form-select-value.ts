@@ -36,18 +36,21 @@ export function useFormSelectValue(opts: {
     const form = box.current?.closest("form");
     if (!scripted || !form) return;
     const reset = () => setValue(initialRef.current);
+    // On the document, not the form: a submit button may sit outside it
+    // (`form="…"`), and the click may land on an icon inside the button.
     const submit = (e: Event) => {
-      const target = e.target as HTMLButtonElement | HTMLInputElement | null;
-      if (target?.form !== form || target.type !== "submit") return;
+      const control = (e.target as Element | null)?.closest?.("button, input");
+      if (!(control instanceof HTMLButtonElement || control instanceof HTMLInputElement)) return;
+      if (control.form !== form || control.type !== "submit") return;
       submitting.current = true;
       // The invalid events of this submit fire before the task ends.
       setTimeout(() => (submitting.current = false), 0);
     };
     form.addEventListener("reset", reset);
-    form.addEventListener("click", submit, true);
+    document.addEventListener("click", submit, true);
     return () => {
       form.removeEventListener("reset", reset);
-      form.removeEventListener("click", submit, true);
+      document.removeEventListener("click", submit, true);
     };
   }, [box, scripted]);
 
