@@ -7,12 +7,12 @@ import { useControllableState } from "../primitives/use-controllable-state";
 import { useFloating } from "../primitives/use-floating";
 import { useDismissableLayer } from "../primitives/dismissable-layer";
 import { usePresence } from "../primitives/presence";
-import { useRovingFocus } from "../primitives/use-roving-focus";
 import { mergeRefs } from "../primitives/merge-refs";
 import { Portal } from "../primitives/portal";
 import { walkElements } from "../primitives/walk-elements";
 import { useFieldControlId } from "./field-context";
 import { SelectChevron } from "./select-chevron";
+import { landOnChosen, tabFromTrigger, useListboxKeys } from "./select-listbox";
 
 export type { SelectTriggerSize };
 
@@ -21,6 +21,14 @@ interface SelectContextValue {
   setValue: (next: string) => void;
   open: boolean;
   setOpen: (next: boolean) => void;
+  /**
+   * Closes the list. `restoreFocus`: hand focus back to the trigger — after a
+   * key or a choice, never after a click elsewhere, where it would land on the
+   * trigger for a moment and fire its blur (a field's validation) on the way out.
+   */
+  close: (restoreFocus: boolean) => void;
+  /** Set by `close(true)`, read once the list is gone. */
+  restoreFocusRef: React.RefObject<boolean>;
   anchorRef: React.RefObject<HTMLElement | null>;
   /** The listbox's id, for the trigger's `aria-controls`. */
   contentId: string;
@@ -68,6 +76,14 @@ export function Select({
   });
   const anchorRef = React.useRef<HTMLElement | null>(null);
   const contentId = React.useId();
+  const restoreFocusRef = React.useRef(false);
+  const close = React.useCallback(
+    (restoreFocus: boolean) => {
+      restoreFocusRef.current = restoreFocus;
+      setOpen(false);
+    },
+    [setOpen],
+  );
   // The items live in a closed popover, so they are not mounted when the
   // trigger first renders — on the server least of all. Their labels are read
   // off the element tree instead; items hidden behind a component of the
@@ -92,6 +108,8 @@ export function Select({
         setValue,
         open: isOpen,
         setOpen,
+        close,
+        restoreFocusRef,
         anchorRef,
         contentId,
         labelOf,
@@ -143,7 +161,7 @@ export function SelectTrigger({
   id,
   ...props
 }: SelectTriggerProps) {
-  const { open, setOpen, anchorRef, contentId } = useSelect();
+  const { open, setOpen, close, anchorRef, contentId } = useSelect();
   return (
     <button
       type="button"
@@ -158,7 +176,8 @@ export function SelectTrigger({
       ref={anchorRef as React.Ref<HTMLButtonElement>}
       onClick={(e) => {
         onClick?.(e);
-        setOpen(!open);
+        if (open) close(true);
+        else setOpen(true);
       }}
       onKeyDown={(e) => {
         onKeyDown?.(e);
@@ -221,17 +240,19 @@ export function SelectContent({
   children,
   ...props
 }: SelectContentProps) {
-  const { open, setOpen, anchorRef, contentId } = useSelect();
+  const { open, setOpen, close, restoreFocusRef, anchorRef, contentId } = useSelect();
   const { isPresent, ref: presRef } = usePresence(open);
   const listRef = React.useRef<HTMLDivElement | null>(null);
-  // The trigger's width as `--select-trigger-width`, for a list at least as
-  // wide as its field (`min-w-(--select-trigger-width)`). Written to the
-  // element like the floating offset, and before placement measures it.
+  const [name, setName] = React.useState<{ "aria-labelledby"?: string; "aria-label"?: string }>({});
+  // Before placement measures the list: the trigger's width as
+  // `--select-trigger-width` (for `min-w-(--select-trigger-width)`), written to
+  // the element like the floating offset, and the list's name — the trigger's
+  // label, as the combobox is named.
   React.useLayoutEffect(() => {
     const anchor = anchorRef.current;
-    if (open && anchor instanceof HTMLElement) {
-      listRef.current?.style.setProperty("--select-trigger-width", `${anchor.offsetWidth}px`);
-    }
+    if (!open || !(anchor instanceof HTMLElement)) return;
+    listRef.current?.style.setProperty("--select-trigger-width", `${anchor.offsetWidth}px`);
+    setName(listName(anchor));
   }, [open, anchorRef]);
   const { floatingRef, style, side } = useFloating({
     anchorRef,
@@ -242,57 +263,25 @@ export function SelectContent({
   });
   const dismissRef = useDismissableLayer({
     enabled: open,
-    onDismiss: () => setOpen(false),
+    onDismiss: (event) => close(event.type === "keydown"),
     exclude: [anchorRef],
   });
-  const items = React.Children.toArray(children).filter(React.isValidElement);
-  const { activeIndex, setActiveIndex, onKeyDown } = useRovingFocus({
-    count: items.length,
-    orientation: "vertical",
-  });
-  const options = () =>
-    Array.from(listRef.current?.querySelectorAll<HTMLElement>("[role='option']") ?? []);
-  // Opening lands on the chosen option, as a native select does, so the
-  // arrows move from where the value is. One effect for both: the item's
-  // `onFocus` sets the active index, and a second effect focusing the stale
-  // index in the same flush would win over it.
-  const landed = React.useRef(false);
+  const onListKey = useListboxKeys(listRef);
   React.useEffect(() => {
-    if (!open) {
-      landed.current = false;
-      return;
-    }
-    const all = options();
-    let index = activeIndex;
-    if (!landed.current) {
-      landed.current = true;
-      index = Math.max(0, all.findIndex((o) => o.getAttribute("aria-selected") === "true"));
-    }
-    // `preventScroll`: the list may not be placed yet on the frame it opens.
-    all[index]?.focus({ preventScroll: true });
-  }, [open, activeIndex]);
-  // Closing hands focus back to the trigger — unless the visitor already put
-  // it somewhere else (a click on another field) — so Tab goes on from the
-  // field instead of from the end of the document, where the portal lives.
-  const wasOpen = React.useRef(false);
+    if (open) landOnChosen(listRef.current);
+  }, [open]);
   React.useEffect(() => {
-    if (open) {
-      wasOpen.current = true;
-      return;
-    }
-    if (!wasOpen.current) return;
-    wasOpen.current = false;
-    const focused = document.activeElement;
-    if (!focused || focused === document.body || listRef.current?.contains(focused)) {
-      anchorRef.current?.focus();
-    }
-  }, [open, anchorRef]);
+    if (open || !restoreFocusRef.current) return;
+    restoreFocusRef.current = false;
+    anchorRef.current?.focus();
+  }, [open, anchorRef, restoreFocusRef]);
   if (!isPresent) return null;
   return (
     <Portal>
       <div
         role="listbox"
         id={contentId}
+        {...name}
         data-slot="select-content"
         data-state={open ? "open" : "closed"}
         data-side={side}
@@ -300,11 +289,14 @@ export function SelectContent({
         style={style}
         tabIndex={-1}
         onKeyDown={(e) => {
-          onKeyDown(e);
-          // Not prevented: with focus back on the trigger, the browser's own
-          // Tab moves on to the next field.
-          if (e.key === "Tab") {
-            anchorRef.current?.focus();
+          if (onListKey(e)) return;
+          if (e.key === "Escape") {
+            // The list's Escape is the list's: a Drawer or Dialog around it
+            // hears the key through React's tree, portal or not.
+            e.stopPropagation();
+            close(true);
+          } else if (e.key === "Tab") {
+            tabFromTrigger(e, anchorRef.current);
             setOpen(false);
           }
         }}
@@ -314,64 +306,48 @@ export function SelectContent({
         )}
         {...(props as Record<string, unknown>)}
       >
-        <div className="p-1">
-          {items.map((child, index) =>
-            React.cloneElement(child as React.ReactElement<SelectItemContext>, {
-              __index: index,
-              __active: index === activeIndex,
-              __setActive: setActiveIndex,
-            }),
-          )}
-        </div>
+        <div className="p-1">{children}</div>
       </div>
     </Portal>
   );
 }
 
-interface SelectItemContext {
-  __index?: number;
-  __active?: boolean;
-  __setActive?: (i: number) => void;
+/** The trigger's own name for the list: its `aria-labelledby`, else its `<label>`. */
+function listName(trigger: HTMLElement): { "aria-labelledby"?: string; "aria-label"?: string } {
+  const by = trigger.getAttribute("aria-labelledby");
+  if (by) return { "aria-labelledby": by };
+  const label = (trigger as HTMLButtonElement).labels?.[0];
+  if (label?.id) return { "aria-labelledby": label.id };
+  const text = label?.textContent?.trim() || trigger.getAttribute("aria-label");
+  return text ? { "aria-label": text } : {};
 }
 
-export interface SelectItemProps
-  extends React.ComponentProps<"div">,
-    SelectItemContext {
+export interface SelectItemProps extends React.ComponentProps<"div"> {
   value: string;
   /** What the trigger shows once this item is chosen; defaults to the text of `children`. */
   textValue?: string;
 }
 
-export function SelectItem({
-  className,
-  value,
-  textValue,
-  children,
-  __index = 0,
-  __active = false,
-  __setActive,
-  ...props
-}: SelectItemProps) {
-  const { value: selectedValue, setValue, setOpen, registerLabel } = useSelect();
+export function SelectItem({ className, value, textValue, children, ...props }: SelectItemProps) {
+  const { value: selectedValue, setValue, close, registerLabel } = useSelect();
   const selected = selectedValue === value;
   const label = itemLabel(value, textValue, children);
   React.useEffect(() => registerLabel(value, label), [registerLabel, value, label]);
+  const choose = () => {
+    setValue(value);
+    close(true);
+  };
   return (
     <div
       role="option"
       data-slot="select-item"
       aria-selected={selected}
-      tabIndex={__active ? 0 : -1}
-      onFocus={() => __setActive?.(__index)}
-      onClick={() => {
-        setValue(value);
-        setOpen(false);
-      }}
+      tabIndex={-1}
+      onClick={choose}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          setValue(value);
-          setOpen(false);
+          choose();
         }
       }}
       className={cn(
