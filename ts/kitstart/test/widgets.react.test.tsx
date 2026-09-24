@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { contactOf, createAcceptLead, placeUrl, RateLimiter, type Place, type StatusCopy, type StatusScreenText } from "../src/index";
-import { AreaChips, CallBar, Coverage, Faq, LangSwitch, PlaceDirectory, QuoteFormShell, StatusScreen } from "../src/react/index";
+import { AreaChips, CallBar, Coverage, Faq, LangSwitch, PlaceDirectory, QuoteFormShell, StatusScreen, withLang } from "../src/react/index";
 import { fixtureSite } from "./support/fixtures";
 
 const site = fixtureSite("aquafix");
@@ -24,6 +24,12 @@ describe("LangSwitch", () => {
     expect(screen.getByRole("navigation", { name: "Langue" })).toBeInTheDocument();
     expect(screen.getByLabelText("English")).toHaveAttribute("href", "/en?lang=en");
     expect(screen.getByLabelText("Français")).toHaveAttribute("href", "/fr?x=1&lang=fr#faq");
+  });
+
+  it("keeps an absolute link's origin", () => {
+    expect(withLang("https://royat.aquafix.top/fr/prices?x=1#faq", "en")).toBe("https://royat.aquafix.top/fr/prices?x=1&lang=en#faq");
+    expect(withLang("//royat.aquafix.top/fr", "en")).toBe("//royat.aquafix.top/fr?lang=en");
+    expect(withLang("http://localhost:3000/fr", "fr")).toBe("http://localhost:3000/fr?lang=fr");
   });
 });
 
@@ -78,6 +84,18 @@ describe("StatusScreen", () => {
     expect(screen.queryByText(/Appeler/)).toBeNull();
     // The primary falls back to home, and the duplicate secondary is dropped.
     expect(screen.getAllByText("Accueil")).toHaveLength(1);
+  });
+
+  it("styles each part the brand names", () => {
+    const classNames = { header: "py-2", eyebrow: "text-sm", code: "text-7xl", headline: "text-3xl", body: "text-sm", actions: "gap-2" } as const;
+    render(<StatusScreen copy={{ locale: "fr", t, f }} status={notFound} target={target} locales={["fr", "en"]} brandName="Aquafix" classNames={classNames} />);
+    expect(screen.getByLabelText("Aquafix").closest("header")).toHaveClass("py-2");
+    expect(screen.getByText("ERREUR")).toHaveClass("text-sm");
+    expect(screen.getByText("404")).toHaveClass("text-7xl");
+    expect(screen.getByText("404")).not.toHaveClass("text-8xl");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveClass("text-3xl");
+    expect(screen.getByText("Mais nous oui.")).toHaveClass("text-sm");
+    expect(screen.getByText("Accueil").closest("a")?.parentElement).toHaveClass("gap-2");
   });
 });
 
