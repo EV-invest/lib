@@ -123,7 +123,8 @@ the form posts as is. After hydration (`useSyncExternalStore`, so the
 server's HTML and the first client render agree) it is the kit's `Select`:
 the list drawn in the palette, never the platform's menu, and the value in an
 input of the same `name`. Both states are one box — height, width, border,
-radius and inset — so the swap moves nothing (checked by the template's e2e).
+radius and inset — so the swap moves nothing (checked by the template's e2e,
+which CI runs: `npm run check:template -- --e2e`).
 
 ```tsx
 <Field className="flex flex-col gap-2">
@@ -150,17 +151,20 @@ radius and inset — so the swap moves nothing (checked by the template's e2e).
 
 - **The value survives the swap.** A choice made in the native select before
   the script arrived is read in the hydration commit; a form `reset` puts the
-  default back in both states.
+  default back in both states. With nothing chosen (under a `placeholder`) it
+  posts nothing, as a native select on its disabled placeholder does.
 - **`required` still refuses the submit.** A `type="hidden"` input is never
   validated, so under `required` the value rides in a transparent input under
-  the trigger, out of the tab order and the accessibility tree. When it is the
-  form's first invalid field, the trigger takes focus with its list open and
-  `aria-invalid` (the error border), where the browser's bubble would have
-  pointed at nothing.
-- **Keyboard and screen readers** are the kit's `Select`: the arrows open
-  it, opening lands on the chosen option, Enter chooses, Escape and Tab close
-  with focus back on the trigger; the trigger is a `combobox` named by the
-  `FieldLabel`, with the kit's focus ring.
+  the trigger, out of the tab order, the accessibility tree and autofill. An
+  invalid field's trigger takes `aria-invalid` (the error border). On a submit
+  — and only then — the form's first invalid field also takes focus with its
+  list open, where the browser's bubble would have pointed at nothing; a
+  script's `checkValidity()` marks it and moves nothing.
+- **Keyboard and screen readers** are the kit's `Select` (its README has the
+  focus pattern): the arrows open it, opening lands on the chosen option,
+  letters jump, Enter chooses, Escape and Tab close with focus back on the
+  trigger; the trigger is a `combobox` named by the `FieldLabel`, and so is
+  its list, with the kit's focus ring.
 - **Weight.** It is a client module and pulls the kit's `Select` into the
   page: 3.8 KB gz of first-load JS on the template's place page (152,774 →
   156,565 B of its 158,000 B budget).

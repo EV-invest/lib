@@ -110,23 +110,52 @@ describe("FormSelect after hydration", () => {
     expect(screen.getByRole("combobox")).toHaveTextContent("Fuite");
   });
 
-  it("still refuses a required form with nothing chosen, and points at the field", () => {
-    render(form({ required: true, placeholder: "Choisir" }));
+  it("refuses a submit with nothing chosen, and opens the list on the field", () => {
+    const onSubmit = vi.fn((e: { preventDefault: () => void }) => e.preventDefault());
+    render(
+      <form onSubmit={onSubmit}>
+        <Field>
+          <FieldLabel>Intervention</FieldLabel>
+          <FormSelect name="job" options={OPTIONS} required placeholder="Choisir" />
+        </Field>
+        <button type="submit">Envoyer</button>
+      </form>,
+    );
     const trigger = screen.getByRole("combobox", { name: "Intervention" });
     expect(trigger).toHaveAttribute("aria-required", "true");
-    expect(trigger).toHaveTextContent("Choisir");
     expect(trigger.querySelector("[data-placeholder]")).toHaveTextContent("Choisir");
+    fireEvent.click(screen.getByRole("button", { name: "Envoyer" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(trigger).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Fuite" })).toHaveFocus();
+    fireEvent.click(screen.getByRole("option", { name: "Fuite" }));
+    expect(trigger).not.toHaveAttribute("aria-invalid");
+    expect(trigger.querySelector("[data-placeholder]")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Envoyer" }));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(new FormData(theForm()).get("job")).toBe("leak");
+  });
+
+  it("marks the field on a script's quiet checkValidity(), and moves nothing", () => {
+    render(form({ required: true, placeholder: "Choisir" }));
+    const trigger = screen.getByRole("combobox", { name: "Intervention" });
     let valid = true;
     act(() => {
       valid = theForm().checkValidity();
     });
     expect(valid).toBe(false);
     expect(trigger).toHaveAttribute("aria-invalid", "true");
-    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(trigger).not.toHaveFocus();
+  });
+
+  it("posts nothing while nothing is chosen, as a native select on its placeholder", () => {
+    render(form({ placeholder: "Choisir" }));
+    expect(document.querySelector("input[name=job]")).toBeNull();
+    expect(new FormData(theForm()).has("job")).toBe(false);
+    fireEvent.click(screen.getByRole("combobox"));
     fireEvent.click(screen.getByRole("option", { name: "Fuite" }));
-    expect(trigger).not.toHaveAttribute("aria-invalid");
-    expect(trigger.querySelector("[data-placeholder]")).toBeNull();
-    expect(theForm().checkValidity()).toBe(true);
     expect(new FormData(theForm()).get("job")).toBe("leak");
   });
 
@@ -135,6 +164,7 @@ describe("FormSelect after hydration", () => {
     const input = document.querySelector("input[name=job]");
     expect(input).toHaveAttribute("tabindex", "-1");
     expect(input).toHaveAttribute("aria-hidden", "true");
+    expect(input).toHaveAttribute("autocomplete", "off");
     expect(screen.getAllByRole("combobox")).toHaveLength(1);
   });
 

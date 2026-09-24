@@ -146,11 +146,11 @@ const SCENARIOS: readonly { name: string; widths: Widths; node: ReactElement }[]
         {([false, true] as const).flatMap(scripted => [
           <Field key={`${scripted}-value`} className="flex flex-col gap-2">
             <FieldLabel>{scripted ? "Intervention (après hydratation)" : "Intervention (sans JavaScript)"}</FieldLabel>
-            <FormSelectView scripted={scripted} name="job" size="lg" defaultValue="boiler" options={JOBS} />
+            <FormSelectView scripted={scripted} id={`job-${scripted ? "scripted" : "native"}`} name="job" size="lg" defaultValue="boiler" options={JOBS} />
           </Field>,
           <Field key={`${scripted}-empty`} className="flex flex-col gap-2">
             <FieldLabel>Type de bien</FieldLabel>
-            <FormSelectView scripted={scripted} name="home" size="lg" placeholder="Choisir" required options={JOBS} />
+            <FormSelectView scripted={scripted} id={`home-${scripted ? "scripted" : "native"}`} name="home" size="lg" placeholder="Choisir" required options={JOBS} />
           </Field>,
         ])}
       </div>

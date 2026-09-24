@@ -11,7 +11,8 @@ import {
   SelectValue,
   type SelectTriggerSize,
 } from "@evinvest/uikit";
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type InvalidEvent } from "react";
+import { useRef, useSyncExternalStore } from "react";
+import { useFormSelectValue } from "./form-select-value";
 import type { PartClassNames } from "./parts";
 
 /**
@@ -75,54 +76,14 @@ export function FormSelect(props: FormSelectProps) {
  * and would only ever see the native one. Not part of the package's surface.
  */
 export function FormSelectView({ scripted, ...props }: FormSelectProps & { scripted: boolean }) {
-  const { name, options, placeholder, required, disabled, size = "md", id, className, classNames, onValueChange } = props;
+  const { name, options, placeholder, required, disabled, size = "md", id, className, classNames } = props;
   const initial = props.defaultValue ?? (placeholder !== undefined ? "" : (options[0]?.value ?? ""));
-  const [value, setValue] = useState(initial);
-  const [invalid, setInvalid] = useState(false);
-  const [open, setOpen] = useState(false);
   const native = useRef<HTMLSelectElement>(null);
-  const field = useRef<HTMLInputElement>(null);
   // The box, not the trigger: `SelectTrigger` keeps its own ref for placing the list.
   const box = useRef<HTMLSpanElement>(null);
-
-  // A choice made in the native select before the script arrived survives
-  // the swap: read in the hydration commit, before the scripted render.
-  useLayoutEffect(() => {
-    if (native.current && native.current.value !== initial) setValue(native.current.value);
-    // Once, at hydration: later renders never hold the native select.
-  }, []);
-
-  // A form reset puts a native select back on its default; so does this.
-  useEffect(() => {
-    const form = field.current?.form;
-    if (!form) return;
-    const reset = () => setValue(initial);
-    form.addEventListener("reset", reset);
-    return () => form.removeEventListener("reset", reset);
-  }, [scripted, initial]);
-
-  const choose = (next: string) => {
-    setValue(next);
-    setInvalid(false);
-    onValueChange?.(next);
-  };
-
-  // The browser's bubble would point at an input nobody sees: the trigger
-  // takes the error state instead, and the first invalid field of the form
-  // takes focus with its list open, where the bubble would have been.
-  const onInvalid = (e: InvalidEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    setInvalid(true);
-    // `validity`, not `:invalid`: jsdom answers that selector by firing `invalid` again.
-    const first = Array.from(e.currentTarget.form?.elements ?? []).find(el => "validity" in el && !(el as HTMLInputElement).validity.valid);
-    if (first === e.currentTarget) {
-      box.current?.querySelector("button")?.focus();
-      setOpen(true);
-    }
-  };
-
+  const state = useFormSelectValue({ initial, native, box, scripted, onValueChange: props.onValueChange });
   const hint = placeholder !== undefined ? { placeholder } : {};
-  const aria = { "aria-describedby": props["aria-describedby"], "aria-invalid": props["aria-invalid"] || invalid || undefined };
+  const aria = { "aria-describedby": props["aria-describedby"], "aria-invalid": props["aria-invalid"] || state.invalid || undefined };
 
   if (!scripted) {
     return (
@@ -150,15 +111,8 @@ export function FormSelectView({ scripted, ...props }: FormSelectProps & { scrip
 
   return (
     <span ref={box} data-slot="form-select" className={cn(BOX, className)}>
-      <Select value={value} onValueChange={choose} open={open} onOpenChange={setOpen}>
-        <SelectTrigger
-          id={id}
-          size={size}
-          disabled={disabled}
-          aria-required={required || undefined}
-          className={cn(TRIGGER, TRIGGER_TEXT[size], classNames?.trigger)}
-          {...aria}
-        >
+      <Select value={state.value} onValueChange={state.choose} open={state.open} onOpenChange={state.setOpen}>
+        <SelectTrigger id={id} size={size} disabled={disabled} aria-required={required || undefined} className={cn(TRIGGER, TRIGGER_TEXT[size], classNames?.trigger)} {...aria}>
           <SelectValue {...hint} />
         </SelectTrigger>
         <SelectContent className={cn("min-w-(--select-trigger-width)", classNames?.content)}>
@@ -171,21 +125,23 @@ export function FormSelectView({ scripted, ...props }: FormSelectProps & { scrip
       </Select>
       {required ? (
         // Validated, so not `type="hidden"` (which the browser never checks);
-        // under the trigger, out of the tab order and the accessibility tree.
+        // under the trigger, out of the tab order, the accessibility tree and
+        // the browser's autofill.
         <input
-          ref={field}
           name={name}
-          value={value}
+          value={state.value}
           required
           disabled={disabled}
           tabIndex={-1}
           aria-hidden="true"
+          autoComplete="off"
           onChange={() => {}}
-          onInvalid={onInvalid}
+          onInvalid={state.onInvalid}
           className="pointer-events-none absolute inset-0 opacity-0"
         />
       ) : (
-        <input ref={field} type="hidden" name={name} value={value} disabled={disabled} />
+        // Nothing chosen posts nothing, as a native select on its disabled placeholder.
+        state.value !== "" && <input type="hidden" name={name} value={state.value} disabled={disabled} />
       )}
     </span>
   );
