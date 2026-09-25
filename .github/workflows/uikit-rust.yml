@@ -63,11 +63,13 @@ jobs:
         run: nix develop --command env RUSTC_WRAPPER= cargo test -p ev_lib --features uikit
       # The generated files are committed, so a change to their source that was
       # not regenerated (or an edit to the output by hand) shows up as a diff.
-      # Scoped to what `gen` writes: entering the dev shell rewrites README.md
-      # and friends, which is the flake's business, not this check's.
+      # `gen` brings rustc but not a linker, so it runs from the dev shell (as the
+      # pre-commit hook does). Scoped to what `gen` writes: entering the dev shell
+      # rewrites README.md and friends, which is the flake's business, not this
+      # check's.
       - name: Codegen drift
         run: |
-          nix run .#gen
+          nix develop --command nix run .#gen
           out="rust/classes/css rust/classes/uikit-classes.txt ts/uikit/src/generated ts/uikit/styles ts/i18n/src/generated ts/types/src/generated"
           drift="$(git status --porcelain -- $out)"
           if [ -n "$drift" ]; then
