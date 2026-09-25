@@ -51,6 +51,9 @@ test.describe("with JavaScript", () => {
   test("works from the keyboard", async ({ page }) => {
     await page.goto("/fr#quote");
     const trigger = page.getByRole("combobox", { name: SUBJECT });
+    // Before hydration the role finds the server's select, and the focus
+    // would go to it, not the kit's list; wait for the select to be replaced.
+    await expect(page.locator("#quote select")).toHaveCount(0);
     await trigger.focus();
     await page.keyboard.press("ArrowDown");
     await expect(page.getByRole("option", { name: "Ménage courant" })).toBeFocused();
