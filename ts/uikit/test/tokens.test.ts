@@ -4,14 +4,25 @@ import { describe, it, expect } from "vitest";
 
 import { buttonVariants } from "../src/components/button";
 import { CHECKBOX_BASE } from "../src/generated/checkbox";
+import { CONTEXT_MENU_CHECK_ITEM, CONTEXT_MENU_ITEM, CONTEXT_MENU_SUB_TRIGGER } from "../src/generated/context-menu";
+import { DROPDOWN_MENU_CHECK_ITEM, DROPDOWN_MENU_ITEM, DROPDOWN_MENU_SUB_TRIGGER } from "../src/generated/dropdown-menu";
+import { OPTION_FOCUS_RING } from "../src/generated/focus";
 import { INPUT_BASE } from "../src/generated/input";
 import { INPUT_GROUP_BASE } from "../src/generated/input-group";
 import { INPUT_OTP_SLOT } from "../src/generated/input-otp";
+import {
+  MENUBAR_CHECKBOX_ITEM,
+  MENUBAR_ITEM,
+  MENUBAR_RADIO_ITEM,
+  MENUBAR_SUB_TRIGGER,
+  MENUBAR_TRIGGER,
+} from "../src/generated/menubar";
 import { PROGRESS_INDICATOR, PROGRESS_TRACK } from "../src/generated/progress";
 import { SLIDER_RANGE, SLIDER_TRACK } from "../src/generated/slider";
 import { SWITCH_BASE, SWITCH_THUMB } from "../src/generated/switch";
 import { TEXTAREA_BASE } from "../src/generated/textarea";
 import { RADIO_GROUP_ITEM } from "../src/generated/radio-group";
+import { SELECT_ITEM } from "../src/generated/select";
 import { toggleVariantClasses } from "../src/generated/toggle";
 import { brandFromToml, DERIVED_SCOPE, readContract, readRules, renderPalette, type CssRule } from "../src/palette";
 
@@ -187,6 +198,23 @@ describe.each(scopes)("palette $label", (scope) => {
     });
   });
 
+  // An open list's focused row: the `bg-hover` tint alone is a surface step
+  // (1.22:1 on EV's popover, 1.14:1 and 1.00:1 where a brand pins --hover), so
+  // the indicator is the inset --ring, which sits between the tint inside the
+  // row and the popover around it and owes 3:1 to both.
+  describe("focused option in an open list", () => {
+    const tint = () => line("hover", scope, t("popover"));
+
+    it("the ring reads against the popover and against the tint (non-text 3:1)", () => {
+      expect(contrast(ring(scope), t("popover"))).toBeGreaterThanOrEqual(3);
+      expect(contrast(ring(scope), tint())).toBeGreaterThanOrEqual(3);
+    });
+
+    it("the label reads on the tint (AA text)", () => {
+      expect(contrast(t("ink"), tint())).toBeGreaterThanOrEqual(4.5);
+    });
+  });
+
   // A track is a shape under a shape, so it owes two floors at once: the moving
   // part reads on it (3:1) and it reads against the plane it sits on (~1.3:1, or
   // the UI goes flat). Both pairs are painted by the class tables, so the classes
@@ -233,6 +261,32 @@ describe("outlined controls frame with --input", () => {
   ])("%s", (_, classes) => {
     expect(classes).toMatch(/(^|\s)border-input(\s|$)/);
     expect(classes).not.toMatch(/(^|\s)border-border(\s|$)/);
+  });
+});
+
+// The floor above is only worth something if the rows draw their focus with
+// the ring it measures, not with the tint alone.
+describe("list rows ring their keyboard focus", () => {
+  it("is the inset --ring, on focus-visible", () => {
+    expect(OPTION_FOCUS_RING).toMatch(/\bfocus-visible:inset-ring-2\b/);
+    expect(OPTION_FOCUS_RING).toMatch(/\bfocus-visible:inset-ring-ring\b/);
+  });
+
+  it.each([
+    ["select item", SELECT_ITEM],
+    ["dropdown menu item", DROPDOWN_MENU_ITEM],
+    ["dropdown menu check item", DROPDOWN_MENU_CHECK_ITEM],
+    ["dropdown menu sub trigger", DROPDOWN_MENU_SUB_TRIGGER],
+    ["context menu item", CONTEXT_MENU_ITEM],
+    ["context menu check item", CONTEXT_MENU_CHECK_ITEM],
+    ["context menu sub trigger", CONTEXT_MENU_SUB_TRIGGER],
+    ["menubar trigger", MENUBAR_TRIGGER],
+    ["menubar item", MENUBAR_ITEM],
+    ["menubar checkbox item", MENUBAR_CHECKBOX_ITEM],
+    ["menubar radio item", MENUBAR_RADIO_ITEM],
+    ["menubar sub trigger", MENUBAR_SUB_TRIGGER],
+  ])("%s", (_, classes) => {
+    expect(classes).toContain(OPTION_FOCUS_RING);
   });
 });
 

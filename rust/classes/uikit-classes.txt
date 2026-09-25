@@ -17,6 +17,7 @@
 [&_tr]:border-b
 [.border-t]:pt-6
 [data-chart=chart-x]
+[overflow-wrap:anywhere]
 absolute inset-0 h-full w-full opacity-0 disabled:cursor-not-allowed
 absolute inset-0 top-1/2 shrink-0 bg-border h-px w-full
 absolute size-8 rounded-full
@@ -283,6 +284,7 @@ data-orientation=\
 data-panel-group-direction
 data-panel-group-direction=\
 data-placeholder
+data-placeholder=
 data-placeholder=\
 data-position
 data-position=\
@@ -430,17 +432,19 @@ flex-col [&>*]:w-full [&>.sr-only]:w-auto @md/field-group:flex-row @md/field-gro
 flex-row
 flex-row items-center [&>[data-slot=field-label]]:flex-auto has-[>[data-slot=field-content]]:items-start has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px
 focus-visible:border-ring focus-visible:ring-ring/50 flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-left text-sm font-medium transition-all outline-none hover:underline focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180
+focus-visible:inset-ring-2 focus-visible:inset-ring-ring
 focus-visible:ring-0
 focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring
 focus-visible:ring-[3px]
 focus-visible:ring-ring/50 size-full rounded-[inherit] overflow-auto transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1
-focus:bg-hover focus:text-ink data-[state=open]:bg-hover data-[state=open]:text-ink [&_svg:not([class*='text-'])]:text-ink-soft flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4
-focus:bg-hover focus:text-ink data-[state=open]:bg-hover data-[state=open]:text-ink [&_svg:not([class*='text-'])]:text-ink-soft flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4
-focus:bg-hover focus:text-ink data-[state=open]:bg-hover data-[state=open]:text-ink flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-none select-none data-[inset]:pl-8
-focus:bg-hover focus:text-ink data-[state=open]:bg-hover data-[state=open]:text-ink flex items-center rounded-sm px-2 py-1 text-sm font-medium outline-hidden select-none
-focus:bg-hover focus:text-ink data-[variant=destructive]:text-accent-error data-[variant=destructive]:focus:bg-accent-error/10 data-[variant=destructive]:focus:text-accent-error data-[variant=destructive]:*:[svg]:!text-accent-error [&_svg:not([class*='text-'])]:text-ink-soft relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4
-focus:bg-hover focus:text-ink relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4
-focus:bg-hover focus:text-ink relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4
+focus:bg-hover focus:text-ink focus-visible:inset-ring-2 focus-visible:inset-ring-ring [&_svg:not([class*='text-'])]:text-ink-soft relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm whitespace-normal [overflow-wrap:anywhere] outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2
+focus:bg-hover focus:text-ink focus-visible:inset-ring-2 focus-visible:inset-ring-ring data-[state=open]:bg-hover data-[state=open]:text-ink [&_svg:not([class*='text-'])]:text-ink-soft flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4
+focus:bg-hover focus:text-ink focus-visible:inset-ring-2 focus-visible:inset-ring-ring data-[state=open]:bg-hover data-[state=open]:text-ink [&_svg:not([class*='text-'])]:text-ink-soft flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4
+focus:bg-hover focus:text-ink focus-visible:inset-ring-2 focus-visible:inset-ring-ring data-[state=open]:bg-hover data-[state=open]:text-ink flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-none select-none data-[inset]:pl-8
+focus:bg-hover focus:text-ink focus-visible:inset-ring-2 focus-visible:inset-ring-ring data-[state=open]:bg-hover data-[state=open]:text-ink flex items-center rounded-sm px-2 py-1 text-sm font-medium outline-hidden select-none
+focus:bg-hover focus:text-ink focus-visible:inset-ring-2 focus-visible:inset-ring-ring data-[variant=destructive]:text-accent-error data-[variant=destructive]:focus:bg-accent-error/10 data-[variant=destructive]:focus:text-accent-error data-[variant=destructive]:*:[svg]:!text-accent-error [&_svg:not([class*='text-'])]:text-ink-soft relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4
+focus:bg-hover focus:text-ink focus-visible:inset-ring-2 focus-visible:inset-ring-ring relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4
+focus:bg-hover focus:text-ink focus-visible:inset-ring-2 focus-visible:inset-ring-ring relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4
 font-display [font-weight:700] max-w-[54rem] tracking-[-0.005em] leading-[1.16] md:leading-[1.14] text-[calc(1.5625rem*var(--display-scale))] md:text-[calc(2.625rem*var(--display-scale))]
 font-medium
 font-medium text-[10px] md:text-[11.5px] tracking-[0.15em] md:tracking-[0.16em] text-primary-ink [.bg-primary_&]:text-on-primary
@@ -576,10 +580,11 @@ lg:col-start-3 lg:row-start-2
 light
 logo-background
 mask-image:var(--brand-mark)
-max-h-96
 max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto
+max-h-[min(24rem,calc(100dvh-2rem))]
 max-w-3xl
 max-w-[52rem] text-[15px] md:text-[17px] leading-[1.58] text-ink-soft
+max-w-[min(24rem,calc(100vw-2rem))]
 max-w-[var(--page-max,90rem)]
 mb-3 font-medium data-[variant=legend]:text-base data-[variant=label]:text-sm
 mb-7 h-10 w-auto
@@ -608,6 +613,7 @@ min-h-20 px-4 py-3 text-base md:text-base
 min-h-40
 min-w-0 flex-auto shrink-0 rounded-none shadow-none first:rounded-l-md last:rounded-r-md focus:z-10 focus-visible:z-10 data-[variant=outline]:border-l-0 data-[variant=outline]:first:border-l
 min-w-0 shrink-0 grow-0 basis-full
+min-w-[max(8rem,var(--select-trigger-width,0px))] max-w-[min(24rem,calc(100vw-2rem))] max-h-[min(24rem,calc(100dvh-2rem))]
 ml-auto
 ml-auto h-4 w-4
 ml-auto size-4

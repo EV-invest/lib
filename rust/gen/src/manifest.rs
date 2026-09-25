@@ -1200,6 +1200,14 @@ fn input() -> Vec<Ts> {
 
 fn select() -> Vec<Ts> {
 	vec![
+		Ts::Const {
+			name: "SELECT_CONTENT_BOUNDS",
+			value: SELECT_CONTENT_BOUNDS,
+		},
+		Ts::Const {
+			name: "SELECT_ITEM",
+			value: SELECT_ITEM,
+		},
 		form_size_table("selectTriggerSizeClasses", "SelectTriggerSize", select_trigger_size_class),
 		form_size_table("nativeSelectSizeClasses", "NativeSelectSize", native_select_size_class),
 	]
@@ -1267,10 +1275,16 @@ fn badge() -> Vec<Ts> {
 }
 
 fn focus() -> Vec<Ts> {
-	vec![Ts::Const {
-		name: "FILLED_FOCUS_RING",
-		value: FILLED_FOCUS_RING,
-	}]
+	vec![
+		Ts::Const {
+			name: "FILLED_FOCUS_RING",
+			value: FILLED_FOCUS_RING,
+		},
+		Ts::Const {
+			name: "OPTION_FOCUS_RING",
+			value: OPTION_FOCUS_RING,
+		},
+	]
 }
 
 fn switch() -> Vec<Ts> {

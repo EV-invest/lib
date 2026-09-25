@@ -25,13 +25,38 @@ pub(crate) use filled_focus_ring;
 /// and the checkbox. It is exported for a consumer's own filled control.
 pub const FILLED_FOCUS_RING: &str = filled_focus_ring!();
 
+/// A macro for the same reason as [`filled_focus_ring!`]: the item tables
+/// `concat!` it into their literals.
+macro_rules! option_focus_ring {
+	() => {
+		"focus-visible:inset-ring-2 focus-visible:inset-ring-ring"
+	};
+}
+pub(crate) use option_focus_ring;
+
+/// The keyboard focus of a row the arrows move through — a `SelectItem`, a menu
+/// item, a menubar trigger. Such a row takes DOM focus but draws no outline, and the `bg-hover`
+/// tint it had alone is a surface step, not an indicator: 1.00–1.27:1 against
+/// the popover it sits on, down to exactly 1:1 where a palette pins `--hover`
+/// to its popover. The ring is `--ring`, which the token tests hold at 3:1
+/// against the popover and against the tint inside it on every palette.
+///
+/// Inset, because the rows fill the list edge to edge and an outset ring would
+/// be clipped by the list's `overflow`. `focus-visible`, so a pointer — which
+/// never moves the focus off the landed row — sees only the tint.
+pub const OPTION_FOCUS_RING: &str = option_focus_ring!();
+
 #[cfg(test)]
 mod tests {
 	use strum::IntoEnumIterator;
 	use tailwind_fuse::AsTailwindClass;
 
-	use super::FILLED_FOCUS_RING;
-	use crate::{Accent, BadgeVariant, ButtonVariant, CHECKBOX_BASE, SWITCH_BASE, accent_fill_class, accent_outline_class};
+	use super::{FILLED_FOCUS_RING, OPTION_FOCUS_RING};
+	use crate::{
+		Accent, BadgeVariant, ButtonVariant, CHECKBOX_BASE, CONTEXT_MENU_CHECK_ITEM, CONTEXT_MENU_ITEM, CONTEXT_MENU_SUB_TRIGGER, DROPDOWN_MENU_CHECK_ITEM, DROPDOWN_MENU_ITEM,
+		DROPDOWN_MENU_SUB_TRIGGER, MENUBAR_CHECKBOX_ITEM, MENUBAR_ITEM, MENUBAR_RADIO_ITEM, MENUBAR_SUB_TRIGGER, MENUBAR_TRIGGER, SELECT_ITEM, SWITCH_BASE, accent_fill_class,
+		accent_outline_class,
+	};
 
 	#[test]
 	fn filled_button_variants_carry_the_ring() {
@@ -56,6 +81,26 @@ mod tests {
 		for accent in Accent::iter() {
 			assert!(accent_fill_class(accent).ends_with(FILLED_FOCUS_RING), "{accent:?}");
 			assert!(!accent_outline_class(accent).contains(FILLED_FOCUS_RING), "{accent:?}");
+		}
+	}
+
+	#[test]
+	fn list_rows_carry_the_option_ring() {
+		for row in [
+			SELECT_ITEM,
+			DROPDOWN_MENU_ITEM,
+			DROPDOWN_MENU_CHECK_ITEM,
+			DROPDOWN_MENU_SUB_TRIGGER,
+			CONTEXT_MENU_ITEM,
+			CONTEXT_MENU_CHECK_ITEM,
+			CONTEXT_MENU_SUB_TRIGGER,
+			MENUBAR_TRIGGER,
+			MENUBAR_ITEM,
+			MENUBAR_CHECKBOX_ITEM,
+			MENUBAR_RADIO_ITEM,
+			MENUBAR_SUB_TRIGGER,
+		] {
+			assert!(row.contains(OPTION_FOCUS_RING), "{row}");
 		}
 	}
 

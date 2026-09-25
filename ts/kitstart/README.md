@@ -45,7 +45,7 @@ brand's `flake.nix` is its own config plus one call — `template/flake.nix` is
 the whole of one:
 
 ```nix
-inputs.ev.url = "github:EV-invest/lib?ref=@evinvest/kitstart-v0.2.0"; # the version in package-lock.json
+inputs.ev.url = "github:EV-invest/lib?ref=@evinvest/kitstart-v0.3.0"; # the version in package-lock.json
 inputs.ev.inputs.v_flakes.follows = "v_flakes";
 
 landing = ev.lib.mkLanding {
