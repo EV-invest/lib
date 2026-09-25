@@ -4,10 +4,19 @@ import { describe, it, expect } from "vitest";
 
 import { buttonVariants } from "../src/components/button";
 import { CHECKBOX_BASE } from "../src/generated/checkbox";
+import { CONTEXT_MENU_CHECK_ITEM, CONTEXT_MENU_ITEM, CONTEXT_MENU_SUB_TRIGGER } from "../src/generated/context-menu";
+import { DROPDOWN_MENU_CHECK_ITEM, DROPDOWN_MENU_ITEM, DROPDOWN_MENU_SUB_TRIGGER } from "../src/generated/dropdown-menu";
 import { OPTION_FOCUS_RING } from "../src/generated/focus";
 import { INPUT_BASE } from "../src/generated/input";
 import { INPUT_GROUP_BASE } from "../src/generated/input-group";
 import { INPUT_OTP_SLOT } from "../src/generated/input-otp";
+import {
+  MENUBAR_CHECKBOX_ITEM,
+  MENUBAR_ITEM,
+  MENUBAR_RADIO_ITEM,
+  MENUBAR_SUB_TRIGGER,
+  MENUBAR_TRIGGER,
+} from "../src/generated/menubar";
 import { PROGRESS_INDICATOR, PROGRESS_TRACK } from "../src/generated/progress";
 import { SLIDER_RANGE, SLIDER_TRACK } from "../src/generated/slider";
 import { SWITCH_BASE, SWITCH_THUMB } from "../src/generated/switch";
@@ -263,7 +272,20 @@ describe("list rows ring their keyboard focus", () => {
     expect(OPTION_FOCUS_RING).toMatch(/\bfocus-visible:inset-ring-ring\b/);
   });
 
-  it.each([["select item", SELECT_ITEM]])("%s", (_, classes) => {
+  it.each([
+    ["select item", SELECT_ITEM],
+    ["dropdown menu item", DROPDOWN_MENU_ITEM],
+    ["dropdown menu check item", DROPDOWN_MENU_CHECK_ITEM],
+    ["dropdown menu sub trigger", DROPDOWN_MENU_SUB_TRIGGER],
+    ["context menu item", CONTEXT_MENU_ITEM],
+    ["context menu check item", CONTEXT_MENU_CHECK_ITEM],
+    ["context menu sub trigger", CONTEXT_MENU_SUB_TRIGGER],
+    ["menubar trigger", MENUBAR_TRIGGER],
+    ["menubar item", MENUBAR_ITEM],
+    ["menubar checkbox item", MENUBAR_CHECKBOX_ITEM],
+    ["menubar radio item", MENUBAR_RADIO_ITEM],
+    ["menubar sub trigger", MENUBAR_SUB_TRIGGER],
+  ])("%s", (_, classes) => {
     expect(classes).toContain(OPTION_FOCUS_RING);
   });
 });

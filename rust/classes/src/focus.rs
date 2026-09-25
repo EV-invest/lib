@@ -35,7 +35,7 @@ macro_rules! option_focus_ring {
 pub(crate) use option_focus_ring;
 
 /// The keyboard focus of a row the arrows move through — a `SelectItem`, a menu
-/// item. Such a row takes DOM focus but draws no outline, and the `bg-hover`
+/// item, a menubar trigger. Such a row takes DOM focus but draws no outline, and the `bg-hover`
 /// tint it had alone is a surface step, not an indicator: 1.00–1.27:1 against
 /// the popover it sits on, down to exactly 1:1 where a palette pins `--hover`
 /// to its popover. The ring is `--ring`, which the token tests hold at 3:1
@@ -52,7 +52,11 @@ mod tests {
 	use tailwind_fuse::AsTailwindClass;
 
 	use super::{FILLED_FOCUS_RING, OPTION_FOCUS_RING};
-	use crate::{Accent, BadgeVariant, ButtonVariant, CHECKBOX_BASE, SELECT_ITEM, SWITCH_BASE, accent_fill_class, accent_outline_class};
+	use crate::{
+		Accent, BadgeVariant, ButtonVariant, CHECKBOX_BASE, CONTEXT_MENU_CHECK_ITEM, CONTEXT_MENU_ITEM, CONTEXT_MENU_SUB_TRIGGER, DROPDOWN_MENU_CHECK_ITEM, DROPDOWN_MENU_ITEM,
+		DROPDOWN_MENU_SUB_TRIGGER, MENUBAR_CHECKBOX_ITEM, MENUBAR_ITEM, MENUBAR_RADIO_ITEM, MENUBAR_SUB_TRIGGER, MENUBAR_TRIGGER, SELECT_ITEM, SWITCH_BASE, accent_fill_class,
+		accent_outline_class,
+	};
 
 	#[test]
 	fn filled_button_variants_carry_the_ring() {
@@ -82,7 +86,22 @@ mod tests {
 
 	#[test]
 	fn list_rows_carry_the_option_ring() {
-		assert!(SELECT_ITEM.contains(OPTION_FOCUS_RING), "{SELECT_ITEM}");
+		for row in [
+			SELECT_ITEM,
+			DROPDOWN_MENU_ITEM,
+			DROPDOWN_MENU_CHECK_ITEM,
+			DROPDOWN_MENU_SUB_TRIGGER,
+			CONTEXT_MENU_ITEM,
+			CONTEXT_MENU_CHECK_ITEM,
+			CONTEXT_MENU_SUB_TRIGGER,
+			MENUBAR_TRIGGER,
+			MENUBAR_ITEM,
+			MENUBAR_CHECKBOX_ITEM,
+			MENUBAR_RADIO_ITEM,
+			MENUBAR_SUB_TRIGGER,
+		] {
+			assert!(row.contains(OPTION_FOCUS_RING), "{row}");
+		}
 	}
 
 	#[test]
