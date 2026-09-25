@@ -45,7 +45,7 @@ brand's `flake.nix` is its own config plus one call — `template/flake.nix` is
 the whole of one:
 
 ```nix
-inputs.ev.url = "github:EV-invest/lib?ref=@evinvest/kitstart-v0.3.0"; # the version in package-lock.json
+inputs.ev.url = "github:EV-invest/lib?ref=@evinvest/kitstart-v0.4.0"; # the version in package-lock.json
 inputs.ev.inputs.v_flakes.follows = "v_flakes";
 
 landing = ev.lib.mkLanding {
@@ -286,9 +286,18 @@ page how to write its links through the route it rewrites to:
 
 ## Publishing
 
-`package.json` says `0.0.0` on purpose: `nix run .#publish -- minor` bumps it
-to `0.1.0`, the version `template/` asks for (`^0.1.0`). kitstart's peers
-must be on the registry first, so a release is two runs:
+`template/` follows the release on its own: `nix run .#publish` rewrites a
+template range that no longer admits a version it just published to
+`^<version>`, and on a kitstart release moves the `@evinvest/kitstart-v…` pin in
+`template/flake.nix` and this README — all in the release commit, so the tag
+lands on a template that already points at it. kitstart publishes last in a
+run, so its tarball carries the new ranges. A run without kitstart still
+moves the template, but the kitstart tarball already on npm ships the old one,
+so that run ends by printing the `--only @evinvest/kitstart` command that
+releases it. A range the script cannot read, or a branch behind its upstream,
+stops the run before anything is published. `npm test` fails whenever the
+template stops admitting the workspace versions. kitstart's peers must be on
+the registry first, so a release is two runs:
 
 1. `nix run .#publish -- minor --npm-only --only @evinvest/uikit --only @evinvest/marketing`,
    then wait until `npm view @evinvest/uikit version` answers the new one;
