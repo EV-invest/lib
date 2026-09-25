@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 // The quote form's contract with the visitor: it posts before any script
 // (the one standing in water may be on a bad connection), and once the script
@@ -65,18 +65,34 @@ test.describe("with JavaScript", () => {
 });
 
 test("the field is the same box before and after hydration", async ({ browser }) => {
-  const box = async (javaScriptEnabled: boolean) => {
+  const open = async (javaScriptEnabled: boolean) => {
     const context = await browser.newContext({ javaScriptEnabled });
     const page = await context.newPage();
     await page.goto("/fr#quote");
-    const control = javaScriptEnabled ? page.getByRole("combobox", { name: SUBJECT }) : page.locator("#quote select[name=subject]");
-    await expect(control).toBeVisible();
-    const rect = await control.evaluate(el => {
+    return page;
+  };
+  const measure = (control: Locator) =>
+    control.evaluate(el => {
       const r = el.getBoundingClientRect();
       return { width: r.width, height: r.height, x: r.x, border: getComputedStyle(el).borderTopWidth, radius: getComputedStyle(el).borderTopLeftRadius };
     });
-    await context.close();
-    return rect;
-  };
-  expect(await box(true)).toEqual(await box(false));
+
+  // The server's select is a combobox of the same name, so until the page
+  // hydrates the role finds it — and hydration detaches it, leaving a
+  // measurement of zeros. Measure only once the kit's button has replaced it.
+  const scripted = await open(true);
+  await expect(scripted.locator("#quote select")).toHaveCount(0);
+  const kit = scripted.getByRole("combobox", { name: SUBJECT });
+  await expect(kit).toHaveJSProperty("tagName", "BUTTON");
+  await expect(kit).toBeVisible();
+  const hydrated = await measure(kit);
+  await scripted.context().close();
+
+  const bare = await open(false);
+  const native = bare.locator("#quote select[name=subject]");
+  await expect(native).toBeVisible();
+  const server = await measure(native);
+  await bare.context().close();
+
+  expect(hydrated).toEqual(server);
 });
