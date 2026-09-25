@@ -270,7 +270,9 @@ mod tests {
 		}
 		let html = render(app);
 		assert!(html.contains("aria-selected=\"true\""), "{html}");
-		assert!(!html.contains("data-placeholder"), "value replaces placeholder: {html}");
+		// The attribute, not the substring: the trigger's class names `[data-placeholder]` too.
+		assert!(!html.contains("data-placeholder="), "value replaces placeholder: {html}");
+		assert!(!html.contains(">Pick<"), "value replaces placeholder: {html}");
 	}
 
 	#[test]
