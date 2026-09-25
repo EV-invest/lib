@@ -213,6 +213,16 @@ describe.each(scopes)("palette $label", (scope) => {
     it("the label reads on the tint (AA text)", () => {
       expect(contrast(t("ink"), tint())).toBeGreaterThanOrEqual(4.5);
     });
+
+    // A destructive menu row swaps the tint for 10 % of --accent-error, so the
+    // ring's inner edge sits on that instead.
+    it("the ring reads against a destructive row's tint (non-text 3:1)", () => {
+      for (const classes of [DROPDOWN_MENU_ITEM, CONTEXT_MENU_ITEM, MENUBAR_ITEM]) {
+        expect(classes).toMatch(/(^|\s)data-\[variant=destructive\]:focus:bg-accent-error\/10(\s|$)/);
+      }
+      const destructive = composite(t("accent-error"), 0.1, t("popover"));
+      expect(contrast(ring(scope), destructive)).toBeGreaterThanOrEqual(3);
+    });
   });
 
   // A track is a shape under a shape, so it owes two floors at once: the moving
