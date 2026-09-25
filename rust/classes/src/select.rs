@@ -5,7 +5,9 @@ use crate::{Size, focus::option_focus_ring};
 /// the 8rem floor), at most 24rem and never wider or taller than the viewport
 /// less a 1rem gutter a side — so the list the floating placement clamps
 /// always fits between the edges, and a long option wraps (see
-/// [`SELECT_ITEM`]) instead of widening the list off-screen.
+/// [`SELECT_ITEM`]) instead of widening the list off-screen. The trigger's width
+/// wins over the 24rem cap — `min-width` beats `max-width` in CSS — so a trigger
+/// wider than 24rem opens a list exactly as wide as itself.
 pub const SELECT_CONTENT_BOUNDS: &str = "min-w-[max(8rem,var(--select-trigger-width,0px))] max-w-[min(24rem,calc(100vw-2rem))] \
 	 max-h-[min(24rem,calc(100dvh-2rem))]";
 

@@ -115,7 +115,7 @@ export function FormSelectView({ scripted, ...props }: FormSelectProps & { scrip
         <SelectTrigger id={id} size={size} disabled={disabled} aria-required={required || undefined} className={cn(TRIGGER, TRIGGER_TEXT[size], classNames?.trigger)} {...aria}>
           <SelectValue {...hint} />
         </SelectTrigger>
-        <SelectContent className={cn("min-w-(--select-trigger-width)", classNames?.content)}>
+        <SelectContent className={classNames?.content}>
           {options.map(o => (
             <SelectItem key={o.value} value={o.value} className={cn(size === "lg" && "py-2.5 text-base", classNames?.item)}>
               {o.label}
