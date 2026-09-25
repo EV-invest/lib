@@ -42,6 +42,10 @@ name: uikit rust
   workflow_dispatch: {}
 permissions:
   contents: read
+# The repo's cargo config wraps rustc in sccache, which a runner does not have;
+# an empty wrapper turns it off for every step, `nix run .#gen` included.
+env:
+  RUSTC_WRAPPER: ''
 jobs:
   test:
     name: classes, components, codegen drift
@@ -53,8 +57,6 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@main
         with:
           extra-conf: 'lazy-trees = true'
-      # RUSTC_WRAPPER is cleared as in kitstart.yml: the dev shell points it at
-      # sccache, which has no cache to talk to on a runner.
       - name: ev_lib_classes
         run: nix develop --command env RUSTC_WRAPPER= cargo test -p ev_lib_classes
       - name: ev_lib uikit
