@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use crate::{
 	cn,
 	uikit::{
-		Size,
+		SELECT_ITEM, Size,
 		primitives::{Controllable, use_controllable},
 		select_trigger_size_class,
 	},
@@ -124,13 +124,7 @@ pub fn SelectContent(#[props(default)] class: String, children: Element) -> Elem
 pub fn SelectItem(value: String, #[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<SelectCtx>();
 	let selected = ctx.value.get() == value;
-	let cls = cn!(
-		"focus:bg-hover focus:text-ink [&_svg:not([class*='text-'])]:text-ink-soft relative flex w-full \
-		 cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none \
-		 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 \
-		 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
-		class
-	);
+	let cls = cn!(SELECT_ITEM, class);
 	let select_value = {
 		let value = value.clone();
 		move |_| {

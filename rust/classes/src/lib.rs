@@ -100,7 +100,7 @@ pub use field::{
 	FIELD_BASE, FIELD_CONTENT, FIELD_DESCRIPTION, FIELD_ERROR, FIELD_GROUP, FIELD_LABEL, FIELD_LEGEND, FIELD_SEPARATOR, FIELD_SEPARATOR_CONTENT, FIELD_SEPARATOR_LINE, FIELD_SET,
 	FIELD_TITLE, FieldOrientation,
 };
-pub use focus::FILLED_FOCUS_RING;
+pub use focus::{FILLED_FOCUS_RING, OPTION_FOCUS_RING};
 pub use form::{FORM_DESCRIPTION, FORM_ITEM, FORM_LABEL, FORM_MESSAGE};
 pub use hover_card::HOVER_CARD_CONTENT;
 pub use input::{INPUT_BASE, input_size_class};
@@ -127,7 +127,7 @@ pub use progress::{PROGRESS_INDICATOR, PROGRESS_TRACK};
 pub use radio_group::{RADIO_GROUP_ITEM, RADIO_GROUP_ROOT};
 pub use resizable::{RESIZABLE_GROUP, RESIZABLE_HANDLE, RESIZABLE_HANDLE_GRIP, RESIZABLE_PANEL};
 pub use scroll_area::{SCROLL_AREA_THUMB, SCROLL_AREA_VIEWPORT, SCROLLBAR_BASE, ScrollBarOrientation};
-pub use select::{native_select_size_class, select_trigger_size_class};
+pub use select::{SELECT_ITEM, native_select_size_class, select_trigger_size_class};
 pub use separator::{Orientation, SEPARATOR_BASE};
 pub use sheet::{
 	SHEET_CLOSE, SHEET_CONTENT, SHEET_DESCRIPTION, SHEET_FOOTER, SHEET_HEADER, SHEET_OVERLAY, SHEET_SIDE_BOTTOM, SHEET_SIDE_LEFT, SHEET_SIDE_RIGHT, SHEET_SIDE_TOP, SHEET_TITLE,
