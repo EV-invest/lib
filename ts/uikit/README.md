@@ -277,7 +277,9 @@ through hydration. Three parts of the kit make that hold:
   The open list is at least as wide as its trigger (the trigger's width rides
   on `--select-trigger-width`), at most 24rem, and never wider or taller than
   the viewport less 1rem a side: a long option wraps rather than pushing the
-  list off a narrow screen. A `className` with its own `min-w-*` / `max-w-*` /
+  list off a narrow screen. The trigger's width wins over the 24rem cap: a
+  trigger wider than 24rem opens a list exactly as wide as itself (CSS lets
+  `min-width` beat `max-width`). A `className` with its own `min-w-*` / `max-w-*` /
   `max-h-*` replaces the matching bound. The keyboard-focused option carries
   an inset `--ring` over its tint (`OPTION_FOCUS_RING`). It posts nothing by
   itself; `FormSelect` in `@evinvest/kitstart/react` pairs it with a form
