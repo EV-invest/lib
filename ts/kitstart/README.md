@@ -291,8 +291,11 @@ template range that no longer admits a version it just published to
 `^<version>`, and on a kitstart release moves the `@evinvest/kitstart-v…` pin in
 `template/flake.nix` and this README — all in the release commit, so the tag
 lands on a template that already points at it. kitstart publishes last in a
-run, so its tarball carries the new ranges; a run without kitstart leaves it
-changed, and the next run republishes it. `npm test` fails whenever the
+run, so its tarball carries the new ranges. A run without kitstart still
+moves the template, but the kitstart tarball already on npm ships the old one,
+so that run ends by printing the `--only @evinvest/kitstart` command that
+releases it. A range the script cannot read, or a branch behind its upstream,
+stops the run before anything is published. `npm test` fails whenever the
 template stops admitting the workspace versions. kitstart's peers must be on
 the registry first, so a release is two runs:
 
