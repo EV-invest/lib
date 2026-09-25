@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use crate::{
 	cn,
 	uikit::{
-		SELECT_ITEM, Size,
+		SELECT_CONTENT_BOUNDS, SELECT_ITEM, Size,
 		primitives::{Controllable, use_controllable},
 		select_trigger_size_class,
 	},
@@ -96,8 +96,8 @@ pub fn SelectContent(#[props(default)] class: String, children: Element) -> Elem
 		return rsx! {};
 	}
 	let cls = cn!(
-		"bg-popover text-ink absolute top-full left-0 z-50 mt-1 max-h-96 min-w-[8rem] \
-		 overflow-x-hidden overflow-y-auto rounded-md border border-border shadow-md",
+		"bg-popover text-ink absolute top-full left-0 z-50 mt-1 overflow-x-hidden overflow-y-auto rounded-md border border-border shadow-md",
+		SELECT_CONTENT_BOUNDS,
 		class
 	);
 	rsx! {
@@ -248,7 +248,9 @@ mod tests {
 		}
 		let html = render(app);
 		assert!(html.contains("absolute"), "content floats out of flow: {html}");
-		assert!(html.contains("max-h-96"), "height capped so overflow-y-auto engages: {html}");
+		assert!(html.contains("max-h-[min(24rem,calc(100dvh-2rem))]"), "height capped so overflow-y-auto engages: {html}");
+		assert!(html.contains("max-w-[min(24rem,calc(100vw-2rem))]"), "width capped inside the viewport: {html}");
+		assert!(html.contains("[overflow-wrap:anywhere]"), "a long option wraps: {html}");
 		assert!(!html.contains("--radix-"), "no dead Radix vars: {html}");
 	}
 

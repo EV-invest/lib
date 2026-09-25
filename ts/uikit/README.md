@@ -274,10 +274,14 @@ through hydration. Three parts of the kit make that hold:
   - The trigger carries `aria-haspopup="listbox"` and, while open,
     `aria-controls`; the list is named by the trigger's label.
 
-  The open list carries the trigger's width as `--select-trigger-width`:
-  `SelectContent className="min-w-(--select-trigger-width)"` keeps it at least
-  as wide as its field. It posts nothing by itself; `FormSelect` in
-  `@evinvest/kitstart/react` pairs it with a form value.
+  The open list is at least as wide as its trigger (the trigger's width rides
+  on `--select-trigger-width`), at most 24rem, and never wider or taller than
+  the viewport less 1rem a side: a long option wraps rather than pushing the
+  list off a narrow screen. A `className` with its own `min-w-*` / `max-w-*` /
+  `max-h-*` replaces the matching bound. The keyboard-focused option carries
+  an inset `--ring` over its tint (`OPTION_FOCUS_RING`). It posts nothing by
+  itself; `FormSelect` in `@evinvest/kitstart/react` pairs it with a form
+  value.
 
 ```tsx
 <form action="/lead" method="post">

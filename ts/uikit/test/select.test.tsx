@@ -467,6 +467,38 @@ describe("Select", () => {
       fireEvent.click(trigger);
       expect(screen.getByRole("listbox").style.getPropertyValue("--select-trigger-width")).toBe("240px");
     });
+
+    // aquafix#20: on a phone the list outgrew its field and ran off the screen.
+    it("is at least the trigger's width and at most the viewport's, less a gutter", () => {
+      render(tree({ defaultOpen: true }));
+      const list = screen.getByRole("listbox");
+      expect(list).toHaveClass("min-w-[max(8rem,var(--select-trigger-width,0px))]");
+      expect(list).toHaveClass("max-w-[min(24rem,calc(100vw-2rem))]", "max-h-[min(24rem,calc(100dvh-2rem))]");
+      expect(list).not.toHaveClass("min-w-[8rem]", "max-h-96");
+    });
+
+    it("wraps a long option instead of widening the list", () => {
+      render(tree({ defaultOpen: true }));
+      for (const option of screen.getAllByRole("option")) {
+        expect(option).toHaveClass("whitespace-normal", "[overflow-wrap:anywhere]");
+      }
+    });
+
+    it("lets a className replace a bound", () => {
+      render(
+        <Select defaultOpen>
+          <SelectTrigger>
+            <SelectValue placeholder="Pick" />
+          </SelectTrigger>
+          <SelectContent className="max-w-80">
+            <SelectItem value="a">Apple</SelectItem>
+          </SelectContent>
+        </Select>,
+      );
+      const list = screen.getByRole("listbox");
+      expect(list).toHaveClass("max-w-80");
+      expect(list).not.toHaveClass("max-w-[min(24rem,calc(100vw-2rem))]");
+    });
   });
 
   describe("inside a Dialog or a Drawer", () => {

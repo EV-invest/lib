@@ -1201,6 +1201,10 @@ fn input() -> Vec<Ts> {
 fn select() -> Vec<Ts> {
 	vec![
 		Ts::Const {
+			name: "SELECT_CONTENT_BOUNDS",
+			value: SELECT_CONTENT_BOUNDS,
+		},
+		Ts::Const {
 			name: "SELECT_ITEM",
 			value: SELECT_ITEM,
 		},

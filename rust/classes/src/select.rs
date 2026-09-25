@@ -1,12 +1,25 @@
 use crate::{Size, focus::option_focus_ring};
 
+/// How big the open list may get. At least the trigger's width (the TS port
+/// writes it to `--select-trigger-width`; the Rust one has no measure and keeps
+/// the 8rem floor), at most 24rem and never wider or taller than the viewport
+/// less a 1rem gutter a side — so the list the floating placement clamps
+/// always fits between the edges, and a long option wraps (see
+/// [`SELECT_ITEM`]) instead of widening the list off-screen.
+pub const SELECT_CONTENT_BOUNDS: &str = "min-w-[max(8rem,var(--select-trigger-width,0px))] max-w-[min(24rem,calc(100vw-2rem))] \
+	 max-h-[min(24rem,calc(100dvh-2rem))]";
+
 /// One option of the open list. The focused row carries
 /// [`OPTION_FOCUS_RING`](crate::OPTION_FOCUS_RING) over its tint.
+///
+/// `overflow-wrap: anywhere` rather than `break-words`: the label sits in a
+/// flex item, whose minimum width is its min-content, and only `anywhere`
+/// shrinks that — with `break-word` an unbroken word still props the row open.
 pub const SELECT_ITEM: &str = concat!(
 	"focus:bg-hover focus:text-ink ",
 	option_focus_ring!(),
 	" [&_svg:not([class*='text-'])]:text-ink-soft relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 \
-	 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none \
+	 text-sm whitespace-normal [overflow-wrap:anywhere] outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none \
 	 [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2"
 );
 
