@@ -35,6 +35,9 @@
 //! - **`otel`** — OpenTelemetry logs + traces over OTLP (native backends only;
 //!   inert on wasm): two `tracing` layers + a flush guard, and tonic
 //!   interceptors for W3C trace propagation. See [`otel`].
+//! - **`alerts`** — WARN/ERROR log lines with the artifacts they point at
+//!   (`[<path>]` under an [`Artifacts`](alerts::Artifacts) root, pruned after 7 days),
+//!   posted to Discord webhooks. Native-only. See [`alerts`].
 //! - **`i18n`** — five-locale internationalisation (mirrors `@evinvest/i18n`):
 //!   the locale registry, the `/<locale>` URL contract, `Accept-Language`
 //!   negotiation, an ICU-subset message formatter, the translation policy that
@@ -71,6 +74,9 @@ pub mod error_monitoring;
 
 #[cfg(feature = "otel")]
 pub mod otel;
+
+#[cfg(all(feature = "alerts", not(target_arch = "wasm32")))]
+pub mod alerts;
 
 #[cfg(feature = "experiments")]
 pub mod experiments;
