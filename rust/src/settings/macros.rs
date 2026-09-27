@@ -42,7 +42,9 @@
 /// `from_env()`, `from_source(impl FnMut(&str) -> Option<String>)`,
 /// `var_names()` (every var the struct reads, in declaration order — handy for
 /// generating a `.env.example`), and `required_var_names(profile)` (the subset
-/// that must be set in that deployment profile — the deploy-time checklist).
+/// that must be set in that deployment profile — the deploy-time checklist),
+/// plus, under the native-only `settings_drift` feature, `watch_drift()` (see the
+/// [GUIDE](https://github.com/EV-invest/lib/blob/main/rust/src/settings/GUIDE.md#detecting-drift)).
 ///
 /// Field grammar: `#[secret]`, `#[env("NAME")]`, and/or
 /// `#[required_in("profile", …)]` (plus doc comments), then `name: Type`,
@@ -178,6 +180,8 @@ macro_rules! settings {
 				)*
 				vars
 			}
+
+			$crate::__settings_drift!();
 		}
 
 		impl ::core::fmt::Debug for $name {
@@ -219,4 +223,28 @@ macro_rules! settings {
 	(@dbg true optional ($($e:tt)+)) => { &$($e)+.as_ref().map(|_| "***") };
 	(@dbg true $kind:ident ($($e:tt)+)) => { &"***" };
 	(@dbg false $kind:ident ($($e:tt)+)) => { &$($e)+ };
+}
+
+/// `settings!` expands in the consumer, where `cfg(feature)` would mean the
+/// consumer's features; resolving it here follows ev_lib's.
+#[cfg(all(feature = "settings_drift", not(target_arch = "wasm32")))]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __settings_drift {
+	() => {
+		/// Warns whenever the Secret mounted at `$SETTINGS_DRIFT_MOUNT` stops
+		/// matching what it held when the watch started, every 5 min until
+		/// redeployed. Never returns: race it against the process's main future
+		/// in a `select!` (a `join!` would hang shutdown). Idles when the mount is
+		/// unset or missing.
+		pub async fn watch_drift() -> ::core::convert::Infallible {
+			$crate::settings::watch_drift(Self::var_names()).await
+		}
+	};
+}
+#[cfg(not(all(feature = "settings_drift", not(target_arch = "wasm32"))))]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __settings_drift {
+	() => {};
 }

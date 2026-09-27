@@ -158,34 +158,29 @@ remains the full surface — the checklist is a subset of it.
 
 A running process cannot notice its own environment changing: `std::env` is
 fixed at `exec`, and a container runtime that injected values through `envFrom`
-never revisits them. So polling `std::env::var` finds nothing, ever — which is
-why [`drift`](./drift.rs) takes an **injected source** and you point it at
-something that does move: a Secret mounted as a directory of files (a kubelet
-re-syncs one about once a minute), a rendered dotenv file, a control-plane API.
+never revisits them. A Secret mounted as a directory of files does move (a
+kubelet re-syncs one about once a minute), so that is what the watch reads.
+
+Enable the native-only `settings_drift` feature and every `settings!` struct
+gets `watch_drift()`. Race it against the process's main future — it never
+returns, so a `join!` would hang shutdown:
+
+```toml
+ev_lib = { …, features = ["settings", "settings_drift"] }
+```
 
 ```rust
-use std::{fs, path::Path, time::Duration};
-
-use ev_lib::settings::drift::Watcher;
-
-/// k8s mounts a Secret volume as one file per key.
-fn mounted(dir: &Path) -> impl FnMut(&str) -> Option<String> + '_ {
-	move |var| fs::read_to_string(dir.join(var)).ok()
+tokio::select! {
+	never = AppSettings::watch_drift() => match never {},
+	result = axum::serve(listener, app) => result?,
 }
-
-let dir = Path::new("/etc/app-secrets");
-let watcher = Watcher::new(AppSettings::var_names(), &mut mounted(dir));
-
-tokio::spawn(async move {
-	let mut ticks = tokio::time::interval(Duration::from_secs(300));
-	loop {
-		ticks.tick().await;
-		for change in watcher.poll(&mut mounted(dir)) {
-			tracing::warn!(%change, "settings drifted from the source — redeploy to apply");
-		}
-	}
-});
 ```
+
+The deployment mounts the Secret and points `SETTINGS_DRIFT_MOUNT` at it
+(gitops' `withSettingsMount`). Unset — a laptop, CI — the watch idles; set to
+something that is not a directory, it warns once and idles. The baseline is the
+mount when the watch starts, not the process env: vars from plain `env:` in the
+manifest are not in the Secret, and a pod-spec change redeploys anyway.
 
 Three deliberate properties:
 
@@ -196,15 +191,13 @@ Three deliberate properties:
 - **Nothing is applied.** There is no hot-apply API. GitHub is the source of
   truth for what is deployed; a process that reconfigures itself out from under
   gitops erases the audit trail that the env edit *was*. Detect → alert →
-  redeploy. (A stateless service may legitimately turn a drift into a
-  `std::process::exit` and let the scheduler restart it with the new values —
-  that is also the only way env delivered through `envFrom` is ever picked up.)
-- **Values never leave.** A snapshot stores a hash, and a change is a name plus
-  a verb (`appeared`/`disappeared`/`changed`), so the whole path is safe to log.
+  redeploy.
+- **Values never leave.** Only a hash of each value is kept, and a change is a
+  name plus a verb (`appeared`/`disappeared`/`changed`), so the whole path is safe to log.
   `appeared` is the "an optional finally got configured" case.
 
-Five minutes is the house cadence: faster only adds log volume, since the
-kubelet's own sync is about a minute.
+It polls every five minutes: faster only adds log volume, since the kubelet's
+own sync is about a minute.
 
 ## Secrets: the sops boundary
 
@@ -319,7 +312,7 @@ where it went:
 | --- | --- |
 | clap `SettingsFlags` (a flag per field) | gone — settings are env-only; keep your own clap for real CLI args |
 | XDG config-file scan (7 formats), `nix eval` for `.nix` configs | gone — no file layer |
-| `LiveSettings` mtime-polling hot reload | replaced by [`drift`](#detecting-drift): it *detects* a moved source and alerts; applying still means a restart |
+| `LiveSettings` mtime-polling hot reload | replaced by [`watch_drift()`](#detecting-drift): it *detects* a moved source and alerts; applying still means a restart |
 | interactive "extend the config file" stdin prompt | gone — the aggregate error lists everything instead |
 | `write-defaults` / `diff` / `schema` subcommands | `var_names()` covers the `.env.example` case |
 | nightly host crate (`specialization`, `default_field_values`) | stable-compatible `macro_rules!` |

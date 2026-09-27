@@ -26,9 +26,11 @@
 //!   in the named deployment profiles, matched against [`PROFILE_VAR`] read
 //!   from the same source (unset ⇒ [`DEFAULT_PROFILE`]).
 //!
-//! Two things sit next to the macro: [`or_exit`] fails a boot with
-//! [`EX_CONFIG`] instead of a nondescript 1, and [`drift`] reports when the
-//! source a process was configured from has moved on without it.
+//! [`or_exit`] fails a boot with [`EX_CONFIG`] instead of a nondescript 1. Under
+//! the native-only `settings_drift` feature the macro also generates
+//! `watch_drift()`, which reports when the mounted Secret a process was
+//! configured from has moved on without it (see the
+//! [GUIDE](./GUIDE.md#detecting-drift)).
 //!
 //! ```
 //! ev_lib::settings! {
@@ -59,7 +61,11 @@ pub use value::FromEnvValue;
 
 mod macros;
 
-pub mod drift;
+#[cfg(all(feature = "settings_drift", not(target_arch = "wasm32")))]
+mod drift;
+#[cfg(all(feature = "settings_drift", not(target_arch = "wasm32")))]
+#[doc(hidden)]
+pub use drift::watch as watch_drift;
 pub mod presets;
 
 #[cfg(test)]

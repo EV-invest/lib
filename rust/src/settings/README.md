@@ -16,8 +16,8 @@ missing/invalid variable in a single aggregate error.
 Three things a service gets from it: a load that **fails the boot** on anything
 missing or unparseable, `#[required_in(…)]` so an optional that is merely
 convenient locally becomes mandatory in production, and a
-[drift detector](./drift.rs) that says when the environment moved on without
-this process.
+drift watch (`watch_drift()`, `settings_drift` feature) that says when the
+mounted Secret moved on without this process.
 
 ## Install
 
@@ -96,7 +96,7 @@ The Rust crate is the source of truth; the TS package preserves its
 | injected source | `from_source(fn)` | `runtimeEnv` record |
 | shared names | `presets::{Posthog, Sentry, AppEnv}` | `presets.posthog()` … + `NEXT_PUBLIC_*` client variants |
 | client/server split | — (no browser bundle) | `server` / `client` + `clientPrefix` |
-| drift detection | [`drift::Watcher`](./drift.rs) | — (backend concern) |
+| drift detection | `watch_drift()` (`settings_drift` feature) | — (backend concern) |
 
 The parsing contract (bool/list rules, empty-string-is-unset, no trimming) is
 pinned by mirrored test vectors: `rust/src/settings/tests.rs` (`mod contract`)
@@ -109,14 +109,13 @@ pinned by mirrored test vectors: `rust/src/settings/tests.rs` (`mod contract`)
   this. (This is the deliberate "shortening" of `v_utils`' `LiveSettings` —
   see the [GUIDE](./GUIDE.md#migrating-from-v_utils-livesettings).)
 - **No hot reload, by decision.** `from_env` is a one-shot read; env can't
-  change under a running process anyway. [`drift`](./drift.rs) *detects* that
-  the source moved and leaves the fix to a redeploy — nothing here applies a
-  change in place, because a process that reconfigures itself stops matching the
-  git state that is supposed to describe it.
-- **Reading the drift source is the caller's job.** `drift` takes an injected
-  source so the library keeps its no-files, no-network promise; the three lines
-  of `std::fs` that read a mounted Secret live in the service, next to the
-  interval that drives them.
+  change under a running process anyway. `watch_drift()` *detects* that the
+  mounted Secret moved and leaves the fix to a redeploy — nothing here applies
+  a change in place, because a process that reconfigures itself stops matching
+  the git state that is supposed to describe it.
+- **The drift watch is a separate feature.** It reads files and needs a timer
+  and a logger, so it lives behind the native-only `settings_drift`
+  (`tokio` + `tracing`); plain `settings` stays zero-dep and wasm-safe.
 - **`Option` must be written literally** (`Option<T>`, not
   `std::option::Option<T>`) — the macro matches it by name. An `Option` field
   cannot take a default (compile error).

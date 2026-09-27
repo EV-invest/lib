@@ -65,6 +65,15 @@ Rust crate and its TypeScript mirror at once.
 
 ### Changed
 
+- **`settings` — drift watching is a generated method** (**Breaking**, Rust).
+  The new native-only `settings_drift` feature makes every `settings!` struct
+  generate `watch_drift() -> Infallible`: it polls the Secret mounted at
+  `$SETTINGS_DRIFT_MOUNT` every 5 min and `tracing::warn!`s each var that moved
+  since the watch started. Race it against the main future in a `select!`.
+  `settings::drift::{Watcher, Snapshot, VarChange, ChangeKind}` are gone from
+  the public API; delete the per-service `config_drift.rs` that drove them.
+  Plain `settings` stays zero-dep.
+
 - **`uikit` — `--primary` is a fill, `--primary-ink` is the ink** (**Breaking**,
   both ports; #119). `--primary` is now the fill teal `#128377` under a white
   `--on-primary` (4.63:1; ≥ 3:1 against `background`, `secondary`, `card` and

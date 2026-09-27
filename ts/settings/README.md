@@ -138,8 +138,9 @@ shared rules:
 
 TS-only (browser-bundler concerns, no Rust equivalent): the `server`/`client`
 split with `clientPrefix`, the explicit `runtimeEnv` destructure, the `profile`
-override, and the `NEXT_PUBLIC_*` client presets. Rust-only: `drift`, a backend
-concern (a browser bundle has no environment to drift from).
+override, and the `NEXT_PUBLIC_*` client presets. Rust-only: `watch_drift()`
+(the `settings_drift` feature), a backend concern (a browser bundle has no
+Secret to drift from).
 
 ## Limitations
 

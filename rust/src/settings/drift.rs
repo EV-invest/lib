@@ -1,58 +1,55 @@
-//! Config drift detection — "the environment moved, this process didn't".
+//! Config drift detection — "the Secret moved, this process didn't". Reached
+//! only through the `watch_drift()` that `settings!` generates under the
+//! `settings_drift` feature; see the [GUIDE](./GUIDE.md#detecting-drift).
 //!
-//! A running process cannot see its own environment change: `std::env` is fixed
-//! at `exec`, and a container runtime that injected the values through `envFrom`
-//! never revisits them. Polling [`std::env::var`] is therefore always a no-op —
-//! which is why this module takes an **injected source** instead. Point it at
-//! whatever actually moves: a Secret mounted as a directory of files, a rendered
-//! dotenv file, a control-plane API. Reading that source is the caller's job;
-//! `settings` stays I/O-free and dependency-free.
+//! A running process cannot see its own environment change (`std::env` is fixed
+//! at `exec`), so the watch reads what does move: the k8s Secret mounted as one
+//! file per key at `$SETTINGS_DRIFT_MOUNT`. The baseline is that mount when the
+//! watch starts — not the process env, which also carries plain `env:` vars that
+//! the Secret never holds.
 //!
-//! The comparison is against **boot** values, not against the previous poll: the
-//! interesting fact is "this process is running with settings that no longer
-//! match the source", and that stays true until it is redeployed. Expect a
-//! detected drift to keep being reported — that is the alert, not a bug.
-//!
-//! Values are never retained or printed: a variable is stored as a hash, and a
-//! change is reported as a name plus a verb. Redeploy is the fix — this module
-//! deliberately offers no way to apply a change in place, because a process that
-//! reconfigures itself stops matching the git state that is supposed to describe
-//! it.
-//!
-//! ```
-//! use ev_lib::settings::drift::{ChangeKind, Snapshot};
-//!
-//! let vars = ["SMTP_HOST".to_string(), "SENTRY_DSN".to_string()];
-//! let at_boot = Snapshot::capture(&vars, &mut |var| match var {
-//!     "SMTP_HOST" => Some("smtp.example".to_string()),
-//!     _ => None,
-//! });
-//! // …five minutes later, re-read the same source
-//! let now = Snapshot::capture(&vars, &mut |var| match var {
-//!     "SMTP_HOST" => Some("smtp.elsewhere".to_string()),
-//!     "SENTRY_DSN" => Some("https://key@sentry.example/1".to_string()),
-//!     _ => None,
-//! });
-//!
-//! let changes = at_boot.diff(&now);
-//! assert_eq!(changes.len(), 2);
-//! assert_eq!(changes[0].kind, ChangeKind::Appeared); // SENTRY_DSN — BTreeMap order
-//! assert_eq!(changes[1].kind, ChangeKind::Changed); // SMTP_HOST
-//! assert_eq!(changes[1].to_string(), "SMTP_HOST: changed since boot");
-//! ```
+//! The comparison is against **boot**, not the previous poll: "this process runs
+//! with settings that no longer match the source" stays true until a redeploy,
+//! so a drift keeps being reported. Values are never retained or printed: a
+//! variable is stored as a hash, and a change is a name plus a verb.
 
-use std::{collections::BTreeMap, fmt};
+use std::{collections::BTreeMap, convert::Infallible, fmt, io, path::PathBuf, time::Duration};
 
 use super::lookup;
 
-/// What a variable is doing, without saying what it holds.
+const MOUNT_VAR: &str = "SETTINGS_DRIFT_MOUNT";
+/// A kubelet syncs a mounted Secret about once a minute; faster only adds log volume.
+const INTERVAL: Duration = Duration::from_secs(300);
+
+/// Idles forever when `MOUNT_VAR` is unset or not a directory, so the same
+/// binary runs unchanged on a laptop and never ends the `select!` it sits in.
+pub async fn watch(vars: Vec<String>) -> Infallible {
+	let Some(dir) = lookup(&mut |var| std::env::var(var).ok(), MOUNT_VAR).map(PathBuf::from) else {
+		return std::future::pending().await;
+	};
+	if !dir.is_dir() {
+		tracing::warn!(mount = %dir.display(), "{MOUNT_VAR} does not point at a directory — config drift watch is off");
+		return std::future::pending().await;
+	}
+	let mut mounted = |var: &str| match std::fs::read_to_string(dir.join(var)) {
+		Ok(value) => Some(value),
+		Err(e) if e.kind() == io::ErrorKind::NotFound => None, // a key the Secret doesn't carry
+		Err(e) => panic!("reading {var} from the mounted Secret at {}: {e}", dir.display()),
+	};
+	let at_boot = Snapshot::capture(&vars, &mut mounted);
+	//LOOP: lives as long as the process it is selected against
+	loop {
+		tokio::time::sleep(INTERVAL).await;
+		for change in at_boot.diff(&Snapshot::capture(&vars, &mut mounted)) {
+			tracing::warn!(%change, "settings drifted from the mounted secret — redeploy to apply");
+		}
+	}
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ChangeKind {
-	/// Unset at boot, set now — the "an optional finally got configured" case.
+enum ChangeKind {
 	Appeared,
-	/// Set at boot, unset now.
 	Disappeared,
-	/// Set both times, with a different value.
 	Changed,
 }
 
@@ -66,11 +63,10 @@ impl fmt::Display for ChangeKind {
 	}
 }
 
-/// One variable that no longer matches what this process booted with.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct VarChange {
-	pub var: String,
-	pub kind: ChangeKind,
+struct VarChange {
+	var: String,
+	kind: ChangeKind,
 }
 
 impl fmt::Display for VarChange {
@@ -79,28 +75,23 @@ impl fmt::Display for VarChange {
 	}
 }
 
-/// The state of a set of variables at one instant: present-or-not, and a hash
-/// of the value. Never the value itself — a snapshot of a service's settings is
+/// Present-or-not plus a hash of each value, never the value: a snapshot is
 /// mostly credentials, and this one gets logged.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Snapshot {
+struct Snapshot {
 	vars: BTreeMap<String, Option<u64>>,
 }
 
 impl Snapshot {
-	/// Read every named variable from `source`, applying the same
-	/// empty-string-is-unset rule as `from_source`. Pair it with the generated
-	/// `var_names()` so the watched set cannot drift from the declared one.
-	pub fn capture(vars: &[String], source: &mut impl FnMut(&str) -> Option<String>) -> Self {
+	fn capture(vars: &[String], source: &mut impl FnMut(&str) -> Option<String>) -> Self {
 		Self {
 			vars: vars.iter().map(|var| (var.clone(), lookup(source, var).map(|value| fingerprint(&value)))).collect(),
 		}
 	}
 
-	/// Every variable that differs between the two snapshots, in variable-name
-	/// order. Variables only one side knows about are ignored — a changed
-	/// *declaration* is a code change, not drift.
-	pub fn diff(&self, other: &Self) -> Vec<VarChange> {
+	/// Variables only one side knows about are ignored — a changed declaration is
+	/// a code change, not drift.
+	fn diff(&self, other: &Self) -> Vec<VarChange> {
 		self.vars
 			.iter()
 			.filter_map(|(var, before)| {
@@ -117,60 +108,8 @@ impl Snapshot {
 	}
 }
 
-/// A drift check pinned to the values a process booted with.
-///
-/// Runtime-agnostic on purpose: `settings` carries no async runtime, so the
-/// interval belongs to the service that already has one. Five minutes is the
-/// house cadence — a kubelet syncs a mounted Secret about once a minute, so
-/// anything faster only adds log volume.
-///
-/// ```no_run
-/// # async fn example() {
-/// # ev_lib::settings! { pub struct AppSettings { database_url: String } }
-/// # fn read_mounted_secret(_var: &str) -> Option<String> { None }
-/// # fn interval(_: std::time::Duration) -> Ticker { Ticker }
-/// # struct Ticker; impl Ticker { async fn tick(&mut self) {} }
-/// let watcher = ev_lib::settings::drift::Watcher::new(AppSettings::var_names(), &mut read_mounted_secret);
-/// let mut ticks = interval(std::time::Duration::from_secs(300));
-/// loop {
-///     ticks.tick().await;
-///     for change in watcher.poll(&mut read_mounted_secret) {
-///         // your logger of choice — the change never carries a value
-///         eprintln!("settings drifted from the source, redeploy to apply: {change}");
-///     }
-/// }
-/// # }
-/// ```
-#[derive(Clone, Debug)]
-pub struct Watcher {
-	vars: Vec<String>,
-	at_boot: Snapshot,
-}
-
-impl Watcher {
-	/// Capture the baseline. Call this once, right after the settings load that
-	/// the baseline is supposed to describe.
-	pub fn new(vars: Vec<String>, source: &mut impl FnMut(&str) -> Option<String>) -> Self {
-		let at_boot = Snapshot::capture(&vars, source);
-		Self { vars, at_boot }
-	}
-
-	/// Re-read the source and report everything that no longer matches boot.
-	/// Takes `&self`: the baseline never moves, so a persistent drift keeps
-	/// being reported until the process is replaced.
-	pub fn poll(&self, source: &mut impl FnMut(&str) -> Option<String>) -> Vec<VarChange> {
-		self.at_boot.diff(&Snapshot::capture(&self.vars, source))
-	}
-
-	/// The baseline, for a service that wants to diff it against something else.
-	pub fn at_boot(&self) -> &Snapshot {
-		&self.at_boot
-	}
-}
-
-/// FNV-1a: enough to notice a changed value, small enough to keep the zero-dep
-/// promise. Not a security boundary — it answers "same or not", and a value
-/// that never leaves the process cannot be brute-forced out of a log line.
+/// FNV-1a: answers "same or not" without a hashing dep. Not a security boundary
+/// — the hash never leaves the process.
 fn fingerprint(value: &str) -> u64 {
 	const OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
 	const PRIME: u64 = 0x0000_0100_0000_01b3;
@@ -181,27 +120,22 @@ fn fingerprint(value: &str) -> u64 {
 mod tests {
 	use super::*;
 
-	fn source(pairs: &[(&str, &str)]) -> impl FnMut(&str) -> Option<String> {
-		let pairs: Vec<(String, String)> = pairs.iter().map(|(k, v)| ((*k).to_string(), (*v).to_string())).collect();
-		move |var| pairs.iter().find(|(key, _)| key == var).map(|(_, value)| value.clone())
-	}
-
-	fn vars() -> Vec<String> {
-		vec!["A".to_string(), "B".to_string()]
+	fn snapshot(pairs: &[(&str, &str)]) -> Snapshot {
+		Snapshot::capture(&["A".to_string(), "B".to_string()], &mut |var| {
+			pairs.iter().find(|(key, _)| *key == var).map(|(_, value)| (*value).to_string())
+		})
 	}
 
 	#[test]
 	fn identical_sources_do_not_drift() {
-		let watcher = Watcher::new(vars(), &mut source(&[("A", "1")]));
-		assert!(watcher.poll(&mut source(&[("A", "1")])).is_empty());
+		assert!(snapshot(&[("A", "1")]).diff(&snapshot(&[("A", "1")])).is_empty());
 	}
 
 	#[test]
 	fn reports_appeared_disappeared_and_changed() {
-		let watcher = Watcher::new(vars(), &mut source(&[("A", "1")]));
-		let changes = watcher.poll(&mut source(&[("A", "2"), ("B", "new")]));
+		let at_boot = snapshot(&[("A", "1")]);
 		assert_eq!(
-			changes,
+			at_boot.diff(&snapshot(&[("A", "2"), ("B", "new")])),
 			vec![
 				VarChange {
 					var: "A".to_string(),
@@ -213,10 +147,8 @@ mod tests {
 				},
 			]
 		);
-
-		let changes = watcher.poll(&mut source(&[]));
 		assert_eq!(
-			changes,
+			at_boot.diff(&snapshot(&[])),
 			vec![VarChange {
 				var: "A".to_string(),
 				kind: ChangeKind::Disappeared
@@ -225,28 +157,18 @@ mod tests {
 	}
 
 	#[test]
-	fn the_baseline_is_boot_not_the_previous_poll() {
-		let watcher = Watcher::new(vars(), &mut source(&[("A", "1")]));
-		assert_eq!(watcher.poll(&mut source(&[("A", "2")])).len(), 1);
-		// Same drift, polled again: still reported. The process is still stale.
-		assert_eq!(watcher.poll(&mut source(&[("A", "2")])).len(), 1);
-	}
-
-	#[test]
 	fn empty_is_unset_matches_the_parsing_contract() {
-		let watcher = Watcher::new(vars(), &mut source(&[("A", "")]));
-		assert!(watcher.poll(&mut source(&[])).is_empty(), "`A=` and no `A` are the same state");
+		assert!(snapshot(&[("A", "")]).diff(&snapshot(&[])).is_empty(), "`A=` and no `A` are the same state");
 	}
 
 	#[test]
 	fn snapshots_never_retain_values() {
-		let snapshot = Snapshot::capture(&vars(), &mut source(&[("A", "hunter2")]));
-		assert!(!format!("{snapshot:?}").contains("hunter2"));
+		assert!(!format!("{:?}", snapshot(&[("A", "hunter2")])).contains("hunter2"));
 	}
 
 	#[test]
 	fn undeclared_variables_are_not_drift() {
-		let watcher = Watcher::new(vars(), &mut source(&[("A", "1")]));
-		assert!(watcher.poll(&mut source(&[("A", "1"), ("UNDECLARED", "x")])).is_empty());
+		let undeclared = Snapshot::capture(&["A".to_string(), "UNDECLARED".to_string()], &mut |_| Some("x".to_string()));
+		assert!(snapshot(&[("A", "x")]).diff(&undeclared).is_empty());
 	}
 }

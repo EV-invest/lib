@@ -166,6 +166,15 @@ secret redaction — are pinned by mirrored contract-test vectors in both suites
 `presets` fixes the org-canonical shared names (`POSTHOG_KEY`, `SENTRY_DSN`,
 `APP_ENV`) once, on both sides.
 
+Drift watching is the one exception to zero-dep, and so sits behind its own
+native-only feature, `settings_drift` (`tokio` + `tracing`): with it `settings!`
+also generates `watch_drift()`, a never-returning future that polls the k8s
+Secret mounted at `$SETTINGS_DRIFT_MOUNT` and warns when it no longer matches
+the boot snapshot. Core `settings` is unchanged by it. `settings!` reaches the
+method through a `#[doc(hidden)]` helper macro whose two cfg'd bodies are
+resolved when ev_lib compiles, so it follows ev_lib's features, not the
+consumer's. Rust-only: a browser bundle has no Secret to drift from.
+
 Secrets deliberately live **outside** the library: sops-encrypted env files
 (age keys) are committed to each consuming repo and decrypted only at the
 boundary — direnv/`sops exec-env` in dev shells, `SOPS_AGE_KEY` in CI — so
