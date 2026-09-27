@@ -20,7 +20,7 @@ const CLOSE_ICON: &str = "M18 6 6 18M6 6l12 12";
 ///
 /// Fields are declared in `date, hour, minute` order, so the derived ordering
 /// is chronological.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct LocalDateTime {
 	pub date: CalendarDate,
 	pub hour: u32,

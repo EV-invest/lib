@@ -197,7 +197,7 @@ pub fn resolve_variant(exp: &Experiment, raw: Option<&str>) -> String {
 
 /// What sticky cookie assignment should do for one experiment — the pure
 /// decision behind the wasm `assign_variant`, kept here so it tests natively.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Assignment {
 	/// The experiment is disabled: serve the control and write **no** cookie, so
 	/// re-enabling it does not leave visitors pinned to a control recorded

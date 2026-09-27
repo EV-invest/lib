@@ -23,7 +23,7 @@ const GRID_CELLS: usize = 6 * 7;
 ///
 /// Fields are declared in `year, month, day` order, so the derived ordering is
 /// chronological.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct CalendarDate {
 	pub year: i32,
 	pub month: u32,

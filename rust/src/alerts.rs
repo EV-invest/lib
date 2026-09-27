@@ -129,94 +129,18 @@ pub fn alerts(config: Config) -> (AlertLayer, Deliverer) {
 	(layer, deliverer)
 }
 
-struct Alert {
-	level: Level,
-	target: &'static str,
-	line: String,
-	files: Vec<PathBuf>,
-	dropped: usize,
-}
-
 pub struct AlertLayer {
 	root: PathBuf,
 	tx: mpsc::Sender<Alert>,
 	last_sent: Mutex<HashMap<(Identifier, Level), Instant>>,
 	dropped: AtomicUsize,
 }
-
-impl<S: Subscriber> Layer<S> for AlertLayer {
-	fn on_event(&self, event: &Event<'_>, _: Context<'_, S>) {
-		let meta = event.metadata();
-		let level = *meta.level();
-		if level > Level::WARN {
-			return;
-		}
-		let mut line = Line::default();
-		event.record(&mut line);
-		let line = line.0;
-		// canonical, so `<root>/../x` and symlinks out of the root are not under it
-		let files: Vec<PathBuf> = line
-			.split('[')
-			.skip(1)
-			.filter_map(|rest| rest.split_once(']'))
-			.filter(|(path, _)| path.starts_with('/'))
-			.filter_map(|(path, _)| fs::canonicalize(path).ok()) // missing: stays plain text, like any other path
-			.filter(|path| path.starts_with(&self.root) && path.is_file())
-			.collect();
-		if files.is_empty() {
-			return;
-		}
-
-		let key = (meta.callsite(), level);
-		let now = Instant::now();
-		{
-			let mut last_sent = self.last_sent.lock().expect("nothing under this lock panics");
-			if last_sent.get(&key).is_some_and(|at| now.duration_since(*at) < DEDUPE) {
-				return;
-			}
-			last_sent.insert(key, now);
-		}
-
-		let alert = Alert {
-			level,
-			target: meta.target(),
-			line,
-			files,
-			dropped: self.dropped.swap(0, Ordering::Relaxed),
-		};
-		if let Err(e) = self.tx.try_send(alert) {
-			self.dropped.fetch_add(1 + e.into_inner().dropped, Ordering::Relaxed);
-		}
-	}
-}
-
-#[derive(Default)]
-struct Line(String);
-
-impl tracing::field::Visit for Line {
-	fn record_str(&mut self, field: &Field, value: &str) {
-		self.record_debug(field, &format_args!("{value}"));
-	}
-
-	fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
-		if !self.0.is_empty() {
-			self.0.push(' ');
-		}
-		match field.name() {
-			"message" => write!(self.0, "{value:?}"),
-			name => write!(self.0, "{name}={value:?}"),
-		}
-		.expect("writing to a String");
-	}
-}
-
 pub struct Deliverer {
 	rx: mpsc::Receiver<Alert>,
 	webhooks: Webhooks,
 	service: String,
 	http: reqwest::Client,
 }
-
 impl Deliverer {
 	/// Delivers until `shutdown`, then what is already queued; or until the layer is dropped.
 	pub async fn run(mut self, shutdown: impl Future<Output = ()>) {
@@ -299,5 +223,79 @@ impl Deliverer {
 			Ok(r) => tracing::warn!(status = %r.status(), "alert delivery refused"),
 			Err(e) => tracing::warn!(error = %e.without_url(), "alert delivery failed"),
 		}
+	}
+}
+
+struct Alert {
+	level: Level,
+	target: &'static str,
+	line: String,
+	files: Vec<PathBuf>,
+	dropped: usize,
+}
+
+impl<S: Subscriber> Layer<S> for AlertLayer {
+	fn on_event(&self, event: &Event<'_>, _: Context<'_, S>) {
+		let meta = event.metadata();
+		let level = *meta.level();
+		if level > Level::WARN {
+			return;
+		}
+		let mut line = Line::default();
+		event.record(&mut line);
+		let line = line.0;
+		// canonical, so `<root>/../x` and symlinks out of the root are not under it
+		let files: Vec<PathBuf> = line
+			.split('[')
+			.skip(1)
+			.filter_map(|rest| rest.split_once(']'))
+			.filter(|(path, _)| path.starts_with('/'))
+			.filter_map(|(path, _)| fs::canonicalize(path).ok()) // missing: stays plain text, like any other path
+			.filter(|path| path.starts_with(&self.root) && path.is_file())
+			.collect();
+		if files.is_empty() {
+			return;
+		}
+
+		let key = (meta.callsite(), level);
+		let now = Instant::now();
+		{
+			let mut last_sent = self.last_sent.lock().expect("nothing under this lock panics");
+			if last_sent.get(&key).is_some_and(|at| now.duration_since(*at) < DEDUPE) {
+				return;
+			}
+			last_sent.insert(key, now);
+		}
+
+		let alert = Alert {
+			level,
+			target: meta.target(),
+			line,
+			files,
+			dropped: self.dropped.swap(0, Ordering::Relaxed),
+		};
+		if let Err(e) = self.tx.try_send(alert) {
+			self.dropped.fetch_add(1 + e.into_inner().dropped, Ordering::Relaxed);
+		}
+	}
+}
+
+#[derive(Default)]
+struct Line(String);
+
+impl tracing::field::Visit for Line {
+	fn record_str(&mut self, field: &Field, value: &str) {
+		self.record_debug(field, &format_args!("{value}"));
+	}
+
+	fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
+		if !self.0.is_empty() {
+			self.0.push(' ');
+		}
+		match field.name() {
+			"message" => write!(self.0, "{value:?}"),
+			name => write!(self.0, "{name}={value:?}"),
+		}
+		.expect("writing to a String");
 	}
 }
