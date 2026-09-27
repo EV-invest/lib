@@ -123,7 +123,8 @@ pub fn alerts(config: Config) -> (AlertLayer, Deliverer) {
 		rx,
 		webhooks: config.webhooks,
 		service: config.service,
-		http: reqwest::Client::new(),
+		// a hung webhook must not hold up the app's shutdown, which waits for the queue
+		http: reqwest::Client::builder().timeout(Duration::from_secs(30)).build().expect("the TLS backend initialises"),
 	};
 	(layer, deliverer)
 }
