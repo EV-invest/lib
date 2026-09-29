@@ -164,6 +164,7 @@ let
         containers."" = {
           port = lib.toInt sitePort;
           inherit mounts criticality;
+          sqlite = lib.optional (prodEnv ? LEADS_DB_PATH) prodEnv.LEADS_DB_PATH; # kitstart's lead store; LEADS_DB_URL is remote
           healthPath = "/health";
           entrypoint = [
             "${nodeRuntime}/bin/node"
