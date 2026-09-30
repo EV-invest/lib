@@ -3,10 +3,11 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { parseProxyTrust, type ProxyTrust } from "./client-key";
 import { parseLeadDb, type LeadDb } from "./lead-store";
+import { checkWebhookUrl } from "./webhook-outbox";
 
 /**
  * The server's runtime configuration, parsed once. Secrets (`SMTP_URL`,
- * `SMS_TOKEN`, `POSTHOG_KEY`) arrive from the container environment, never
+ * `SMS_TOKEN`, `POSTHOG_KEY`, `LEAD_WEBHOOK_SECRET`) arrive from the container environment, never
  * from the image.
  *
  * Production has no default for where state lives: a missing lead store
@@ -30,6 +31,8 @@ export interface ServerEnv {
   /** Whose word the rate limit takes for the client's address; see `ProxyTrust`. */
   trustedProxy: ProxyTrust | null;
   smsToken: string | null;
+  /** Where queued leads are POSTed, signed; `null` → the webhook is off. */
+  leadWebhook: { url: string; keyId: string; secret: string } | null;
   posthogKey: string | null;
   posthogHost: string;
 }
@@ -74,6 +77,19 @@ function leadsDb(source: EnvSource, production: boolean, brandId: string): Pick<
   return { leadsDb: { kind: "sqlite", path: join(homedir(), ".local/share", brandId, "leads.db") }, leadsDbFrom: "default" };
 }
 
+/** All three or none: a URL without its key would sign nothing a receiver accepts. */
+function leadWebhook(source: EnvSource): ServerEnv["leadWebhook"] {
+  const raw = opt(source, "LEAD_WEBHOOK_URL");
+  if (raw === null) return null;
+  const url = checkWebhookUrl(raw);
+  const keyId = opt(source, "LEAD_WEBHOOK_KEY_ID");
+  const secret = opt(source, "LEAD_WEBHOOK_SECRET");
+  if (keyId === null || secret === null) {
+    throw new Error("LEAD_WEBHOOK_URL is set: LEAD_WEBHOOK_KEY_ID and LEAD_WEBHOOK_SECRET are required too");
+  }
+  return { url, keyId, secret };
+}
+
 export function parseServerEnv(site: { brand: { id: string } }, source: EnvSource): ServerEnv {
   const production = source["NODE_ENV"] === "production";
   const trust = opt(source, "TRUSTED_PROXY");
@@ -89,6 +105,7 @@ export function parseServerEnv(site: { brand: { id: string } }, source: EnvSourc
     notifyTo: opt(source, "LEAD_NOTIFY_TO"),
     notifyFrom: opt(source, "LEAD_NOTIFY_FROM"),
     smsToken: opt(source, "SMS_TOKEN"),
+    leadWebhook: leadWebhook(source),
     posthogKey: opt(source, "POSTHOG_KEY"),
     // Explicit because PostHog rejects a project's events at the other
     // region's host; the audience is European, so EU unless told otherwise.

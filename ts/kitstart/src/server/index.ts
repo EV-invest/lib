@@ -14,3 +14,17 @@ export { parseSmtpUrl, sendMail, type Mail, type SendOptions } from "./smtp";
 export { defaultLeadMail, leadNotifier, MAIL_PER_MINUTE, type LeadMail, type LeadNotifier, type NotifyEnv } from "./notify";
 export { clientKey, NO_CLIENT_ADDRESS, parseProxyTrust, type ProxyTrust } from "./client-key";
 export { checkLeadStore } from "./boot";
+export { leadWebhook, type BuildWebhookBody, type LeadWebhook, type LeadWebhookContext, type LeadWebhookOptions } from "./lead-webhook";
+export {
+  checkWebhookUrl,
+  openWebhookOutbox,
+  WEBHOOK_MAX_ATTEMPTS,
+  WEBHOOK_TICK_MS,
+  type OutboxRow,
+  type OutboxState,
+  type TickReport,
+  type WebhookOutbox,
+  type WebhookOutboxOptions,
+  type WebhookTarget,
+} from "./webhook-outbox";
+export { DEFAULT_SIGNATURE_HEADERS, signatureHeaders, signWebhook, type WebhookSignatureHeaders, type WebhookSigning } from "./webhook-signature";
