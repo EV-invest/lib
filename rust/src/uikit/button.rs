@@ -112,7 +112,9 @@ mod tests {
 			}
 		}
 		let html = render(app);
-		assert!(html.contains("min-h-11 px-6 has-[>svg]:px-4"), "{html}");
+		// the rendered attribute escapes `>`, so match the escaped class string
+		let text = button_size_class(Size::Touch, false).replace('>', "&#62;");
+		assert!(html.contains(&text), "{html}");
 		assert!(html.contains("size-11 px-0"), "icon touch button must be a 44 px square: {html}");
 	}
 
