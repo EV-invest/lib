@@ -186,6 +186,10 @@ export default function App() {
             <Button variant="link">Link</Button>
             <Button size="sm">Small</Button>
             <Button size="lg">Large</Button>
+            <Button size="touch">Touch</Button>
+            <Button size="touch" icon aria-label="Add">
+              +
+            </Button>
           </Section>
 
           <Section title="Badges">

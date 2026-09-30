@@ -388,6 +388,10 @@ landing (TS) sources — e.g. `Badge` keeps cabinet's `success` variant, and
 `Button` keeps landing's square icon shape at every size, as the separate `icon`
 boolean it always was in Rust (see [docs/spec/variants.md](../../docs/spec/variants.md)).
 
+`size="touch"` is the 44 px pointer-target floor (WCAG 2.5.5) for touch-first
+screens: `min-h-11` with `lg`'s padding, and a 44 × 44 square with `icon`. It is
+a button step only — `Input` and `SelectTrigger` already clear it at `lg`.
+
 ## Limitations
 
 Reproducing everything dep-light means some behaviour is intentionally reduced,
