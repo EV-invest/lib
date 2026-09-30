@@ -14,7 +14,7 @@ stays in the brand.
 | Import | Runtime | What |
 |---|---|---|
 | `@evinvest/kitstart` | anywhere (edge, client, server) | `defineSite`, places, routing (`createRouting`), the lead schema and funnel (`createAcceptLead`), antispam, JSON-LD / sitemap / robots builders, analytics events, the copy contract |
-| `@evinvest/kitstart/server` | Node, `server-only` | `createServerEnv`, `createPlaceSource`, the lead store (`openLeadStore` by `LEADS_DB_URL`: `sqlite:` today, `postgres://` a stub that refuses at boot), `checkLeadStore`, `leadNotifier`, `sendMail`, `clientKey` |
+| `@evinvest/kitstart/server` | Node, `server-only` | `createServerEnv`, `createPlaceSource`, the lead store (`openLeadStore` by `LEADS_DB_URL`: `sqlite:` today, `postgres://` a stub that refuses at boot), `checkLeadStore`, `leadNotifier`, `leadWebhook` (signed, outboxed), `sendMail`, `clientKey` |
 | `@evinvest/kitstart/proxy` | edge | `createProxy(site)`, `PROXY_MATCHER` |
 | `@evinvest/kitstart/next` | Next server (routes, RSC) | `quoteRoute`, `sitemapRoute`, `robotsRoute`, `ogRoute`, `healthRoute`, `createPlaceLoader`, `loadLocale`, `placeMetadata` / `brandMetadata` / `statusMetadata`, `metadataBase` |
 | `@evinvest/kitstart/next/config` | `next.config.ts`, `vitest.config.ts` | `withLanding`, `buildEnv` and the `assets/` readers |
@@ -250,6 +250,56 @@ chooses per visitor answer `Cache-Control: private, no-store`.
   mounted by one node; pods on it take turns through `busy_timeout`. A shared
   network filesystem is not a place for it — that is what the Postgres port
   is for.
+
+## Lead webhook
+
+A signed POST of each lead to a receiver the brand names, delivered through an
+outbox in the leads file. The kit knows no receiver: the brand builds the body
+and passes the signing prefix; the kit serialises, signs, stores and retries.
+
+```ts
+// shared/config/env.ts
+import { createServerEnv, leadWebhook, type LeadWebhook } from "@evinvest/kitstart/server";
+
+export const serverEnv = createServerEnv(site);
+let hook: LeadWebhook | null | undefined;
+export const webhook = (): LeadWebhook | null =>
+  (hook ??= leadWebhook(site, serverEnv(), {
+    signing: { prefix: "sa-ingest/v1." }, // the receiver's; headers default to x-sa-*
+    buildBody: (lead, ctx) => ({ events: [/* the receiver's shape, from lead + ctx */] }),
+  }));
+
+// instrumentation.ts, in register(): resume the queue after a restart
+webhook()?.start();
+
+// app/quote/route.ts
+export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavailable });
+```
+
+- **Off unless both halves are there.** No `LEAD_WEBHOOK_URL`, or no
+  `buildBody` → `leadWebhook` returns `null`. With the URL,
+  `LEAD_WEBHOOK_KEY_ID` and `LEAD_WEBHOOK_SECRET` are required, and the URL
+  must be `https:`, or `http:` to a `*.svc` / `*.svc.cluster.local` host or
+  loopback — the body carries PII. All checked at boot.
+- **Queued before the 303, sent after it.** The body is built once, from the
+  lead and `ctx` (`leadId`, `brandId`, `locale`, `formId`, `at`, and a fresh
+  `idempotencyKey` for the receiver to deduplicate by), and written to the
+  `webhook_outbox` table before the visitor is thanked; the send runs in
+  `after`. A lead the notifier skips (honeypot, rate limit) is not queued.
+- **Signature.** `x-sa-key-id`, `x-sa-timestamp` (unix seconds) and
+  `x-sa-signature` = `hex(HMAC-SHA256(secret, prefix + timestamp + "." + body))`,
+  signed afresh on each attempt. Header names are `signing.headers`.
+- **At-least-once.** 2xx is delivered. A `207` is delivered too, and an item
+  it marks `rejected` is final — logged by index, not retried. 5xx, 408, 429
+  and network errors retry, doubling from 5 s up to an hour (with jitter, and
+  at least `Retry-After`), `WEBHOOK_MAX_ATTEMPTS` (12) times; any other status,
+  3xx included, is final. A final row stays as `dead` with its `last_error`.
+- **PII stays in the body.** Logs name the row, the attempt and the status;
+  the receiver's own words (which may echo a field) go to the row's
+  `last_error`, never to the log.
+- **Restarts.** Rows are in the leads file; `start()` ticks every
+  `WEBHOOK_TICK_MS` and a new process picks up what is due. Rows queued for a
+  previous URL stay in place and are counted at open.
 
 ## The site
 
