@@ -606,6 +606,7 @@ menubar-sub
 menubar-sub-content
 menubar-sub-trigger
 menubar-trigger
+min-h-11 px-6
 min-h-11 px-6 has-[>svg]:px-4
 min-h-14
 min-h-16
