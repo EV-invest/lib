@@ -255,7 +255,7 @@ chooses per visitor answer `Cache-Control: private, no-store`.
 
 A signed POST of each lead to a receiver the brand names, delivered through an
 outbox in the leads file. The kit knows no receiver: the brand builds the body
-and passes the signing prefix; the kit serialises, signs, stores and retries.
+and passes the signing scheme; the kit serialises, signs, stores and retries.
 
 ```ts
 // shared/config/env.ts
@@ -265,7 +265,11 @@ export const serverEnv = createServerEnv(site);
 let hook: LeadWebhook | null | undefined;
 export const webhook = (): LeadWebhook | null =>
   (hook ??= leadWebhook(site, serverEnv(), {
-    signing: { prefix: "sa-ingest/v1." }, // the receiver's; headers default to x-sa-*
+    // The receiver's scheme, all of it: the kit has no defaults.
+    signing: {
+      prefix: "sa-ingest/v1.",
+      headers: { keyId: "x-sa-key-id", timestamp: "x-sa-timestamp", signature: "x-sa-signature" },
+    },
     buildBody: (lead, ctx) => ({ events: [/* the receiver's shape, from lead + ctx */] }),
   }));
 
@@ -286,9 +290,9 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavai
   `idempotencyKey` for the receiver to deduplicate by), and written to the
   `webhook_outbox` table before the visitor is thanked; the send runs in
   `after`. A lead the notifier skips (honeypot, rate limit) is not queued.
-- **Signature.** `x-sa-key-id`, `x-sa-timestamp` (unix seconds) and
-  `x-sa-signature` = `hex(HMAC-SHA256(secret, prefix + timestamp + "." + body))`,
-  signed afresh on each attempt. Header names are `signing.headers`.
+- **Signature.** Three headers named by `signing.headers`: the key id, the
+  timestamp (unix seconds) and `hex(HMAC-SHA256(secret, prefix + timestamp +
+  "." + body))`, signed afresh on each attempt. Prefix and names are required.
 - **At-least-once.** 2xx is delivered. A `207` is delivered too, and an item
   it marks `rejected` is final — logged by index, not retried. 5xx, 408, 429
   and network errors retry, doubling from 5 s up to an hour (with jitter, and

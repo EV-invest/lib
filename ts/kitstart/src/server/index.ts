@@ -27,4 +27,4 @@ export {
   type WebhookOutboxOptions,
   type WebhookTarget,
 } from "./webhook-outbox";
-export { DEFAULT_SIGNATURE_HEADERS, signatureHeaders, signWebhook, type WebhookSignatureHeaders, type WebhookSigning } from "./webhook-signature";
+export { signatureHeaders, signWebhook, type WebhookSignatureHeaders, type WebhookSigning } from "./webhook-signature";
