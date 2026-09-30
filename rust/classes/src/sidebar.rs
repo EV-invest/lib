@@ -45,6 +45,6 @@ pub fn sidebar_menu_button_size_class(size: crate::Size) -> &'static str {
 	match size {
 		crate::Size::Xs => "h-7 text-xs",
 		crate::Size::Sm | crate::Size::Md => "h-8 text-sm",
-		crate::Size::Lg | crate::Size::Xl => "h-12 text-sm group-data-[collapsible=icon]:p-0!",
+		crate::Size::Lg | crate::Size::Touch | crate::Size::Xl => "h-12 text-sm group-data-[collapsible=icon]:p-0!",
 	}
 }

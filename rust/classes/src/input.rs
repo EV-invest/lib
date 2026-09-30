@@ -18,6 +18,6 @@ pub fn input_size_class(size: Size) -> &'static str {
 	match size {
 		Size::Xs | Size::Sm => "h-8",
 		Size::Md => "h-9",
-		Size::Lg | Size::Xl => "h-12 px-4 text-base md:text-base file:h-9",
+		Size::Lg | Size::Touch | Size::Xl => "h-12 px-4 text-base md:text-base file:h-9",
 	}
 }

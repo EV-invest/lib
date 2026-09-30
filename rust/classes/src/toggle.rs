@@ -25,6 +25,8 @@ pub fn toggle_size_class(size: Size) -> &'static str {
 		Size::Sm => "h-8 px-1.5 min-w-8",
 		Size::Md => "h-9 px-2 min-w-9",
 		Size::Lg => "h-10 px-2.5 min-w-10",
-		Size::Xl => "h-12 px-3 min-w-12",
+		// `Xl` already clears the 44 px floor, and a step with no TS key would
+		// ship classes missing from the inventory
+		Size::Touch | Size::Xl => "h-12 px-3 min-w-12",
 	}
 }

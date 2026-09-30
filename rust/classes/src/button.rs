@@ -50,10 +50,14 @@ pub fn button_size_class(size: Size, icon: bool) -> &'static str {
 		// the CTA size: geometry entirely from the control tokens, so a consumer
 		// reshapes its call to action by writing values
 		(Size::Xl, false) => "px-[var(--control-px)] py-[var(--control-py)] text-[length:var(--control-text)]",
+		// a floor, not a fixed height: the text sizing matches `Lg`, the box never
+		// drops under 44 px
+		(Size::Touch, false) => "min-h-11 px-6 has-[>svg]:px-4",
 		(Size::Xs, true) => "h-7 aspect-square px-0",
 		(Size::Sm, true) => "h-8 aspect-square px-0",
 		(Size::Md, true) => "h-9 aspect-square px-0",
 		(Size::Lg, true) => "h-10 aspect-square px-0",
 		(Size::Xl, true) => "aspect-square p-[var(--control-py)]",
+		(Size::Touch, true) => "size-11 px-0",
 	}
 }
