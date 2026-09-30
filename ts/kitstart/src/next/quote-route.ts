@@ -10,6 +10,7 @@ import { bakedPlace, contactOf, type Site } from "../core/site";
 import { clientKey, type ProxyTrust } from "../server/client-key";
 import type { ServerEnv } from "../server/env";
 import { openLeadStore } from "../server/lead-store";
+import type { LeadWebhook } from "../server/lead-webhook";
 import type { LeadNotifier } from "../server/notify";
 
 /**
@@ -18,7 +19,7 @@ import type { LeadNotifier } from "../server/notify";
  *
  * ```ts
  * export const dynamic = "force-dynamic";
- * export const POST = quoteRoute(site, { env: serverEnv, notifier, unavailable });
+ * export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavailable });
  * ```
  */
 export interface UnavailableCopy {
@@ -32,6 +33,13 @@ export interface QuoteRouteDeps<L extends string> {
   env: () => Pick<ServerEnv, "leadsDb" | "posthogKey" | "posthogHost" | "trustedProxy">;
   /** Built once (and at boot, by the brand) so a missing sender fails startup, not a lead. */
   notifier: () => LeadNotifier;
+  /**
+   * The signed lead webhook, or `null` when it is off (`leadWebhook`). A lead
+   * is queued before the 303 and sent after it; the brand's
+   * `instrumentation.ts` should `start()` it so a restart resumes the queue
+   * without waiting for the next lead.
+   */
+  webhook?: () => LeadWebhook | null;
   /** The self-contained 500's words, when the store refused the lead. */
   unavailable: (locale: L, place: Place<L> | null) => UnavailableCopy;
   /** Opened on first use (`next build` imports the route); defaults to `LEADS_DB_URL`'s. */
@@ -99,6 +107,15 @@ export function quoteRoute<L extends string, P extends string>(
   const log = deps.log ?? console;
   let store: LeadStore | undefined;
   let notifier: LeadNotifier | undefined;
+  let webhook: LeadWebhook | null | undefined;
+  const leadWebhook = (): LeadWebhook | null => {
+    if (webhook === undefined) {
+      webhook = deps.webhook?.() ?? null;
+      // Idempotent: a brand that started it at boot keeps its timer.
+      webhook?.start();
+    }
+    return webhook;
+  };
   const leadStore = (): LeadStore => {
     store ??= deps.store ? deps.store() : openLeadStore(deps.env().leadsDb);
     return store;
@@ -146,6 +163,17 @@ export function quoteRoute<L extends string, P extends string>(
       notify: (lead, id) => {
         notifier ??= deps.notifier();
         return notifier.notify(lead, id);
+      },
+      enqueue: (lead, id, meta) => {
+        const hook = leadWebhook();
+        if (!hook) return;
+        hook.enqueue(lead, id, meta);
+        defer(() =>
+          hook.tick().then(
+            () => undefined,
+            error => log.error("quote: the webhook delivery after a lead failed", error),
+          ),
+        );
       },
       capture: (lead, formId) =>
         analyticsSink({ key: env.posthogKey, host: env.posthogHost, brandId: site.brand.id }, lead.placeSlug).capture(EVENTS.leadSubmit, {

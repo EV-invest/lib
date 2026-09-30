@@ -19,6 +19,12 @@ export interface AcceptDeps {
   /** Runs after the response is sent; see the route handler. */
   defer: (task: () => Promise<void> | void) => void;
   notify: (lead: Lead, id: number) => Promise<void>;
+  /**
+   * Queues the lead for a durable delivery (the webhook outbox) before the
+   * answer, where a crash cannot drop it; a lead the notifier skips is skipped
+   * here too. A failure logs and changes nothing — the lead is stored.
+   */
+  enqueue?: (lead: Lead, id: number, meta: { locale: string; formId: string }) => void;
   capture: (lead: Lead, formId: string) => void;
   limiter: RateLimiter;
   now: number;
@@ -96,6 +102,13 @@ async function accept<L extends string, P extends string>(
   if (lead.spamVerdict && lead.spamVerdict !== "too-fast") {
     deps.log.warn(`quote: lead ${id} stored as suspected spam (${lead.spamVerdict}); not notified`);
     return { kind: "stored", id, lead, locale, formId };
+  }
+  if (deps.enqueue) {
+    try {
+      deps.enqueue(lead, id, { locale, formId });
+    } catch (error) {
+      deps.log.error(`quote: lead ${id} is stored but could not be queued for its webhook`, error);
+    }
   }
   deps.defer(async () => {
     try {
