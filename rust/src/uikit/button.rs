@@ -112,7 +112,7 @@ mod tests {
 			}
 		}
 		let html = render(app);
-		assert!(html.contains("min-h-11 px-6"), "{html}");
+		assert!(html.contains("min-h-11 px-6 has-[>svg]:px-4"), "{html}");
 		assert!(html.contains("size-11 px-0"), "icon touch button must be a 44 px square: {html}");
 	}
 
