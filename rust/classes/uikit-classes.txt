@@ -606,6 +606,7 @@ menubar-sub
 menubar-sub-content
 menubar-sub-trigger
 menubar-trigger
+min-h-11 px-6 has-[>svg]:px-4
 min-h-14
 min-h-16
 min-h-20
@@ -766,6 +767,7 @@ sidebar-trigger
 sidebar-wrapper
 size-10
 size-10 rounded-sm overflow-hidden [&_img]:size-full [&_img]:object-cover
+size-11 px-0
 size-2 fill-current
 size-2.5
 size-3.5

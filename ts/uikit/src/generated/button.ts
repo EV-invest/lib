@@ -18,6 +18,7 @@ export const buttonSizeClasses = {
   "md": "h-9 px-4 py-[var(--control-py)] has-[>svg]:px-3",
   "lg": "h-10 px-6 has-[>svg]:px-4",
   "xl": "px-[var(--control-px)] py-[var(--control-py)] text-[length:var(--control-text)]",
+  "touch": "min-h-11 px-6 has-[>svg]:px-4",
 } as const;
 export type ButtonSize = keyof typeof buttonSizeClasses;
 
@@ -27,5 +28,6 @@ export const buttonIconSizeClasses = {
   "md": "h-9 aspect-square px-0",
   "lg": "h-10 aspect-square px-0",
   "xl": "aspect-square p-[var(--control-py)]",
+  "touch": "size-11 px-0",
 } as const;
 export type ButtonIconSize = keyof typeof buttonIconSizeClasses;

@@ -104,6 +104,19 @@ mod tests {
 	}
 
 	#[test]
+	fn touch_size_holds_the_44px_floor() {
+		fn app() -> Element {
+			rsx! {
+				Button { size: Size::Touch, "go" }
+				Button { size: Size::Touch, icon: true, "x" }
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("min-h-11 px-6"), "{html}");
+		assert!(html.contains("size-11 px-0"), "icon touch button must be a 44 px square: {html}");
+	}
+
+	#[test]
 	fn type_is_absent_unless_asked_for() {
 		fn app() -> Element {
 			rsx! { Button { "go" } }

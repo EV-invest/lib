@@ -14,6 +14,6 @@ pub fn textarea_size_class(size: Size) -> &'static str {
 	match size {
 		Size::Xs | Size::Sm => "min-h-14",
 		Size::Md => "min-h-16",
-		Size::Lg | Size::Xl => "min-h-20 px-4 py-3 text-base md:text-base",
+		Size::Lg | Size::Touch | Size::Xl => "min-h-20 px-4 py-3 text-base md:text-base",
 	}
 }

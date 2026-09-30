@@ -22,6 +22,20 @@ describe("Button", () => {
     expect(getByText("x")).toHaveClass("aspect-square");
   });
 
+  it("holds the 44px touch floor, as a square when icon", () => {
+    const { getByText } = render(
+      <>
+        <Button size="touch">go</Button>
+        <Button size="touch" icon>
+          x
+        </Button>
+      </>,
+    );
+    expect(getByText("go")).toHaveClass("min-h-11", "px-6");
+    expect(getByText("x")).toHaveClass("size-11", "px-0");
+    expect(getByText("x")).not.toHaveClass("px-6");
+  });
+
   it("recolours at an accent rung, per the variant's face", () => {
     const { getByText } = render(<Button accent="warn">x</Button>);
     expect(getByText("x")).toHaveClass("bg-accent-warn");

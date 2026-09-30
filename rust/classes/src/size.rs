@@ -10,6 +10,10 @@ pub enum Size {
 	Md,
 	Lg,
 	Xl,
+	/// The 44 px pointer-target floor (WCAG 2.5.5) for touch-first controls. Named
+	/// for its purpose rather than its magnitude because the floor is the contract:
+	/// it sits between `Lg` and `Xl`, and a field already clears it at `Lg`.
+	Touch,
 }
 
 impl Size {
@@ -21,6 +25,7 @@ impl Size {
 			Size::Md => 9,
 			Size::Lg => 10,
 			Size::Xl => 12,
+			Size::Touch => 11,
 		}
 	}
 }
