@@ -12,12 +12,13 @@ import { createHmac } from "node:crypto";
  *
  * The timestamp is inside the MAC, so a captured request cannot be re-stamped
  * past the receiver's replay window. The prefix names what is signed, so a MAC
- * made with the same secret for anything else never passes for this; it is the
- * receiver's, and a brand passes it — the kit knows no receiver.
+ * made with the same secret for anything else never passes for this. Prefix
+ * and header names are the receiver's, and a brand passes them — the kit
+ * knows no receiver, so it has no defaults to guess one by.
  */
 export interface WebhookSigning {
   prefix: string;
-  headers?: Partial<WebhookSignatureHeaders>;
+  headers: WebhookSignatureHeaders;
 }
 
 export interface WebhookSignatureHeaders {
@@ -25,12 +26,6 @@ export interface WebhookSignatureHeaders {
   timestamp: string;
   signature: string;
 }
-
-export const DEFAULT_SIGNATURE_HEADERS: Readonly<WebhookSignatureHeaders> = {
-  keyId: "x-sa-key-id",
-  timestamp: "x-sa-timestamp",
-  signature: "x-sa-signature",
-};
 
 /** Lowercase hex, as the receiver compares it. */
 export function signWebhook(secret: string, prefix: string, timestamp: string, body: string): string {
@@ -44,7 +39,7 @@ export function signatureHeaders(
   body: string,
   nowMs: number,
 ): Record<string, string> {
-  const names = { ...DEFAULT_SIGNATURE_HEADERS, ...signing.headers };
+  const names = signing.headers;
   const timestamp = String(Math.floor(nowMs / 1000));
   return {
     [names.keyId]: key.keyId,

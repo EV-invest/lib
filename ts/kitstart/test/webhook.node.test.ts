@@ -16,7 +16,7 @@ import {
 } from "../src/server/index";
 import { fixtureSite } from "./support/fixtures";
 
-const SIGNING = { prefix: "sa-ingest/v1." };
+const SIGNING = { prefix: "sa-ingest/v1.", headers: { keyId: "x-sa-key-id", timestamp: "x-sa-timestamp", signature: "x-sa-signature" } };
 const TARGET: WebhookTarget = { url: "http://panel.sa.svc.cluster.local/api/ingest/v1/events", keyId: "aquafix-site", secret: "s3cret", signing: SIGNING };
 const PII = { mobile: "0612345678", locality: "Royat, rue Secrète 7" };
 const lead: Lead = { subject: "hot_water", ...PII, extras: { note: "le chauffe-eau fuit" }, placeSlug: "royat", spamVerdict: null };
@@ -57,8 +57,8 @@ describe("the webhook signature", () => {
   });
 
   it("puts the timestamp in unix seconds, and the prefix and header names are the caller's", () => {
-    const h = signatureHeaders({ prefix: "p.", headers: { signature: "x-sig" } }, { keyId: "k", secret: "s" }, "{}", 1_790_762_400_999);
-    expect(h).toEqual({ "x-sa-key-id": "k", "x-sa-timestamp": "1790762400", "x-sig": signWebhook("s", "p.", "1790762400", "{}") });
+    const h = signatureHeaders({ prefix: "p.", headers: { keyId: "x-key", timestamp: "x-ts", signature: "x-sig" } }, { keyId: "k", secret: "s" }, "{}", 1_790_762_400_999);
+    expect(h).toEqual({ "x-key": "k", "x-ts": "1790762400", "x-sig": signWebhook("s", "p.", "1790762400", "{}") });
     expect(signWebhook("s", "", "1", "{}")).not.toBe(signWebhook("s", "p.", "1", "{}"));
   });
 });
