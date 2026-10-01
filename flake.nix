@@ -107,7 +107,9 @@
             # `treefmt` is not decoration: cargo-release commits the version bump,
             # which fires this repo's own pre-commit hook, which shells out to it.
             # Without it every release dies mid-bump with `command not found`.
-            runtimeInputs = [ rust pkgs.cargo-release pkgs.nodejs pkgs.git pkgs.treefmt ];
+            # treefmt then needs every formatter `.treefmt.toml` names on PATH,
+            # `nixpkgs-fmt` included, or it refuses to build its formatter set.
+            runtimeInputs = [ rust pkgs.cargo-release pkgs.nodejs pkgs.git pkgs.treefmt pkgs.nixpkgs-fmt ];
             text = ''
               cd "$(git rev-parse --show-toplevel)"
               # cargo-release verifies each tarball by compiling it out of the
