@@ -18,6 +18,7 @@ export {
   type PublicationField,
   type PublicationPolicy,
 } from "./publication";
+export { DEFAULT_TIME_ZONE, isOpenAt, nextOpening, type Opening } from "./hours";
 export { freshRating, parseInstant, RATING_MAX_AGE_DAYS } from "./rating";
 export { mergeLive, parsePlaceLive, type PlaceLive } from "./live";
 export {
