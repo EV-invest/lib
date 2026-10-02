@@ -7,9 +7,10 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 const SUBJECT = "Prestation";
 
 async function fillAndSend(page: Page) {
-  await page.getByLabel("Ville ou code postal").fill("75011");
-  await page.getByLabel("Mobile").fill("0612345678");
-  await page.getByRole("button", { name: "Recevoir le prix" }).click();
+  const form = page.locator("#quote");
+  await form.getByLabel("Code postal").fill("75011");
+  await form.getByLabel("Téléphone").fill("0612345678");
+  await form.getByRole("button", { name: "Recevoir le prix" }).click();
 }
 
 test.describe("without JavaScript", () => {
@@ -63,7 +64,7 @@ test.describe("with JavaScript", () => {
     await expect(trigger).toBeFocused();
     await expect(trigger).toHaveText("Grand ménage");
     await page.keyboard.press("Tab");
-    await expect(page.getByLabel("Ville ou code postal")).toBeFocused();
+    await expect(page.locator("#quote").getByLabel("Code postal")).toBeFocused();
   });
 });
 
@@ -98,4 +99,83 @@ test("the field is the same box before and after hydration", async ({ browser })
   await bare.context().close();
 
   expect(hydrated).toEqual(server);
+});
+
+// `LeadCapture`'s other ways in. The template's place has no number and keeps
+// office hours, which is the case these hold: no call, text or WhatsApp
+// anywhere, and the callback leading only while it is closed.
+const posts = (page: Page) => page.waitForRequest(r => r.method() === "POST" && new URL(r.url()).pathname === "/quote");
+
+async function askForCallback(page: Page) {
+  const details = page.locator("details#quote-callback");
+  // The server orders by its own clock: the callback may already be open.
+  if (!(await details.evaluate(d => (d instanceof HTMLDetailsElement ? d.open : false)))) await details.locator("summary").click();
+  const form = page.locator("#quote-callback-form");
+  await form.getByLabel("Téléphone").fill("07 12 34 56 78");
+  await form.getByLabel("J’accepte d’être rappelé à ce numéro.").check();
+  const posted = posts(page);
+  await form.getByRole("button", { name: "Être rappelé" }).click();
+  return new URLSearchParams((await posted).postData() ?? "");
+}
+
+for (const javaScriptEnabled of [false, true]) {
+  test.describe(`the callback, ${javaScriptEnabled ? "with" : "without"} JavaScript`, () => {
+    test.use({ javaScriptEnabled, reducedMotion: "reduce" });
+
+    test("posts the phone as a callback lead", async ({ page }) => {
+      await page.goto("/fr");
+      const body = await askForCallback(page);
+      expect(body.get("channel")).toBe("callback");
+      expect(body.get("mobile")).toBe("07 12 34 56 78");
+      expect(body.get("location")).toBe("paris");
+      await expect(page).toHaveURL(/\/fr\/thanks$/);
+    });
+
+    test("is refused without the consent", async ({ page }) => {
+      await page.goto("/fr");
+      const details = page.locator("details#quote-callback");
+      if (!(await details.evaluate(d => (d instanceof HTMLDetailsElement ? d.open : false)))) await details.locator("summary").click();
+      const form = page.locator("#quote-callback-form");
+      await form.getByLabel("Téléphone").fill("07 12 34 56 78");
+      await form.getByRole("button", { name: "Être rappelé" }).click();
+      await expect(page).toHaveURL(/\/fr$/);
+      expect(await form.getByLabel("J’accepte d’être rappelé à ce numéro.").evaluate(el => (el instanceof HTMLInputElement ? el.validity.valueMissing : false))).toBe(true);
+    });
+  });
+}
+
+test.describe("the channel order", () => {
+  const hydrated = (page: Page) => expect(page.locator("#quote select")).toHaveCount(0);
+  const callbackFirst = (page: Page) =>
+    page.evaluate(() => {
+      const callback = document.getElementById("quote-callback");
+      const form = document.getElementById("quote");
+      if (!callback || !form) throw new Error("missing the form or the callback");
+      return { first: Boolean(callback.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING), open: callback.hasAttribute("open") };
+    });
+
+  test("leads with the callback, open, and the next opening while closed", async ({ page }) => {
+    // Friday 20:00 in Paris: closed until Monday 08:00.
+    await page.clock.setFixedTime(new Date("2026-10-09T18:00:00Z"));
+    await page.goto("/fr");
+    await hydrated(page);
+    expect(await callbackFirst(page)).toEqual({ first: true, open: true });
+    await expect(page.getByText("Nous vous rappelons lundi dès 8 h.")).toBeVisible();
+  });
+
+  test("leads with the form while open, the callback closed after it", async ({ page }) => {
+    // Monday 10:00 in Paris.
+    await page.clock.setFixedTime(new Date("2026-10-05T08:00:00Z"));
+    await page.goto("/fr");
+    await hydrated(page);
+    expect(await callbackFirst(page)).toEqual({ first: false, open: false });
+    await expect(page.getByText(/Nous vous rappelons/)).toHaveCount(0);
+  });
+});
+
+test("a place with no number offers no call, text or WhatsApp anywhere", async ({ page }) => {
+  await page.goto("/fr");
+  await expect(page.locator("#quote")).toBeVisible();
+  await expect(page.locator('a[href^="tel:"], a[href^="sms:"], a[href*="wa.me"]')).toHaveCount(0);
+  await expect(page.locator("#callbar").getByText("☎")).toHaveCount(0);
 });

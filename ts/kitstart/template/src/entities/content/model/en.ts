@@ -1,4 +1,4 @@
-import type { StatusCopy } from "@evinvest/kitstart";
+import { LEAD_CAPTURE_TEXT, type StatusCopy } from "@evinvest/kitstart";
 import type { Facts, Text } from "./types";
 
 const status = (code: string, title: string, headline: readonly [string, string], body: string): StatusCopy<Facts> => ({
@@ -42,6 +42,6 @@ export const EN = {
   brandPage: { title: "Brand", description: "Cleaning at a fixed price.", open: "Open" },
   contactLabel: "Contact us",
   subjects: { standard: "Regular cleaning", deep: "Deep cleaning", other: "Other" },
-  quoteLabels: { subject: "Service", locality: "Town or postcode", mobile: "Mobile" },
+  leadCapture: { ...LEAD_CAPTURE_TEXT.en, needLabel: "Service" },
   faqs: [{ q: "Can the price change?", a: "No: the price quoted is the price you pay." }],
 } satisfies Text;

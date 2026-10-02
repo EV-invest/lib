@@ -5,4 +5,8 @@
 # Measured on the untouched template: 152,780 B gz (Next 16.3.6, Turbopack),
 # about 70 KB of it react-dom and 43 KB the app-router runtime. Set from the
 # first measurement plus a few percent; raise it only in a commit that says why.
-158000
+#
+# 158,000 → 164,000: the form became `LeadCapture`, a client island (opening
+# hours, the channel resolver, the soft phone check, the form's events and the
+# kit's Button in the client bundle): 157,287 → 162,938 B gz.
+164000

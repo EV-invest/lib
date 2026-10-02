@@ -1,4 +1,4 @@
-import type { CopySlice, CoreText, Said as CoreSaid } from "@evinvest/kitstart";
+import type { CopySlice, CoreText, LeadCaptureText, Said as CoreSaid } from "@evinvest/kitstart";
 import type { Locale } from "@/shared/config/i18n";
 import type { Subject } from "@/shared/config/lead";
 import type { PageKey } from "@/shared/config/site";
@@ -30,7 +30,8 @@ export interface Text extends CoreText<PageKey, Facts> {
   contactLabel: string;
   coverageTitle: string;
   subjects: Record<Subject, string>;
-  quoteLabels: { subject: string; locality: string; mobile: string };
+  /** The lead form's words: the kit's, with the brand's overrides spread over them. */
+  leadCapture: LeadCaptureText;
   faqs: readonly { q: string; a: string }[];
 }
 
