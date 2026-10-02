@@ -138,6 +138,12 @@ describe("LeadCapture's channels", () => {
 });
 
 describe("LeadCapture with a script", () => {
+  it("qualify-first: with the commune filled, the tap on a need lands on the phone", () => {
+    render(capture({ layout: "qualify-first", place: { ...place, serviceArea: [{ kind: "localities", names: ["Royat"] }] } }));
+    fireEvent.click(screen.getByText("Fuite d’eau"));
+    expect(document.activeElement).toBe(form().querySelector("input[name=mobile]"));
+  });
+
   it("takes the need from ?need= and from a [data-need] trigger on the page", () => {
     window.history.replaceState(null, "", "/fr?need=boiler");
     const { unmount } = render(capture());
@@ -160,7 +166,8 @@ describe("LeadCapture with a script", () => {
     const { wrap, events } = recorder();
     render(wrap(capture({ layout: "qualify-first" })));
     fireEvent.click(screen.getByText("Chaudière"));
-    expect(document.activeElement).toBe(form().querySelector("input[name=mobile]"));
+    // Two communes served: the postcode is still to give, so it comes first.
+    expect(document.activeElement).toBe(form().querySelector("input[name=zip]"));
     expect(posted()["job"]).toBe("boiler");
     expect(events.filter(e => e.event === "lead_form_step").map(e => e.props["step"])).toEqual(["contact"]);
     fireEvent.click(screen.getByText("Modifier"));

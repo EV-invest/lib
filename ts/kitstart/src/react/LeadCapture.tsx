@@ -87,9 +87,11 @@ export function LeadCapture(props: LeadCaptureProps) {
       return;
     }
     // The checked radio has already shown the contact step (`:has`, below), so
-    // the phone takes focus inside the tap: iOS opens the keyboard only for a
-    // focus a gesture made, and a re-render is too late for it.
-    root.current?.querySelector<HTMLInputElement>(`#${CSS.escape(id)} [data-lead-field="phone"]`)?.focus();
+    // the first empty field — the postcode unless filled, else the phone —
+    // takes focus inside the tap: iOS opens the keyboard only for a focus a
+    // gesture made, and a re-render is too late for it.
+    const fields = root.current?.querySelectorAll<HTMLInputElement>(`#${CSS.escape(id)} [data-lead-field="locality"], #${CSS.escape(id)} [data-lead-field="phone"]`);
+    [...(fields ?? [])].find(f => f.value === "")?.focus();
     setNeed(value);
     setEditing(false);
     events.step("contact");

@@ -209,7 +209,8 @@ it is the plain POST to `/quote` it always was.
 
 - **Taps.** A need the page knows is not asked again, and a place serving one
   commune fills it: focus the phone, type, send — two taps. `qualify-first`
-  with no need: the tile, which moves the focus to the phone, then send.
+  with no need: the tile, which moves the focus to the first empty field (the
+  phone when the commune is filled), then send.
   `single` with no need takes the first one unless changed (two more taps).
   Enter sends.
 - **Channels** (`resolveChannels`, shared with `CallBar`): call (`tel:`),
