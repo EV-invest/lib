@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { PROXY_MATCHER } from "../src/proxy/index";
 import { describeLandingContract, describeLeadStoreContract, servedPaths, serviceAreaPlace, storefrontPlace, testLead } from "../src/testing/index";
-import type { LeadStore } from "../src/index";
+import { LEAD_SCHEMA_VERSION, type LeadStore } from "../src/index";
 import { fixtureSite } from "./support/fixtures";
 
 /** A brand's directory with these files (empty ones do). */
@@ -32,7 +32,7 @@ describeLeadStoreContract("in memory", () => {
   const store = (): LeadStore => ({
     insert: async lead => rows.push(lead),
     count: async () => rows.length,
-    schemaVersion: async () => 4,
+    schemaVersion: async () => LEAD_SCHEMA_VERSION,
     health: async () => undefined,
     close: async () => undefined,
   });

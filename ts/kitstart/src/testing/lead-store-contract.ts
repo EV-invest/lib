@@ -35,17 +35,18 @@ export function describeLeadStoreContract(name: string, harness: () => LeadStore
       await store.close();
     });
 
-    it("takes every shape the funnel produces: no place, a verdict, extras, a long value", async () => {
+    it("takes every shape the funnel produces: no place, a verdict, extras, a long value, a callback", async () => {
       const store = await harness().open();
       for (const variant of [
         lead({ placeSlug: null }),
         lead({ spamVerdict: "too-fast" }),
         lead({ spamVerdict: "rate-limited", extras: { surface_m2: "40", notes: "3e étage, digicode 12B" } }),
         lead({ subject: "x".repeat(200), locality: "Clermont-Ferrand — 63000" }),
+        lead({ channel: "callback", subject: "", locality: "" }),
       ]) {
         expect(await store.insert(variant)).toBeGreaterThan(0);
       }
-      expect(await store.count()).toBe(4);
+      expect(await store.count()).toBe(5);
       await store.close();
     });
 

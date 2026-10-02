@@ -1,3 +1,4 @@
+import { experimentProps } from "./analytics";
 import { HONEYPOT_FIELD, LEGACY_HONEYPOT_FIELDS, RENDERED_AT_FIELD, screen, type RateLimiter } from "./antispam";
 import { MAX_FIELD, readCandidate, validateCandidate, type Lead } from "./lead";
 import type { Site } from "./site";
@@ -6,6 +7,15 @@ import type { Site } from "./site";
 export const LOCATION_FIELD = "location";
 export const LOCALE_FIELD = "locale";
 export const FORM_ID_FIELD = "form_id";
+/** The site's experiment assignment, posted so the submit counts in the right arm. */
+export const EXPERIMENT_FIELD = "experiment";
+export const VARIANT_FIELD = "variant";
+
+/** What the submit event carries besides the form id: slugs only, never what was typed. */
+export interface SubmitTags {
+  experiment?: string;
+  variant?: string;
+}
 const FORM_ID = /^[a-z0-9_-]{1,32}$/;
 
 export type Outcome<L extends string> =
@@ -25,7 +35,7 @@ export interface AcceptDeps {
    * here too. A failure logs and changes nothing — the lead is stored.
    */
   enqueue?: (lead: Lead, id: number, meta: { locale: string; formId: string }) => void;
-  capture: (lead: Lead, formId: string) => void;
+  capture: (lead: Lead, formId: string, tags: SubmitTags) => void;
   limiter: RateLimiter;
   now: number;
   log: Pick<Console, "warn" | "error">;
@@ -117,7 +127,8 @@ async function accept<L extends string, P extends string>(
       deps.log.error(`quote: lead ${id} is stored but its notification failed`, error);
     }
   });
-  deps.defer(() => deps.capture(lead, formId));
+  const tags: SubmitTags = experimentProps(field(form, EXPERIMENT_FIELD), field(form, VARIANT_FIELD));
+  deps.defer(() => deps.capture(lead, formId, tags));
   return { kind: "stored", id, lead, locale, formId };
 }
 

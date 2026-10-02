@@ -82,12 +82,17 @@ export {
 } from "./core/routing";
 
 export {
+  CHANNEL_FIELD,
+  channelOf,
+  LEAD_CHANNELS,
   LEAD_SCHEMA_VERSION,
   MAX_FIELD,
   readCandidate,
+  validateCallbackLead,
   validateCandidate,
   type Lead,
   type LeadCandidate,
+  type LeadChannel,
   type LeadExtra,
   type LeadSchema,
   type LeadStore,
@@ -121,11 +126,14 @@ export {
 
 export {
   createAcceptLead,
+  EXPERIMENT_FIELD,
   FORM_ID_FIELD,
   LOCALE_FIELD,
   LOCATION_FIELD,
+  VARIANT_FIELD,
   type AcceptDeps,
   type Outcome,
+  type SubmitTags,
 } from "./core/accept";
 
 export {
@@ -159,8 +167,12 @@ export {
   analyticsSink,
   countsAsPageView,
   EVENTS,
+  EXPERIMENT_SLUG,
+  experimentProps,
   type AnalyticsTarget,
   type IntentChannel,
+  type LeadField,
+  type LeadStep,
 } from "./core/analytics";
 
 export type {

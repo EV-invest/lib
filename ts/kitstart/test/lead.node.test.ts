@@ -57,9 +57,11 @@ describe("the lead schema", () => {
     expect(readCandidate(PLUMBING, form({ job: " hot_water ", zip: "63130", mobile: "0612345678" }), "royat")).toEqual({
       subject: "hot_water",
       locality: "63130",
-      mobile: "0612345678",
+      // Kept in E.164: the panel, the mail and a dialler read one shape.
+      mobile: "+33612345678",
       extras: {},
       placeSlug: "royat",
+      channel: "form",
     });
   });
 
@@ -187,6 +189,44 @@ describe("accepting a lead", () => {
     await acceptLead(form(good), "1.2.3.4", d);
     expect(capture).not.toHaveBeenCalled();
     await flush();
-    expect(capture).toHaveBeenCalledWith(expect.objectContaining({ placeSlug: "royat" }), "quote");
+    expect(capture).toHaveBeenCalledWith(expect.objectContaining({ placeSlug: "royat" }), "quote", {});
+  });
+});
+
+describe("a callback request", () => {
+  const callback = { channel: "callback", mobile: "06 12 34 56 78" };
+
+  it("is a lead with the callback channel, refused only for want of a number", async () => {
+    const { d } = deps();
+    // No job, no postcode: the brand's form rule would refuse it; the callback rule does not.
+    expect(await acceptLead(form(callback), "k", d)).toMatchObject({ kind: "stored", lead: { channel: "callback", mobile: "+33612345678", locality: "" } });
+    expect(await acceptLead(form({ ...callback, mobile: "06 12" }), "k", d)).toMatchObject({ kind: "invalid", why: "a phone number to call back" });
+  });
+
+  it("takes the brand's own callback rule when it has one", async () => {
+    const strict = createAcceptLead({ ...site, lead: { ...PLUMBING, validateCallback: () => "never" } });
+    const { d } = deps();
+    expect(await strict(form(callback), "k", d)).toMatchObject({ kind: "invalid", why: "never" });
+  });
+
+  it("is a form lead when the channel is absent or anything else", () => {
+    expect(readCandidate(PLUMBING, form(good), null).channel).toBe("form");
+    expect(readCandidate(PLUMBING, form({ ...good, channel: "sms" }), null).channel).toBe("form");
+  });
+
+  it("still lets the brand's form rule see a number it could not read, as typed", () => {
+    expect(readCandidate(PLUMBING, form({ ...good, mobile: " 06 12 " }), null).mobile).toBe("06 12");
+  });
+});
+
+describe("the submit's experiment tags", () => {
+  it("carry the site's assignment when it is a pair of slugs, and nothing else", async () => {
+    const capture = vi.fn();
+    const { d, flush } = deps({ capture });
+    await acceptLead(form({ ...good, experiment: "lead_layout", variant: "qualify-first" }), "a", d);
+    await acceptLead(form({ ...good, experiment: "lead_layout", variant: "06 12 34 56 78" }), "b", d);
+    await acceptLead(form({ ...good, experiment: "lead_layout" }), "c", d);
+    await flush();
+    expect(capture.mock.calls.map(c => c[2])).toEqual([{ experiment: "lead_layout", variant: "qualify-first" }, {}, {}]);
   });
 });

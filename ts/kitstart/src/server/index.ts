@@ -14,7 +14,7 @@ export { parseSmtpUrl, sendMail, type Mail, type SendOptions } from "./smtp";
 export { defaultLeadMail, leadNotifier, MAIL_PER_MINUTE, type LeadMail, type LeadNotifier, type NotifyEnv } from "./notify";
 export { clientKey, NO_CLIENT_ADDRESS, parseProxyTrust, type ProxyTrust } from "./client-key";
 export { checkLeadStore } from "./boot";
-export { leadWebhook, type BuildWebhookBody, type LeadWebhook, type LeadWebhookContext, type LeadWebhookOptions } from "./lead-webhook";
+export { leadWebhook, panelChannel, type BuildWebhookBody, type LeadWebhook, type LeadWebhookContext, type LeadWebhookOptions } from "./lead-webhook";
 export {
   checkWebhookUrl,
   openWebhookOutbox,

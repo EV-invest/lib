@@ -1,5 +1,5 @@
 import "server-only";
-import type { Lead } from "../core/lead";
+import { channelOf, type Lead } from "../core/lead";
 import type { BrandFacts } from "../core/site";
 import type { ServerEnv } from "./env";
 import { parseSmtpUrl, sendMail } from "./smtp";
@@ -23,10 +23,12 @@ export type NotifyEnv = Pick<ServerEnv, "smtpUrl" | "notifyTo" | "notifyFrom" | 
 /** A plain default; a brand passes `format` to write it in its own language. */
 export function defaultLeadMail(brand: Pick<BrandFacts, "name">, lead: Lead, id: number): LeadMail {
   const place = lead.placeSlug ?? "unknown";
+  // A callback request is a promise to ring the customer: it says so first.
+  const callback = channelOf(lead) === "callback";
   return {
-    subject: `${brand.name} — new lead (${place})`,
+    subject: `${brand.name} — ${callback ? "call back" : "new lead"} (${place})`,
     text: [
-      `Lead #${id} — place ${place}${lead.spamVerdict ? ` — suspect (${lead.spamVerdict})` : ""}`,
+      `Lead #${id} — place ${place}${callback ? " — CALL BACK" : ""}${lead.spamVerdict ? ` — suspect (${lead.spamVerdict})` : ""}`,
       "",
       `Subject  : ${lead.subject}`,
       `Locality : ${lead.locality}`,

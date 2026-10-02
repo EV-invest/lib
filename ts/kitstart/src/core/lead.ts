@@ -10,6 +10,8 @@
  * still delivers) — both deliberate departures from the first design.
  */
 
+import { isPlausiblePhone, normalizePhone } from "./phone";
+
 /** Why a submission was kept but not acted on. `null` is a clean lead. */
 export type SpamVerdict = "honeypot" | "too-fast" | "rate-limited";
 
@@ -43,6 +45,26 @@ export interface LeadSchema<S extends string> {
    * `null` to accept. Absent → every candidate is a lead.
    */
   validate?: (lead: LeadCandidate) => string | null;
+  /**
+   * The rule for a callback request, which carries a phone and little else —
+   * a form's rule would refuse it for the locality it never asked. Absent →
+   * `validateCallbackLead`: a number we can read.
+   */
+  validateCallback?: (lead: LeadCandidate) => string | null;
+}
+
+/**
+ * How the lead was asked for: the quote form, or "call me back" — the form cut
+ * to a phone number. Posted as `CHANNEL_FIELD`; anything else, or nothing (a
+ * page cached before the field existed), is `form`.
+ */
+export type LeadChannel = "form" | "callback";
+export const LEAD_CHANNELS: readonly LeadChannel[] = ["form", "callback"];
+export const CHANNEL_FIELD = "channel";
+
+/** The default callback rule: a phone number that reads as one. */
+export function validateCallbackLead(lead: Pick<LeadCandidate, "mobile">): string | null {
+  return isPlausiblePhone(lead.mobile) ? null : "a phone number to call back";
 }
 
 /**
@@ -59,6 +81,16 @@ export interface Lead {
   /** The place it was submitted from — its slug — or `null` when unknown. */
   placeSlug: string | null;
   spamVerdict: SpamVerdict | null;
+  /**
+   * Absent on a lead built before the field existed — read it as `form`
+   * (`channelOf`). Every lead the funnel reads has it.
+   */
+  channel?: LeadChannel;
+}
+
+/** The lead's channel, `form` for one that predates the field. */
+export function channelOf(lead: Pick<Lead, "channel">): LeadChannel {
+  return lead.channel ?? "form";
 }
 
 export type LeadCandidate = Omit<Lead, "spamVerdict">;
@@ -86,9 +118,9 @@ export interface LeadStore {
 /**
  * The lead schema's version, shared by every adapter: 1 the Rust server's
  * table (`job`, `zip`, `mobile`, `at`), 2 + the place, 3 + the spam verdict,
- * 4 + the brand's extras. Append only.
+ * 4 + the brand's extras, 5 + the channel. Append only.
  */
-export const LEAD_SCHEMA_VERSION = 4;
+export const LEAD_SCHEMA_VERSION = 5;
 
 /** A field is capped, not rejected: a long answer is still a customer. */
 export const MAX_FIELD = 200;
@@ -98,7 +130,11 @@ function field(form: FormData, name: string, max: number): string | null {
   return typeof value === "string" ? value.trim().slice(0, max) : null;
 }
 
-/** The candidate a form posted, read through the schema's field names. */
+/**
+ * The candidate a form posted, read through the schema's field names. The
+ * mobile is kept in E.164 when it reads as a number (`normalizePhone`), and as
+ * typed when it does not — the brand's rule still sees it either way.
+ */
 export function readCandidate(
   schema: LeadSchema<string>,
   form: FormData,
@@ -109,15 +145,19 @@ export function readCandidate(
     const value = field(form, extra.name, extra.max);
     if (value) extras[extra.name] = value;
   }
+  const mobile = field(form, schema.wire.mobile, MAX_FIELD) ?? "";
+  const channel = form.get(CHANNEL_FIELD);
   return {
     subject: field(form, schema.wire.subject, MAX_FIELD) ?? "",
     locality: field(form, schema.wire.locality, MAX_FIELD) ?? "",
-    mobile: field(form, schema.wire.mobile, MAX_FIELD) ?? "",
+    mobile: normalizePhone(mobile) ?? mobile,
     extras,
     placeSlug,
+    channel: channel === "callback" ? "callback" : "form",
   };
 }
 
 export function validateCandidate(schema: LeadSchema<string>, lead: LeadCandidate): string | null {
+  if (channelOf(lead) === "callback") return (schema.validateCallback ?? validateCallbackLead)(lead);
   return schema.validate?.(lead) ?? null;
 }

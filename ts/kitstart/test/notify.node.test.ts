@@ -1,7 +1,7 @@
 import { createServer, type AddressInfo, type Server } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BrandFacts, Lead } from "../src/index";
-import { leadNotifier } from "../src/server/index";
+import { defaultLeadMail, leadNotifier } from "../src/server/index";
 
 const BRAND: BrandFacts = {
   id: "aquafix",
@@ -96,5 +96,12 @@ describe("the lead notifier", () => {
     expect(lines).toContain("RCPT TO:<val@aquafix.top>");
     expect(lines).toContain("Subject: Demande #7");
     expect(lines).toContain(Buffer.from("Commune : 63130").toString("base64"));
+  });
+
+  it("says a callback request is one, first, in the default mail", () => {
+    expect(defaultLeadMail(BRAND, lead, 3).subject).toBe(`${BRAND.name} — new lead (royat)`);
+    const mail = defaultLeadMail(BRAND, { ...lead, channel: "callback" }, 3);
+    expect(mail.subject).toBe(`${BRAND.name} — call back (royat)`);
+    expect(mail.text.split("\n")[0]).toContain("CALL BACK");
   });
 });
