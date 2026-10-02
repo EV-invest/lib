@@ -3,6 +3,7 @@ import { EXPERIMENT_FIELD, VARIANT_FIELD } from "../core/accept";
 import { channelHref, type CaptureChannel } from "../core/channels";
 import { CHANNEL_FIELD, CONSENT_FIELD } from "../core/lead";
 import type { LeadCaptureText } from "../core/lead-capture-text";
+import type { FieldPart } from "./LeadCaptureFields";
 import type { PartClassNames } from "./parts";
 import { PHONE_INPUT_PROPS, QuoteFormShell } from "./QuoteFormShell";
 
@@ -78,7 +79,7 @@ export function CallbackForm(props: {
   opening: string | null;
   text: LeadCaptureText;
   experiment: Experiment | undefined;
-  classNames?: PartClassNames<ChannelPart> | undefined;
+  classNames?: PartClassNames<ChannelPart | FieldPart> | undefined;
 }) {
   const { id, open, formId, placeSlug, locale, renderedAt, mobileName, subject, opening, text, experiment, classNames: c } = props;
   return (
@@ -94,9 +95,20 @@ export function CallbackForm(props: {
         {subject && <input type="hidden" name={subject.name} value={subject.value} />}
         <ExperimentFields experiment={experiment} />
         <p className="text-ink-soft">{opening ?? text.callbackLede}</p>
-        <div className="flex flex-col gap-2">
-          <FieldLabel htmlFor={`${id}-phone`}>{text.phoneLabel}</FieldLabel>
-          <Input id={`${id}-phone`} name={mobileName} size="lg" {...PHONE_INPUT_PROPS} enterKeyHint="send" required data-lead-field="phone" />
+        <div className={cn("flex flex-col gap-2", c?.field)}>
+          <FieldLabel htmlFor={`${id}-phone`} className={c?.label}>
+            {text.phoneLabel}
+          </FieldLabel>
+          <Input
+            id={`${id}-phone`}
+            name={mobileName}
+            size="lg"
+            {...PHONE_INPUT_PROPS}
+            enterKeyHint="send"
+            required
+            data-lead-field="phone"
+            className={c?.control}
+          />
         </div>
         <label className={cn("flex min-h-11 items-start gap-3 text-sm text-ink", c?.consent)}>
           {/* Native, so `required` holds without a script (the kit's checkbox is a

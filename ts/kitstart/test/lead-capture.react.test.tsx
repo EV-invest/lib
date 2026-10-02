@@ -259,3 +259,24 @@ describe("LeadCapture's locality field", () => {
     expect(zip()).toHaveAttribute("inputmode", "numeric");
   });
 });
+
+describe("LeadCapture's parts", () => {
+  const PARTS = { control: "brand-control", label: "brand-label", field: "brand-field" } as const;
+
+  it("dresses the need's select with `control`, before and after the script", () => {
+    document.body.innerHTML = renderToString(capture({ classNames: PARTS }));
+    expect(form("quote").querySelector("select[name=job]")).toHaveClass("brand-control");
+    document.body.innerHTML = "";
+    render(capture({ classNames: PARTS }));
+    expect(screen.getByRole("combobox", { name: LEAD_CAPTURE_TEXT.fr.needLabel })).toHaveClass("brand-control");
+  });
+
+  it("dresses the callback's phone like the form's", () => {
+    render(capture({ classNames: PARTS }));
+    const callback = form("quote-callback-form");
+    expect(callback.querySelector("input[name=mobile]")).toHaveClass("brand-control");
+    expect(callback.querySelector("label")).toHaveClass("brand-label");
+    expect(callback.querySelector("input[name=mobile]")?.parentElement).toHaveClass("brand-field");
+  });
+
+});
