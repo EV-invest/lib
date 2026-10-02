@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import type { Lead } from "../core/lead";
+import type { Lead, LeadChannel } from "../core/lead";
 import type { ServerEnv } from "./env";
 import { openWebhookOutbox, type TickReport, type WebhookOutbox, type WebhookOutboxOptions } from "./webhook-outbox";
 import type { WebhookSigning } from "./webhook-signature";
@@ -16,6 +16,20 @@ export interface LeadWebhookContext {
   at: Date;
   /** Fresh per lead and stored with the body, so every retry carries the same one. */
   idempotencyKey: string;
+}
+
+/**
+ * What the Service-Arb panel's `lead.created` calls a callback request. Its
+ * `properties.channel` is a closed set (`form` | `phone_inbound`) and an event
+ * outside it is refused whole — the outbox would park the lead — so until the
+ * panel's `sa.funnel.v1` accepts `callback`, a callback travels as `form`.
+ * TODO(panel): set to "callback" once the panel accepts it; nothing else changes.
+ */
+const PANEL_CALLBACK = "form";
+
+/** A lead's channel as the panel's `properties.channel` may carry it: `panelChannel(channelOf(lead))`. */
+export function panelChannel(channel: LeadChannel): "form" | typeof PANEL_CALLBACK {
+  return channel === "callback" ? PANEL_CALLBACK : "form";
 }
 
 /**

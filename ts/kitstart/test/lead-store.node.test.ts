@@ -83,7 +83,7 @@ describe("choosing the lead store", () => {
   it("checks the store at boot and says which one won", async () => {
     const info = vi.fn();
     await checkLeadStore({ leadsDb: { kind: "sqlite", path: tmp() }, leadsDbFrom: "LEADS_DB_URL" }, { info });
-    expect(info).toHaveBeenCalledWith(expect.stringMatching(/^leads: sqlite at .*, schema v4 \(from LEADS_DB_URL\)$/));
+    expect(info).toHaveBeenCalledWith(expect.stringMatching(/^leads: sqlite at .*, schema v5 \(from LEADS_DB_URL\)$/));
     await expect(checkLeadStore({ leadsDb: { kind: "postgres", url: "postgres://db/x" }, leadsDbFrom: "LEADS_DB_URL" }, { info })).rejects.toThrow(
       LeadStoreNotImplemented,
     );
@@ -125,9 +125,21 @@ const columnsOf = (path: string): unknown[] => {
   return names;
 };
 
-const ALL = ["id", "job", "zip", "mobile", "at", "location_id", "spam_verdict", "extras"];
+const ALL = ["id", "job", "zip", "mobile", "at", "location_id", "spam_verdict", "extras", "channel"];
 
 describe("the sqlite store's migrations", () => {
+  it("keeps the channel; a row from before the field reads as no channel, which is a form", async () => {
+    const path = tmp();
+    unversioned(path, []);
+    const store = openSqliteLeadStore(path);
+    await store.insert(lead({ channel: "callback" }));
+    await store.insert(lead());
+    await store.close();
+    const check = new (sqlite().DatabaseSync)(path);
+    expect(check.prepare("SELECT channel FROM leads ORDER BY id").all()).toEqual([{ channel: null }, { channel: "callback" }, { channel: "form" }]);
+    check.close();
+  });
+
   it("creates a fresh file at the latest version", async () => {
     const path = tmp();
     const store = openSqliteLeadStore(path);

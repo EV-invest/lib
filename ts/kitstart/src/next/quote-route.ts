@@ -2,7 +2,7 @@ import { after } from "next/server.js";
 import { createAcceptLead } from "../core/accept";
 import { analyticsSink, EVENTS } from "../core/analytics";
 import { RateLimiter } from "../core/antispam";
-import type { LeadStore } from "../core/lead";
+import { channelOf, type LeadStore } from "../core/lead";
 import type { Place } from "../core/place/types";
 import { createPlaceView } from "../core/place/view";
 import { createRouting, THANKS } from "../core/routing";
@@ -175,9 +175,11 @@ export function quoteRoute<L extends string, P extends string>(
           ),
         );
       },
-      capture: (lead, formId) =>
+      capture: (lead, formId, tags) =>
         analyticsSink({ key: env.posthogKey, host: env.posthogHost, brandId: site.brand.id }, lead.placeSlug).capture(EVENTS.leadSubmit, {
           form_id: formId,
+          channel: channelOf(lead),
+          ...tags,
         }),
       limiter,
       now: deps.now?.() ?? Date.now(),

@@ -2,7 +2,7 @@ import "server-only";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
-import { LEAD_SCHEMA_VERSION, type LeadStore } from "../core/lead";
+import { channelOf, LEAD_SCHEMA_VERSION, type LeadStore } from "../core/lead";
 
 /**
  * The SQLite adapter of the `LeadStore` port: one file on the pod's volume.
@@ -59,6 +59,9 @@ const STEPS: readonly ((db: DatabaseSync) => void)[] = [
   db => db.exec("ALTER TABLE leads ADD COLUMN spam_verdict TEXT"),
   // 4 — the brand's extra fields, as a JSON object; `NULL` when there are none.
   db => db.exec("ALTER TABLE leads ADD COLUMN extras TEXT"),
+  // 5 — how the lead was asked for (`form`, `callback`). Nullable: a row from
+  // before the field is a form lead, and `NULL` says so without rewriting it.
+  db => db.exec("ALTER TABLE leads ADD COLUMN channel TEXT"),
 ];
 
 if (STEPS.length !== LEAD_SCHEMA_VERSION) {
@@ -86,7 +89,7 @@ function recognise(db: DatabaseSync): number {
     throw new Error(`leads: an unrecognised table (${columns.join(", ")}); refusing to migrate it`);
   }
   let at = 1;
-  for (const [step, added] of [[2, "location_id"], [3, "spam_verdict"], [4, "extras"]] as const) {
+  for (const [step, added] of [[2, "location_id"], [3, "spam_verdict"], [4, "extras"], [5, "channel"]] as const) {
     if (!columns.includes(added)) break;
     at = step;
   }
@@ -147,14 +150,14 @@ export function openSqliteLeadStore(path: string): SqliteLeadStore {
     throw error;
   }
   const insert = db.prepare(
-    "INSERT INTO leads (job, zip, mobile, location_id, spam_verdict, extras) VALUES (?, ?, ?, ?, ?, ?) RETURNING id",
+    "INSERT INTO leads (job, zip, mobile, location_id, spam_verdict, extras, channel) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id",
   );
   const count = db.prepare("SELECT COUNT(*) AS n FROM leads");
   return {
     async insert(lead) {
       const extras = Object.keys(lead.extras).length > 0 ? JSON.stringify(lead.extras) : null;
       return integer(
-        insert.get(lead.subject, lead.locality, lead.mobile, lead.placeSlug, lead.spamVerdict, extras),
+        insert.get(lead.subject, lead.locality, lead.mobile, lead.placeSlug, lead.spamVerdict, extras, channelOf(lead)),
         "id",
       );
     },

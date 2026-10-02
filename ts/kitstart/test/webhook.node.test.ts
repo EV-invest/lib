@@ -8,6 +8,7 @@ import {
   checkWebhookUrl,
   leadWebhook,
   openWebhookOutbox,
+  panelChannel,
   parseServerEnv,
   signatureHeaders,
   signWebhook,
@@ -229,6 +230,15 @@ describe("the webhook outbox", () => {
     await o.tick();
     expect(logged(log)).not.toContain(PII.mobile);
     expect(logged(log)).not.toContain("Secrète");
+  });
+});
+
+describe("the panel's channel", () => {
+  // The panel refuses a lead.created outside its closed set, which would park
+  // the lead in the outbox: a callback travels as a form until it accepts one.
+  it("is form for a form and, for now, for a callback too", () => {
+    expect(panelChannel("form")).toBe("form");
+    expect(panelChannel("callback")).toBe("form");
   });
 });
 

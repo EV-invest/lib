@@ -245,6 +245,26 @@ describe("the quote route", () => {
     const junk = new Request("https://aquafix.top/quote", { method: "POST", body: "{}", headers: { "content-type": "application/json" } });
     expect((await route(memory())(junk)).status).toBe(400);
   });
+
+  it("counts the submit with its channel and the site's experiment, and nothing the customer typed", async () => {
+    const beacon = vi.fn<(url: string, body: string) => boolean>(() => true);
+    vi.stubGlobal("navigator", { sendBeacon: beacon });
+    const counted = quoteRoute(site, {
+      env: () => ({ leadsDb: { kind: "sqlite", path: ":memory:" }, posthogKey: "phc_test", posthogHost: "https://eu.i.posthog.com", trustedProxy: null }),
+      notifier: () => ({ notify: async () => undefined }),
+      unavailable: () => ({ title: "", heading: "", body: "", callLabel: "" }),
+      store: () => memory(),
+      defer: task => void task(),
+      now: () => NOW,
+      log: { warn: vi.fn(), error: vi.fn() },
+    });
+    await counted(post({ channel: "callback", experiment: "lead_layout", variant: "single" }));
+    const [, body] = beacon.mock.calls[0] ?? [];
+    const event = JSON.parse(body ?? "null");
+    expect(event).toMatchObject({ event: "lead_form_submit", properties: { form_id: "quote", channel: "callback", experiment: "lead_layout", variant: "single", location_id: "royat" } });
+    expect(body).not.toMatch(/0612345678|\+33612345678|63130/);
+    vi.unstubAllGlobals();
+  });
 });
 
 describe("the OG route", () => {
