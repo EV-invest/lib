@@ -1,4 +1,4 @@
-import type { StatusCopy } from "@evinvest/kitstart";
+import { LEAD_CAPTURE_TEXT, type StatusCopy } from "@evinvest/kitstart";
 import type { Facts, Text } from "./types";
 
 const status = (code: string, title: string, headline: readonly [string, string], body: string): StatusCopy<Facts> => ({
@@ -42,6 +42,6 @@ export const FR = {
   brandPage: { title: "Brand", description: "Le ménage à prix fixe.", open: "Ouvrir" },
   contactLabel: "Nous contacter",
   subjects: { standard: "Ménage courant", deep: "Grand ménage", other: "Autre" },
-  quoteLabels: { subject: "Prestation", locality: "Ville ou code postal", mobile: "Mobile" },
+  leadCapture: { ...LEAD_CAPTURE_TEXT.fr, needLabel: "Prestation" },
   faqs: [{ q: "Le prix peut-il changer ?", a: "Non : le prix annoncé est celui que vous payez." }],
 } satisfies Text;

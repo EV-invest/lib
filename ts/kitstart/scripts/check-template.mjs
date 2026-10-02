@@ -129,10 +129,19 @@ async function smoke() {
     // A suspected bot gets the same 303, so the redirect proves nothing: the row does.
     const { DatabaseSync } = await import("node:sqlite");
     const db = new DatabaseSync(join(dir, "data/leads.db"), { readOnly: true });
-    const row = db.prepare("SELECT zip, location_id, spam_verdict FROM leads WHERE mobile = ?").get("0612345678");
+    // The mobile is kept in E.164, the channel beside it.
+    const row = db.prepare("SELECT zip, location_id, spam_verdict, channel FROM leads WHERE mobile = ?").get("+33612345678");
     db.close();
-    if (row?.zip !== "75011" || row?.location_id !== "paris" || row?.spam_verdict !== null) throw new Error(`the lead row is wrong: ${JSON.stringify(row)}`);
+    if (row?.zip !== "75011" || row?.location_id !== "paris" || row?.spam_verdict !== null || row?.channel !== "form") throw new Error(`the lead row is wrong: ${JSON.stringify(row)}`);
     console.log("✓ the lead is in the store, unflagged");
+    // A callback is a phone and a consent: no postcode, and still a lead.
+    const callback = new URLSearchParams({ location: "paris", locale: "fr", form_id: "quote", t: String(Date.now() - 10_000), hp_ref: "", channel: "callback", mobile: "07 12 34 56 78" });
+    await expect("a callback posts without JavaScript", "/quote", { method: "POST", body: callback }, 303, r => r.headers.get("location") === "/fr/thanks");
+    const again = new DatabaseSync(join(dir, "data/leads.db"), { readOnly: true });
+    const called = again.prepare("SELECT zip, channel FROM leads WHERE mobile = ?").get("+33712345678");
+    again.close();
+    if (called?.channel !== "callback" || called?.zip !== "") throw new Error(`the callback row is wrong: ${JSON.stringify(called)}`);
+    console.log("✓ the callback is in the store, marked");
     await expect("the thank-you page", "/fr/thanks", {}, 200);
     await expect("the OG card", "/og?l=paris&lang=fr", {}, 200, r => r.headers.get("content-type") === "image/png");
   } finally {
