@@ -269,7 +269,7 @@ it is the plain POST to `/quote` it always was.
   `callback`, with the experiment; and on the server `lead_form_submit
   {form_id, channel}` with the posted experiment.
 - **Weight.** 5.6 KB gz of first-load JS on the template's place page
-  (157,287 → 162,968 B against its 158,000 B target: +3.1 %, a warning
+  (157,287 → 162,985 B against its 158,000 B target: +3.2 %, a warning
   within the 20 % tolerance).
 
 Tailwind v4 does not scan `node_modules`; the brand's `globals.css` names the
