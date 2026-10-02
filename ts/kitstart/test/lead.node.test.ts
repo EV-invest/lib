@@ -200,13 +200,37 @@ describe("accepting a lead", () => {
 });
 
 describe("a callback request", () => {
-  const callback = { channel: "callback", mobile: "06 12 34 56 78" };
+  const SAID = "J’accepte d’être rappelé·e à ce numéro au sujet de ma demande.";
+  const callback = { channel: "callback", mobile: "06 12 34 56 78", consent: SAID };
 
   it("is a lead with the callback channel, refused only for want of a number", async () => {
     const { d } = deps();
     // No job, no postcode: the brand's form rule would refuse it; the callback rule does not.
     expect(await acceptLead(form(callback), "k", d)).toMatchObject({ kind: "stored", lead: { channel: "callback", mobile: "06 12 34 56 78", locality: "" } });
     expect(await acceptLead(form({ ...callback, mobile: "06 12" }), "k", d)).toMatchObject({ kind: "invalid", why: "a phone number to call back" });
+  });
+
+  it("keeps the consent sentence as posted and stamps when the server accepted it", async () => {
+    const { d } = deps();
+    const out = await acceptLead(form(callback), "k", d);
+    expect(out).toMatchObject({ kind: "stored", lead: { consent: { text: SAID, at: new Date(NOW).toISOString() } } });
+  });
+
+  it("refuses a callback without the consent, before storing anything — whatever the brand's rule says", async () => {
+    const insert = vi.fn(async () => 1);
+    const lenient = createAcceptLead({ ...site, lead: { ...PLUMBING, validateCallback: () => null } });
+    for (const consent of [[], ["consent"]] as const) {
+      const { d } = deps({ insert });
+      const posted = consent.length ? form({ ...callback, consent: "  " }) : form(callback, ["consent"]);
+      expect(await lenient(posted, "k", d)).toMatchObject({ kind: "invalid", why: "consent to be called back" });
+    }
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("keeps no consent on a form lead, even when one is posted", async () => {
+    const { d } = deps();
+    const out = await acceptLead(form({ ...good, consent: SAID }), "k", d);
+    expect(out.kind === "stored" && "consent" in out.lead).toBe(false);
   });
 
   it("takes the brand's own callback rule when it has one", async () => {

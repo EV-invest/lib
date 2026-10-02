@@ -84,8 +84,10 @@ export {
 export {
   CHANNEL_FIELD,
   channelOf,
+  CONSENT_FIELD,
   LEAD_CHANNELS,
   LEAD_SCHEMA_VERSION,
+  MAX_CONSENT,
   MAX_FIELD,
   readCandidate,
   validateCallbackLead,
@@ -93,6 +95,7 @@ export {
   type Lead,
   type LeadCandidate,
   type LeadChannel,
+  type LeadConsent,
   type LeadExtra,
   type LeadSchema,
   type LeadStore,

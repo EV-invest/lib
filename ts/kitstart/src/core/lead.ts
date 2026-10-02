@@ -69,6 +69,21 @@ export type LeadChannel = "form" | "callback";
 export const LEAD_CHANNELS: readonly LeadChannel[] = ["form", "callback"];
 export const CHANNEL_FIELD = "channel";
 
+/**
+ * The callback's consent: a checkbox whose value is the sentence it shows, in
+ * the language it shows it, so the row keeps what was agreed to. Absent → the
+ * callback is refused, as any invalid lead is.
+ */
+export const CONSENT_FIELD = "consent";
+/** Longer than any consent sentence; past it, the text is cut, not refused. */
+export const MAX_CONSENT = 500;
+
+/** What a callback lead was agreed to, and when the server accepted it (ISO 8601). */
+export interface LeadConsent {
+  text: string;
+  at: string;
+}
+
 /** The default callback rule: a phone number that reads as one. */
 export function validateCallbackLead(lead: Pick<LeadCandidate, "mobile">): string | null {
   return isPlausiblePhone(lead.mobile) ? null : "a phone number to call back";
@@ -93,6 +108,8 @@ export interface Lead {
    * (`channelOf`). Every lead the funnel reads has it.
    */
   channel?: LeadChannel;
+  /** Only on a callback lead: the consent it was posted with. */
+  consent?: LeadConsent;
 }
 
 /** The lead's channel, `form` for one that predates the field. */
@@ -100,7 +117,11 @@ export function channelOf(lead: Pick<Lead, "channel">): LeadChannel {
   return lead.channel ?? "form";
 }
 
-export type LeadCandidate = Omit<Lead, "spamVerdict">;
+/**
+ * What the form posted, before the funnel judges it: the consent is the
+ * posted sentence, and the funnel stamps when it accepted it.
+ */
+export type LeadCandidate = Omit<Lead, "spamVerdict" | "consent"> & { consentText?: string };
 
 /**
  * The port the funnel writes through — the commit point. `insert` resolves
@@ -125,7 +146,7 @@ export interface LeadStore {
 /**
  * The lead schema's version, shared by every adapter: 1 the Rust server's
  * table (`job`, `zip`, `mobile`, `at`), 2 + the place, 3 + the spam verdict,
- * 4 + the brand's extras, 5 + the channel. Append only.
+ * 4 + the brand's extras, 5 + the channel and the callback's consent. Append only.
  */
 export const LEAD_SCHEMA_VERSION = 5;
 
@@ -153,18 +174,24 @@ export function readCandidate(
     if (value) extras[extra.name] = value;
   }
   const mobile = field(form, schema.wire.mobile, MAX_FIELD) ?? "";
-  const channel = form.get(CHANNEL_FIELD);
+  const callback = form.get(CHANNEL_FIELD) === "callback";
+  const consent = callback ? field(form, CONSENT_FIELD, MAX_CONSENT) : null;
   return {
     subject: field(form, schema.wire.subject, MAX_FIELD) ?? "",
     locality: field(form, schema.wire.locality, MAX_FIELD) ?? "",
     mobile: schema.mobileFormat === "e164" ? (normalizePhone(mobile) ?? mobile) : mobile,
     extras,
     placeSlug,
-    channel: channel === "callback" ? "callback" : "form",
+    channel: callback ? "callback" : "form",
+    ...(consent ? { consentText: consent } : {}),
   };
 }
 
 export function validateCandidate(schema: LeadSchema<string>, lead: LeadCandidate): string | null {
-  if (channelOf(lead) === "callback") return (schema.validateCallback ?? validateCallbackLead)(lead);
+  if (channelOf(lead) === "callback") {
+    // Not the brand's to waive: calling someone back needs their word for it.
+    if (!lead.consentText) return "consent to be called back";
+    return (schema.validateCallback ?? validateCallbackLead)(lead);
+  }
   return schema.validate?.(lead) ?? null;
 }

@@ -32,6 +32,7 @@ export interface LeadCaptureText {
   sms: string;
   callback: string;
   callbackLede: string;
+  /** Posted with the callback and kept with the lead word for word: what was agreed to. */
   callbackConsent: string;
   callbackSubmit: string;
   /** The WhatsApp and SMS message, `{need}` the need's label. */
@@ -66,7 +67,7 @@ const FR: LeadCaptureText = {
   sms: "SMS",
   callback: "Rappelez-moi",
   callbackLede: "Laissez votre numéro, nous vous rappelons.",
-  callbackConsent: "J’accepte d’être rappelé à ce numéro.",
+  callbackConsent: "J’accepte d’être rappelé·e à ce numéro au sujet de ma demande.",
   callbackSubmit: "Être rappelé",
   message: "Bonjour, j’ai besoin de : {need}.",
   messageGeneric: "Bonjour, je souhaite un devis.",
@@ -95,7 +96,7 @@ const EN: LeadCaptureText = {
   sms: "Text",
   callback: "Call me back",
   callbackLede: "Leave your number and we will call you back.",
-  callbackConsent: "I agree to be called back on this number.",
+  callbackConsent: "I agree to be called back on this number about my request.",
   callbackSubmit: "Call me back",
   message: "Hello, I need: {need}.",
   messageGeneric: "Hello, I would like a quote.",
