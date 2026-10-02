@@ -12,7 +12,9 @@ const files = (dir: string) =>
     .filter(f => /\.tsx?$/.test(f))
     .map(f => ({ path: `${dir}/${f}`, text: readFileSync(join(SRC, dir, f), "utf8") }));
 
-const CLIENT_ONLY = /\buse(State|Effect|Memo|Ref|Callback|Context|Pathname|Params|Reducer)\b|\bon[A-Z][A-Za-z]*=\{/;
+// A handler written here needs the client; one only handed on (`onSubmit={props.onSubmit}`)
+// is the caller's, and a server page that hands none on pays nothing.
+const CLIENT_ONLY = /\buse(State|Effect|Memo|Ref|Callback|Context|Pathname|Params|Reducer)\b|\bon[A-Z][A-Za-z]*=\{(?!(props\.)?on[A-Z][A-Za-z]*\})/;
 
 describe("the client boundary", () => {
   it("is on exactly the react modules that need it", () => {

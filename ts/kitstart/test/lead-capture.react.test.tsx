@@ -260,6 +260,25 @@ describe("LeadCapture's locality field", () => {
   });
 });
 
+describe("LeadCapture's anchor", () => {
+  it("is the whole card, head included; the forms keep ids of their own", () => {
+    document.body.innerHTML = renderToString(capture());
+    const card = document.getElementById("quote");
+    expect(card).toBeInstanceOf(HTMLDivElement);
+    expect(card).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.title);
+    expect(card?.contains(form("quote-form"))).toBe(true);
+    expect(card?.contains(form("quote-callback-form"))).toBe(true);
+    expect(document.getElementById("quote-callback")).toBeInstanceOf(HTMLDetailsElement);
+  });
+
+  it("follows the id it is given", () => {
+    document.body.innerHTML = renderToString(capture({ id: "devis" }));
+    expect(document.getElementById("devis")).toBeInstanceOf(HTMLDivElement);
+    expect(posted("devis-form")).toMatchObject({ form_id: "quote" });
+    expect(document.getElementById("devis-callback-form")).toBeInstanceOf(HTMLFormElement);
+  });
+});
+
 describe("LeadCapture's parts", () => {
   const PARTS = { control: "brand-control", label: "brand-label", field: "brand-field" } as const;
 
@@ -299,6 +318,23 @@ describe("LeadCapture's parts", () => {
   });
 });
 
+describe("LeadCapture's callback, opened or not", () => {
+  const details = () => screen.getByText("Rappelez-moi").closest("details");
+
+  it("opens where the brand says, whatever leads", () => {
+    vi.setSystemTime(FRIDAY_20H);
+    render(capture({ renderedAt: FRIDAY_20H, callbackOpen: false }));
+    expect(details()).not.toHaveAttribute("open");
+    // Still the channel that leads: the primary face.
+    expect(details()?.querySelector("summary")?.className).toContain("bg-primary");
+  });
+
+  it("can start open while the form leads", () => {
+    render(capture({ callbackOpen: true }));
+    expect(details()).toHaveAttribute("open");
+  });
+});
+
 describe("LeadCapture's placeholders and labels", () => {
   const text = { ...LEAD_CAPTURE_TEXT.fr, localityPlaceholder: "Code postal", phonePlaceholder: "06 12 34 56 78", namePlaceholder: "Votre nom" };
 
@@ -326,38 +362,81 @@ describe("LeadCapture's placeholders and labels", () => {
   });
 });
 
-describe("LeadCapture's anchor", () => {
-  it("is the whole card, head included; the forms keep ids of their own", () => {
-    document.body.innerHTML = renderToString(capture());
-    const card = document.getElementById("quote");
-    expect(card).toBeInstanceOf(HTMLDivElement);
-    expect(card).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.title);
-    expect(card?.contains(form("quote-form"))).toBe(true);
-    expect(card?.contains(form("quote-callback-form"))).toBe(true);
-    expect(document.getElementById("quote-callback")).toBeInstanceOf(HTMLDetailsElement);
+describe("LeadCapture's in-card success", () => {
+  const thanks = { ok: true, redirected: true, url: "http://localhost/fr/paris/thanks" };
+  let submit: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    submit = vi.spyOn(HTMLFormElement.prototype, "submit").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    submit.mockRestore();
+    vi.unstubAllGlobals();
   });
 
-  it("follows the id it is given", () => {
-    document.body.innerHTML = renderToString(capture({ id: "devis" }));
-    expect(document.getElementById("devis")).toBeInstanceOf(HTMLDivElement);
-    expect(posted("devis-form")).toMatchObject({ form_id: "quote" });
-    expect(document.getElementById("devis-callback-form")).toBeInstanceOf(HTMLFormElement);
+  async function send(id = "quote-form") {
+    const f = form(id);
+    for (const input of f.querySelectorAll<HTMLInputElement>("input[name=mobile], input[name=zip]")) fireEvent.change(input, { target: { value: input.name === "zip" ? "75011" : "06 12 34 56 78" } });
+    await act(async () => {
+      fireEvent.submit(f);
+      await Promise.resolve();
+    });
+  }
+
+  it("posts the form itself and shows the brand's state in place, focused", async () => {
+    const fetch = vi.fn(async () => thanks);
+    vi.stubGlobal("fetch", fetch);
+    render(capture({ name: { field: "name" }, done: sent => <p>Merci, on rappelle le {sent.phone} ({sent.channel})</p> }));
+    fireEvent.change(form().querySelector("input[name=name]") as HTMLInputElement, { target: { value: " Ana " } });
+    await send();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect(new URL(url).pathname).toBe("/quote");
+    expect(init.method).toBe("POST");
+    expect(Object.fromEntries(init.body as URLSearchParams)).toMatchObject({ job: "leak", zip: "75011", mobile: "06 12 34 56 78", name: " Ana ", form_id: "quote" });
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Merci, on rappelle le 06 12 34 56 78 (form)");
+    expect(document.activeElement).toBe(status);
+    expect(document.getElementById("quote")?.contains(status)).toBe(true);
+    expect(document.getElementById("quote-form")).toBeNull();
+    expect(submit).not.toHaveBeenCalled();
   });
-});
 
-describe("LeadCapture's callback, opened or not", () => {
-  const details = () => screen.getByText("Rappelez-moi").closest("details");
-
-  it("opens where the brand says, whatever leads", () => {
-    vi.setSystemTime(FRIDAY_20H);
-    render(capture({ renderedAt: FRIDAY_20H, callbackOpen: false }));
-    expect(details()).not.toHaveAttribute("open");
-    // Still the channel that leads: the primary face.
-    expect(details()?.querySelector("summary")?.className).toContain("bg-primary");
+  it("does the same for the callback", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => thanks));
+    const done = vi.fn(() => "C’est noté.");
+    render(capture({ done }));
+    await send("quote-callback-form");
+    expect(done).toHaveBeenCalledWith({ channel: "callback", phone: "06 12 34 56 78", name: null });
+    expect(screen.getByRole("status")).toHaveTextContent("C’est noté.");
   });
 
-  it("can start open while the form leads", () => {
-    render(capture({ callbackOpen: true }));
-    expect(details()).toHaveAttribute("open");
+  it("submits for real on any other answer, or none", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, redirected: true, url: "http://localhost/fr/paris#quote" })));
+    render(capture({ done: "Merci" }));
+    await send();
+    expect(submit).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("status")).toBeNull();
+    vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("offline"))));
+    await send();
+    await act(async () => Promise.resolve());
+    expect(submit).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaves the form to the browser without a `done`", async () => {
+    const fetch = vi.fn(async () => thanks);
+    vi.stubGlobal("fetch", fetch);
+    render(capture());
+    let prevented: boolean | undefined;
+    // Last on the way up, after React's: read what the form did, then keep
+    // jsdom from navigating, which it cannot.
+    const last = (e: Event) => {
+      prevented = e.defaultPrevented;
+      e.preventDefault();
+    };
+    window.addEventListener("submit", last);
+    act(() => void form().dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+    window.removeEventListener("submit", last);
+    expect(prevented).toBe(false);
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

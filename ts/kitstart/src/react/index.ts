@@ -18,6 +18,7 @@ export { Faq, type FaqPart, type FaqProps } from "./Faq";
 export { FormSelect, type FormSelectOption, type FormSelectPart, type FormSelectProps } from "./FormSelect";
 export { LangSwitch, withLang, type LangSwitchProps } from "./LangSwitch";
 export { LeadCapture, type LeadCapturePart, type LeadCaptureProps } from "./LeadCapture";
+export type { LeadSent } from "./use-lead-submit";
 export type { LeadCaptureLayout } from "./LeadCaptureNeed";
 export { MapFacade, type MapFacadePart, type MapFacadeProps } from "./MapFacade";
 export { PlaceDirectory, type PlaceDirectoryPart, type PlaceDirectoryProps } from "./PlaceDirectory";

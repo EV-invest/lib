@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, cn } from "@evinvest/uikit";
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { resolveChannels, type CaptureChannel } from "../core/channels";
 import type { LeadWire } from "../core/lead";
 import { fillText, openingText } from "../core/lead-capture-format";
@@ -15,9 +15,10 @@ import type { PartClassNames } from "./parts";
 import { QuoteFormShell } from "./QuoteFormShell";
 import { useHydrated, useNeed, useNow, useOpenOnHash } from "./use-lead-context";
 import { useLeadEvents } from "./use-lead-events";
+import { useLeadSubmit, type LeadSent } from "./use-lead-submit";
 
 export type LeadCapturePart =
-  | "root" | "head" | "title" | "lede" | "form" | "contact" | "submit" | "trust" | "privacy" | "opening" | "others"
+  | "root" | "head" | "title" | "lede" | "form" | "contact" | "submit" | "trust" | "privacy" | "opening" | "others" | "done"
   | "needs" | "need" | "summary" | FieldPart | ChannelPart;
 
 export interface LeadCaptureProps {
@@ -61,6 +62,13 @@ export interface LeadCaptureProps {
   labels?: "visible" | "hidden" | undefined;
   /** Whether the callback starts open; by default only when it is the channel that leads (the place is closed). */
   callbackOpen?: boolean | undefined;
+  /**
+   * The card once a lead is taken, in place of everything in it. With it, a
+   * script posts the form itself and shows this on the thanks page's 303;
+   * without a script, or on any other answer, the form posts as it always
+   * did. Without it, a submit goes to the thanks page.
+   */
+  done?: ReactNode | ((sent: LeadSent) => ReactNode);
   /** Replaces the title and lede — the brand's own heading. */
   head?: ReactNode;
   /** Beside the submit: a guarantee, a live rating. */
@@ -95,6 +103,10 @@ export function LeadCapture(props: LeadCaptureProps) {
   const [need, setNeed] = useNeed(props.need, needs.map(n => n.value), () => setEditing(false));
   const events = useLeadEvents(root, { formId, layout, experiment });
   useOpenOnHash(`${id}-callback`);
+  const [sent, onSubmit] = useLeadSubmit(props.done !== undefined, { mobile: wire.mobile, name: props.name?.field });
+  const doneRef = useRef<HTMLDivElement>(null);
+  // The form the focus was in is gone: the news takes it, and is read out.
+  useEffect(() => doneRef.current?.focus(), [sent]);
   const resolved = resolveChannels({ ...contact, hours: place.hours }, { now: new Date(useNow(renderedAt)), timeZone: props.timeZone, prefer: props.prefer });
   const opening = openingText(resolved.nextOpening, text, locale);
   const needLabel = needs.find(n => n.value === need)?.label;
@@ -136,6 +148,7 @@ export function LeadCapture(props: LeadCaptureProps) {
         opening={opening}
         text={text}
         experiment={experiment}
+        onSubmit={onSubmit}
         classNames={c}
       />
     ) : ch === "form" ? null : (
@@ -147,8 +160,19 @@ export function LeadCapture(props: LeadCaptureProps) {
   const contactShown = layout === "single" || (need !== undefined && !editing);
   const contactClass = contactShown ? "flex" : "hidden group-has-[[data-need-option]:checked]/lead:flex";
 
+  const rootProps = { id, className: cn("flex w-full flex-col gap-6", props.className, c?.root), "data-experiment": experiment?.name, "data-variant": experiment?.variant };
+  if (sent && props.done !== undefined) {
+    return (
+      <div ref={root} {...rootProps}>
+        <div ref={doneRef} role="status" tabIndex={-1} className={cn("outline-none", c?.done)}>
+          {typeof props.done === "function" ? props.done(sent) : props.done}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div ref={root} id={id} className={cn("flex w-full flex-col gap-6", props.className, c?.root)} data-experiment={experiment?.name} data-variant={experiment?.variant}>
+    <div ref={root} {...rootProps}>
       {props.head ?? (
         <div className={cn("flex flex-col gap-1", c?.head)}>
           <p className={cn("font-display text-2xl font-bold text-ink", c?.title)}>{text.title}</p>
@@ -156,7 +180,16 @@ export function LeadCapture(props: LeadCaptureProps) {
         </div>
       )}
       {lead !== "form" && channel(lead, true)}
-      <QuoteFormShell id={`${id}-form`} placeSlug={place.slug} locale={locale} renderedAt={renderedAt} honeypotLabel={text.honeypotLabel} formId={formId} className={cn("group/lead", c?.form)}>
+      <QuoteFormShell
+        id={`${id}-form`}
+        placeSlug={place.slug}
+        locale={locale}
+        renderedAt={renderedAt}
+        honeypotLabel={text.honeypotLabel}
+        formId={formId}
+        onSubmit={onSubmit}
+        className={cn("group/lead", c?.form)}
+      >
         <ExperimentFields experiment={experiment} />
         <NeedField
           layout={layout}

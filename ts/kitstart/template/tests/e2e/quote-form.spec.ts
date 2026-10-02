@@ -191,3 +191,20 @@ test("#quote is the whole card: the call bar's link lands on its head", async ({
   await expect(card.locator("details#quote-callback")).toHaveCount(1);
 });
 
+// `LeadCapture`'s `done` posts the form itself and trusts one answer: the
+// thanks page, reached through the 303. Held here against the real route.
+test("a scripted post of the form lands on the thanks page", async ({ page }) => {
+  await page.goto("/fr");
+  await expect(page.locator("#quote select")).toHaveCount(0);
+  const form = page.locator("#quote-form");
+  await form.getByLabel("Code postal").fill("75011");
+  await form.getByLabel("Téléphone").fill("0612345678");
+  const answer = await form.evaluate(async el => {
+    if (!(el instanceof HTMLFormElement)) throw new Error("not a form");
+    const body = new URLSearchParams();
+    for (const [key, value] of new FormData(el)) if (typeof value === "string") body.append(key, value);
+    const res = await fetch(el.action, { method: "POST", body });
+    return { ok: res.ok, redirected: res.redirected, path: new URL(res.url).pathname };
+  });
+  expect(answer).toEqual({ ok: true, redirected: true, path: "/fr/thanks" });
+});
