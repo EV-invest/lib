@@ -1,7 +1,7 @@
 /**
  * `@evinvest/kitstart/react` — the structural widgets every landing shares,
  * where behaviour matters more than look. Server components by default; only
- * `MapFacade`, `AnalyticsBoundary` and `FormSelect` are client modules, each its own file
+ * `MapFacade`, `AnalyticsBoundary`, `FormSelect` and `LeadCapture` are client modules, each its own file
  * with its own `"use client"`, so a page pays for what it renders.
  *
  * Styled with the kit's token roles only (`text-ink`, `border-border`,
@@ -17,6 +17,8 @@ export { Coverage, type CoveragePart, type CoverageProps } from "./Coverage";
 export { Faq, type FaqPart, type FaqProps } from "./Faq";
 export { FormSelect, type FormSelectOption, type FormSelectPart, type FormSelectProps } from "./FormSelect";
 export { LangSwitch, withLang, type LangSwitchProps } from "./LangSwitch";
+export { LeadCapture, type LeadCapturePart, type LeadCaptureProps } from "./LeadCapture";
+export type { LeadCaptureLayout } from "./LeadCaptureNeed";
 export { MapFacade, type MapFacadePart, type MapFacadeProps } from "./MapFacade";
 export { PlaceDirectory, type PlaceDirectoryPart, type PlaceDirectoryProps } from "./PlaceDirectory";
 export { PHONE_INPUT_PROPS, QuoteFormShell, type QuoteFormShellProps } from "./QuoteFormShell";

@@ -24,9 +24,9 @@ export interface ChannelFacts {
 
 export interface ChannelOptions {
   now: Date;
-  timeZone?: string;
+  timeZone?: string | undefined;
   /** Moved to the front when available — what a `default_channel` experiment sets. */
-  prefer?: CaptureChannel | null;
+  prefer?: CaptureChannel | null | undefined;
 }
 
 export interface ResolvedChannels {
