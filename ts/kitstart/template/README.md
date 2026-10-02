@@ -29,7 +29,9 @@ launch — `noindex` everywhere until `assets/card.toml` gets a `site`.
 10. `src/views/`: the brand's sections around the package's widgets.
 11. Tests: `tests/contract.test.ts` runs the landing contract; add the copy's
     own, the e2e sections (`tests/e2e`, baselines from CI on Linux) and set
-    `tests/bundle_budget.txt` from the first `npm run size`. `npm run lint` is
+    the target in `tests/bundle_budget.txt` from the first `npm run size`
+    (over it passes with a warning up to its tolerance, 20 % unless the file
+    says `tolerance <n>%`; past that, `size` fails). `npm run lint` is
     eslint (with the client-boundary rule) and steiger (FSD).
 12. `deploy/config.nix` (`TRUSTED_PROXY`, the leads volume), gitops. Without a
     domain the deploy is noindex.

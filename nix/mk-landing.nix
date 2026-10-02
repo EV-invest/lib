@@ -134,7 +134,8 @@ let
 
   # ── the one hard gate ──────────────────────────────────────────────────
   # First-load JS of a place page against the brand's committed budget, on
-  # the hermetic build: `nix flake check` fails over budget. The lib's own
+  # the hermetic build: `nix flake check` warns over the target and fails past
+  # its tolerance (kitstart's README, "The bundle budget"). The lib's own
   # copy of `kitstart-size`, run from source with type stripping.
   sizeCli = ../ts/kitstart/src/cli;
   sizeCmd = root: ''node --experimental-strip-types --disable-warning=ExperimentalWarning ${sizeCli}/kitstart-size.ts ${root} --route ${lib.escapeShellArg gatedRoute} --budget ${lib.escapeShellArg budgetFile}'';

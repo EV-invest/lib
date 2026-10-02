@@ -21,7 +21,7 @@ stays in the brand.
 | `@evinvest/kitstart/react` | either side | `LangSwitch`, `CallBar`, `StatusScreen`, `PlaceDirectory`, `AreaChips`, `Coverage`, `MapFacade` (client), `QuoteFormShell`, `FormSelect` (client), `LeadCapture` (client), `Faq`, `AnalyticsBoundary` (client), plus the kit and marketing pieces a landing composes with |
 | `@evinvest/kitstart/testing` | a brand's vitest | `describeLandingContract(site, { globalsCss, proxySource, text })`, `describeLeadStoreContract(name, harness)`, `storefrontPlace`, `serviceAreaPlace`, `testLead` |
 | `@evinvest/kitstart/testing/e2e` | a brand's Playwright | `defineSectionSuite(sections)`, `settle(page, selector)`, `BREAKPOINTS` |
-| bin `kitstart-size` | plain node | `kitstart-size [<build root>] [--route …] [--budget …]`: first-load JS of a place page against `tests/bundle_budget.txt`; fails closed |
+| bin `kitstart-size` | plain node | `kitstart-size [<build root>] [--route …] [--budget …]`: first-load JS of a place page against the target in `tests/bundle_budget.txt` (passes with a warning up to its tolerance, 20 % by default — see [The bundle budget](#the-bundle-budget)); fails closed |
 
 `vitest` and `@playwright/test` are not peers at all: they are the brand's
 own test runners, which it installs in its `devDependencies`. As peers —
@@ -77,6 +77,30 @@ landing = ev.lib.mkLanding {
   whose `resolved` 404s.
 - `container`: the OCI image on node-slim, `prodEnv` baked in.
 - `checks.bundle-budget`: `kitstart-size` on the Nix build.
+
+### The bundle budget
+
+`tests/bundle_budget.txt` holds the **target** — the gzip bytes of
+first-load JS the place page should weigh — and, optionally, how far over it
+a build may go:
+
+```
+# Why the number is what it is (comments are free).
+158000
+tolerance 20%
+```
+
+| Measured | `kitstart-size` |
+|---|---|
+| ≤ target | passes |
+| ≤ target × (1 + tolerance) | passes **with a warning**: the overshoot in bytes and %, and a `::warning::` annotation on GitHub Actions |
+| more | fails |
+
+Without a `tolerance` line the tolerance is 20 % — a file of one number, as
+every budget was before, is a target. The ceiling rounds down to a whole
+byte. The overshoot is meant to be paid back; changing the target or the
+tolerance is a deliberate commit, with a reason, as raising the budget was.
+`checks.bundle-budget` applies the same rule (no annotation in the sandbox).
 - `apps.test` (tsc — the app, then `e2eConfig` as its own project with its own
   `tsconfig.json` — lint, vitest, build, size, Playwright on the flake's
   pinned browsers), `accept-test` (Linux only), `size`, `dev`, `help`.
@@ -245,7 +269,8 @@ it is the plain POST to `/quote` it always was.
   `callback`, with the experiment; and on the server `lead_form_submit
   {form_id, channel}` with the posted experiment.
 - **Weight.** 5.6 KB gz of first-load JS on the template's place page
-  (157,287 → 162,938 B of its 164,000 B budget).
+  (157,287 → 162,968 B against its 158,000 B target: +3.1 %, a warning
+  within the 20 % tolerance).
 
 Tailwind v4 does not scan `node_modules`; the brand's `globals.css` names the
 package:
