@@ -57,12 +57,18 @@ describe("the lead schema", () => {
     expect(readCandidate(PLUMBING, form({ job: " hot_water ", zip: "63130", mobile: "0612345678" }), "royat")).toEqual({
       subject: "hot_water",
       locality: "63130",
-      // Kept in E.164: the panel, the mail and a dialler read one shape.
-      mobile: "+33612345678",
+      mobile: "0612345678",
       extras: {},
       placeSlug: "royat",
       channel: "form",
     });
+  });
+
+  it("keeps the mobile in E.164 when the brand asks, and as typed when it cannot read it", () => {
+    const e164 = { ...PLUMBING, mobileFormat: "e164" } as const;
+    expect(readCandidate(e164, form({ ...good, mobile: "06 12 34 56 78" }), null).mobile).toBe("+33612345678");
+    expect(readCandidate(e164, form({ ...good, mobile: " 06 12 " }), null).mobile).toBe("06 12");
+    expect(readCandidate(PLUMBING, form({ ...good, mobile: "06 12 34 56 78" }), null).mobile).toBe("06 12 34 56 78");
   });
 
   it("reads a brand's extras, capped at their own limit, and leaves out the empty ones", () => {
@@ -199,7 +205,7 @@ describe("a callback request", () => {
   it("is a lead with the callback channel, refused only for want of a number", async () => {
     const { d } = deps();
     // No job, no postcode: the brand's form rule would refuse it; the callback rule does not.
-    expect(await acceptLead(form(callback), "k", d)).toMatchObject({ kind: "stored", lead: { channel: "callback", mobile: "+33612345678", locality: "" } });
+    expect(await acceptLead(form(callback), "k", d)).toMatchObject({ kind: "stored", lead: { channel: "callback", mobile: "06 12 34 56 78", locality: "" } });
     expect(await acceptLead(form({ ...callback, mobile: "06 12" }), "k", d)).toMatchObject({ kind: "invalid", why: "a phone number to call back" });
   });
 
@@ -212,10 +218,6 @@ describe("a callback request", () => {
   it("is a form lead when the channel is absent or anything else", () => {
     expect(readCandidate(PLUMBING, form(good), null).channel).toBe("form");
     expect(readCandidate(PLUMBING, form({ ...good, channel: "sms" }), null).channel).toBe("form");
-  });
-
-  it("still lets the brand's form rule see a number it could not read, as typed", () => {
-    expect(readCandidate(PLUMBING, form({ ...good, mobile: " 06 12 " }), null).mobile).toBe("06 12");
   });
 });
 

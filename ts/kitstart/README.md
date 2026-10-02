@@ -226,8 +226,10 @@ it is the plain POST to `/quote` it always was.
   held to `lead.validateCallback` (a readable number, by default), not to the
   form's rule, and stored with its channel.
 - **Phone.** `type="tel"`, required, never masked. A number that does not read
-  as one gets a hint when the field is left; the server keeps it as typed. A
-  number it can read is stored in E.164 (`normalizePhone`).
+  as one gets a hint when the field is left; the server keeps it. With
+  `lead.mobileFormat: "e164"` a number it can read is stored as
+  `+33612345678` (`normalizePhone`); the default keeps it as typed, which is
+  what a brand's tests and tooling look rows up by.
 - **Events** (through `AnalyticsBoundary`'s sink; none outside one):
   `lead_form_view` (half in view, once), `lead_form_start` (first focus),
   `lead_form_field_error {field}` (the browser refused it, or the phone hint
