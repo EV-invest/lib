@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { contactOf, createAcceptLead, placeUrl, RateLimiter, type Place, type StatusCopy, type StatusScreenText } from "../src/index";
+import { contactOf, createAcceptLead, placeUrl, RateLimiter, type OpeningHours, type Place, type StatusCopy, type StatusScreenText } from "../src/index";
 import { AreaChips, CallBar, Coverage, Faq, LangSwitch, PlaceDirectory, QuoteFormShell, StatusScreen, withLang } from "../src/react/index";
 import { fixtureSite } from "./support/fixtures";
 
@@ -58,6 +58,30 @@ describe("CallBar", () => {
     expect(screen.queryByText("☎")).toBeNull();
     expect(screen.queryByText("WhatsApp")).toBeNull();
     expect(screen.getByText("Devis")).toBeInTheDocument();
+  });
+});
+
+describe("CallBar on the channel resolver", () => {
+  const WEEKDAYS: readonly OpeningHours[] = [{ days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], opens: "08:00", closes: "19:00" }];
+  // Paris is UTC+2 in October 2026.
+  const MONDAY_10H = new Date("2026-10-05T08:00:00Z").getTime();
+  const FRIDAY_20H = new Date("2026-10-09T18:00:00Z").getTime();
+  const MOBILE = "+33 6 12 34 56 78";
+  const copy = { locale: "fr" as const, f: {}, t: { callLabel: () => "Appeler", whatsappMessage: () => "Bonjour", whatsappShort: "WhatsApp", ctaShort: "Devis" } };
+  const bar = (now: number) => (
+    <CallBar copy={copy} phone={MOBILE} whatsapp={MOBILE} quoteHref="/fr#quote" label="Contact" hours={WEEKDAYS} now={now} callback={{ href: "/fr#quote-callback", label: "Rappel" }} />
+  );
+  const order = () => [...document.querySelectorAll("nav a")].map(a => a.getAttribute("aria-label") ?? a.textContent);
+
+  it("leads with the call while open, and with the callback, filled, while closed", () => {
+    const { unmount } = render(bar(MONDAY_10H));
+    expect(order()).toEqual(["Appeler", "WhatsApp", "Devis", "Rappel"]);
+    unmount();
+    render(bar(FRIDAY_20H));
+    expect(order()).toEqual(["Rappel", "WhatsApp", "Devis", "Appeler"]);
+    expect(screen.getByText("Rappel")).toHaveAttribute("data-intent", "callback");
+    expect(screen.getByText("Rappel").className).toContain("bg-primary");
+    expect(screen.getByText("Devis").className).not.toContain("bg-primary");
   });
 });
 
