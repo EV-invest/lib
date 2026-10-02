@@ -4,10 +4,21 @@ import { channelHref, type CaptureChannel } from "../core/channels";
 import { CHANNEL_FIELD, CONSENT_FIELD } from "../core/lead";
 import type { LeadCaptureText } from "../core/lead-capture-text";
 import type { FieldPart } from "./LeadCaptureFields";
-import type { PartClassNames } from "./parts";
+import { partWithLeading, type PartClassNames } from "./parts";
 import { PHONE_INPUT_PROPS, QuoteFormShell } from "./QuoteFormShell";
 
-export type ChannelPart = "channel" | "primary" | "callback" | "consent";
+/**
+ * `channel` and `primary` dress every way out, the callback's summary
+ * included; the `callback*` parts are the callback's own, after them.
+ */
+export type ChannelPart = "channel" | "primary" | "callback" | "callbackSummary" | "callbackForm" | "callbackLede" | "callbackSubmit" | "consent";
+
+/**
+ * A whole-pixel line under a brand's own type size: tailwind-merge drops a
+ * size's line height for nothing, and a 15 px face at the page's 1.5 is a
+ * 52.5 px button that puts every band below it off the pixel grid.
+ */
+const CHANNEL_LEADING = "leading-6";
 
 export interface Experiment {
   name: string;
@@ -50,7 +61,7 @@ export function ChannelLink(props: {
       href={href}
       variant={primary ? "primary" : "outline"}
       size="touch"
-      className={cn(primary ? "w-full" : "flex-1", c?.channel, primary && c?.primary)}
+      className={partWithLeading(primary ? "w-full" : "flex-1", CHANNEL_LEADING, cn(c?.channel, primary && c?.primary) || undefined)}
       data-intent={channel === "sms" ? "sms" : undefined}
       data-experiment={experiment?.name}
       data-variant={experiment?.variant}
@@ -65,10 +76,13 @@ export function ChannelLink(props: {
  * same `/quote` with `channel=callback` — a lead like any other, without a
  * script. A `<details>` so it opens without one too; open from the start when
  * it is the channel that leads (the place is closed), or when the page is
- * opened at its id (`#quote-callback`, the call bar's link).
+ * opened at its id (`#quote-callback`, the call bar's link). A brand may
+ * choose `open` itself; it is still the leading channel's face.
  */
 export function CallbackForm(props: {
   id: string;
+  /** The channel that leads: the primary face. */
+  primary: boolean;
   open: boolean;
   formId: string;
   placeSlug: string | null;
@@ -81,20 +95,35 @@ export function CallbackForm(props: {
   experiment: Experiment | undefined;
   classNames?: PartClassNames<ChannelPart | FieldPart> | undefined;
 }) {
-  const { id, open, formId, placeSlug, locale, renderedAt, mobileName, subject, opening, text, experiment, classNames: c } = props;
+  const { id, primary, open, formId, placeSlug, locale, renderedAt, mobileName, subject, opening, text, experiment, classNames: c } = props;
   return (
     <details id={id} open={open} className={cn("w-full", c?.callback)}>
+      {/* A block, not the button's inline-flex: an inline box sits in a line box
+          of the details' own, whose strut and baseline add height to the closed
+          callback. */}
       <summary
         data-intent="callback"
-        className={buttonVariants({ variant: open ? "primary" : "outline", size: "touch", className: cn("w-full list-none [&::-webkit-details-marker]:hidden", c?.channel, open && c?.primary) })}
+        className={partWithLeading(
+          buttonVariants({ variant: primary ? "primary" : "outline", size: "touch", className: "flex w-full list-none [&::-webkit-details-marker]:hidden" }),
+          CHANNEL_LEADING,
+          cn(c?.channel, primary && c?.primary, c?.callbackSummary) || undefined,
+        )}
       >
         {text.callback}
       </summary>
-      <QuoteFormShell id={`${id}-form`} placeSlug={placeSlug} locale={locale} renderedAt={renderedAt} honeypotLabel={text.honeypotLabel} formId={formId} className="mt-4 gap-4">
+      <QuoteFormShell
+        id={`${id}-form`}
+        placeSlug={placeSlug}
+        locale={locale}
+        renderedAt={renderedAt}
+        honeypotLabel={text.honeypotLabel}
+        formId={formId}
+        className={cn("mt-4 gap-4", c?.callbackForm)}
+      >
         <input type="hidden" name={CHANNEL_FIELD} value="callback" />
         {subject && <input type="hidden" name={subject.name} value={subject.value} />}
         <ExperimentFields experiment={experiment} />
-        <p className="text-ink-soft">{opening ?? text.callbackLede}</p>
+        <p className={cn("text-ink-soft", c?.callbackLede)}>{opening ?? text.callbackLede}</p>
         <div className={cn("flex flex-col gap-2", c?.field)}>
           <FieldLabel htmlFor={`${id}-phone`} className={c?.label}>
             {text.phoneLabel}
@@ -117,7 +146,7 @@ export function CallbackForm(props: {
           <input type="checkbox" name={CONSENT_FIELD} value={text.callbackConsent} required data-lead-field="consent" className="mt-0.5 size-5 shrink-0 accent-primary" />
           <span>{text.callbackConsent}</span>
         </label>
-        <Button type="submit" size="touch" className="w-full">
+        <Button type="submit" size="touch" className={cn("w-full", c?.callbackSubmit)}>
           {text.callbackSubmit}
         </Button>
       </QuoteFormShell>
