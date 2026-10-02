@@ -1,5 +1,5 @@
 import type { AnalyticsSink } from "@evinvest/analytics";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -279,4 +279,31 @@ describe("LeadCapture's parts", () => {
     expect(callback.querySelector("input[name=mobile]")?.parentElement).toHaveClass("brand-field");
   });
 
+});
+
+describe("LeadCapture's placeholders and labels", () => {
+  const text = { ...LEAD_CAPTURE_TEXT.fr, localityPlaceholder: "Code postal", phonePlaceholder: "06 12 34 56 78", namePlaceholder: "Votre nom" };
+
+  it("shows the text's placeholders, none by default", () => {
+    render(capture({ text, name: { field: "name" } }));
+    expect(form("quote").querySelector("input[name=zip]")).toHaveAttribute("placeholder", "Code postal");
+    expect(form("quote").querySelector("input[name=mobile]")).toHaveAttribute("placeholder", "06 12 34 56 78");
+    expect(form("quote").querySelector("input[name=name]")).toHaveAttribute("placeholder", "Votre nom");
+    expect(form("quote-callback-form").querySelector("input[name=mobile]")).toHaveAttribute("placeholder", "06 12 34 56 78");
+    document.body.innerHTML = "";
+    render(capture());
+    expect(document.querySelectorAll("input[placeholder]")).toHaveLength(0);
+  });
+
+  it("hides the labels from sight only: every field keeps its name", () => {
+    render(capture({ text, labels: "hidden", name: { field: "name" }, classNames: { label: "brand-label" } }));
+    const f = within(form("quote"));
+    for (const label of [LEAD_CAPTURE_TEXT.fr.localityLabel, LEAD_CAPTURE_TEXT.fr.phoneLabel, `${LEAD_CAPTURE_TEXT.fr.nameLabel} (facultatif)`]) {
+      expect(f.getByLabelText(label)).toBeInstanceOf(HTMLInputElement);
+      expect(f.getByText(label)).toHaveClass("sr-only", "brand-label");
+    }
+    expect(f.getByRole("combobox", { name: LEAD_CAPTURE_TEXT.fr.needLabel })).toBeInTheDocument();
+    expect(within(form("quote-callback-form")).getByLabelText(LEAD_CAPTURE_TEXT.fr.phoneLabel)).toBeInstanceOf(HTMLInputElement);
+    expect(within(form("quote-callback-form")).getByText(LEAD_CAPTURE_TEXT.fr.phoneLabel)).toHaveClass("sr-only");
+  });
 });

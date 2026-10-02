@@ -50,6 +50,11 @@ export interface LeadCaptureProps {
   /** The form's id, the anchor a call bar links to (`#quote`); the callback's is `<id>-callback`. */
   id?: string | undefined;
   text: LeadCaptureText;
+  /**
+   * `hidden`: every field's label for assistive technology only (`sr-only`) —
+   * for a design that draws placeholders instead (`text.*Placeholder`).
+   */
+  labels?: "visible" | "hidden" | undefined;
   /** Replaces the title and lede — the brand's own heading. */
   head?: ReactNode;
   /** Beside the submit: a guarantee, a live rating. */
@@ -75,8 +80,9 @@ function localitySuggestions(place: Place<string>): string[] {
  * script it is the plain POST to `/quote` it always was.
  */
 export function LeadCapture(props: LeadCaptureProps) {
-  const { place, contact, locale, renderedAt, wire, needs, layout = "single", text, classNames: c } = props;
+  const { place, contact, locale, renderedAt, wire, needs, layout = "single", text } = props;
   const { formId = "quote", id = "quote", experiment } = props;
+  const c = props.labels === "hidden" ? { ...props.classNames, label: cn("sr-only", props.classNames?.label) } : props.classNames;
   const root = useRef<HTMLDivElement>(null);
   const hydrated = useHydrated();
   const [editing, setEditing] = useState(false);
@@ -161,9 +167,21 @@ export function LeadCapture(props: LeadCaptureProps) {
           classNames={c}
         />
         <div className={cn("flex-col gap-5", contactClass, c?.contact)}>
-          <LocalityField name={wire.locality} label={text.localityLabel} servedLabel={text.servedLabel} served={localitySuggestions(place)} required={props.locality !== "optional"} optional={text.optional} hydrated={hydrated} classNames={c} />
-          <PhoneField name={wire.mobile} label={text.phoneLabel} hint={text.phoneHint} onSoftError={() => events.fieldError("phone")} classNames={c} />
-          {props.name && <NameField name={props.name.field} label={text.nameLabel} required={props.name.required ?? false} optional={text.optional} classNames={c} />}
+          <LocalityField
+            name={wire.locality}
+            label={text.localityLabel}
+            servedLabel={text.servedLabel}
+            served={localitySuggestions(place)}
+            placeholder={text.localityPlaceholder}
+            required={props.locality !== "optional"}
+            optional={text.optional}
+            hydrated={hydrated}
+            classNames={c}
+          />
+          <PhoneField name={wire.mobile} label={text.phoneLabel} hint={text.phoneHint} placeholder={text.phonePlaceholder} onSoftError={() => events.fieldError("phone")} classNames={c} />
+          {props.name && (
+            <NameField name={props.name.field} label={text.nameLabel} placeholder={text.namePlaceholder} required={props.name.required ?? false} optional={text.optional} classNames={c} />
+          )}
           {props.extras}
           <div className={cn("flex flex-col gap-3", c?.trust)}>
             <Button type="submit" size="touch" className={cn("w-full", c?.submit)}>

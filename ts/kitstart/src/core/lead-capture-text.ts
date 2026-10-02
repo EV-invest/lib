@@ -21,6 +21,14 @@ export interface LeadCaptureText {
   /** The soft check under a number that does not read as one; it never blocks. */
   phoneHint: string;
   nameLabel: string;
+  /**
+   * Shown in the empty field. None by default: a placeholder is not a label —
+   * the label stays (visually hidden under `labels="hidden"`) for a brand
+   * whose design draws placeholders instead.
+   */
+  localityPlaceholder?: string | undefined;
+  phonePlaceholder?: string | undefined;
+  namePlaceholder?: string | undefined;
   /** After an optional field's label. */
   optional: string;
   submit: string;
