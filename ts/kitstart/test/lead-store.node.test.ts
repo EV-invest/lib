@@ -125,18 +125,22 @@ const columnsOf = (path: string): unknown[] => {
   return names;
 };
 
-const ALL = ["id", "job", "zip", "mobile", "at", "location_id", "spam_verdict", "extras", "channel"];
+const ALL = ["id", "job", "zip", "mobile", "at", "location_id", "spam_verdict", "extras", "channel", "consent_at", "consent_text"];
 
 describe("the sqlite store's migrations", () => {
-  it("keeps the channel; a row from before the field reads as no channel, which is a form", async () => {
+  it("keeps the channel and a callback's consent; a row from before has neither", async () => {
     const path = tmp();
     unversioned(path, []);
     const store = openSqliteLeadStore(path);
-    await store.insert(lead({ channel: "callback" }));
+    await store.insert(lead({ channel: "callback", consent: { text: "J’accepte.", at: "2026-10-03T10:00:00.000Z" } }));
     await store.insert(lead());
     await store.close();
     const check = new (sqlite().DatabaseSync)(path);
-    expect(check.prepare("SELECT channel FROM leads ORDER BY id").all()).toEqual([{ channel: null }, { channel: "callback" }, { channel: "form" }]);
+    expect(check.prepare("SELECT channel, consent_at, consent_text FROM leads ORDER BY id").all()).toEqual([
+      { channel: null, consent_at: null, consent_text: null },
+      { channel: "callback", consent_at: "2026-10-03T10:00:00.000Z", consent_text: "J’accepte." },
+      { channel: "form", consent_at: null, consent_text: null },
+    ]);
     check.close();
   });
 

@@ -258,11 +258,11 @@ describe("the quote route", () => {
       now: () => NOW,
       log: { warn: vi.fn(), error: vi.fn() },
     });
-    await counted(post({ channel: "callback", experiment: "lead_layout", variant: "single" }));
+    await counted(post({ channel: "callback", consent: "J’accepte d’être rappelé·e.", experiment: "lead_layout", variant: "single" }));
     const [, body] = beacon.mock.calls[0] ?? [];
     const event = JSON.parse(body ?? "null");
     expect(event).toMatchObject({ event: "lead_form_submit", properties: { form_id: "quote", channel: "callback", experiment: "lead_layout", variant: "single", location_id: "royat" } });
-    expect(body).not.toMatch(/0612345678|\+33612345678|63130/);
+    expect(body).not.toMatch(/0612345678|\+33612345678|63130|J’accepte|consent/);
     vi.unstubAllGlobals();
   });
 });

@@ -42,11 +42,12 @@ export function describeLeadStoreContract(name: string, harness: () => LeadStore
         lead({ spamVerdict: "too-fast" }),
         lead({ spamVerdict: "rate-limited", extras: { surface_m2: "40", notes: "3e étage, digicode 12B" } }),
         lead({ subject: "x".repeat(200), locality: "Clermont-Ferrand — 63000" }),
-        lead({ channel: "callback", subject: "", locality: "" }),
+        lead({ channel: "callback", subject: "", locality: "", consent: { text: "J’accepte d’être rappelé·e.", at: "2026-10-03T10:00:00.000Z" } }),
+        lead({ channel: "callback", consent: { text: "x".repeat(500), at: "2026-10-03T10:00:00.000Z" } }),
       ]) {
         expect(await store.insert(variant)).toBeGreaterThan(0);
       }
-      expect(await store.count()).toBe(5);
+      expect(await store.count()).toBe(6);
       await store.close();
     });
 

@@ -59,9 +59,14 @@ const STEPS: readonly ((db: DatabaseSync) => void)[] = [
   db => db.exec("ALTER TABLE leads ADD COLUMN spam_verdict TEXT"),
   // 4 — the brand's extra fields, as a JSON object; `NULL` when there are none.
   db => db.exec("ALTER TABLE leads ADD COLUMN extras TEXT"),
-  // 5 — how the lead was asked for (`form`, `callback`). Nullable: a row from
-  // before the field is a form lead, and `NULL` says so without rewriting it.
-  db => db.exec("ALTER TABLE leads ADD COLUMN channel TEXT"),
+  // 5 — how the lead was asked for (`form`, `callback`), and a callback's
+  // consent: when the server accepted it and the sentence shown. Nullable: a
+  // row from before is a form lead, and a form lead has no consent to keep.
+  db => {
+    db.exec("ALTER TABLE leads ADD COLUMN channel TEXT");
+    db.exec("ALTER TABLE leads ADD COLUMN consent_at TEXT");
+    db.exec("ALTER TABLE leads ADD COLUMN consent_text TEXT");
+  },
 ];
 
 if (STEPS.length !== LEAD_SCHEMA_VERSION) {
@@ -89,7 +94,7 @@ function recognise(db: DatabaseSync): number {
     throw new Error(`leads: an unrecognised table (${columns.join(", ")}); refusing to migrate it`);
   }
   let at = 1;
-  for (const [step, added] of [[2, "location_id"], [3, "spam_verdict"], [4, "extras"], [5, "channel"]] as const) {
+  for (const [step, added] of [[2, "location_id"], [3, "spam_verdict"], [4, "extras"], [5, "consent_text"]] as const) {
     if (!columns.includes(added)) break;
     at = step;
   }
@@ -150,14 +155,24 @@ export function openSqliteLeadStore(path: string): SqliteLeadStore {
     throw error;
   }
   const insert = db.prepare(
-    "INSERT INTO leads (job, zip, mobile, location_id, spam_verdict, extras, channel) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id",
+    "INSERT INTO leads (job, zip, mobile, location_id, spam_verdict, extras, channel, consent_at, consent_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
   );
   const count = db.prepare("SELECT COUNT(*) AS n FROM leads");
   return {
     async insert(lead) {
       const extras = Object.keys(lead.extras).length > 0 ? JSON.stringify(lead.extras) : null;
       return integer(
-        insert.get(lead.subject, lead.locality, lead.mobile, lead.placeSlug, lead.spamVerdict, extras, channelOf(lead)),
+        insert.get(
+          lead.subject,
+          lead.locality,
+          lead.mobile,
+          lead.placeSlug,
+          lead.spamVerdict,
+          extras,
+          channelOf(lead),
+          lead.consent?.at ?? null,
+          lead.consent?.text ?? null,
+        ),
         "id",
       );
     },

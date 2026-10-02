@@ -92,7 +92,13 @@ async function accept<L extends string, P extends string>(
     now: deps.now,
     limiter: deps.limiter,
   });
-  const lead: Lead = { ...candidate, spamVerdict: verdict === "ok" ? null : verdict };
+  const { consentText, ...rest } = candidate;
+  const lead: Lead = {
+    ...rest,
+    spamVerdict: verdict === "ok" ? null : verdict,
+    // Stamped by the server: the moment it accepted the consent with the lead.
+    ...(consentText ? { consent: { text: consentText, at: new Date(deps.now).toISOString() } } : {}),
+  };
 
   let id: number;
   try {

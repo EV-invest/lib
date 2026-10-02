@@ -97,7 +97,10 @@ describe("LeadCapture without a script", () => {
     document.body.innerHTML = renderToString(capture({ need: "leak" }));
     const callback = form("quote-callback-form");
     expect(posted("quote-callback-form")).toMatchObject({ channel: "callback", job: "leak", location: "paris" });
-    expect(callback.querySelector("input[type=checkbox]")).toBeRequired();
+    const consent = callback.querySelector("input[type=checkbox]");
+    expect(consent).toBeRequired();
+    expect(consent).toHaveAttribute("name", "consent");
+    expect(consent).toHaveAttribute("value", LEAD_CAPTURE_TEXT.fr.callbackConsent);
     expect(callback.querySelector("input[name=zip]")).toBeNull();
   });
 });

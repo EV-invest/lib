@@ -135,13 +135,19 @@ async function smoke() {
     if (row?.zip !== "75011" || row?.location_id !== "paris" || row?.spam_verdict !== null || row?.channel !== "form") throw new Error(`the lead row is wrong: ${JSON.stringify(row)}`);
     console.log("✓ the lead is in the store, unflagged");
     // A callback is a phone and a consent: no postcode, and still a lead.
-    const callback = new URLSearchParams({ location: "paris", locale: "fr", form_id: "quote", t: String(Date.now() - 10_000), hp_ref: "", channel: "callback", mobile: "07 12 34 56 78" });
-    await expect("a callback posts without JavaScript", "/quote", { method: "POST", body: callback }, 303, r => r.headers.get("location") === "/fr/thanks");
+    // A callback is a phone and a consent: no postcode, and still a lead —
+    // but never without the consent, which the row keeps word for word.
+    const said = "J’accepte d’être rappelé·e à ce numéro au sujet de ma demande.";
+    const callback = (fields) => new URLSearchParams({ location: "paris", locale: "fr", form_id: "quote", t: String(Date.now() - 10_000), hp_ref: "", channel: "callback", ...fields });
+    await expect("a callback without consent goes back to the form", "/quote", { method: "POST", body: callback({ mobile: "07 00 00 00 01" }) }, 303, r => r.headers.get("location") === "/fr#quote");
+    await expect("a callback posts without JavaScript", "/quote", { method: "POST", body: callback({ mobile: "07 12 34 56 78", consent: said }) }, 303, r => r.headers.get("location") === "/fr/thanks");
     const again = new DatabaseSync(join(dir, "data/leads.db"), { readOnly: true });
-    const called = again.prepare("SELECT zip, channel FROM leads WHERE mobile = ?").get("+33712345678");
+    const called = again.prepare("SELECT zip, channel, consent_at, consent_text FROM leads WHERE mobile = ?").get("+33712345678");
+    const refused = again.prepare("SELECT COUNT(*) AS n FROM leads WHERE mobile = ?").get("+33700000001");
     again.close();
-    if (called?.channel !== "callback" || called?.zip !== "") throw new Error(`the callback row is wrong: ${JSON.stringify(called)}`);
-    console.log("✓ the callback is in the store, marked");
+    if (called?.channel !== "callback" || called?.zip !== "" || called?.consent_text !== said || !/^\d{4}-\d\d-\d\dT/.test(String(called?.consent_at))) throw new Error(`the callback row is wrong: ${JSON.stringify(called)}`);
+    if (refused?.n !== 0) throw new Error("a callback without consent was stored");
+    console.log("✓ the callback is in the store, with its consent; one without is not");
     await expect("the thank-you page", "/fr/thanks", {}, 200);
     await expect("the OG card", "/og?l=paris&lang=fr", {}, 200, r => r.headers.get("content-type") === "image/png");
   } finally {

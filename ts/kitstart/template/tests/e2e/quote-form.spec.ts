@@ -112,7 +112,7 @@ async function askForCallback(page: Page) {
   if (!(await details.evaluate(d => (d instanceof HTMLDetailsElement ? d.open : false)))) await details.locator("summary").click();
   const form = page.locator("#quote-callback-form");
   await form.getByLabel("Téléphone").fill("07 12 34 56 78");
-  await form.getByLabel("J’accepte d’être rappelé à ce numéro.").check();
+  await form.getByLabel("J’accepte d’être rappelé·e à ce numéro au sujet de ma demande.").check();
   const posted = posts(page);
   await form.getByRole("button", { name: "Être rappelé" }).click();
   return new URLSearchParams((await posted).postData() ?? "");
@@ -128,6 +128,8 @@ for (const javaScriptEnabled of [false, true]) {
       expect(body.get("channel")).toBe("callback");
       expect(body.get("mobile")).toBe("07 12 34 56 78");
       expect(body.get("location")).toBe("paris");
+      // The sentence shown is what is posted, and what the lead keeps.
+      expect(body.get("consent")).toBe("J’accepte d’être rappelé·e à ce numéro au sujet de ma demande.");
       await expect(page).toHaveURL(/\/fr\/thanks$/);
     });
 
@@ -139,7 +141,7 @@ for (const javaScriptEnabled of [false, true]) {
       await form.getByLabel("Téléphone").fill("07 12 34 56 78");
       await form.getByRole("button", { name: "Être rappelé" }).click();
       await expect(page).toHaveURL(/\/fr$/);
-      expect(await form.getByLabel("J’accepte d’être rappelé à ce numéro.").evaluate(el => (el instanceof HTMLInputElement ? el.validity.valueMissing : false))).toBe(true);
+      expect(await form.getByLabel("J’accepte d’être rappelé·e à ce numéro au sujet de ma demande.").evaluate(el => (el instanceof HTMLInputElement ? el.validity.valueMissing : false))).toBe(true);
     });
   });
 }

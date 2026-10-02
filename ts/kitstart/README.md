@@ -223,9 +223,14 @@ it is the plain POST to `/quote` it always was.
   `callback={{ href: view.href("#quote-callback"), label }}`); without
   `hours` it is unchanged.
 - **Callback.** A `<details>` with its own small form: the phone and a native,
-  required consent, posted to `/quote` with `channel=callback`. The lead is
-  held to `lead.validateCallback` (a readable number, by default), not to the
-  form's rule, and stored with its channel.
+  required consent, posted to `/quote` with `channel=callback`. The consent's
+  value is the sentence it shows (`text.callbackConsent`, in the page's
+  language); the server refuses a callback without it — back to the form, as
+  any invalid lead, whatever the brand's rule — and stores it with the lead:
+  `consent_text` word for word, `consent_at` when the server accepted it
+  (`Lead.consent`). Then the lead is held to `lead.validateCallback` (a
+  readable number, by default), not to the form's rule. The consent goes into
+  no event; a webhook body built by the brand should leave `lead.consent` out.
 - **Phone.** `type="tel"`, required, never masked. A number that does not read
   as one gets a hint when the field is left; the server keeps it. With
   `lead.mobileFormat: "e164"` a number it can read is stored as

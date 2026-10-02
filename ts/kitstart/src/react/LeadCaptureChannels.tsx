@@ -1,7 +1,7 @@
 import { Button, buttonVariants, cn, FieldLabel, Input } from "@evinvest/uikit";
 import { EXPERIMENT_FIELD, VARIANT_FIELD } from "../core/accept";
 import { channelHref, type CaptureChannel } from "../core/channels";
-import { CHANNEL_FIELD } from "../core/lead";
+import { CHANNEL_FIELD, CONSENT_FIELD } from "../core/lead";
 import type { LeadCaptureText } from "../core/lead-capture-text";
 import type { PartClassNames } from "./parts";
 import { PHONE_INPUT_PROPS, QuoteFormShell } from "./QuoteFormShell";
@@ -99,8 +99,9 @@ export function CallbackForm(props: {
           <Input id={`${id}-phone`} name={mobileName} size="lg" {...PHONE_INPUT_PROPS} enterKeyHint="send" required data-lead-field="phone" />
         </div>
         <label className={cn("flex min-h-11 items-start gap-3 text-sm text-ink", c?.consent)}>
-          {/* Native, so `required` holds without a script; the kit's checkbox is a button. */}
-          <input type="checkbox" required data-lead-field="consent" className="mt-0.5 size-5 shrink-0 accent-primary" />
+          {/* Native, so `required` holds without a script (the kit's checkbox is a
+              button); its value is the sentence beside it, which the lead keeps. */}
+          <input type="checkbox" name={CONSENT_FIELD} value={text.callbackConsent} required data-lead-field="consent" className="mt-0.5 size-5 shrink-0 accent-primary" />
           <span>{text.callbackConsent}</span>
         </label>
         <Button type="submit" size="touch" className="w-full">
