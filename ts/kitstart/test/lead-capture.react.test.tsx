@@ -279,6 +279,24 @@ describe("LeadCapture's parts", () => {
     expect(callback.querySelector("input[name=mobile]")?.parentElement).toHaveClass("brand-field");
   });
 
+  it("dresses the callback through its own parts, after the channel's", () => {
+    const parts = { channel: "brand-channel", callbackSummary: "brand-summary", callbackForm: "brand-form", callbackLede: "brand-lede", callbackSubmit: "brand-submit", consent: "brand-consent" };
+    render(capture({ classNames: parts }));
+    const summary = document.querySelector("summary");
+    expect(summary).toHaveClass("brand-channel", "brand-summary");
+    expect(form("quote-callback-form")).toHaveClass("brand-form");
+    expect(screen.getByText(LEAD_CAPTURE_TEXT.fr.callbackLede)).toHaveClass("brand-lede");
+    expect(screen.getByRole("button", { name: LEAD_CAPTURE_TEXT.fr.callbackSubmit })).toHaveClass("brand-submit");
+  });
+
+  it("closes the callback on a whole line: a block with its own line height, unless the brand sets one", () => {
+    render(capture({ classNames: { channel: "text-[15px]" } }));
+    expect(document.querySelector("summary")).toHaveClass("flex", "leading-6", "text-[15px]");
+    expect(document.querySelector("summary")).not.toHaveClass("inline-flex");
+    document.body.innerHTML = "";
+    render(capture({ classNames: { callbackSummary: "text-[15px]/[22px]" } }));
+    expect(document.querySelector("summary")).not.toHaveClass("leading-6");
+  });
 });
 
 describe("LeadCapture's placeholders and labels", () => {
@@ -324,5 +342,22 @@ describe("LeadCapture's anchor", () => {
     expect(document.getElementById("devis")).toBeInstanceOf(HTMLDivElement);
     expect(posted("devis-form")).toMatchObject({ form_id: "quote" });
     expect(document.getElementById("devis-callback-form")).toBeInstanceOf(HTMLFormElement);
+  });
+});
+
+describe("LeadCapture's callback, opened or not", () => {
+  const details = () => screen.getByText("Rappelez-moi").closest("details");
+
+  it("opens where the brand says, whatever leads", () => {
+    vi.setSystemTime(FRIDAY_20H);
+    render(capture({ renderedAt: FRIDAY_20H, callbackOpen: false }));
+    expect(details()).not.toHaveAttribute("open");
+    // Still the channel that leads: the primary face.
+    expect(details()?.querySelector("summary")?.className).toContain("bg-primary");
+  });
+
+  it("can start open while the form leads", () => {
+    render(capture({ callbackOpen: true }));
+    expect(details()).toHaveAttribute("open");
   });
 });

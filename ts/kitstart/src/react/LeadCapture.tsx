@@ -59,6 +59,8 @@ export interface LeadCaptureProps {
    * for a design that draws placeholders instead (`text.*Placeholder`).
    */
   labels?: "visible" | "hidden" | undefined;
+  /** Whether the callback starts open; by default only when it is the channel that leads (the place is closed). */
+  callbackOpen?: boolean | undefined;
   /** Replaces the title and lede — the brand's own heading. */
   head?: ReactNode;
   /** Beside the submit: a guarantee, a live rating. */
@@ -123,7 +125,8 @@ export function LeadCapture(props: LeadCaptureProps) {
       <CallbackForm
         key={ch}
         id={`${id}-callback`}
-        open={primary}
+        primary={primary}
+        open={props.callbackOpen ?? primary}
         formId={formId}
         placeSlug={place.slug}
         locale={locale}
