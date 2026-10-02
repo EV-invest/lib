@@ -226,10 +226,13 @@ it is the plain POST to `/quote` it always was.
 | `prefer` | a channel moved first when available (a `default_channel` arm) |
 | `experiment` | `{ name, variant }`, slugs: on every event and posted with the form |
 | `timeZone` | `Europe/Paris` by default |
-| `formId`, `id` | `quote` · `quote`; the callback is `<id>-callback` (its form `<id>-callback-form`) |
-| `text` | `LeadCaptureText`: `LEAD_CAPTURE_TEXT.fr` / `.en`, plain strings (`{need}`, `{day}`, `{time}` filled in) |
+| `formId`, `id` | `quote` · `quote`: the id is the card's (root), so `#quote` scrolls to the whole card, head included; the form is `<id>-form`, the callback `<id>-callback` (its form `<id>-callback-form`) |
+| `text` | `LeadCaptureText`: `LEAD_CAPTURE_TEXT.fr` / `.en`, plain strings (`{need}`, `{day}`, `{time}` filled in); optional `localityPlaceholder`, `phonePlaceholder`, `namePlaceholder` (none by default) |
+| `labels` | `visible` (default) · `hidden`: every field's label `sr-only` — still the field's accessible name — for a design that draws placeholders |
+| `callbackOpen` | whether the callback starts open; by default only when it leads (the place is closed). `#<id>-callback` opens it either way |
+| `done` | the card after a lead is taken — a node, or `(sent: LeadSent) => node` (`{ channel, phone, name }`). With it a script posts the form itself and shows this in place on the thanks page's 303; any other answer, or no network, submits the form for real; without a script nothing changes (303 → `/thanks`). Without it, every submit goes to `/thanks` |
 | `head`, `trust` | the brand's heading instead of the title; a slot beside the submit |
-| `className` · `classNames` | the root · its parts (`form`, `field`, `label`, `control`, `submit`, `need`, `channel`, `primary`, `callback`…) |
+| `className` · `classNames` | the root · its parts: `root`, `head`, `title`, `lede`, `form`, `contact`, `field`, `label`, `control` (every input, the need's select in both states, the callback's phone), `hint`, `chips`, `chip`, `needs`, `need`, `summary`, `submit`, `trust`, `privacy`, `opening`, `others`, `channel`, `primary`, `callback`, `callbackSummary`, `callbackForm`, `callbackLede`, `callbackSubmit`, `consent`, `done` |
 
 - **Taps.** A need the page knows is not asked again, and a place serving one
   commune fills it: focus the phone, type, send — two taps. `qualify-first`
@@ -255,6 +258,15 @@ it is the plain POST to `/quote` it always was.
   (`Lead.consent`). Then the lead is held to `lead.validateCallback` (a
   readable number, by default), not to the form's rule. The consent goes into
   no event; a webhook body built by the brand should leave `lead.consent` out.
+- **Locality.** A postcode field (`autoComplete="postal-code"`). A storefront
+  with no named zone fills in its own postcode; a named zone fills in its one
+  commune or offers its few as chips, by name — and then the field takes
+  letters (`inputMode="text"`), since iOS's numeric keypad could not edit a
+  name. Otherwise it is the numeric keypad.
+- **Callback, closed.** Its summary is a block (`flex`, not the button's
+  `inline-flex`) with `leading-6` after the brand's `channel` /
+  `callbackSummary` classes unless they set a line height of their own, so a
+  brand's type size cannot leave it on a half pixel.
 - **Phone.** `type="tel"`, required, never masked. A number that does not read
   as one gets a hint when the field is left; the server keeps it. With
   `lead.mobileFormat: "e164"` a number it can read is stored as
