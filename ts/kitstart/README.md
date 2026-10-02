@@ -18,7 +18,7 @@ stays in the brand.
 | `@evinvest/kitstart/proxy` | edge | `createProxy(site)`, `PROXY_MATCHER` |
 | `@evinvest/kitstart/next` | Next server (routes, RSC) | `quoteRoute`, `sitemapRoute`, `robotsRoute`, `ogRoute`, `healthRoute`, `createPlaceLoader`, `loadLocale`, `placeMetadata` / `brandMetadata` / `statusMetadata`, `metadataBase` |
 | `@evinvest/kitstart/next/config` | `next.config.ts`, `vitest.config.ts` | `withLanding`, `buildEnv` and the `assets/` readers |
-| `@evinvest/kitstart/react` | either side | `LangSwitch`, `CallBar`, `StatusScreen`, `PlaceDirectory`, `AreaChips`, `Coverage`, `MapFacade` (client), `QuoteFormShell`, `FormSelect` (client), `Faq`, `AnalyticsBoundary` (client), plus the kit and marketing pieces a landing composes with |
+| `@evinvest/kitstart/react` | either side | `LangSwitch`, `CallBar`, `StatusScreen`, `PlaceDirectory`, `AreaChips`, `Coverage`, `MapFacade` (client), `QuoteFormShell`, `FormSelect` (client), `LeadCapture` (client), `Faq`, `AnalyticsBoundary` (client), plus the kit and marketing pieces a landing composes with |
 | `@evinvest/kitstart/testing` | a brand's vitest | `describeLandingContract(site, { globalsCss, proxySource, text })`, `describeLeadStoreContract(name, harness)`, `storefrontPlace`, `serviceAreaPlace`, `testLead` |
 | `@evinvest/kitstart/testing/e2e` | a brand's Playwright | `defineSectionSuite(sections)`, `settle(page, selector)`, `BREAKPOINTS` |
 | bin `kitstart-size` | plain node | `kitstart-size [<build root>] [--route …] [--budget …]`: first-load JS of a place page against `tests/bundle_budget.txt`; fails closed |
@@ -169,6 +169,76 @@ which CI runs: `npm run check:template -- --e2e`).
   page: 3.8 KB gz of first-load JS on the template's place page (152,774 →
   156,565 B of its 158,000 B budget).
 
+### `LeadCapture`: the lead form every brand shares
+
+One form for every brand, so an experiment's results pool across sites (the
+site is the stratum). A client island over `QuoteFormShell`: without a script
+it is the plain POST to `/quote` it always was.
+
+```tsx
+<LeadCapture
+  place={view.place}
+  contact={contactOf(site, view.place)}
+  locale={view.locale}
+  renderedAt={renderedAt}
+  wire={LEAD.wire}
+  needs={LEAD.subjects.map(s => ({ value: s, label: t.subjects[s] }))}
+  text={{ ...LEAD_CAPTURE_TEXT[view.locale], submit: "…" }}
+  layout={arm === "b" ? "qualify-first" : "single"}
+  experiment={{ name: "lead_layout", variant: arm }}
+/>
+```
+
+| Prop | |
+|---|---|
+| `place`, `contact` | the hours order the channels, the service area suggests the commune; `contact` is `contactOf(site, place)` — a `null` number is a channel not offered |
+| `locale`, `renderedAt` | the page's language; the render stamp (time trap, and "now" until the script runs) |
+| `wire`, `needs` | `site.lead.wire`; the subjects with their labels |
+| `need` | the need the page already knows — also set by `?need=` and by a tap on any `[data-need="…"]` element |
+| `layout` | `single` (default) · `qualify-first`: a tile per need, then the contact step |
+| `locality` | `required` (default) · `optional` |
+| `name` | `{ field, required? }`: a name field posted as the brand's extra; off by default |
+| `extras` | the brand's own fields, after the phone |
+| `prefer` | a channel moved first when available (a `default_channel` arm) |
+| `experiment` | `{ name, variant }`, slugs: on every event and posted with the form |
+| `timeZone` | `Europe/Paris` by default |
+| `formId`, `id` | `quote` · `quote`; the callback is `<id>-callback` (its form `<id>-callback-form`) |
+| `text` | `LeadCaptureText`: `LEAD_CAPTURE_TEXT.fr` / `.en`, plain strings (`{need}`, `{day}`, `{time}` filled in) |
+| `head`, `trust` | the brand's heading instead of the title; a slot beside the submit |
+| `className` · `classNames` | the root · its parts (`form`, `field`, `label`, `control`, `submit`, `need`, `channel`, `primary`, `callback`…) |
+
+- **Taps.** A need the page knows is not asked again, and a place serving one
+  commune fills it: focus the phone, type, send — two taps. `qualify-first`
+  with no need: the tile, which moves the focus to the phone, then send.
+  `single` with no need takes the first one unless changed (two more taps).
+  Enter sends.
+- **Channels** (`resolveChannels`, shared with `CallBar`): call (`tel:`),
+  WhatsApp and SMS (the need in the message; SMS only to a mobile), "call me
+  back" and the form. Open, the call leads; closed, the callback (open) and
+  WhatsApp lead and the call goes last, and the form says when the next
+  opening is — from the place's hours, never invented. No hours: no promise,
+  the open order. No number: no call, text or WhatsApp. `CallBar` orders its
+  buttons the same way when given `hours` (and `now={renderedAt}`, and
+  `callback={{ href: view.href("#quote-callback"), label }}`); without
+  `hours` it is unchanged.
+- **Callback.** A `<details>` with its own small form: the phone and a native,
+  required consent, posted to `/quote` with `channel=callback`. The lead is
+  held to `lead.validateCallback` (a readable number, by default), not to the
+  form's rule, and stored with its channel.
+- **Phone.** `type="tel"`, required, never masked. A number that does not read
+  as one gets a hint when the field is left; the server keeps it as typed. A
+  number it can read is stored in E.164 (`normalizePhone`).
+- **Events** (through `AnalyticsBoundary`'s sink; none outside one):
+  `lead_form_view` (half in view, once), `lead_form_start` (first focus),
+  `lead_form_field_error {field}` (the browser refused it, or the phone hint
+  showed — the field's role, never its value), `lead_form_step {step}`
+  (`contact` / `need`), each with `form_id`, `layout`, `experiment`,
+  `variant`; `contact_intent_click {channel}` for `phone`, `whatsapp`, `sms`,
+  `callback`, with the experiment; and on the server `lead_form_submit
+  {form_id, channel}` with the posted experiment.
+- **Weight.** 5.6 KB gz of first-load JS on the template's place page
+  (157,287 → 162,938 B of its 164,000 B budget).
+
 Tailwind v4 does not scan `node_modules`; the brand's `globals.css` names the
 package:
 
@@ -285,6 +355,10 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavai
   `LEAD_WEBHOOK_KEY_ID` and `LEAD_WEBHOOK_SECRET` are required, and the URL
   must be `https:`, or `http:` to a `*.svc` / `*.svc.cluster.local` host or
   loopback — the body carries PII. All checked at boot.
+- **The channel.** `channelOf(lead)` is `form` or `callback`. For the
+  Service-Arb panel, map it through `panelChannel`: its `properties.channel`
+  is a closed set and refuses the whole event outside it, so a callback goes
+  as `form` until the panel accepts `callback` (one constant to flip).
 - **Queued before the 303, sent after it.** The body is built once, from the
   lead and `ctx` (`leadId`, `brandId`, `locale`, `formId`, `at`, and a fresh
   `idempotencyKey` for the receiver to deduplicate by), and written to the
