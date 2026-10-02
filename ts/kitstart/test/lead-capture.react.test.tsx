@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LEAD_CAPTURE_TEXT, type OpeningHours, type Place } from "../src/index";
 import { AnalyticsSinkContext } from "../src/react/analytics-context";
 import { LeadCapture, type LeadCaptureProps } from "../src/react/index";
-import { serviceAreaPlace } from "../src/testing/index";
+import { serviceAreaPlace, storefrontPlace } from "../src/testing/index";
 
 const WEEKDAYS: readonly OpeningHours[] = [{ days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], opens: "08:00", closes: "19:00" }];
 // Paris is UTC+2 in October 2026.
@@ -74,7 +74,6 @@ describe("LeadCapture without a script", () => {
     expect(f.querySelector("select[name=job]")).not.toBeNull();
     expect(f.querySelector("input[name=mobile]")).toHaveAttribute("type", "tel");
     expect(f.querySelector("input[name=mobile]")).toBeRequired();
-    expect(f.querySelector("input[name=zip]")).toHaveAttribute("inputmode", "numeric");
   });
 
   it("does not ask a need the page already knows", () => {
@@ -225,5 +224,38 @@ describe("LeadCapture's events", () => {
 
   it("is silent outside an analytics boundary", () => {
     expect(() => render(capture())).not.toThrow();
+  });
+});
+
+describe("LeadCapture's locality field", () => {
+  const zip = () => form("quote").querySelector<HTMLInputElement>("input[name=zip]");
+
+  it("fills a storefront's own postcode, on the numeric keypad", () => {
+    render(capture({ place: storefrontPlace(["fr", "en"], { hours: WEEKDAYS }) }));
+    expect(zip()).toHaveValue("63130");
+    expect(zip()).toHaveAttribute("inputmode", "numeric");
+    expect(zip()).toHaveAttribute("autocomplete", "postal-code");
+  });
+
+  it("takes letters when it is filled with a commune's name", () => {
+    render(capture({ place: { ...place, serviceArea: [{ kind: "localities", names: ["Royat"] }] } }));
+    expect(zip()).toHaveValue("Royat");
+    expect(zip()).toHaveAttribute("inputmode", "text");
+  });
+
+  it("takes letters when its chips are names, before the script too", () => {
+    document.body.innerHTML = renderToString(capture());
+    expect(zip()).toHaveAttribute("inputmode", "text");
+  });
+
+  it("stays numeric when it is offered nothing to edit", () => {
+    render(capture({ place: { ...place, serviceArea: [{ kind: "radius", center: { lat: 48.85, lng: 2.35 }, km: 20 }] } }));
+    expect(zip()).toHaveValue("");
+    expect(zip()).toHaveAttribute("inputmode", "numeric");
+    document.body.innerHTML = "";
+    const names = ["A", "B", "C", "D", "E", "F", "G"];
+    render(capture({ place: { ...place, serviceArea: [{ kind: "localities", names }] } }));
+    expect(screen.queryByRole("group", { name: "Communes desservies" })).toBeNull();
+    expect(zip()).toHaveAttribute("inputmode", "numeric");
   });
 });
