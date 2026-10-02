@@ -3,6 +3,7 @@ import { EXPERIMENT_FIELD, VARIANT_FIELD } from "../core/accept";
 import { channelHref, type CaptureChannel } from "../core/channels";
 import { CHANNEL_FIELD, CONSENT_FIELD } from "../core/lead";
 import type { LeadCaptureText } from "../core/lead-capture-text";
+import type { FormEventHandler } from "react";
 import type { FieldPart } from "./LeadCaptureFields";
 import { partWithLeading, type PartClassNames } from "./parts";
 import { PHONE_INPUT_PROPS, QuoteFormShell } from "./QuoteFormShell";
@@ -93,6 +94,7 @@ export function CallbackForm(props: {
   opening: string | null;
   text: LeadCaptureText;
   experiment: Experiment | undefined;
+  onSubmit: FormEventHandler<HTMLFormElement> | undefined;
   classNames?: PartClassNames<ChannelPart | FieldPart> | undefined;
 }) {
   const { id, primary, open, formId, placeSlug, locale, renderedAt, mobileName, subject, opening, text, experiment, classNames: c } = props;
@@ -118,6 +120,7 @@ export function CallbackForm(props: {
         renderedAt={renderedAt}
         honeypotLabel={text.honeypotLabel}
         formId={formId}
+        onSubmit={props.onSubmit}
         className={cn("mt-4 gap-4", c?.callbackForm)}
       >
         <input type="hidden" name={CHANNEL_FIELD} value="callback" />

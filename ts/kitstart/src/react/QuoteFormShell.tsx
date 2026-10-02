@@ -1,5 +1,5 @@
 import { cn } from "@evinvest/uikit";
-import type { ReactNode } from "react";
+import type { FormEventHandler, ReactNode } from "react";
 import { FORM_ID_FIELD, LOCALE_FIELD, LOCATION_FIELD } from "../core/accept";
 import { HONEYPOT_FIELD, RENDERED_AT_FIELD } from "../core/antispam";
 
@@ -27,6 +27,8 @@ export interface QuoteFormShellProps {
   action?: string;
   id?: string;
   className?: string;
+  /** A script's own submit (an in-place success); the 303 stays the path without one. */
+  onSubmit?: FormEventHandler<HTMLFormElement> | undefined;
   children: ReactNode;
 }
 
@@ -34,9 +36,9 @@ export interface QuoteFormShellProps {
 export const PHONE_INPUT_PROPS = { type: "tel", inputMode: "tel", autoComplete: "tel" } as const;
 
 export function QuoteFormShell(props: QuoteFormShellProps) {
-  const { placeSlug, locale, renderedAt, honeypotLabel, formId = "quote", action = "/quote", id = "quote", className, children } = props;
+  const { placeSlug, locale, renderedAt, honeypotLabel, formId = "quote", action = "/quote", id = "quote", className, onSubmit, children } = props;
   return (
-    <form id={id} method="post" action={action} className={cn("relative flex w-full flex-col gap-5", className)}>
+    <form id={id} method="post" action={action} onSubmit={onSubmit} className={cn("relative flex w-full flex-col gap-5", className)}>
       {placeSlug && <input type="hidden" name={LOCATION_FIELD} value={placeSlug} />}
       <input type="hidden" name={LOCALE_FIELD} value={locale} />
       <input type="hidden" name={FORM_ID_FIELD} value={formId} />
