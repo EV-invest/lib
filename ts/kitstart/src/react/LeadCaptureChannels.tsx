@@ -105,6 +105,7 @@ export function CallbackForm(props: {
             size="lg"
             {...PHONE_INPUT_PROPS}
             enterKeyHint="send"
+            placeholder={text.phonePlaceholder}
             required
             data-lead-field="phone"
             className={c?.control}

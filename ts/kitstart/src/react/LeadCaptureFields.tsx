@@ -22,6 +22,7 @@ export function LocalityField(props: {
   servedLabel: string;
   /** What the place knows of where it goes — a postcode or communes: one is filled in, a few are a tap each. */
   served: readonly string[];
+  placeholder: string | undefined;
   required: boolean;
   optional: string;
   hydrated: boolean;
@@ -43,6 +44,7 @@ export function LocalityField(props: {
         size="lg"
         inputMode={numeric ? "numeric" : "text"}
         autoComplete="postal-code"
+        placeholder={props.placeholder}
         enterKeyHint="next"
         required={required}
         defaultValue={served.length === 1 ? served[0] : undefined}
@@ -80,6 +82,7 @@ export function PhoneField(props: {
   name: string;
   label: string;
   hint: string;
+  placeholder: string | undefined;
   onSoftError: () => void;
   classNames?: PartClassNames<FieldPart> | undefined;
 }) {
@@ -94,6 +97,7 @@ export function PhoneField(props: {
         size="lg"
         {...PHONE_INPUT_PROPS}
         enterKeyHint="send"
+        placeholder={props.placeholder}
         required
         data-lead-field="phone"
         aria-invalid={doubtful || undefined}
@@ -118,12 +122,19 @@ export function PhoneField(props: {
   );
 }
 
-export function NameField(props: { name: string; label: string; required: boolean; optional: string; classNames?: PartClassNames<FieldPart> | undefined }) {
-  const { name, label, required, optional, classNames: c } = props;
+export function NameField(props: {
+  name: string;
+  label: string;
+  placeholder: string | undefined;
+  required: boolean;
+  optional: string;
+  classNames?: PartClassNames<FieldPart> | undefined;
+}) {
+  const { name, label, placeholder, required, optional, classNames: c } = props;
   return (
     <Field className={cn("flex flex-col gap-2", c?.field)}>
       <FieldLabel className={c?.label}>{optionalLabel(label, required ? null : optional)}</FieldLabel>
-      <Input name={name} size="lg" autoComplete="name" enterKeyHint="next" required={required} data-lead-field="name" className={c?.control} />
+      <Input name={name} size="lg" autoComplete="name" enterKeyHint="next" placeholder={placeholder} required={required} data-lead-field="name" className={c?.control} />
     </Field>
   );
 }
