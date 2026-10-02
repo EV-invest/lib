@@ -13,11 +13,14 @@ const MAX_CHIPS = 6;
 
 const optionalLabel = (label: string, optional: string | null) => (optional ? `${label} (${optional})` : label);
 
+/** Digits only: a postcode, which the numeric keypad can type and edit. */
+const POSTCODE = /^\d+$/;
+
 export function LocalityField(props: {
   name: string;
   label: string;
   servedLabel: string;
-  /** The communes the place names: one is filled in, a few are a tap each. */
+  /** What the place knows of where it goes — a postcode or communes: one is filled in, a few are a tap each. */
   served: readonly string[];
   required: boolean;
   optional: string;
@@ -27,6 +30,10 @@ export function LocalityField(props: {
   const { name, label, servedLabel, served, required, optional, hydrated, classNames: c } = props;
   const input = useRef<HTMLInputElement>(null);
   const chips = hydrated && served.length > 1 && served.length <= MAX_CHIPS;
+  // A commune's name filled in or a tap away must stay editable: iOS's numeric
+  // keypad has no letters, so the keypad follows what the field is offered.
+  // A list too long for chips offers nothing — the visitor types a postcode.
+  const numeric = served.length > MAX_CHIPS || served.every(s => POSTCODE.test(s));
   return (
     <Field className={cn("flex flex-col gap-2", c?.field)}>
       <FieldLabel className={c?.label}>{optionalLabel(label, required ? null : optional)}</FieldLabel>
@@ -34,7 +41,7 @@ export function LocalityField(props: {
         ref={input}
         name={name}
         size="lg"
-        inputMode="numeric"
+        inputMode={numeric ? "numeric" : "text"}
         autoComplete="postal-code"
         enterKeyHint="next"
         required={required}

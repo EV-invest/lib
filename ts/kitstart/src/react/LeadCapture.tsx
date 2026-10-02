@@ -6,7 +6,7 @@ import { resolveChannels, type CaptureChannel } from "../core/channels";
 import type { LeadWire } from "../core/lead";
 import { fillText, openingText } from "../core/lead-capture-format";
 import type { LeadCaptureText } from "../core/lead-capture-text";
-import { servedLocalities, type Place } from "../core/place/types";
+import { servedLocalities, storefrontOf, type Place } from "../core/place/types";
 import type { FormSelectOption } from "./FormSelect";
 import { CallbackForm, ChannelLink, ExperimentFields, type ChannelPart, type Experiment } from "./LeadCaptureChannels";
 import { LocalityField, NameField, PhoneField, type FieldPart } from "./LeadCaptureFields";
@@ -56,6 +56,16 @@ export interface LeadCaptureProps {
   trust?: ReactNode;
   className?: string | undefined;
   classNames?: PartClassNames<LeadCapturePart> | undefined;
+}
+
+/**
+ * What the locality field is offered. A storefront serving its own town knows
+ * that town's postcode — what the field asks — so it offers that, not the
+ * town's name; a named zone offers its communes, by name.
+ */
+function localitySuggestions(place: Place<string>): string[] {
+  const postcode = place.serviceArea === null ? storefrontOf(place)?.address.postalCode : undefined;
+  return postcode ? [postcode] : servedLocalities(place);
 }
 
 /**
@@ -151,7 +161,7 @@ export function LeadCapture(props: LeadCaptureProps) {
           classNames={c}
         />
         <div className={cn("flex-col gap-5", contactClass, c?.contact)}>
-          <LocalityField name={wire.locality} label={text.localityLabel} servedLabel={text.servedLabel} served={servedLocalities(place)} required={props.locality !== "optional"} optional={text.optional} hydrated={hydrated} classNames={c} />
+          <LocalityField name={wire.locality} label={text.localityLabel} servedLabel={text.servedLabel} served={localitySuggestions(place)} required={props.locality !== "optional"} optional={text.optional} hydrated={hydrated} classNames={c} />
           <PhoneField name={wire.mobile} label={text.phoneLabel} hint={text.phoneHint} onSoftError={() => events.fieldError("phone")} classNames={c} />
           {props.name && <NameField name={props.name.field} label={text.nameLabel} required={props.name.required ?? false} optional={text.optional} classNames={c} />}
           {props.extras}
