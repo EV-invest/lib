@@ -6,7 +6,7 @@ import type { PartClassNames } from "./parts";
 
 export type LeadCaptureLayout = "single" | "qualify-first";
 
-type NeedPart = "field" | "label" | "need" | "needs" | "summary";
+type NeedPart = "field" | "label" | "control" | "need" | "needs" | "summary";
 
 export interface NeedFieldProps {
   layout: LeadCaptureLayout;
@@ -51,7 +51,7 @@ export function NeedField(props: NeedFieldProps) {
     return (
       <Field className={cn("flex flex-col gap-2", c?.field)}>
         <FieldLabel className={c?.label}>{label}</FieldLabel>
-        <FormSelect name={name} size="lg" defaultValue={need ?? needs[0]?.value} options={needs} onValueChange={onPick} />
+        <FormSelect name={name} size="lg" defaultValue={need ?? needs[0]?.value} options={needs} onValueChange={onPick} classNames={c?.control ? { trigger: c.control } : undefined} />
       </Field>
     );
   }
