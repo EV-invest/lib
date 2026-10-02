@@ -42,16 +42,16 @@ function recorder() {
   return { sink, events, wrap: (node: ReactElement) => <AnalyticsSinkContext.Provider value={sink}>{node}</AnalyticsSinkContext.Provider> };
 }
 
-const form = (id = "quote") => {
+const form = (id = "quote-form") => {
   const el = document.getElementById(id);
   if (!(el instanceof HTMLFormElement)) throw new Error(`no form #${id}`);
   return el;
 };
-const posted = (id = "quote") => Object.fromEntries(new FormData(form(id)));
+const posted = (id = "quote-form") => Object.fromEntries(new FormData(form(id)));
 /** Every channel control in document order, by its label. */
 const channelOrder = () =>
-  [...document.querySelectorAll("a[href^='tel:'], a[href^='sms:'], a[href*='wa.me'], summary, #quote")].map(el =>
-    el.id === "quote" ? "form" : (el.textContent ?? ""),
+  [...document.querySelectorAll("a[href^='tel:'], a[href^='sms:'], a[href*='wa.me'], summary, #quote-form")].map(el =>
+    el.id === "quote-form" ? "form" : (el.textContent ?? ""),
   );
 
 beforeEach(() => {
@@ -228,7 +228,7 @@ describe("LeadCapture's events", () => {
 });
 
 describe("LeadCapture's locality field", () => {
-  const zip = () => form("quote").querySelector<HTMLInputElement>("input[name=zip]");
+  const zip = () => form().querySelector<HTMLInputElement>("input[name=zip]");
 
   it("fills a storefront's own postcode, on the numeric keypad", () => {
     render(capture({ place: storefrontPlace(["fr", "en"], { hours: WEEKDAYS }) }));
@@ -265,7 +265,7 @@ describe("LeadCapture's parts", () => {
 
   it("dresses the need's select with `control`, before and after the script", () => {
     document.body.innerHTML = renderToString(capture({ classNames: PARTS }));
-    expect(form("quote").querySelector("select[name=job]")).toHaveClass("brand-control");
+    expect(form().querySelector("select[name=job]")).toHaveClass("brand-control");
     document.body.innerHTML = "";
     render(capture({ classNames: PARTS }));
     expect(screen.getByRole("combobox", { name: LEAD_CAPTURE_TEXT.fr.needLabel })).toHaveClass("brand-control");
@@ -286,9 +286,9 @@ describe("LeadCapture's placeholders and labels", () => {
 
   it("shows the text's placeholders, none by default", () => {
     render(capture({ text, name: { field: "name" } }));
-    expect(form("quote").querySelector("input[name=zip]")).toHaveAttribute("placeholder", "Code postal");
-    expect(form("quote").querySelector("input[name=mobile]")).toHaveAttribute("placeholder", "06 12 34 56 78");
-    expect(form("quote").querySelector("input[name=name]")).toHaveAttribute("placeholder", "Votre nom");
+    expect(form().querySelector("input[name=zip]")).toHaveAttribute("placeholder", "Code postal");
+    expect(form().querySelector("input[name=mobile]")).toHaveAttribute("placeholder", "06 12 34 56 78");
+    expect(form().querySelector("input[name=name]")).toHaveAttribute("placeholder", "Votre nom");
     expect(form("quote-callback-form").querySelector("input[name=mobile]")).toHaveAttribute("placeholder", "06 12 34 56 78");
     document.body.innerHTML = "";
     render(capture());
@@ -297,7 +297,7 @@ describe("LeadCapture's placeholders and labels", () => {
 
   it("hides the labels from sight only: every field keeps its name", () => {
     render(capture({ text, labels: "hidden", name: { field: "name" }, classNames: { label: "brand-label" } }));
-    const f = within(form("quote"));
+    const f = within(form());
     for (const label of [LEAD_CAPTURE_TEXT.fr.localityLabel, LEAD_CAPTURE_TEXT.fr.phoneLabel, `${LEAD_CAPTURE_TEXT.fr.nameLabel} (facultatif)`]) {
       expect(f.getByLabelText(label)).toBeInstanceOf(HTMLInputElement);
       expect(f.getByText(label)).toHaveClass("sr-only", "brand-label");
@@ -305,5 +305,24 @@ describe("LeadCapture's placeholders and labels", () => {
     expect(f.getByRole("combobox", { name: LEAD_CAPTURE_TEXT.fr.needLabel })).toBeInTheDocument();
     expect(within(form("quote-callback-form")).getByLabelText(LEAD_CAPTURE_TEXT.fr.phoneLabel)).toBeInstanceOf(HTMLInputElement);
     expect(within(form("quote-callback-form")).getByText(LEAD_CAPTURE_TEXT.fr.phoneLabel)).toHaveClass("sr-only");
+  });
+});
+
+describe("LeadCapture's anchor", () => {
+  it("is the whole card, head included; the forms keep ids of their own", () => {
+    document.body.innerHTML = renderToString(capture());
+    const card = document.getElementById("quote");
+    expect(card).toBeInstanceOf(HTMLDivElement);
+    expect(card).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.title);
+    expect(card?.contains(form("quote-form"))).toBe(true);
+    expect(card?.contains(form("quote-callback-form"))).toBe(true);
+    expect(document.getElementById("quote-callback")).toBeInstanceOf(HTMLDetailsElement);
+  });
+
+  it("follows the id it is given", () => {
+    document.body.innerHTML = renderToString(capture({ id: "devis" }));
+    expect(document.getElementById("devis")).toBeInstanceOf(HTMLDivElement);
+    expect(posted("devis-form")).toMatchObject({ form_id: "quote" });
+    expect(document.getElementById("devis-callback-form")).toBeInstanceOf(HTMLFormElement);
   });
 });

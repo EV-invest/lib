@@ -7,7 +7,8 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 const SUBJECT = "Prestation";
 
 async function fillAndSend(page: Page) {
-  const form = page.locator("#quote");
+  // `#quote` is the card, the callback's phone in it too: the form is its own.
+  const form = page.locator("#quote-form");
   await form.getByLabel("Code postal").fill("75011");
   await form.getByLabel("Téléphone").fill("0612345678");
   await form.getByRole("button", { name: "Recevoir le prix" }).click();
@@ -64,7 +65,7 @@ test.describe("with JavaScript", () => {
     await expect(trigger).toBeFocused();
     await expect(trigger).toHaveText("Grand ménage");
     await page.keyboard.press("Tab");
-    await expect(page.locator("#quote").getByLabel("Code postal")).toBeFocused();
+    await expect(page.locator("#quote-form").getByLabel("Code postal")).toBeFocused();
   });
 });
 
@@ -151,7 +152,7 @@ test.describe("the channel order", () => {
   const callbackFirst = (page: Page) =>
     page.evaluate(() => {
       const callback = document.getElementById("quote-callback");
-      const form = document.getElementById("quote");
+      const form = document.getElementById("quote-form");
       if (!callback || !form) throw new Error("missing the form or the callback");
       return { first: Boolean(callback.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING), open: callback.hasAttribute("open") };
     });
@@ -181,3 +182,12 @@ test("a place with no number offers no call, text or WhatsApp anywhere", async (
   await expect(page.locator('a[href^="tel:"], a[href^="sms:"], a[href*="wa.me"]')).toHaveCount(0);
   await expect(page.locator("#callbar").getByText("☎")).toHaveCount(0);
 });
+
+test("#quote is the whole card: the call bar's link lands on its head", async ({ page }) => {
+  await page.goto("/fr#quote");
+  const card = page.locator("#quote");
+  await expect(card.getByText("Recevoir un prix", { exact: true })).toBeInViewport();
+  await expect(card.locator("form#quote-form")).toHaveCount(1);
+  await expect(card.locator("details#quote-callback")).toHaveCount(1);
+});
+

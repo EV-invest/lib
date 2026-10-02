@@ -47,7 +47,11 @@ export interface LeadCaptureProps {
   experiment?: Experiment | undefined;
   timeZone?: string | undefined;
   formId?: string | undefined;
-  /** The form's id, the anchor a call bar links to (`#quote`); the callback's is `<id>-callback`. */
+  /**
+   * The card's id, the anchor a call bar links to (`#quote`): the whole card,
+   * head included, scrolls into view. The form is `<id>-form`, the callback
+   * `<id>-callback` and its form `<id>-callback-form`.
+   */
   id?: string | undefined;
   text: LeadCaptureText;
   /**
@@ -106,7 +110,8 @@ export function LeadCapture(props: LeadCaptureProps) {
     // the first empty field — the postcode unless filled, else the phone —
     // takes focus inside the tap: iOS opens the keyboard only for a focus a
     // gesture made, and a re-render is too late for it.
-    const fields = root.current?.querySelectorAll<HTMLInputElement>(`#${CSS.escape(id)} [data-lead-field="locality"], #${CSS.escape(id)} [data-lead-field="phone"]`);
+    const form = `#${CSS.escape(`${id}-form`)}`;
+    const fields = root.current?.querySelectorAll<HTMLInputElement>(`${form} [data-lead-field="locality"], ${form} [data-lead-field="phone"]`);
     [...(fields ?? [])].find(f => f.value === "")?.focus();
     setNeed(value);
     setEditing(false);
@@ -140,7 +145,7 @@ export function LeadCapture(props: LeadCaptureProps) {
   const contactClass = contactShown ? "flex" : "hidden group-has-[[data-need-option]:checked]/lead:flex";
 
   return (
-    <div ref={root} className={cn("flex w-full flex-col gap-6", props.className, c?.root)} data-experiment={experiment?.name} data-variant={experiment?.variant}>
+    <div ref={root} id={id} className={cn("flex w-full flex-col gap-6", props.className, c?.root)} data-experiment={experiment?.name} data-variant={experiment?.variant}>
       {props.head ?? (
         <div className={cn("flex flex-col gap-1", c?.head)}>
           <p className={cn("font-display text-2xl font-bold text-ink", c?.title)}>{text.title}</p>
@@ -148,7 +153,7 @@ export function LeadCapture(props: LeadCaptureProps) {
         </div>
       )}
       {lead !== "form" && channel(lead, true)}
-      <QuoteFormShell id={id} placeSlug={place.slug} locale={locale} renderedAt={renderedAt} honeypotLabel={text.honeypotLabel} formId={formId} className={cn("group/lead", c?.form)}>
+      <QuoteFormShell id={`${id}-form`} placeSlug={place.slug} locale={locale} renderedAt={renderedAt} honeypotLabel={text.honeypotLabel} formId={formId} className={cn("group/lead", c?.form)}>
         <ExperimentFields experiment={experiment} />
         <NeedField
           layout={layout}
