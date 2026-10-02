@@ -7,6 +7,11 @@ import { gzipSync } from "node:zlib";
  * page makes the browser download before it is interactive, against the
  * brand's committed budget. Run after `next build`; `mkLanding`'s
  * `bundle-budget` check runs it against the Nix build.
+ *
+ * The budget is a target with a bounded overshoot: at or under the target
+ * passes; up to `tolerance` over it passes with a loud warning (an annotation
+ * on GitHub Actions), so a feature can land while the weight is paid back;
+ * past that it fails.
  */
 
 /** The page the visitor lands on; every place page shares its chunks. */
@@ -19,17 +24,44 @@ interface RouteStats {
   firstLoadChunkPaths: string[];
 }
 
-/** The budget file is commented prose; the number is its last non-comment line. */
-export function parseBudget(text: string, file = BUDGET): number {
-  const lines = text
-    .split("\n")
-    .map(l => l.trim())
-    .filter(l => l !== "" && !l.startsWith("#"));
-  const last = lines.at(-1);
-  if (last === undefined || !/^\d+$/.test(last)) {
-    throw new Error(`${file}: the last non-comment line must be a byte count, got ${JSON.stringify(last)}`);
+/** How far over the target a build may go, with a warning, when the file does not say. */
+export const DEFAULT_TOLERANCE_PERCENT = 20;
+
+export interface Budget {
+  /** The size the page should be: gzip bytes. */
+  target: number;
+  /** Percent over `target` that passes with a warning. */
+  tolerancePercent: number;
+}
+
+/**
+ * The budget file is commented prose around a byte count — the target — and,
+ * optionally, a `tolerance <n>%` line. A file of one number, as every budget
+ * was before tolerances, is that target with the default tolerance. Any other
+ * line is an error: a gate that guesses at its own file is no gate.
+ */
+export function parseBudget(text: string, file = BUDGET): Budget {
+  let target: number | undefined;
+  let tolerancePercent: number | undefined;
+  for (const line of text.split("\n").map(l => l.trim())) {
+    if (line === "" || line.startsWith("#")) continue;
+    const tolerance = /^tolerance\s+(\d+(?:\.\d+)?)\s*%$/.exec(line);
+    if (/^\d+$/.test(line) && target === undefined) target = Number(line);
+    else if (tolerance && tolerancePercent === undefined) tolerancePercent = Number(tolerance[1]);
+    else throw new Error(`${file}: expected one byte count and at most one \`tolerance <n>%\` line, got ${JSON.stringify(line)}`);
   }
-  return Number(last);
+  if (target === undefined) throw new Error(`${file}: no byte count — the target is a line of digits`);
+  return { target, tolerancePercent: tolerancePercent ?? DEFAULT_TOLERANCE_PERCENT };
+}
+
+export type Verdict = "under" | "tolerated" | "over";
+
+/** The largest size that still passes: the target plus its tolerance, rounded down. */
+export const ceilingOf = (budget: Budget): number => Math.floor((budget.target * (100 + budget.tolerancePercent)) / 100);
+
+export function judge(total: number, budget: Budget): Verdict {
+  if (total <= budget.target) return "under";
+  return total <= ceilingOf(budget) ? "tolerated" : "over";
 }
 
 function isRouteStats(value: unknown): value is RouteStats {
@@ -82,8 +114,12 @@ export function parseArgs(argv: readonly string[], cwd: string): SizeArgs {
   return args;
 }
 
-/** Prints the chunks and the total; returns the exit code. */
-export function measure(args: SizeArgs, log: Pick<Console, "log" | "error"> = console): number {
+/** Prints the chunks and the total; returns the exit code. `env` says whether this is GitHub Actions. */
+export function measure(
+  args: SizeArgs,
+  log: Pick<Console, "log" | "warn" | "error"> = console,
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): number {
   let stats: string;
   try {
     stats = readFileSync(join(args.root, STATS), "utf8");
@@ -102,10 +138,21 @@ export function measure(args: SizeArgs, log: Pick<Console, "log" | "error"> = co
     log.log(`  ${String(gz).padStart(8)} B gz  ${relative(args.root, join(args.root, chunk))}`);
   }
   const kb = (n: number) => (n / 1024).toFixed(1);
-  log.log(`  ${args.route}: ${kb(total)} KB gz (${kb(raw)} KB raw) / budget ${kb(budget)} KB gz`);
-  if (total > budget) {
-    log.error(`✘ over budget by ${total - budget} B. Raising ${args.budget} is a deliberate commit, with a reason.`);
-    return 1;
+  const ceiling = ceilingOf(budget);
+  log.log(`  ${args.route}: ${kb(total)} KB gz (${kb(raw)} KB raw) / target ${kb(budget.target)} KB gz, ceiling ${kb(ceiling)} KB gz (+${budget.tolerancePercent} %)`);
+  const over = total - budget.target;
+  const percent = ((over / budget.target) * 100).toFixed(1);
+  switch (judge(total, budget)) {
+    case "under":
+      return 0;
+    case "tolerated": {
+      const message = `${args.route} is ${over} B (${percent} %) over its target of ${budget.target} B gz — within the ${budget.tolerancePercent} % tolerance (${ceiling} B), so it passes. Pay it back, or raise the target in ${args.budget} with a reason.`;
+      log.warn(`⚠ ${message}`);
+      if (env["GITHUB_ACTIONS"] === "true") log.log(`::warning file=${args.budget},title=Bundle over its target::${message}`);
+      return 0;
+    }
+    case "over":
+      log.error(`✘ ${over} B (${percent} %) over the target of ${budget.target} B gz, past its ${budget.tolerancePercent} % tolerance by ${total - ceiling} B. Raising ${args.budget} is a deliberate commit, with a reason.`);
+      return 1;
   }
-  return 0;
 }
