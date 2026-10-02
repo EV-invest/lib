@@ -102,7 +102,8 @@ export {
 
 export { isMobilePhone, isPlausiblePhone, normalizePhone } from "./core/phone";
 
-export { fillText, LEAD_CAPTURE_TEXT, openingText, type LeadCaptureText } from "./core/lead-capture-text";
+export { LEAD_CAPTURE_TEXT, type LeadCaptureText } from "./core/lead-capture-text";
+export { fillText, openingText } from "./core/lead-capture-format";
 
 export {
   channelHref,
