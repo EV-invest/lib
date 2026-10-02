@@ -24,7 +24,10 @@ export {
 
 export {
   createPlaceView,
+  DEFAULT_TIME_ZONE,
   freshRating,
+  isOpenAt,
+  nextOpening,
   parseInstant,
   isPublished,
   mergeLive,
@@ -43,6 +46,7 @@ export {
   type Geo,
   type LinkBase,
   type LinkMode,
+  type Opening,
   type OpeningHours,
   type OriginFacts,
   type Place,
@@ -90,6 +94,18 @@ export {
   type LeadWire,
   type SpamVerdict,
 } from "./core/lead";
+
+export { isMobilePhone, isPlausiblePhone, normalizePhone } from "./core/phone";
+
+export {
+  channelHref,
+  resolveChannels,
+  smsHref,
+  type CaptureChannel,
+  type ChannelFacts,
+  type ChannelOptions,
+  type ResolvedChannels,
+} from "./core/channels";
 
 export {
   checkTiming,
