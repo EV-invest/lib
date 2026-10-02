@@ -11,5 +11,7 @@ export const LEAD: LeadSchema<Subject> = {
   subjects: SUBJECTS,
   wire: { subject: "subject", locality: "locality", mobile: "mobile" },
   extras: [{ name: "surface_m2", max: 6 }],
+  // One shape for the mail, the webhook and a dialler: `+33612345678`.
+  mobileFormat: "e164",
   validate: lead => (lead.mobile.replace(/\D/g, "").length < 10 ? "a mobile number" : null),
 };

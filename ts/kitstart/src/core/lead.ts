@@ -51,6 +51,13 @@ export interface LeadSchema<S extends string> {
    * `validateCallbackLead`: a number we can read.
    */
   validateCallback?: (lead: LeadCandidate) => string | null;
+  /**
+   * How the mobile is kept: `typed` (default), exactly as posted, or `e164`,
+   * `+33612345678` when it reads as a number and as typed when it does not.
+   * Opt-in, because a brand's own tooling and tests look rows up by the
+   * number as typed.
+   */
+  mobileFormat?: "typed" | "e164";
 }
 
 /**
@@ -131,9 +138,9 @@ function field(form: FormData, name: string, max: number): string | null {
 }
 
 /**
- * The candidate a form posted, read through the schema's field names. The
- * mobile is kept in E.164 when it reads as a number (`normalizePhone`), and as
- * typed when it does not — the brand's rule still sees it either way.
+ * The candidate a form posted, read through the schema's field names. Under
+ * `mobileFormat: "e164"` the mobile is normalised before the brand's rule
+ * sees it.
  */
 export function readCandidate(
   schema: LeadSchema<string>,
@@ -150,7 +157,7 @@ export function readCandidate(
   return {
     subject: field(form, schema.wire.subject, MAX_FIELD) ?? "",
     locality: field(form, schema.wire.locality, MAX_FIELD) ?? "",
-    mobile: normalizePhone(mobile) ?? mobile,
+    mobile: schema.mobileFormat === "e164" ? (normalizePhone(mobile) ?? mobile) : mobile,
     extras,
     placeSlug,
     channel: channel === "callback" ? "callback" : "form",
