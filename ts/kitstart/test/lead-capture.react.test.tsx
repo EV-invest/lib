@@ -544,6 +544,21 @@ describe("LeadCapture's in-card success", () => {
     expect(submit).toHaveBeenCalledTimes(2);
   });
 
+  // LEAD-FORMS-REVIEW-2026-10-03 #3: the server can only dedupe what carries an id.
+  it("posts one submission id per lead, the same on a retry", async () => {
+    const fetch = vi.fn(async () => json(422, { ok: false, field: "phone" }));
+    vi.stubGlobal("fetch", fetch);
+    render(capture({ done: "Merci" }));
+    await send();
+    await act(async () => Promise.resolve());
+    await send();
+    await act(async () => Promise.resolve());
+    const ids = fetch.mock.calls.map(c => Object.fromEntries((c as unknown as [string, RequestInit])[1].body as URLSearchParams)["submission_id"]);
+    expect(ids[0]).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(ids[1]).toBe(ids[0]);
+    expect(posted("quote-callback-form")["submission_id"]).toBe("");
+  });
+
   it("goes to the thanks page without a `done`", async () => {
     const assign = vi.spyOn(navigation, "assign").mockImplementation(() => {});
     vi.stubGlobal("fetch", vi.fn(async () => json(200, { ok: true, location: "/fr/paris/thanks?channel=callback" })));
