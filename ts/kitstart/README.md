@@ -715,6 +715,29 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavai
   `WEBHOOK_TICK_MS` and a new process picks up what is due. Rows queued for a
   previous URL stay in place and are counted at open.
 
+## Experiments from the panel
+
+The experiments live in code (`@evinvest/experiments`, one `as const` config);
+the panel decides their weights and kill switch, and PostHog counts them.
+
+**Overrides** (`createExperimentsSource`): `GET <base>/experiments`, the same
+base as the place source, `{ "experiments": { "<key>": { enabled?, weights?,
+holdout? } } }`. The proxy reads it on every request, so it answers from memory:
+the first call waits for the panel (1.5 s timeout), later ones are served from
+the cache, and past the 30 s TTL the stale answer is served while one refresh
+runs behind it. An unreachable panel, a non-200 or a body of another shape is
+`{}` — the config in code — logged, and not asked again before the TTL.
+
+```ts
+// shared/config/env.ts
+export const experimentOverrides = createExperimentsSource({ baseUrl: () => serverEnv().locationsApiUrl });
+// proxy.ts — the same applied config wherever a variant is read
+const live = applyOverrides(experiments, await experimentOverrides.overrides());
+```
+
+Only types are checked here; whether a field fits the code (weights of the
+declared length, holdout in `[0, 1)`) is `applyOverrides`' call.
+
 ## The site
 
 ```ts
