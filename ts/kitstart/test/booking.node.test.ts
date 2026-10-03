@@ -5,6 +5,7 @@ import {
   BookingConfigError,
   bookingConfigProblems,
   bookingHref,
+  bookingForVariant,
   bookingOf,
   bookingRequestedProperties,
   bookingRequestProblems,
@@ -108,5 +109,21 @@ describe("bookingConfigProblems", () => {
   it("names the field it refuses", () => {
     expect(bookingConfigProblems({ provider: "link", url: "http://x.example/a" })).toEqual(['booking.url: must start with "https://"']);
     expect(bookingConfigProblems({ provider: "manual", url: "https://x.example" })).toEqual(["booking.url: unknown field"]);
+  });
+});
+
+describe("bookingForVariant", () => {
+  const arms = { google: { provider: "link", url: "https://calendar.app.google/abc" }, calendly: { provider: "calendly", url: "https://calendly.com/brand/menage" } };
+  const place = { booking: { provider: "cal_com", url: "https://cal.com/brand/menage" } as const };
+
+  it("picks the arm the variant names, a provider outside the closed set included", () => {
+    expect(bookingForVariant(place, "google", arms)).toEqual(arms.google);
+    expect(bookingForVariant(place, "calendly", arms)).toEqual(arms.calendly);
+  });
+
+  it("falls back to the place's booking, then to a call", () => {
+    expect(bookingForVariant(place, "control", arms)).toEqual(place.booking);
+    expect(bookingForVariant(place, null, arms)).toEqual(place.booking);
+    expect(bookingForVariant({}, "toString", arms)).toEqual({ provider: "manual" });
   });
 });

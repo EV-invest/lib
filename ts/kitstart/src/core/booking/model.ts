@@ -20,6 +20,17 @@ export type BookingProvider = (typeof BOOKING_PROVIDERS)[number];
 /** A place's booking, as `PlaceLive.booking` serves it and the panel's place settings edit it. */
 export type BookingConfig = { provider: "manual" } | { provider: "link"; url: string } | { provider: "cal_com"; url: string };
 
+/**
+ * A booking the brand resolves itself rather than reads from the place — an
+ * experiment's arm, say, on a provider only the brand's own adapter knows
+ * yet. Every built-in config is one; the closed set above is what the place
+ * settings and `booking.requested@1` accept.
+ */
+export interface OpenBookingConfig {
+  provider: string;
+  url?: string;
+}
+
 /** A place with no booking of its own — baked or live — promises a call. */
 export const DEFAULT_BOOKING: BookingConfig = { provider: "manual" };
 
@@ -91,4 +102,22 @@ export function isPreferredPart(value: unknown): value is PreferredPart {
 /** The place's booking, or the default promise of a call. */
 export function bookingOf(place: { booking?: BookingConfig | undefined }): BookingConfig {
   return place.booking ?? DEFAULT_BOOKING;
+}
+
+/**
+ * The one entry point for choosing a booking by an experiment's variant:
+ * the arm's config when the variant names one, else the place's own. Called
+ * where the page renders (a server component), and the result handed to
+ * `LeadCapture`'s `bookingConfig` — a function cannot cross into the island.
+ *
+ * ```ts
+ * bookingForVariant(view.place, variant, { google: { provider: "link", url }, calendly: { provider: "calendly", url } })
+ * ```
+ */
+export function bookingForVariant(
+  place: { booking?: BookingConfig | undefined },
+  variant: string | null | undefined,
+  arms: Readonly<Record<string, OpenBookingConfig>>,
+): OpenBookingConfig {
+  return (variant != null && Object.hasOwn(arms, variant) ? arms[variant] : undefined) ?? bookingOf(place);
 }
