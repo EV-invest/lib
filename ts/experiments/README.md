@@ -101,6 +101,17 @@ Test vectors (pinned in `test/hash.node.test.ts`): `fnv1a32("") = 0x811C9DC5`,
   `rng` call, so picks without a holdout are unchanged. Held-out visitors carry
   the control value; they are not distinguishable from the control bucket.
 
+#### Operator overrides — `applyOverrides`
+
+`applyOverrides(config, overrides)` lays an operator's
+`{ "<key>": { enabled?, weights?, holdout? } }` over the config in code and
+returns a new config (variant unions stay narrow). Each field is taken only if
+valid — `weights` the same length as the code's variants, each `>= 0`, sum
+`> 0`; `holdout` in `[0, 1)`; `enabled` a boolean — and dropped on its own
+otherwise. Unknown keys are ignored, variants always come from code, and
+`null`/`undefined`/a non-object is no overrides. Pure and zero-dep, for a proxy
+that runs it per request. See `GUIDE.md` §2.
+
 ### `./next` — Next.js server
 
 ```ts
@@ -179,6 +190,7 @@ The Rust crate is the source of truth; this package preserves its _semantics_:
 | exposure | `${experiment}_exposed` fired once on mount |
 | interaction | `track(action, props?)` emits `${experiment}_${action}` with `variant` merged |
 | cyclic step | `nextVariant` wraps around the declared variant list |
+| operator overrides | `applyOverrides` is TS-only for now — no Rust counterpart yet |
 
 ## Limitations
 
