@@ -123,6 +123,8 @@ export interface LeadCaptureFlowText {
   preferSubmit: string;
   /** After the preference is sent. */
   preferSent: string;
+  /** The preference did not reach the site; the call is still coming. */
+  preferFailed: string;
   /** A `quote` need that is priced from photos: the ask, and its WhatsApp link. */
   photosTitle: string;
   photosLede: string;
@@ -155,6 +157,7 @@ const FR_FLOW: LeadCaptureFlowText = {
   partEvening: "Soir",
   preferSubmit: "Envoyer ma préférence",
   preferSent: "Préférence notée : nous en tenons compte en vous rappelant.",
+  preferFailed: "Votre préférence n’a pas pu être envoyée. Nous vous rappelons quand même pour fixer le créneau.",
   photosTitle: "Envoyez des photos",
   photosLede: "Pour ce besoin, quelques photos nous permettent de vous donner un prix juste.",
   photosCta: "Envoyer des photos sur WhatsApp",
@@ -185,6 +188,7 @@ const EN_FLOW: LeadCaptureFlowText = {
   partEvening: "Evening",
   preferSubmit: "Send my preference",
   preferSent: "Noted: we will keep it in mind when we call.",
+  preferFailed: "Your preference could not be sent. We will still call you to set the slot.",
   photosTitle: "Send photos",
   photosLede: "For this job, a few photos let us give you a fair price.",
   photosCta: "Send photos on WhatsApp",
