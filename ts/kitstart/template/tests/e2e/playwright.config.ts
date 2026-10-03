@@ -4,6 +4,8 @@ import { BREAKPOINTS } from "@evinvest/kitstart/testing/e2e";
 // The standalone server under test, never `next dev`. Baselines are Linux's
 // (CI's); elsewhere the pixel comparison is skipped.
 const PORT = Number(process.env["E2E_PORT"] ?? 59089);
+// The panel stand-in (`mock-panel.mjs`): the live place and the price list.
+const MOCK_PORT = Number(process.env["E2E_MOCK_PORT"] ?? PORT + 1);
 const linux = process.platform === "linux";
 
 export default defineConfig({
@@ -14,13 +16,27 @@ export default defineConfig({
   expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.01, animations: "disabled", stylePath: "./screenshot-section.css" } },
   use: { baseURL: `http://localhost:${PORT}`, deviceScaleFactor: 1, colorScheme: "light", locale: "fr-FR" },
   projects: BREAKPOINTS.map(b => ({ name: b.name, use: { ...devices["Desktop Chrome"], viewport: b.viewport } })),
-  webServer: {
-    command: "node .next/standalone/server.js",
-    cwd: "../..",
-    url: `http://localhost:${PORT}/health`,
-    reuseExistingServer: false,
-    // The prod server refuses to boot without these (instrumentation.ts); on
-    // loopback the one hop is the runner itself.
-    env: { PORT: String(PORT), HOSTNAME: "127.0.0.1", LEADS_DB_PATH: `/tmp/brand-e2e-${PORT}/leads.db`, TRUSTED_PROXY: "xff:1" },
-  },
+  webServer: [
+    {
+      command: "node mock-panel.mjs",
+      url: `http://127.0.0.1:${MOCK_PORT}/health`,
+      reuseExistingServer: false,
+      env: { E2E_MOCK_PORT: String(MOCK_PORT) },
+    },
+    {
+      command: "node .next/standalone/server.js",
+      cwd: "../..",
+      url: `http://localhost:${PORT}/health`,
+      reuseExistingServer: false,
+      // The prod server refuses to boot without these (instrumentation.ts); on
+      // loopback the one hop is the runner itself.
+      env: {
+        PORT: String(PORT),
+        HOSTNAME: "127.0.0.1",
+        LEADS_DB_PATH: `/tmp/brand-e2e-${PORT}/leads.db`,
+        TRUSTED_PROXY: "xff:1",
+        LOCATIONS_API_URL: `http://127.0.0.1:${MOCK_PORT}`,
+      },
+    },
+  ],
 });

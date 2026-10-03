@@ -8,6 +8,8 @@
 # first measurement plus a few percent; change it only in a commit that says why.
 #
 # Over it now, on purpose: the form became `LeadCapture`, a client island
-# (162,985 B gz, +3.2 %) — a warning to pay back, not a new target.
+# (162,985 B gz, +3.2 %) — a warning to pay back, not a new target. The form
+# variants (an estimate's tiles and live price, the priced success) add
+# about 3.9 KB gz more (170,375 B gz, +7.8 %).
 158000
 tolerance 20%

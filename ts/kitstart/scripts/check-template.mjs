@@ -15,9 +15,11 @@
 // --pre-publish: before the first release the workspace packages carry their
 //   old version numbers; the range checks are skipped (loudly) and npm is
 //   told to ignore peers. Never the mode for a release.
-// --e2e: then the template's own Playwright suite for the quote form
-//   (`tests/e2e/quote-form.spec.ts`) against the standalone build — the form
-//   posting without JavaScript and the kit's list with it. The runner is this
+// --e2e: then the template's own Playwright suites for the lead form
+//   (`tests/e2e/quote-form.spec.ts`, `flows.spec.ts`) against the standalone
+//   build, its live source a stand-in panel (`mock-panel.mjs`) — the form
+//   posting without JavaScript and the kit's list with it, the estimate priced
+//   and re-priced by the server, its success promising the call. The runner is this
 //   package's `@playwright/test`, linked into `tests/e2e` as a brand's flake
 //   links its own; its browser must be installed (`npx playwright install
 //   chromium`). The section screenshots stay a brand's: their baselines are
@@ -164,7 +166,8 @@ async function quoteFormE2e() {
   }
   run("npx", ["tsc", "--noEmit", "-p", "tests/e2e"]);
   const port = await freePort();
-  run("node", [join(kitstart, "node_modules/@playwright/test/cli.js"), "test", "quote-form.spec.ts", "--reporter=line"], e2eDir, { E2E_PORT: String(port) });
+  const mock = await freePort();
+  run("node", [join(kitstart, "node_modules/@playwright/test/cli.js"), "test", "quote-form.spec.ts", "flows.spec.ts", "--reporter=line"], e2eDir, { E2E_PORT: String(port), E2E_MOCK_PORT: String(mock) });
 }
 
 try {

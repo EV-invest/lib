@@ -1,6 +1,7 @@
 import { placeMetadata } from "@evinvest/kitstart/next";
 import type { Metadata } from "next";
 import { loadPlace } from "@/views/place/server";
+import { pricing } from "@/shared/config/env";
 import { site } from "@/shared/config/site";
 import { PlaceHome } from "@/views/home";
 
@@ -13,6 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PlaceHomePage({ params }: Props) {
-  const { view, copy, renderedAt } = await loadPlace(params);
-  return <PlaceHome view={view} copy={copy} renderedAt={renderedAt} />;
+  // The price list only where the form is: the other pages of a place need none.
+  const [{ view, copy, renderedAt }, model] = await Promise.all([loadPlace(params), pricing.model()]);
+  return <PlaceHome view={view} copy={copy} renderedAt={renderedAt} model={model} />;
 }
