@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { defineSite, leadRef, parsePricingModel, type Lead, type PricingModel } from "../src/index";
-import { quoteRoute } from "../src/next/index";
+import { confirmRoute, quoteRoute } from "../src/next/index";
 import { leadWebhook, openSqliteLeadStore, panelFlowOf, panelFlowProperties, type LeadWebhookContext, type PricingSource, type WebhookOutbox } from "../src/server/index";
 import { fixtureSite } from "./support/fixtures";
 
@@ -189,11 +189,45 @@ describe("the quote route, when the price changed under the form", () => {
     expect(await again.json()).toMatchObject({ ok: true, cents: 9900 });
   });
 
-  it("sends a form without a script back to its card, the price to look at again", async () => {
+  // Review of #185: a cached (ISR) page keeps its stale shown_cents, so
+  // sending it back to the card refused every resubmit. A form without a
+  // script goes to a page that is never cached, and confirms from there.
+  it("sends a form without a script to a confirmation that is never cached, with no personal data in the URL", async () => {
     const { route } = harness({ pricing: live });
     const res = await route(post({ job: "standard", ...ESTIMATE, shown_cents: "8400", submission_id: sid(43) }, false));
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toMatch(/[?&]lead_error=price_changed(&|$|#)/);
+    const location = new URL(res.headers.get("location") ?? "", "https://aquafix.top");
+    expect(location.pathname).toBe("/quote/confirm");
+    expect(location.search).not.toMatch(/0612345678|63130/);
+    expect(Object.fromEntries(location.searchParams)).toMatchObject({ job: "standard", estimate_zone: "proche", shown: "8400", submission_id: sid(43), location: "royat", locale: "fr" });
+  });
+
+  it("confirms at the fresh price, and the confirmation's post is taken: no loop", async () => {
+    const { route, stored } = harness({ pricing: live });
+    const sent = await route(post({ job: "standard", ...ESTIMATE, shown_cents: "8400", submission_id: sid(45) }, false));
+    const confirm = confirmRoute(site, { pricing: live, now: () => NOW });
+    const page = await confirm(new Request(new URL(sent.headers.get("location") ?? "", "https://royat.aquafix.top")));
+    expect(page.status).toBe(200);
+    expect(page.headers.get("cache-control")).toBe("no-store");
+    const html = await page.text();
+    expect(html).toMatch(/Le prix a changé : 99\s€ au lieu de 84\s€/);
+    expect(html).toContain('<form method="post" action="/quote">');
+    // The form as the confirmation posts it: its hidden fields, and the phone and postcode typed again.
+    const fields = Object.fromEntries([...html.matchAll(/<input type="hidden" name="([^"]+)" value="([^"]*)"/g)].map(m => [m[1], m[2]]));
+    expect(fields).toMatchObject({ shown_cents: "9900", job: "standard", submission_id: sid(45), estimate_frequency: "biweekly" });
+    expect(html).toMatch(/name="mobile"/);
+    expect(html).toMatch(/name="zip"/);
+    const res = await route(post({ ...fields, hp_ref: "", t: String(NOW - 10_000), zip: "63130", mobile: "0612345678" }, false));
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toMatch(/\/thanks/);
+    expect((await stored(sid(45)))?.price?.cents).toBe(9900);
+  });
+
+  it("sends a confirmation it cannot price back to the place's form", async () => {
+    const confirm = confirmRoute(site, { pricing: live, now: () => NOW });
+    const res = await confirm(new Request("https://royat.aquafix.top/quote/confirm?job=standard&locale=fr&location=royat&shown=8400"));
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toMatch(/#quote$/);
   });
 
   it("takes the lead as before when the page posts no shown price (a page cached before the field)", async () => {
