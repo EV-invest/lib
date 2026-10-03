@@ -89,17 +89,14 @@ export function panelFlowProperties(flow: PanelFlow | undefined): PanelFlowPrope
 }
 
 /**
- * What the Service-Arb panel's `lead.created` calls a callback request. Its
- * `properties.channel` is a closed set (`form` | `phone_inbound`) and an event
- * outside it is refused whole — the outbox would park the lead — so until the
- * panel's `sa.funnel.v1` accepts `callback`, a callback travels as `form`.
- * TODO(panel): set to "callback" once the panel accepts it; nothing else changes.
+ * A lead's channel as the Service-Arb panel's `lead.created` carries it in
+ * `properties.channel` — a closed set (`form` | `phone_inbound` | `callback`)
+ * that refuses the whole event outside it, so the outbox would park the lead.
+ * A site's lead is a form or a callback, each its own: `phone_inbound` is the
+ * panel's, for the calls it records itself. `panelChannel(channelOf(lead))`.
  */
-const PANEL_CALLBACK = "form";
-
-/** A lead's channel as the panel's `properties.channel` may carry it: `panelChannel(channelOf(lead))`. */
-export function panelChannel(channel: LeadChannel): "form" | typeof PANEL_CALLBACK {
-  return channel === "callback" ? PANEL_CALLBACK : "form";
+export function panelChannel(channel: LeadChannel): "form" | "callback" {
+  return channel;
 }
 
 /**
