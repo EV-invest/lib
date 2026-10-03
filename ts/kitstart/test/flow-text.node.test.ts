@@ -27,6 +27,12 @@ describe("the flows' events", () => {
     expect(EVENTS.estimateShown).toBe("lead_estimate_shown");
     for (const prop of ["need", "cents_bucket"]) expect(ALLOWED_PROPS).toContain(prop);
   });
+
+  it("name the booking's opening and its success by provider", () => {
+    expect(EVENTS.bookingOpen).toBe("lead_booking_open");
+    expect(EVENTS.bookingDone).toBe("lead_booking_done");
+    expect(ALLOWED_PROPS).toContain("provider");
+  });
 });
 
 // LEAD-FORMS-RETEST-2026-10-03 N4: a lost answer is often a lead the server

@@ -25,6 +25,10 @@ export const EVENTS = {
   // An estimate's price, shown for a full set of answers: the need and the
   // price's band (`centsBucket`), never the price — once per band and need.
   estimateShown: "lead_estimate_shown",
+  // After a priced lead: the visitor opened the place's booking (`provider`),
+  // and — only where the provider says so on the page (Cal.com's embed) — booked.
+  bookingOpen: "lead_booking_open",
+  bookingDone: "lead_booking_done",
 } as const;
 
 export type IntentChannel = "form_open" | "whatsapp" | "phone" | "sms" | "callback" | "booking";
@@ -64,6 +68,8 @@ export const ALLOWED_PROPS = [
   "need",
   // A price's band, `"5000-7500"` (`centsBucket`) — never the price.
   "cents_bucket",
+  // The booking's provider, `manual` | `link` | `cal_com` — never its URL.
+  "provider",
 ] as const;
 
 /** What an experiment's assignment looks like on the wire: short slugs, nothing a person typed. */
