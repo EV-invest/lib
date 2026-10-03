@@ -1,18 +1,4 @@
 /**
- * A phone number as the funnel reads it: E.164 when the typed value is a
- * number someone can be reached on, otherwise `null`.
- *
- * Only the French national plan is read closely (every brand of the vertical
- * is in France): ten digits from `0[1-9]` — `06 12 34 56 78`, `+33 (0)6 …`,
- * `0033 6 …`, a mobile typed without its trunk zero (`6 12 34 56 78`) — all
- * become `+33612345678`. Any other international number is a plausible E.164,
- * 8 to 15 digits after the `+`, compacted (`+44 7911 123456` →
- * `+447911123456`) — and, for the plans a visitor here most often dials
- * from (`NATIONAL_LENGTH`), as long as that plan's numbers are, so `+12345678`
- * is not a number. Full-width digits read as digits; a run of one digit
- * (`00 00 00 00 00`, `06 66 66 66 66`) is a refusal to give a number, not one.
- */
-/**
  * The national number's length, after the country code, for the plans the
  * vertical's visitors most often come from — bounds wide enough for every
  * real number (Germany and Italy vary by area), short of a library. A plan
@@ -37,6 +23,20 @@ function fitsPlan(e164: string): boolean {
   return true;
 }
 
+/**
+ * A phone number as the funnel reads it: E.164 when the typed value is a
+ * number someone can be reached on, otherwise `null`.
+ *
+ * Only the French national plan is read closely (every brand of the vertical
+ * is in France): ten digits from `0[1-9]` — `06 12 34 56 78`, `+33 (0)6 …`,
+ * `0033 6 …`, a mobile typed without its trunk zero (`6 12 34 56 78`) — all
+ * become `+33612345678`. Any other international number is a plausible E.164,
+ * 8 to 15 digits after the `+`, compacted (`+44 7911 123456` →
+ * `+447911123456`) — and, for the plans a visitor here most often dials
+ * from (`NATIONAL_LENGTH`), as long as that plan's numbers are, so `+12345678`
+ * is not a number. Full-width digits read as digits; a run of one digit
+ * (`00 00 00 00 00`, `06 66 66 66 66`) is a refusal to give a number, not one.
+ */
 export function normalizePhone(raw: string): string | null {
   // NFKC: a Japanese or Chinese keyboard types full-width digits and `＋`,
   // and a pasted number may carry no-break spaces. `\s` takes those too.
