@@ -4,9 +4,9 @@ import { PRICING } from "../../src/shared/config/pricing";
 // The form variants: `recurring` is an estimate, priced live from the baked
 // model (the mock panel's price list is down) and stored at the server's own
 // price — the price shown, or the lead is sent back to confirm a fresh one.
-// The slot is then booked on the Cal.com event the panel set for the place
-// (the French page), or — the default, `manual` (the English one) — promised
-// by a call with an optional preference.
+// The slot is then booked on the Google appointment schedule the panel set
+// for the place (the French page), or — the default, `manual` (the English
+// one) — promised by a call with an optional preference.
 
 const hydrated = (page: Page) => expect(page.locator("#quote select")).toHaveCount(0);
 
@@ -112,10 +112,10 @@ test("a tariff changed under an open page is shown and confirmed, never recorded
   await expect(page.getByRole("status")).toContainText(/Demande enregistrée au prix de 60\s€\./);
 });
 
-test("a priced lead offers the place's Cal.com, prefilled, loading nothing of it before the click", async ({ page, context }) => {
+test("a priced lead offers the place's Google schedule, loading nothing of Google's before the click", async ({ page, context }) => {
   const outside = outsideRequests(page);
-  // The booking page itself is not under test: answered here, never fetched.
-  await context.route("https://cal.com/**", route => route.fulfill({ status: 200, contentType: "text/html", body: "<title>Cal.com</title>" }));
+  // The schedule itself is not under test: answered here, never fetched.
+  await context.route("https://calendar.app.google/**", route => route.fulfill({ status: 200, contentType: "text/html", body: "<title>Google</title>" }));
   await pickRecurring(page, "fr");
   await answer(page, "Studio");
   await answer(page, "Moins de 40 m²");
@@ -129,10 +129,12 @@ test("a priced lead offers the place's Cal.com, prefilled, loading nothing of it
   // 45 €, under the 49 € minimum.
   await expect(status).toContainText(/Demande enregistrée au prix de 49\s€\./);
   await expect(status).toBeFocused();
+  // A schedule takes no parameter: opened as is, and the visitor types the same number there.
   const book = status.getByRole("link", { name: "Choisir un créneau" });
-  await expect(book).toHaveAttribute("href", `https://cal.com/brand/menage?attendeePhoneNumber=%2B33612345678&metadata[ref]=${lead.lead}`);
+  await expect(book).toHaveAttribute("href", "https://calendar.app.google/BrandMenage");
+  await expect(status).toContainText("Indiquez le même numéro de téléphone en réservant");
   await expect(status).toContainText("Sinon, nous vous rappelons pour fixer le créneau.");
-  await expect(page.locator("iframe, script[src*='cal.com']")).toHaveCount(0);
+  await expect(page.locator("iframe")).toHaveCount(0);
   expect(outside).toEqual([]);
 
   const requested = page.waitForResponse(r => new URL(r.url()).pathname === "/quote/booking");
@@ -140,9 +142,9 @@ test("a priced lead offers the place's Cal.com, prefilled, loading nothing of it
   await book.click();
   const tab = await popup;
   await tab.waitForLoadState();
-  expect(new URL(tab.url()).searchParams.get("metadata[ref]")).toBe(lead.lead);
+  expect(tab.url()).toBe("https://calendar.app.google/BrandMenage");
   const res = await requested;
-  expect(JSON.parse(res.request().postData() ?? "{}")).toMatchObject({ lead_ref: lead.lead, provider: "cal_com" });
+  expect(JSON.parse(res.request().postData() ?? "{}")).toMatchObject({ lead_ref: lead.lead, provider: "google_calendar" });
   // Taken; with no lead webhook in the template, `panelBooking` is off and nothing is queued (unit-tested).
   expect(res.status()).toBe(200);
 });

@@ -18,6 +18,7 @@ export const PLACES: readonly Place<Locale>[] = [
     rating: null,
     // How a priced lead's slot is set. Left out, the card promises a call
     // (`manual`); the panel's place settings set it live (`PlaceLive.booking`),
-    // e.g. `{ provider: "cal_com", url: "https://cal.com/brand/menage" }`.
+    // e.g. `{ default: "manual", providers: { google_calendar: { url: "https://calendar.app.google/…" } } }`,
+    // and the `booking_provider` experiment picks among them (`bookingOf`).
   },
 ];
