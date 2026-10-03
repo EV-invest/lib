@@ -1,0 +1,50 @@
+{
+  "format": 1,
+  "currency": "EUR",
+  "validFrom": "2026-10-01",
+  "roundToCents": 100,
+  "minimumCents": 4900,
+  "inputs": [
+    {
+      "id": "zone",
+      "kind": "multiply",
+      "labels": {"fr":"Zone"},
+      "options": [
+        {"id":"centre","labels":{"fr":"Centre"},"multiplyBp":10000},
+        {"id":"proche","labels":{"fr":"Proche banlieue"},"multiplyBp":11000},
+        {"id":"loin","labels":{"fr":"Grande banlieue"},"multiplyBp":100001}
+      ]
+    },
+    {
+      "id": "bedrooms",
+      "kind": "add",
+      "labels": {"fr":"Chambres"},
+      "options": [
+        {"id":"studio","labels":{"fr":"Studio"},"addCents":0},
+        {"id":"t2","labels":{"fr":"1 chambre"},"addCents":1500}
+      ]
+    },
+    {
+      "id": "surface",
+      "kind": "add",
+      "labels": {"fr":"Surface"},
+      "options": [
+        {"id":"s40","labels":{"fr":"Moins de 40 m²"},"addCents":0},
+        {"id":"s70","labels":{"fr":"40 à 70 m²"},"addCents":1000}
+      ]
+    },
+    {
+      "id": "frequency",
+      "kind": "discount",
+      "labels": {"fr":"Fréquence"},
+      "options": [
+        {"id":"weekly","labels":{"fr":"Chaque semaine"},"discountBp":1500},
+        {"id":"biweekly","labels":{"fr":"Toutes les 2 semaines"},"discountBp":1000}
+      ]
+    }
+  ],
+  "needs": {
+    "standard": {"kind":"estimate","baseCents":4500,"inputs":["zone","bedrooms","surface","frequency"]},
+    "windows": {"kind":"fixed","cents":8900}
+  }
+}

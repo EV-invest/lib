@@ -1,0 +1,16 @@
+{
+  "format": 1,
+  "currency": "EUR",
+  "validFrom": "2026-10-03",
+  "roundToCents": 1,
+  "minimumCents": 0,
+  "inputs": [
+    {
+      "id": "unused",
+      "kind": "discount",
+      "labels": {"fr-FR":"Inutilisé"},
+      "options": [{"id":"all","labels":{"fr-FR":"Tout"},"discountBp":10000}]
+    }
+  ],
+  "needs": {"flat":{"kind":"estimate","baseCents":7000,"inputs":[]}}
+}

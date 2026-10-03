@@ -1,0 +1,9 @@
+{
+  "format": 1,
+  "currency": "EUR",
+  "validFrom": "2026-01-01",
+  "roundToCents": 1,
+  "minimumCents": 0,
+  "inputs": [],
+  "needs": {}
+}

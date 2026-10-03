@@ -1,0 +1,9 @@
+{
+  "format": 1,
+  "currency": "EUR",
+  "validFrom": "2028-02-29",
+  "roundToCents": 500,
+  "minimumCents": 99999,
+  "inputs": [],
+  "needs": {"unblock":{"kind":"fixed","cents":12345},"free-visit":{"kind":"fixed","cents":0}}
+}

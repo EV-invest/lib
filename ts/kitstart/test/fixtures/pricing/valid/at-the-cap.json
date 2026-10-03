@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "currency": "EUR",
+  "validFrom": "2026-10-03",
+  "roundToCents": 100000000,
+  "minimumCents": 100000000,
+  "inputs": [
+    {
+      "id": "big",
+      "kind": "add",
+      "labels": {"en":"Big"},
+      "options": [{"id":"max","labels":{"en":"Max"},"addCents":50000000}]
+    },
+    {
+      "id": "times",
+      "kind": "multiply",
+      "labels": {"en":"Times"},
+      "options": [{"id":"two","labels":{"en":"×2"},"multiplyBp":20000}]
+    }
+  ],
+  "needs": {"huge":{"kind":"estimate","baseCents":0,"inputs":["big","times"]}}
+}
