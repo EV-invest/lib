@@ -5,7 +5,7 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import type { ReactElement } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LEAD_CAPTURE_TEXT, parsePricingModel, type LeadCaptureText, type OpeningHours, type Place } from "../src/index";
+import { LEAD_CAPTURE_TEXT, leadErrorOf, parsePricingModel, type LeadCaptureText, type OpeningHours, type Place } from "../src/index";
 import { AnalyticsSinkContext } from "../src/react/analytics-context";
 import { LeadCapture, type LeadCaptureProps } from "../src/react/index";
 import { navigation } from "../src/react/use-lead-submit";
@@ -229,6 +229,12 @@ describe("LeadCapture's priced success", () => {
     expect(second.shown_cents).toBe("9900");
     expect(screen.getByRole("status")).toHaveTextContent(/99\s€/);
     expect(JSON.stringify(events)).not.toMatch(/9900|8400/);
+  });
+
+  it("says the price changed on a page the server sent back, without a script", () => {
+    document.body.innerHTML = renderToString(capture({ need: "windows", initialError: leadErrorOf({ lead_error: "price_changed" }) }));
+    expect(document.body).toHaveTextContent("Le prix a changé depuis l’affichage de la page. Vérifiez le nouveau prix et confirmez.");
+    expect(document.querySelector("input[name=shown_cents]")?.getAttribute("value")).toBe("8900");
   });
 
   it("still goes to the thanks page for a quote need", async () => {
