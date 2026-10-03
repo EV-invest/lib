@@ -11,7 +11,8 @@
  */
 
 import { normalizePhone, phoneProblem } from "./phone";
-import type { LeadFlows } from "./pricing/flow";
+import type { LeadFlow, LeadFlows } from "./pricing/flow";
+import type { PricingInputs } from "./pricing/model";
 
 /** Why a submission was kept but not acted on. `null` is a clean lead. */
 export type SpamVerdict = "honeypot" | "too-fast" | "rate-limited";
@@ -177,6 +178,26 @@ export interface Lead {
    * Absent on a plain post, which has no script to mint one.
    */
   submissionId?: string;
+  /**
+   * How the need was sold, when the brand sells by flow (`LeadSchema.flows`)
+   * and the lead came through the form; absent otherwise — a callback, or a
+   * lead from before the field existed.
+   */
+  flow?: LeadFlow;
+  /** Only on an `estimate` or `fixed` lead: the price the server computed. */
+  price?: LeadPrice;
+}
+
+/**
+ * The price a lead was taken at — the server's own number, from the posted
+ * answers, never a posted amount — and the model it came from.
+ */
+export interface LeadPrice {
+  cents: number;
+  /** The model's `validFrom`, `YYYY-MM-DD`. */
+  validFrom: string;
+  /** An estimate's answers, input id → option id; absent for a fixed price. */
+  inputs?: PricingInputs;
 }
 
 /** What the panel may be told of a suspected lead. */
@@ -202,7 +223,7 @@ export function channelOf(lead: Pick<Lead, "channel">): LeadChannel {
  * What the form posted, before the funnel judges it: the consent is the
  * posted sentence, and the funnel stamps when it accepted it.
  */
-export type LeadCandidate = Omit<Lead, "spamVerdict" | "consent"> & { consentText?: string };
+export type LeadCandidate = Omit<Lead, "spamVerdict" | "consent" | "flow" | "price"> & { consentText?: string };
 
 /**
  * The port the funnel writes through — the commit point. `insert` resolves
@@ -234,9 +255,10 @@ export interface LeadStore {
  * The lead schema's version, shared by every adapter: 1 the Rust server's
  * table (`job`, `zip`, `mobile`, `at`), 2 + the place, 3 + the spam verdict,
  * 4 + the brand's extras, 5 + the channel and the callback's consent, 6 + the
- * script's submission id, unique. Append only.
+ * script's submission id, unique, 7 + the flow and the price it was taken at.
+ * Append only.
  */
-export const LEAD_SCHEMA_VERSION = 6;
+export const LEAD_SCHEMA_VERSION = 7;
 
 /** A field is capped, not rejected: a long answer is still a customer. */
 export const MAX_FIELD = 200;

@@ -44,10 +44,13 @@ export function describeLeadStoreContract(name: string, harness: () => LeadStore
         lead({ subject: "x".repeat(200), locality: "Clermont-Ferrand — 63000" }),
         lead({ channel: "callback", subject: "", locality: "", consent: { text: "J’accepte d’être rappelé·e.", at: "2026-10-03T10:00:00.000Z" } }),
         lead({ channel: "callback", consent: { text: "x".repeat(500), at: "2026-10-03T10:00:00.000Z" } }),
+        lead({ flow: "quote" }),
+        lead({ flow: "estimate", price: { cents: 8400, validFrom: "2026-10-01", inputs: { zone: "proche", frequency: "biweekly" } } }),
+        lead({ flow: "fixed", price: { cents: 0, validFrom: "2026-10-01" } }),
       ]) {
         expect(await store.insert(variant)).toBeGreaterThan(0);
       }
-      expect(await store.count()).toBe(6);
+      expect(await store.count()).toBe(9);
       await store.close();
     });
 
@@ -71,10 +74,14 @@ export function describeLeadStoreContract(name: string, harness: () => LeadStore
         lead: lead({ submissionId: sid, channel: "callback", consent: { text: "Oui.", at: "2026-10-03T10:00:00.000Z" }, extras: { name: "Ana" } }),
       });
       expect(await store.findSubmission("00000000-0000-4000-8000-000000000000")).toBeNull();
+      // A priced lead reads back at the price it was taken at.
+      const priced = lead({ submissionId: "7c9e6679-7425-40de-944b-e07fc1f90ae7", flow: "estimate", price: { cents: 8400, validFrom: "2026-10-01", inputs: { zone: "proche" } } });
+      const pricedId = await store.insert(priced);
+      expect(await store.findSubmission("7c9e6679-7425-40de-944b-e07fc1f90ae7")).toEqual({ id: pricedId, lead: { ...priced, channel: "form" } });
       // Leads without one (the no-JS post) never collide.
       await store.insert(lead());
       await store.insert(lead());
-      expect(await store.count()).toBe(3);
+      expect(await store.count()).toBe(4);
       await store.close();
     });
 
