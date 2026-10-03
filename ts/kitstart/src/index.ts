@@ -23,6 +23,7 @@ export {
 } from "./core/site";
 
 export {
+  calendlyUrl,
   createPlaceView,
   DEFAULT_TIME_ZONE,
   freshRating,
@@ -50,6 +51,7 @@ export {
   type OpeningHours,
   type OriginFacts,
   type Place,
+  type PlaceBooking,
   type PlaceLive,
   type PlaceView,
   type PostalAddress,

@@ -53,6 +53,34 @@ export type ServiceArea =
   | { kind: "localities"; names: readonly string[] }
   | { kind: "radius"; center: Geo; km: number };
 
+/**
+ * Where a visitor books a slot: the place's Calendly scheduling page. Only
+ * `https://calendly.com/<path>` (`calendlyUrl`); Calendly syncs the
+ * operator's calendar itself.
+ */
+export interface PlaceBooking {
+  provider: "calendly";
+  url: string;
+}
+
+/**
+ * A Calendly scheduling page, or `null`: https, the host exactly
+ * `calendly.com` — no subdomain, user, port or fragment — and a path. The
+ * page is framed and prefilled with the visitor's name and phone, so a URL
+ * that could point anywhere else is refused, not trimmed.
+ */
+export function calendlyUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  const clean = url.protocol === "https:" && url.hostname === "calendly.com" && url.username === "" && url.password === "" && url.port === "" && !value.includes("#");
+  return clean && url.pathname.length > 1 ? url.href : null;
+}
+
 export type Presence<L extends string> =
   | {
       kind: "storefront";
@@ -79,6 +107,8 @@ export interface Place<L extends string> {
   hours: readonly OpeningHours[] | null;
   /** Live only. */
   rating: Rating | null;
+  /** Where a slot is booked; absent or `null` → no booking, the callback promise instead. */
+  booking?: PlaceBooking | null;
 }
 
 /** The storefront half of a place, or `null` for a service-area business. */
