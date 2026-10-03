@@ -326,6 +326,30 @@ describe("the quote route", () => {
   });
 });
 
+describe("the quote route's refusals, counted", () => {
+  // LEAD-FORMS-REVIEW-2026-10-03 #11: a refusal left no trace in the funnel.
+  it("captures lead_form_reject with the field and the reason, and nothing the customer typed", async () => {
+    const beacon = vi.fn<(url: string, body: string) => boolean>(() => true);
+    vi.stubGlobal("navigator", { sendBeacon: beacon });
+    const rejecting = quoteRoute(site, {
+      env: () => ({ leadsDb: { kind: "sqlite", path: ":memory:" }, posthogKey: "phc_test", posthogHost: "https://eu.i.posthog.com", trustedProxy: null }),
+      notifier: () => ({ notify: async () => undefined }),
+      unavailable: () => ({ title: "", heading: "", body: "", callLabel: "" }),
+      store: () => openSqliteLeadStore(":memory:"),
+      defer: task => void task(),
+      log: { warn: vi.fn(), error: vi.fn() },
+    });
+    const body = new URLSearchParams({ location: "royat", locale: "fr", form_id: "quote", job: "other", zip: "63130", mobile: "06 12 34 56 7", experiment: "lead_layout", variant: "single" });
+    await rejecting(new Request("https://aquafix.top/quote", { method: "POST", body, headers: { host: "royat.aquafix.top", "content-type": "application/x-www-form-urlencoded" } }));
+    const [, sent] = beacon.mock.calls[0] ?? [];
+    expect(JSON.parse(sent ?? "null")).toMatchObject({
+      event: "lead_form_reject",
+      properties: { form_id: "quote", channel: "form", field: "phone", reason: "invalid", experiment: "lead_layout", variant: "single", location_id: "royat" },
+    });
+    expect(sent).not.toMatch(/06 12 34 56 7|63130/);
+  });
+});
+
 describe("the OG route", () => {
   it("normalises the query to the closed set and draws each card once", async () => {
     const draw = vi.fn(() => ({ type: "div", props: { style: { display: "flex" }, children: "x" }, key: null }));
