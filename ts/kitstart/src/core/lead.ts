@@ -10,7 +10,7 @@
  * still delivers) — both deliberate departures from the first design.
  */
 
-import { isPlausiblePhone, normalizePhone } from "./phone";
+import { normalizePhone, phoneProblem } from "./phone";
 
 /** Why a submission was kept but not acted on. `null` is a clean lead. */
 export type SpamVerdict = "honeypot" | "too-fast" | "rate-limited";
@@ -22,7 +22,26 @@ export type SpamVerdict = "honeypot" | "too-fast" | "rate-limited";
 export interface LeadExtra {
   name: string;
   max: number;
+  /**
+   * A free-text note keeps its line breaks. Off by default: every other field
+   * is one line, and a line break posted into one forges a line of the mail.
+   */
+  multiline?: boolean;
 }
+
+/**
+ * Why a candidate is refused, and the field it is about — `phone`, `locality`,
+ * `need`, `name`, `consent`, an extra's name, or `form` when the rule cannot
+ * say. The field goes back to the form, which shows the error there; `why` is
+ * for the log only, never rendered.
+ */
+export interface LeadRejection {
+  field: string;
+  why: string;
+}
+
+/** What a rule may answer: a rejection, a bare reason (read as `form`), or `null` to accept. */
+export type LeadVerdict = LeadRejection | string | null;
 
 /**
  * The form field each core value is posted under. Brand config, not a
@@ -41,16 +60,20 @@ export interface LeadSchema<S extends string> {
   wire: LeadWire;
   extras?: readonly LeadExtra[];
   /**
-   * The one rule worth enforcing, as a reason for the log (never rendered), or
-   * `null` to accept. Absent → every candidate is a lead.
+   * The rule a form lead must pass, or `null` to accept. Absent →
+   * `validateLead`: the number the form itself blocks on. A brand adding its
+   * own rule composes it — `lead => validateLead(lead) ?? mine(lead)` — and
+   * the landing contract holds it to the form's phone rule, so the server
+   * never refuses a number the form let through. A bare string is a reason
+   * about the whole form (`field: "form"`).
    */
-  validate?: (lead: LeadCandidate) => string | null;
+  validate?: (lead: LeadCandidate) => LeadVerdict;
   /**
    * The rule for a callback request, which carries a phone and little else —
    * a form's rule would refuse it for the locality it never asked. Absent →
-   * `validateCallbackLead`: a number we can read.
+   * `validateCallbackLead`: a number we can call.
    */
-  validateCallback?: (lead: LeadCandidate) => string | null;
+  validateCallback?: (lead: LeadCandidate) => LeadVerdict;
   /**
    * How the mobile is kept: `typed` (default), exactly as posted, or `e164`,
    * `+33612345678` when it reads as a number and as typed when it does not.
@@ -84,9 +107,35 @@ export interface LeadConsent {
   at: string;
 }
 
-/** The default callback rule: a phone number that reads as one. */
-export function validateCallbackLead(lead: Pick<LeadCandidate, "mobile">): string | null {
-  return isPlausiblePhone(lead.mobile) ? null : "a phone number to call back";
+/** The query a refused submission is sent back to the form with: `?lead_error=<field>`. */
+export const LEAD_ERROR_PARAM = "lead_error";
+
+/**
+ * The card's id, posted so a refusal lands back on it (`#devis`, not a
+ * hard-coded `#quote`). Only a slug is ever echoed into the redirect.
+ */
+export const CARD_FIELD = "card";
+export const CARD_ID = /^[a-z0-9-]{1,64}$/;
+
+/** A field as a refusal names it: a short slug, or the whole `form`. */
+const FIELD_SLUG = /^[a-z][a-z0-9_]{0,31}$/;
+
+/** A rule's answer as a rejection: a bare reason, or a field that is not a slug, is about the `form`. */
+export function rejectionOf(verdict: LeadVerdict): LeadRejection | null {
+  if (verdict === null) return null;
+  if (typeof verdict === "string") return { field: "form", why: verdict };
+  return FIELD_SLUG.test(verdict.field) ? verdict : { field: "form", why: verdict.why };
+}
+
+/** The default form rule: a number we can call — the one the form blocks on (`phoneProblem`). */
+export function validateLead(lead: Pick<LeadCandidate, "mobile">): LeadRejection | null {
+  const problem = phoneProblem(lead.mobile);
+  return problem === null ? null : { field: "phone", why: problem === "required" ? "a phone number" : "a phone number we can call" };
+}
+
+/** The default callback rule: the same number rule, worded for the log. */
+export function validateCallbackLead(lead: Pick<LeadCandidate, "mobile">): LeadRejection | null {
+  return phoneProblem(lead.mobile) === null ? null : { field: "phone", why: "a phone number to call back" };
 }
 
 /**
@@ -153,9 +202,21 @@ export const LEAD_SCHEMA_VERSION = 5;
 /** A field is capped, not rejected: a long answer is still a customer. */
 export const MAX_FIELD = 200;
 
-function field(form: FormData, name: string, max: number): string | null {
+// C0 and C1 controls, DEL, and the Unicode line and paragraph separators.
+const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g;
+// The same less the line feed: what a multi-line note keeps.
+const CONTROL_BUT_NEWLINE = /[\u0000-\u0009\u000b-\u001f\u007f-\u009f\u2028\u2029]+/g;
+
+/**
+ * A posted value, trimmed and capped. One line unless `multiline`: a line
+ * break or a control character posted into a one-line field (`63130\nMobile
+ * : 07…`) would forge a line of the mail, so each run becomes one space.
+ */
+function field(form: FormData, name: string, max: number, multiline = false): string | null {
   const value = form.get(name);
-  return typeof value === "string" ? value.trim().slice(0, max) : null;
+  if (typeof value !== "string") return null;
+  const clean = multiline ? value.replace(/\r\n?/g, "\n").replace(CONTROL_BUT_NEWLINE, "") : value.replace(CONTROL, " ").replace(/ {2,}/g, " ");
+  return clean.trim().slice(0, max);
 }
 
 /**
@@ -170,7 +231,7 @@ export function readCandidate(
 ): LeadCandidate {
   const extras: Record<string, string> = {};
   for (const extra of schema.extras ?? []) {
-    const value = field(form, extra.name, extra.max);
+    const value = field(form, extra.name, extra.max, extra.multiline);
     if (value) extras[extra.name] = value;
   }
   const mobile = field(form, schema.wire.mobile, MAX_FIELD) ?? "";
@@ -187,11 +248,12 @@ export function readCandidate(
   };
 }
 
-export function validateCandidate(schema: LeadSchema<string>, lead: LeadCandidate): string | null {
+/** The rule the candidate's channel answers to: the field a refusal is about, or `null`. */
+export function validateCandidate(schema: LeadSchema<string>, lead: LeadCandidate): LeadRejection | null {
   if (channelOf(lead) === "callback") {
     // Not the brand's to waive: calling someone back needs their word for it.
-    if (!lead.consentText) return "consent to be called back";
-    return (schema.validateCallback ?? validateCallbackLead)(lead);
+    if (!lead.consentText) return { field: "consent", why: "consent to be called back" };
+    return rejectionOf((schema.validateCallback ?? validateCallbackLead)(lead));
   }
-  return schema.validate?.(lead) ?? null;
+  return rejectionOf((schema.validate ?? validateLead)(lead));
 }

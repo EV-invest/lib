@@ -82,28 +82,35 @@ export {
 } from "./core/routing";
 
 export {
+  CARD_FIELD,
+  CARD_ID,
   CHANNEL_FIELD,
   channelOf,
   CONSENT_FIELD,
   LEAD_CHANNELS,
+  LEAD_ERROR_PARAM,
   LEAD_SCHEMA_VERSION,
   MAX_CONSENT,
   MAX_FIELD,
   readCandidate,
+  rejectionOf,
   validateCallbackLead,
   validateCandidate,
+  validateLead,
   type Lead,
   type LeadCandidate,
   type LeadChannel,
   type LeadConsent,
   type LeadExtra,
+  type LeadRejection,
   type LeadSchema,
   type LeadStore,
+  type LeadVerdict,
   type LeadWire,
   type SpamVerdict,
 } from "./core/lead";
 
-export { isMobilePhone, isPlausiblePhone, normalizePhone } from "./core/phone";
+export { isMobilePhone, isPlausiblePhone, normalizePhone, phoneProblem } from "./core/phone";
 
 export { LEAD_CAPTURE_TEXT, type LeadCaptureText } from "./core/lead-capture-text";
 export { fillText, openingText } from "./core/lead-capture-format";

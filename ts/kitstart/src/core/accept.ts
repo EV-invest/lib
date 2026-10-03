@@ -1,6 +1,6 @@
 import { experimentProps } from "./analytics";
 import { HONEYPOT_FIELD, LEGACY_HONEYPOT_FIELDS, RENDERED_AT_FIELD, screen, type RateLimiter } from "./antispam";
-import { MAX_FIELD, readCandidate, validateCandidate, type Lead } from "./lead";
+import { channelOf, MAX_FIELD, readCandidate, validateCandidate, type Lead, type LeadChannel } from "./lead";
 import type { Site } from "./site";
 
 /** Hidden fields the form carries besides what the visitor types. */
@@ -20,7 +20,8 @@ const FORM_ID = /^[a-z0-9_-]{1,32}$/;
 
 export type Outcome<L extends string> =
   | { kind: "stored"; id: number; lead: Lead; locale: L; formId: string }
-  | { kind: "invalid"; why: string; locale: L; slug: string | null }
+  /** `field` names what to fix (`phone`, `consent`, … or `form`); `why` is for the log. */
+  | { kind: "invalid"; why: string; field: string; channel: LeadChannel; locale: L; slug: string | null }
   | { kind: "failed"; locale: L; slug: string | null };
 
 export interface AcceptDeps {
@@ -78,10 +79,10 @@ async function accept<L extends string, P extends string>(
   const locale = site.i18n.isLocale(rawLocale) ? rawLocale : site.i18n.defaultLocale;
 
   const candidate = readCandidate(site.lead, form, slug);
-  const why = validateCandidate(site.lead, candidate);
-  if (why) {
-    deps.log.warn(`quote: rejected a submission for ${slug ?? "no point"}: missing ${why}`);
-    return { kind: "invalid", why, locale, slug };
+  const rejection = validateCandidate(site.lead, candidate);
+  if (rejection) {
+    deps.log.warn(`quote: rejected a submission for ${slug ?? "no point"} at ${rejection.field}: missing ${rejection.why}`);
+    return { kind: "invalid", why: rejection.why, field: rejection.field, channel: channelOf(candidate), locale, slug };
   }
 
   // After validation, so a typo corrected and resent does not spend the limit.
