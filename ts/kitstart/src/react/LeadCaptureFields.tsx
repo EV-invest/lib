@@ -156,13 +156,16 @@ export function PhoneField(props: {
       const submit = target?.closest("[type=submit]");
       pressed.current = target === own ? null : submit && own?.form?.contains(submit) ? "submit" : "other";
     };
+    // A press that blurred nothing must not hold a later keyboard blur.
     const release = () => {
       pressed.current = null;
     };
     document.addEventListener("pointerdown", press, true);
+    document.addEventListener("pointerup", release, true);
     document.addEventListener("pointercancel", release, true);
     return () => {
       document.removeEventListener("pointerdown", press, true);
+      document.removeEventListener("pointerup", release, true);
       document.removeEventListener("pointercancel", release, true);
     };
   }, [validity.ref]);

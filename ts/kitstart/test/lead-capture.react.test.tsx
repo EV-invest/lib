@@ -269,7 +269,10 @@ describe("LeadCapture with a script", () => {
     fireEvent.pointerCancel(consent);
     await act(() => new Promise(resolve => setTimeout(resolve, 0)));
     expect(live).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.phoneHint);
-    // From the keyboard nothing is under a pointer: the hint shows at once.
+    // From the keyboard nothing is under a pointer: the hint shows at once —
+    // even after a finished tap somewhere else that left no field.
+    fireEvent.pointerDown(document.body);
+    fireEvent.pointerUp(document.body);
     fireEvent.change(phone, { target: { value: "06 12 34 56 78" } });
     fireEvent.change(phone, { target: { value: "12 34" } });
     fireEvent.blur(phone);
