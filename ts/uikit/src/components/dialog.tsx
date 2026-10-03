@@ -4,7 +4,7 @@ import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
 import { useDismissableLayer } from "../primitives/dismissable-layer";
-import { useFocusScope } from "../primitives/focus-scope";
+import { type InitialFocus, useFocusScope } from "../primitives/focus-scope";
 import { usePresence } from "../primitives/presence";
 import { mergeRefs } from "../primitives/merge-refs";
 import { Portal } from "../primitives/portal";
@@ -115,17 +115,20 @@ const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 export interface DialogContentProps extends React.ComponentProps<"div"> {
   showCloseButton?: boolean;
+  /** Where focus lands on open. Default `first` — a dialog is usually a short form. */
+  initialFocus?: InitialFocus;
 }
 
 export function DialogContent({
   className,
   children,
   showCloseButton = true,
+  initialFocus = "first",
   ...props
 }: DialogContentProps) {
   const { open, setOpen, triggerRef } = useDialog();
   const { isPresent, ref: presRef } = usePresence(open);
-  const focusRef = useFocusScope(open);
+  const focusRef = useFocusScope(open, { initialFocus, returnFocusTo: triggerRef });
   const dismissRef = useDismissableLayer({
     enabled: open,
     onDismiss: () => setOpen(false),

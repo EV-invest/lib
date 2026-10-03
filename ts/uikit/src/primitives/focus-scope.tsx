@@ -33,16 +33,56 @@ function focusable(root: HTMLElement): HTMLElement[] {
 }
 
 /**
+ * Where focus lands when the scope opens. `first` is the first Tab stop inside
+ * (an input, an alert dialog's least destructive action); `container` is the
+ * scope root itself, so a reader starts at the top and the first Tab reaches the
+ * first control — right for a panel of content, where the first stop may be an
+ * action one keypress away from firing.
+ */
+export type InitialFocus = "first" | "container";
+
+export interface FocusScopeOptions {
+  /** Default `first`; falls back to the container when nothing inside is focusable. */
+  initialFocus?: InitialFocus;
+  /**
+   * Where focus goes back on close when the element focused before opening is
+   * no use: `<body>` (Safari does not focus a clicked button), or detached (the
+   * opener was re-rendered away). Pass the overlay's trigger.
+   */
+  returnFocusTo?: React.RefObject<HTMLElement | null>;
+}
+
+function usable(el: HTMLElement | null | undefined): el is HTMLElement {
+  return !!el && el !== document.body && el.isConnected;
+}
+
+// A `<div>` without a tabindex ignores `.focus()`, so a scope with no Tab stops
+// used to leave focus on the trigger behind the scrim. `-1` makes the root
+// focusable by script (and by a click on its empty area, which keeps focus in
+// the scope) without adding it to the Tab order.
+function focusRoot(root: HTMLElement) {
+  if (!root.hasAttribute("tabindex")) root.tabIndex = -1;
+  root.focus();
+}
+
+/**
  * Traps Tab focus inside the returned ref's subtree and restores focus to the
  * previously-focused element on unmount — the dep-light core of dialogs/menus,
- * replacing `@radix-ui/react-focus-scope`. On mount, focuses the first
- * focusable (or the container itself).
+ * replacing `@radix-ui/react-focus-scope`. On mount, focuses per
+ * `initialFocus`; the root gets `tabindex="-1"` whenever it is the target.
  *
  * Rust dialogs rely on the browser's native focus order within a fixed overlay;
  * see the README "Limitations".
  */
-export function useFocusScope(enabled: boolean): React.RefObject<HTMLDivElement | null> {
+export function useFocusScope(
+  enabled: boolean,
+  { initialFocus = "first", returnFocusTo }: FocusScopeOptions = {},
+): React.RefObject<HTMLDivElement | null> {
   const ref = React.useRef<HTMLDivElement | null>(null);
+  // Read at close, not captured at open: a trigger re-rendered while the
+  // overlay was up is a new node by then.
+  const fallbackRef = React.useRef(returnFocusTo);
+  fallbackRef.current = returnFocusTo;
 
   React.useEffect(() => {
     if (!enabled) return;
@@ -50,8 +90,9 @@ export function useFocusScope(enabled: boolean): React.RefObject<HTMLDivElement 
     if (!root) return;
 
     const previouslyFocused = document.activeElement as HTMLElement | null;
-    const first = focusable(root)[0];
-    (first ?? root).focus();
+    const first = initialFocus === "first" ? focusable(root)[0] : undefined;
+    if (first) first.focus();
+    else focusRoot(root);
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== "Tab" || !root) return;
@@ -63,7 +104,12 @@ export function useFocusScope(enabled: boolean): React.RefObject<HTMLDivElement 
       const firstEl = items[0]!;
       const lastEl = items[items.length - 1]!;
       const active = document.activeElement;
-      if (event.shiftKey && active === firstEl) {
+      // From the root itself Shift+Tab would leave the scope for whatever
+      // precedes the portal, so both directions are steered explicitly.
+      if (active === root) {
+        event.preventDefault();
+        (event.shiftKey ? lastEl : firstEl).focus();
+      } else if (event.shiftKey && active === firstEl) {
         event.preventDefault();
         lastEl.focus();
       } else if (!event.shiftKey && active === lastEl) {
@@ -75,9 +121,14 @@ export function useFocusScope(enabled: boolean): React.RefObject<HTMLDivElement 
     root.addEventListener("keydown", onKeyDown);
     return () => {
       root.removeEventListener("keydown", onKeyDown);
-      previouslyFocused?.focus?.();
+      // Focus that already left the scope (a click outside landed on a field)
+      // is the user's; only focus still inside, or dropped to <body>, returns.
+      const active = document.activeElement;
+      if (active && active !== document.body && !root.contains(active)) return;
+      const target = usable(previouslyFocused) ? previouslyFocused : fallbackRef.current?.current;
+      if (usable(target)) target.focus({ preventScroll: true });
     };
-  }, [enabled]);
+  }, [enabled, initialFocus]);
 
   return ref;
 }

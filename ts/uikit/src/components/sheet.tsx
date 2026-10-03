@@ -4,7 +4,7 @@ import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
 import { useDismissableLayer } from "../primitives/dismissable-layer";
-import { useFocusScope } from "../primitives/focus-scope";
+import { type InitialFocus, useFocusScope } from "../primitives/focus-scope";
 import { usePresence } from "../primitives/presence";
 import { mergeRefs } from "../primitives/merge-refs";
 import { Portal } from "../primitives/portal";
@@ -120,12 +120,24 @@ const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 export interface SheetContentProps extends React.ComponentProps<"div"> {
   side?: "top" | "right" | "bottom" | "left";
+  /**
+   * Where focus lands on open. Default `container`: a sheet is a panel of
+   * content, and its first Tab stop is as likely an action as a field — the
+   * panel itself takes focus and the first Tab reaches the first control.
+   */
+  initialFocus?: InitialFocus;
 }
 
-export function SheetContent({ className, children, side = "right", ...props }: SheetContentProps) {
+export function SheetContent({
+  className,
+  children,
+  side = "right",
+  initialFocus = "container",
+  ...props
+}: SheetContentProps) {
   const { open, setOpen, triggerRef } = useSheet();
   const { isPresent, ref: presRef } = usePresence(open);
-  const focusRef = useFocusScope(open);
+  const focusRef = useFocusScope(open, { initialFocus, returnFocusTo: triggerRef });
   const dismissRef = useDismissableLayer({
     enabled: open,
     onDismiss: () => setOpen(false),

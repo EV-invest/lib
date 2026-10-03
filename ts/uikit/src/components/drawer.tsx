@@ -39,6 +39,7 @@ interface DrawerContextValue {
   open: boolean;
   setOpen: (next: boolean) => void;
   direction: DrawerDirection;
+  triggerRef: React.RefObject<HTMLElement | null>;
 }
 
 const DrawerContext = React.createContext<DrawerContextValue | null>(null);
@@ -69,8 +70,9 @@ export function Drawer({
     defaultValue: defaultOpen,
     ...(onOpenChange ? { onChange: onOpenChange } : {}),
   });
+  const triggerRef = React.useRef<HTMLElement | null>(null);
   return (
-    <DrawerContext.Provider value={{ open: isOpen, setOpen, direction }}>
+    <DrawerContext.Provider value={{ open: isOpen, setOpen, direction, triggerRef }}>
       <div data-slot="drawer">{children}</div>
     </DrawerContext.Provider>
   );
@@ -81,11 +83,12 @@ export interface DrawerTriggerProps extends React.ComponentProps<"button"> {
 }
 
 export function DrawerTrigger({ asChild = false, onClick, ...props }: DrawerTriggerProps) {
-  const { setOpen } = useDrawer();
+  const { setOpen, triggerRef } = useDrawer();
   const Comp = asChild ? Slot : "button";
   return (
     <Comp
       data-slot="drawer-trigger"
+      ref={triggerRef as React.Ref<HTMLButtonElement>}
       onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
         onClick?.(e);
         setOpen(true);
@@ -338,14 +341,14 @@ function useDrawerDrag(opts: {
  * with `data-vaul-no-drag`.
  */
 export function DrawerContent({ className, children, ...props }: React.ComponentProps<"div">) {
-  const { open, setOpen, direction } = useDrawer();
+  const { open, setOpen, direction, triggerRef } = useDrawer();
   // Derived during render so the panel is in the same commit that opened it —
   // the enter keyframe plays on insertion, no mount flip needed.
   const [present, setPresent] = React.useState(open);
   if (open && !present) setPresent(true);
   const closing = present && !open;
 
-  const scopeRef = useFocusScope(open);
+  const scopeRef = useFocusScope(open, { returnFocusTo: triggerRef });
   const panelRef = React.useRef<HTMLDivElement | null>(null);
   const scrimRef = React.useRef<HTMLDivElement | null>(null);
   const openedAtRef = React.useRef(0);

@@ -95,7 +95,7 @@ export interface AlertDialogContentProps extends React.ComponentProps<"div"> {}
 export function AlertDialogContent({ className, children, ...props }: AlertDialogContentProps) {
   const { open, setOpen, triggerRef } = useAlertDialog();
   const { isPresent, ref: presRef } = usePresence(open);
-  const focusRef = useFocusScope(open);
+  const focusRef = useFocusScope(open, { returnFocusTo: triggerRef });
   const dismissRef = useDismissableLayer({
     enabled: open,
     onDismiss: () => setOpen(false),
