@@ -239,7 +239,8 @@ it is the plain POST to `/quote` it always was.
   with no need: the tile, which moves the focus to the first empty field (the
   phone when the commune is filled), then send.
   `single` with no need takes the first one unless changed (two more taps).
-  Enter sends.
+  Enter sends. From the keyboard the tiles are a radio group: the arrows move
+  the choice and stay in it; Enter or Space answers and moves on.
 - **Channels** (`resolveChannels`, shared with `CallBar`): call (`tel:`),
   WhatsApp and SMS (the need in the message; SMS only to a mobile), "call me
   back" and the form. Open, the call leads; closed, the callback (open) and

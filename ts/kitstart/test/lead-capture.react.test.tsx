@@ -54,7 +54,16 @@ const input = (name: string, id = "quote-form") => {
   if (!(el instanceof HTMLInputElement)) throw new Error(`no input ${name} in #${id}`);
   return el;
 };
-
+const radio = (value: string) => {
+  const el = form().querySelector(`input[type=radio][value=${value}]`);
+  if (!(el instanceof HTMLInputElement)) throw new Error(`no radio ${value}`);
+  return el;
+};
+/** A pointer's click: `detail` 1, where a keyboard's synthetic click is 0. */
+const tap = (el: Element) => {
+  fireEvent.pointerDown(el);
+  fireEvent.click(el, { detail: 1 });
+};
 /** Every channel control in document order, by its label. */
 const channelOrder = () =>
   [...document.querySelectorAll("a[href^='tel:'], a[href^='sms:'], a[href*='wa.me'], summary, #quote-form")].map(el =>
@@ -149,7 +158,7 @@ describe("LeadCapture's channels", () => {
 describe("LeadCapture with a script", () => {
   it("qualify-first: with the commune filled, the tap on a need lands on the phone", () => {
     render(capture({ layout: "qualify-first", place: { ...place, serviceArea: [{ kind: "localities", names: ["Royat"] }] } }));
-    fireEvent.click(screen.getByText("Fuite d’eau"));
+    tap(radio("leak"));
     expect(document.activeElement).toBe(form().querySelector("input[name=mobile]"));
   });
 
@@ -174,7 +183,7 @@ describe("LeadCapture with a script", () => {
   it("qualify-first: one tap on a need moves to the phone", () => {
     const { wrap, events } = recorder();
     render(wrap(capture({ layout: "qualify-first" })));
-    fireEvent.click(screen.getByText("Chaudière"));
+    tap(radio("boiler"));
     // Two communes served: the postcode is still to give, so it comes first.
     expect(document.activeElement).toBe(form().querySelector("input[name=zip]"));
     expect(posted()["job"]).toBe("boiler");
@@ -276,6 +285,41 @@ describe("LeadCapture with a script", () => {
     window.history.replaceState(null, "", "/fr?lead_error=phone#devis");
     render(capture());
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
+describe("LeadCapture's qualify-first from the keyboard", () => {
+  // LEAD-FORMS-REVIEW-2026-10-03 #7: the first arrow took the second need and left the group.
+  it("arrow keys only move the choice; Enter, Space or a tap moves on", () => {
+    const { wrap, events } = recorder();
+    render(wrap(capture({ layout: "qualify-first" })));
+    const steps = () => events.filter(e => e.event === "lead_form_step");
+    act(() => radio("leak").focus());
+    // What a browser does on ArrowDown in a group: a synthetic click (detail 0) on the next radio.
+    fireEvent.keyDown(radio("leak"), { key: "ArrowDown" });
+    act(() => radio("boiler").focus());
+    fireEvent.click(radio("boiler"));
+    expect(radio("boiler")).toBeChecked();
+    expect(document.activeElement).toBe(radio("boiler"));
+    expect(steps()).toEqual([]);
+    fireEvent.keyDown(radio("boiler"), { key: "ArrowUp" });
+    fireEvent.click(radio("leak"));
+    expect(radio("leak")).toBeChecked();
+    expect(steps()).toEqual([]);
+    const enter = fireEvent.keyDown(radio("leak"), { key: "Enter" });
+    // Enter would submit the form from a radio: it moves on instead.
+    expect(enter).toBe(false);
+    expect(document.activeElement).toBe(input("zip"));
+    expect(posted()["job"]).toBe("leak");
+    expect(steps().map(e => e.props["step"])).toEqual(["contact"]);
+  });
+
+  it("moves on with Space", () => {
+    render(capture({ layout: "qualify-first" }));
+    fireEvent.keyDown(radio("boiler"), { key: " " });
+    fireEvent.keyUp(radio("boiler"), { key: " " });
+    expect(document.activeElement).toBe(input("zip"));
+    expect(posted()["job"]).toBe("boiler");
   });
 });
 
