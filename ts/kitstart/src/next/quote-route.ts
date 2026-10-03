@@ -13,6 +13,7 @@ import type { ServerEnv } from "../server/env";
 import { openLeadStore } from "../server/lead-store";
 import type { LeadWebhook } from "../server/lead-webhook";
 import type { LeadNotifier } from "../server/notify";
+import type { PricingSource } from "../server/pricing-source";
 
 /**
  * `app/quote/route.ts` — the no-JS path, and the one that has to keep working:
@@ -20,7 +21,8 @@ import type { LeadNotifier } from "../server/notify";
  * A refused lead goes back to its card with the field to fix
  * (`/fr?lead_error=phone#devis`); a script asking for JSON (`Accept:
  * application/json`) is answered `422 { ok: false, field }` instead, and
- * `200 { ok: true, location }` for a lead taken.
+ * `200 { ok: true, location, lead, cents? }` for a lead taken — `lead` its
+ * public reference (`leadRef`), `cents` the price the server took it at.
  *
  * ```ts
  * export const dynamic = "force-dynamic";
@@ -48,6 +50,11 @@ export interface QuoteRouteDeps<L extends string> {
   webhook?: () => LeadWebhook | null;
   /** The self-contained 500's words, when the store refused the lead. */
   unavailable: (locale: L, place: Place<L> | null) => UnavailableCopy;
+  /**
+   * The price list an `estimate` or `fixed` lead is priced from — the same
+   * source the page showed (`createPricingSource`); absent → `site.pricing`.
+   */
+  pricing?: PricingSource;
   /** Opened on first use (`next build` imports the route); defaults to `LEADS_DB_URL`'s. */
   store?: () => LeadStore;
   /** Defaults to `env().leadRateLimit`, built on the first lead. */
@@ -212,6 +219,7 @@ export function quoteRoute<L extends string, P extends string>(
       insert: lead => leadStore().insert(lead),
       findSubmission: async submissionId => (await leadStore().findSubmission?.(submissionId)) ?? null,
       sendSuspect: suspectQueued(),
+      ...(deps.pricing ? { pricing: () => deps.pricing?.model() ?? Promise.resolve(null) } : {}),
       defer,
       notify: (lead, id) => {
         notifier ??= deps.notifier();
@@ -253,7 +261,8 @@ export function quoteRoute<L extends string, P extends string>(
       // A suspected bot is answered exactly as a person is.
       case "stored": {
         const location = href(request, outcome.lead.placeSlug, outcome.locale, thanksSuffix(channelOf(outcome.lead)));
-        return scripted ? json(200, { ok: true, location }) : seeOther(location);
+        const price = outcome.lead.price ? { cents: outcome.lead.price.cents } : {};
+        return scripted ? json(200, { ok: true, location, lead: outcome.ref, ...price }) : seeOther(location);
       }
       case "invalid": {
         const tags = experimentProps(text(form, EXPERIMENT_FIELD), text(form, VARIANT_FIELD));

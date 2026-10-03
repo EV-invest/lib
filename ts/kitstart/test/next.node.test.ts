@@ -238,7 +238,7 @@ describe("the quote route", () => {
     expect(await refused.json()).toEqual({ ok: false, field: "phone" });
     const taken = await route(store)(asked({}));
     expect(taken.status).toBe(200);
-    expect(await taken.json()).toEqual({ ok: true, location: "/fr/thanks" });
+    expect(await taken.json()).toEqual({ ok: true, location: "/fr/thanks", lead: expect.stringMatching(/^lead-1-[0-9a-f]{8}$/) });
     expect(store.rows).toHaveLength(1);
   });
 

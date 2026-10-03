@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { suspectOf, type Lead, type LeadChannel, type LeadSuspect } from "../core/lead";
+import type { LeadFlow } from "../core/pricing/flow";
 import type { ServerEnv } from "./env";
 import { openWebhookOutbox, type TickReport, type WebhookOutbox, type WebhookOutboxOptions } from "./webhook-outbox";
 import type { WebhookSigning } from "./webhook-signature";
@@ -22,6 +23,60 @@ export interface LeadWebhookContext {
    * body must not carry the property at all.
    */
   suspect?: LeadSuspect;
+  /**
+   * The lead's public reference (`leadRef`, `lead-<row>-<8 hex>`): the one
+   * the visitor's booking carries as `utm_content`. A brand whose panel joins
+   * bookings to leads sends it as the panel's lead id. Absent only on a
+   * context built by hand.
+   */
+  leadRef?: string;
+  /**
+   * How the need was sold and at what price — only under `panelFlow`, and
+   * only on a lead with a flow; otherwise absent, and the body must not carry
+   * the properties. `panelFlowProperties` writes them as the panel reads them.
+   */
+  flow?: PanelFlow;
+}
+
+/** A lead's sale as the panel's `lead.created` may carry it. */
+export interface PanelFlow {
+  flow: LeadFlow;
+  /** With `estimate` and `fixed` only, always with `pricingValidFrom`. */
+  quotedCents?: number;
+  /** The price list's date, `YYYY-MM-DD`. */
+  pricingValidFrom?: string;
+  /** With `estimate` only, and only when it asked anything: input id → option id, slugs. */
+  estimateInputs?: Readonly<Record<string, string>>;
+}
+
+/** The sale `ctx.flow` describes, or nothing for a lead without a flow. */
+export function panelFlowOf(lead: Pick<Lead, "flow" | "price">): PanelFlow | undefined {
+  if (!lead.flow) return undefined;
+  if (lead.flow === "quote" || !lead.price) return { flow: "quote" };
+  const inputs = lead.flow === "estimate" && lead.price.inputs && Object.keys(lead.price.inputs).length > 0 ? { estimateInputs: lead.price.inputs } : {};
+  return { flow: lead.flow, quotedCents: lead.price.cents, pricingValidFrom: lead.price.validFrom, ...inputs };
+}
+
+/**
+ * `ctx.flow` as `lead.created`'s properties: `flow`, then `quoted_cents` and
+ * `pricing_valid_from` together (estimate and fixed), then `estimate_inputs`
+ * (estimate) — the panel's closed vocabulary. Spread into the body's
+ * `properties`; `{}` without a flow.
+ */
+export interface PanelFlowProperties {
+  flow: LeadFlow;
+  quoted_cents?: number;
+  pricing_valid_from?: string;
+  estimate_inputs?: Readonly<Record<string, string>>;
+}
+
+export function panelFlowProperties(flow: PanelFlow | undefined): PanelFlowProperties | Record<string, never> {
+  if (!flow) return {};
+  return {
+    flow: flow.flow,
+    ...(flow.quotedCents !== undefined && flow.pricingValidFrom !== undefined ? { quoted_cents: flow.quotedCents, pricing_valid_from: flow.pricingValidFrom } : {}),
+    ...(flow.estimateInputs ? { estimate_inputs: flow.estimateInputs } : {}),
+  };
 }
 
 /**
@@ -47,7 +102,7 @@ export type BuildWebhookBody = (lead: Lead, ctx: LeadWebhookContext) => unknown;
 
 export interface LeadWebhook {
   /** Builds, serialises and queues the lead's body; returns the outbox row. */
-  enqueue(lead: Lead, id: number, meta: { locale: string; formId: string }): number;
+  enqueue(lead: Lead, id: number, meta: { locale: string; formId: string; leadRef?: string }): number;
   tick(): Promise<TickReport>;
   start(intervalMs?: number): void;
   stop(): void;
@@ -56,6 +111,8 @@ export interface LeadWebhook {
   requeueDead(): number;
   /** Whether a suspect lead is queued, marked (`LeadWebhookOptions.panelSuspect`). */
   readonly panelSuspect: boolean;
+  /** Whether `ctx.flow` is filled in (`LeadWebhookOptions.panelFlow`). */
+  readonly panelFlow: boolean;
   readonly outbox: WebhookOutbox;
 }
 
@@ -72,6 +129,13 @@ export interface LeadWebhookOptions extends WebhookOutboxOptions {
    * suspect, for the brand's body to carry.
    */
   panelSuspect?: boolean;
+  /**
+   * The switch for the sale's properties (`ctx.flow`: `flow`, `quoted_cents`,
+   * `pricing_valid_from`, `estimate_inputs`). Off (the default) until the
+   * panel's `lead.created` accepts them — it refuses an unknown property, and
+   * the outbox would park the lead. The leads table keeps them either way.
+   */
+  panelFlow?: boolean;
 }
 
 /**
@@ -84,7 +148,7 @@ export function leadWebhook(
   env: Pick<ServerEnv, "leadsDb" | "leadWebhook">,
   options: LeadWebhookOptions,
 ): LeadWebhook | null {
-  const { buildBody, signing, panelSuspect = false, ...outboxOptions } = options;
+  const { buildBody, signing, panelSuspect = false, panelFlow = false, ...outboxOptions } = options;
   if (!env.leadWebhook || !buildBody) return null;
   if (env.leadsDb.kind !== "sqlite") throw new Error("LEAD_WEBHOOK_URL: the webhook outbox needs the sqlite lead store");
   const outbox = openWebhookOutbox(env.leadsDb.path, { ...env.leadWebhook, signing }, outboxOptions);
@@ -92,9 +156,19 @@ export function leadWebhook(
   return {
     outbox,
     panelSuspect,
+    panelFlow,
     enqueue(lead, id, meta) {
       const suspect = panelSuspect ? suspectOf(lead) : undefined;
-      const ctx: LeadWebhookContext = { leadId: id, brandId: site.brand.id, ...meta, at: new Date(now()), idempotencyKey: randomUUID(), ...(suspect ? { suspect } : {}) };
+      const flow = panelFlow ? panelFlowOf(lead) : undefined;
+      const ctx: LeadWebhookContext = {
+        leadId: id,
+        brandId: site.brand.id,
+        ...meta,
+        at: new Date(now()),
+        idempotencyKey: randomUUID(),
+        ...(suspect ? { suspect } : {}),
+        ...(flow ? { flow } : {}),
+      };
       const body = JSON.stringify(buildBody(lead, ctx));
       if (typeof body !== "string") throw new Error("buildWebhookBody returned nothing JSON can carry");
       return outbox.enqueue(body, `lead:${id}`);

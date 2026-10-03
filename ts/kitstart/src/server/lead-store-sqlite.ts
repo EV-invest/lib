@@ -2,7 +2,8 @@ import "server-only";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
-import { channelOf, LEAD_SCHEMA_VERSION, type Lead, type LeadStore, type SpamVerdict } from "../core/lead";
+import { channelOf, LEAD_SCHEMA_VERSION, type Lead, type LeadPrice, type LeadStore, type SpamVerdict } from "../core/lead";
+import { LEAD_FLOWS, type LeadFlow } from "../core/pricing/flow";
 
 /**
  * The SQLite adapter of the `LeadStore` port: one file on the pod's volume.
@@ -75,6 +76,15 @@ const STEPS: readonly ((db: DatabaseSync) => void)[] = [
     db.exec("ALTER TABLE leads ADD COLUMN submission_id TEXT");
     db.exec("CREATE UNIQUE INDEX leads_submission_id ON leads (submission_id) WHERE submission_id IS NOT NULL");
   },
+  // 7 — how the need was sold (`quote`, `estimate`, `fixed`), and for the two
+  // priced flows the server's price, the model's date and an estimate's
+  // answers (JSON). Nullable: a row from before, a callback, a quote.
+  db => {
+    db.exec("ALTER TABLE leads ADD COLUMN flow TEXT");
+    db.exec("ALTER TABLE leads ADD COLUMN quoted_cents INTEGER");
+    db.exec("ALTER TABLE leads ADD COLUMN pricing_valid_from TEXT");
+    db.exec("ALTER TABLE leads ADD COLUMN estimate_inputs TEXT");
+  },
 ];
 
 if (STEPS.length !== LEAD_SCHEMA_VERSION) {
@@ -92,22 +102,39 @@ function str(row: unknown, key: string): string | null {
 
 const VERDICTS: readonly string[] = ["honeypot", "too-fast", "rate-limited"] satisfies SpamVerdict[];
 
+/** A JSON object of strings, or `{}`: what `extras` and `estimate_inputs` hold. */
+function strings(text: string | null): Record<string, string> {
+  const value: unknown = JSON.parse(text ?? "{}");
+  return Object.fromEntries(Object.entries(typeof value === "object" && value !== null ? value : {}).filter((e): e is [string, string] => typeof e[1] === "string"));
+}
+
+function priceOf(row: unknown): LeadPrice | null {
+  const cents = column(row, "quoted_cents");
+  const validFrom = str(row, "pricing_valid_from");
+  if ((typeof cents !== "number" && typeof cents !== "bigint") || validFrom === null) return null;
+  const inputs = str(row, "estimate_inputs");
+  return { cents: Number(cents), validFrom, ...(inputs !== null ? { inputs: strings(inputs) } : {}) };
+}
+
 /** A stored row read back as the lead it was written from. */
 function leadOf(row: unknown): Lead {
   const verdict = str(row, "spam_verdict");
-  const extras: unknown = JSON.parse(str(row, "extras") ?? "{}");
   const consentAt = str(row, "consent_at");
   const submissionId = str(row, "submission_id");
+  const flow = LEAD_FLOWS.find(f => f === str(row, "flow")) satisfies LeadFlow | undefined;
+  const price = priceOf(row);
   return {
     subject: str(row, "job") ?? "",
     locality: str(row, "zip") ?? "",
     mobile: str(row, "mobile") ?? "",
-    extras: Object.fromEntries(Object.entries(typeof extras === "object" && extras !== null ? extras : {}).filter((e): e is [string, string] => typeof e[1] === "string")),
+    extras: strings(str(row, "extras")),
     placeSlug: str(row, "location_id"),
     spamVerdict: verdict !== null && VERDICTS.includes(verdict) ? (verdict as SpamVerdict) : null,
     channel: str(row, "channel") === "callback" ? "callback" : "form",
     ...(consentAt !== null ? { consent: { at: consentAt, text: str(row, "consent_text") ?? "" } } : {}),
     ...(submissionId !== null ? { submissionId } : {}),
+    ...(flow !== undefined ? { flow } : {}),
+    ...(price !== null ? { price } : {}),
   };
 }
 
@@ -189,10 +216,10 @@ export function openSqliteLeadStore(path: string): SqliteLeadStore {
     throw error;
   }
   const insert = db.prepare(
-    "INSERT INTO leads (job, zip, mobile, location_id, spam_verdict, extras, channel, consent_at, consent_text, submission_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+    "INSERT INTO leads (job, zip, mobile, location_id, spam_verdict, extras, channel, consent_at, consent_text, submission_id, flow, quoted_cents, pricing_valid_from, estimate_inputs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
   );
   const bySubmission = db.prepare(
-    "SELECT id, job, zip, mobile, location_id, spam_verdict, extras, channel, consent_at, consent_text, submission_id FROM leads WHERE submission_id = ?",
+    "SELECT id, job, zip, mobile, location_id, spam_verdict, extras, channel, consent_at, consent_text, submission_id, flow, quoted_cents, pricing_valid_from, estimate_inputs FROM leads WHERE submission_id = ?",
   );
   const count = db.prepare("SELECT COUNT(*) AS n FROM leads");
   return {
@@ -210,6 +237,10 @@ export function openSqliteLeadStore(path: string): SqliteLeadStore {
           lead.consent?.at ?? null,
           lead.consent?.text ?? null,
           lead.submissionId ?? null,
+          lead.flow ?? null,
+          lead.price?.cents ?? null,
+          lead.price?.validFrom ?? null,
+          lead.price?.inputs ? JSON.stringify(lead.price.inputs) : null,
         ),
         "id",
       );

@@ -83,7 +83,7 @@ describe("choosing the lead store", () => {
   it("checks the store at boot and says which one won", async () => {
     const info = vi.fn();
     await checkLeadStore({ leadsDb: { kind: "sqlite", path: tmp() }, leadsDbFrom: "LEADS_DB_URL" }, { info });
-    expect(info).toHaveBeenCalledWith(expect.stringMatching(/^leads: sqlite at .*, schema v6 \(from LEADS_DB_URL\)$/));
+    expect(info).toHaveBeenCalledWith(expect.stringMatching(/^leads: sqlite at .*, schema v7 \(from LEADS_DB_URL\)$/));
     await expect(checkLeadStore({ leadsDb: { kind: "postgres", url: "postgres://db/x" }, leadsDbFrom: "LEADS_DB_URL" }, { info })).rejects.toThrow(
       LeadStoreNotImplemented,
     );
@@ -125,7 +125,7 @@ const columnsOf = (path: string): unknown[] => {
   return names;
 };
 
-const ALL = ["id", "job", "zip", "mobile", "at", "location_id", "spam_verdict", "extras", "channel", "consent_at", "consent_text", "submission_id"];
+const ALL = ["id", "job", "zip", "mobile", "at", "location_id", "spam_verdict", "extras", "channel", "consent_at", "consent_text", "submission_id", "flow", "quoted_cents", "pricing_valid_from", "estimate_inputs"];
 
 describe("the sqlite store's migrations", () => {
   it("keeps the channel and a callback's consent; a row from before has neither", async () => {
@@ -144,7 +144,7 @@ describe("the sqlite store's migrations", () => {
     check.close();
   });
 
-  it("brings a version 5 file to 6, its rows kept and the submission id unique", async () => {
+  it("brings a version 5 file forward, its rows kept and the submission id unique", async () => {
     const path = tmp();
     const old = new (sqlite().DatabaseSync)(path);
     old.exec(`CREATE TABLE leads (id INTEGER PRIMARY KEY AUTOINCREMENT, job TEXT NOT NULL, zip TEXT NOT NULL, mobile TEXT NOT NULL, at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -153,7 +153,7 @@ describe("the sqlite store's migrations", () => {
     old.exec("PRAGMA user_version = 5");
     old.close();
     const store = openSqliteLeadStore(path);
-    expect(store.version()).toBe(6);
+    expect(store.version()).toBe(LEAD_SCHEMA_VERSION);
     const sid = "3f2b8c1e-5d4a-4f6b-9c7e-1a2b3c4d5e6f";
     expect(await store.insert(lead({ submissionId: sid }))).toBe(2);
     await expect(store.insert(lead({ submissionId: sid }))).rejects.toThrow(/UNIQUE/);
