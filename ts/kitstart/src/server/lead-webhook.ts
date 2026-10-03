@@ -52,6 +52,8 @@ export interface LeadWebhook {
   start(intervalMs?: number): void;
   stop(): void;
   close(): void;
+  /** The outbox's `requeueDead`: this target's dead rows back in the queue. */
+  requeueDead(): number;
   /** Whether a suspect lead is queued, marked (`LeadWebhookOptions.panelSuspect`). */
   readonly panelSuspect: boolean;
   readonly outbox: WebhookOutbox;
@@ -101,5 +103,6 @@ export function leadWebhook(
     start: intervalMs => outbox.start(intervalMs),
     stop: () => outbox.stop(),
     close: () => outbox.close(),
+    requeueDead: () => outbox.requeueDead(),
   };
 }

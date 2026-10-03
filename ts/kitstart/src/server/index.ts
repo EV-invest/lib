@@ -18,8 +18,11 @@ export { leadWebhook, panelChannel, type BuildWebhookBody, type LeadWebhook, typ
 export {
   checkWebhookUrl,
   openWebhookOutbox,
+  WEBHOOK_HORIZON_MS,
   WEBHOOK_MAX_ATTEMPTS,
+  WEBHOOK_MAX_DELAY_MS,
   WEBHOOK_TICK_MS,
+  type DeadRow,
   type OutboxRow,
   type OutboxState,
   type TickReport,
