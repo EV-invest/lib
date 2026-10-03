@@ -421,11 +421,13 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, pricing, unavai
 
 ### Booking: `manual`, `link`, `cal_com`
 
-How a priced lead's slot is set, per place, provider-agnostic. Cal.com is the
-default provider; Calendly will be one more adapter on the same seams.
+How a priced lead's slot is set, per place, provider-agnostic. The default is
+`manual` — a call; `link` and `cal_com` are built-in adapters, and another
+provider (Calendly, Google appointment schedules) is one more adapter a brand
+registers, `LeadCapture` untouched.
 
 ```ts
-// shared/config/places.ts — baked; the panel's place settings override it (`PlaceLive.booking`)
+// shared/config/places.ts — baked, optional; the panel's place settings override it (`PlaceLive.booking`)
 { slug: "paris", …, booking: { provider: "cal_com", url: "https://cal.com/brand/menage" } }
 // shared/config/site.ts — the Cal.com hosts a place may book on (default ["cal.com"])
 export const site = defineSite({ …, booking: { calComHosts: ["cal.com", "cal.brand.fr"] } });
@@ -452,10 +454,19 @@ export const POST = bookingRoute({ env: serverEnv, webhook });
   (`calComEmbedAdapter`) opens Cal.com's modal instead: its script loads on
   the click, and its `bookingSuccessful` is `onBooked` — the one way the page
   learns a slot was taken (`lead_booking_done`, "Créneau réservé").
-- **Adapters** (`BookingAdapter = { provider, href?, open? }`): the built-ins
-  are `manualAdapter`, `linkAdapter`, `calComAdapter`; `bookingAdapters`
-  on `LeadCapture` puts a brand's own over them (from a client component — a
-  server one cannot pass functions).
+- **Adapters** (`BookingAdapter = { provider, href?, open? }`), picked by the
+  config's `provider`: the built-ins are `manualAdapter`, `linkAdapter`,
+  `calComAdapter`; `bookingAdapters` on `LeadCapture` registers a brand's own
+  by provider name, any name (from a client component — a server one cannot
+  pass functions). A provider no adapter knows promises the call.
+- **An experiment's arm: one entry point.** `bookingForVariant(place, variant,
+  arms)` answers the arm's config for the variant, else the place's
+  (`bookingOf`); the page passes it as `LeadCapture`'s `bookingConfig`
+  (serialisable, so a server component can). An arm's provider may be one
+  outside the closed set while its contract is pending; its
+  `booking.requested` is then refused by the route (`422`) and only the
+  events count it. `lead_booking_open` / `lead_booking_done {provider}`
+  compare the arms.
 - **`booking.requested@1`.** Opening a `link` / `cal_com` page, or sending a
   `manual` preference, posts `{ submission, lead_ref, provider,
   preferred_date?, preferred_part? }` to `/quote/booking` (`bookingRoute`).
