@@ -1,5 +1,5 @@
 import { after } from "next/server.js";
-import { createAcceptLead, EXPERIMENT_FIELD, VARIANT_FIELD } from "../core/accept";
+import { createAcceptLead, EXPERIMENT_FIELD, PRICE_CHANGED, VARIANT_FIELD } from "../core/accept";
 import { analyticsSink, EVENTS, experimentProps } from "../core/analytics";
 import { RateLimiter } from "../core/antispam";
 import { CARD_FIELD, CARD_ID, channelOf, LEAD_CARD_PARAM, LEAD_ERROR_PARAM, type LeadChannel, type LeadStore } from "../core/lead";
@@ -270,12 +270,13 @@ export function quoteRoute<L extends string, P extends string>(
       case "invalid": {
         const tags = experimentProps(text(form, EXPERIMENT_FIELD), text(form, VARIANT_FIELD));
         // The field's role and why — never what was typed.
-        const props = { form_id: outcome.formId, channel: outcome.channel, field: outcome.field, reason: "invalid", ...tags };
+        const repriced = outcome.field === PRICE_CHANGED;
+        const props = { form_id: outcome.formId, channel: outcome.channel, field: outcome.field, reason: repriced ? PRICE_CHANGED : "invalid", ...tags };
         if (env.posthogKey) {
           const sink = analyticsSink({ key: env.posthogKey, host: env.posthogHost, brandId: site.brand.id }, outcome.slug);
           defer(() => sink.capture(EVENTS.formReject, props));
         }
-        if (scripted) return json(422, { ok: false, field: outcome.field });
+        if (scripted) return json(422, { ok: false, field: outcome.field, ...(repriced && outcome.cents !== undefined ? { reason: PRICE_CHANGED, cents: outcome.cents } : {}) });
         return seeOther(href(request, outcome.slug, outcome.locale, refused(form, outcome.field, outcome.channel)));
       }
       case "failed":

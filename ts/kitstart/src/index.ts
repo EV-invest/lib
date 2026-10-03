@@ -188,6 +188,8 @@ export {
   leadRef,
   LOCALE_FIELD,
   LOCATION_FIELD,
+  PRICE_CHANGED,
+  SHOWN_CENTS_FIELD,
   VARIANT_FIELD,
   type AcceptDeps,
   type Outcome,
