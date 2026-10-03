@@ -1,5 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
+import type { BookingRequest } from "../core/booking/model";
 import { suspectOf, type Lead, type LeadChannel, type LeadSuspect } from "../core/lead";
 import type { LeadFlow } from "../core/pricing/flow";
 import type { ServerEnv } from "./env";
@@ -99,6 +100,26 @@ export function panelChannel(channel: LeadChannel): "form" | typeof PANEL_CALLBA
  */
 export type BuildWebhookBody = (lead: Lead, ctx: LeadWebhookContext) => unknown;
 
+/** What the brand's booking body builder is told besides the request. */
+export interface BookingWebhookContext {
+  brandId: string;
+  /** When the site took the request. */
+  at: Date;
+  /** Fresh per request and stored with the body, like a lead's. */
+  idempotencyKey: string;
+}
+
+/**
+ * `booking.requested@1`'s body, built by the brand like `BuildWebhookBody`:
+ * `bookingRequestedProperties(request)` writes the properties as the panel
+ * reads them, and `request.leadRef` is the lead id the brand's
+ * `lead.created` must have carried for the two to join.
+ */
+export type BuildBookingBody = (request: BookingRequest, ctx: BookingWebhookContext) => unknown;
+
+/** Why `requestBooking` queued nothing. */
+export type BookingQueued = { kind: "queued"; row: number } | { kind: "off" } | { kind: "duplicate" };
+
 export interface LeadWebhook {
   /** Builds, serialises and queues the lead's body; returns the outbox row. */
   enqueue(lead: Lead, id: number, meta: { locale: string; formId: string; leadRef?: string }): number;
@@ -112,6 +133,15 @@ export interface LeadWebhook {
   readonly panelSuspect: boolean;
   /** Whether `ctx.flow` is filled in (`LeadWebhookOptions.panelFlow`). */
   readonly panelFlow: boolean;
+  /** Whether `requestBooking` queues anything (`LeadWebhookOptions.panelBooking`). */
+  readonly panelBooking?: boolean;
+  /**
+   * Queues `booking.requested@1` after the lead's `lead.created`, through the
+   * same outbox — once per lead: a second request for the lead is a
+   * `duplicate`, whatever it asks. `off` without `panelBooking` or a
+   * `buildBookingBody`.
+   */
+  requestBooking?(request: BookingRequest): BookingQueued;
   readonly outbox: WebhookOutbox;
 }
 
@@ -135,6 +165,15 @@ export interface LeadWebhookOptions extends WebhookOutboxOptions {
    * the outbox would park the lead. The leads table keeps them either way.
    */
   panelFlow?: boolean;
+  /**
+   * The switch for `booking.requested@1` (`requestBooking`). Off (the
+   * default) until the panel accepts the event type — it refuses an unknown
+   * one, and the outbox would park it. Off, a booking request is answered
+   * and dropped; the lead is untouched either way.
+   */
+  panelBooking?: boolean;
+  /** The body of `booking.requested@1`; absent → booking requests are dropped whatever `panelBooking` says. */
+  buildBookingBody?: BuildBookingBody | undefined;
 }
 
 /**
@@ -147,7 +186,7 @@ export function leadWebhook(
   env: Pick<ServerEnv, "leadsDb" | "leadWebhook">,
   options: LeadWebhookOptions,
 ): LeadWebhook | null {
-  const { buildBody, signing, panelSuspect = false, panelFlow = false, ...outboxOptions } = options;
+  const { buildBody, buildBookingBody, signing, panelSuspect = false, panelFlow = false, panelBooking = false, ...outboxOptions } = options;
   if (!env.leadWebhook || !buildBody) return null;
   if (env.leadsDb.kind !== "sqlite") throw new Error("LEAD_WEBHOOK_URL: the webhook outbox needs the sqlite lead store");
   const outbox = openWebhookOutbox(env.leadsDb.path, { ...env.leadWebhook, signing }, outboxOptions);
@@ -156,6 +195,15 @@ export function leadWebhook(
     outbox,
     panelSuspect,
     panelFlow,
+    panelBooking,
+    requestBooking(request) {
+      if (!panelBooking || !buildBookingBody) return { kind: "off" };
+      const ctx: BookingWebhookContext = { brandId: site.brand.id, at: new Date(now()), idempotencyKey: randomUUID() };
+      const body = JSON.stringify(buildBookingBody(request, ctx));
+      if (typeof body !== "string") throw new Error("buildBookingBody returned nothing JSON can carry");
+      const row = outbox.enqueueOnce(body, `booking:${request.leadRef}`);
+      return row === null ? { kind: "duplicate" } : { kind: "queued", row };
+    },
     enqueue(lead, id, meta) {
       const suspect = panelSuspect ? suspectOf(lead) : undefined;
       const flow = panelFlow ? panelFlowOf(lead) : undefined;
