@@ -106,6 +106,20 @@
       }
     },
     {
+      "name": "passes /quote/booking",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/quote/booking",
+        "query": "",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "pass"
+      }
+    },
+    {
       "name": "passes /sitemap.xml",
       "site": "aquafix",
       "request": {

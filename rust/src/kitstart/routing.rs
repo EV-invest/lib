@@ -61,12 +61,13 @@ pub const GONE_HEADER: &str = "x-landing-not-found";
 
 /// Routes that are not pages and pass untouched, besides `/_next/…` and the
 /// site's own [`SiteConfig::public_files`](super::SiteConfig::public_files):
-/// the form target, the OG card, the probe, the sitemap and robots.
-pub const NON_PAGE_ROUTES: [&str; 5] = ["/quote", "/og", "/health", "/sitemap.xml", "/robots.txt"];
+/// the form target and its booking request, the OG card, the probe, the
+/// sitemap and robots.
+pub const NON_PAGE_ROUTES: [&str; 6] = ["/quote", "/quote/booking", "/og", "/health", "/sitemap.xml", "/robots.txt"];
 
 /// The same list as [`NON_PAGE_ROUTES`], under its old name.
 #[deprecated(note = "renamed to NON_PAGE_ROUTES")]
-pub const PASS_PATHS: [&str; 5] = NON_PAGE_ROUTES;
+pub const PASS_PATHS: [&str; 6] = NON_PAGE_ROUTES;
 
 /// The path no route matches, in a locale.
 pub fn gone_path(locale: &str) -> String {
