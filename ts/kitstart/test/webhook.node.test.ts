@@ -2,7 +2,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Lead, LeadStore } from "../src/index";
+import { RateLimiter, suspectOf, type Lead, type LeadStore } from "../src/index";
 import { quoteRoute } from "../src/next/index";
 import {
   checkWebhookUrl,
@@ -323,5 +323,63 @@ describe("the quote route with a webhook", () => {
     expect((await route(post({ website: "http://spam" }))).status).toBe(303);
     expect(hook.outbox.rows()).toHaveLength(1);
     hook.stop();
+  });
+
+  // LEAD-FORMS-REVIEW-2026-10-03 #9: a rate-limited lead was thanked and never seen.
+  describe("and the panel's suspect marker", () => {
+    function wired(panelSuspect: boolean | undefined) {
+      const bodies: unknown[] = [];
+      const hook = leadWebhook(site, { leadsDb: { kind: "sqlite", path: ":memory:" }, leadWebhook: { url: TARGET.url, keyId: "k", secret: "s" } }, {
+        signing: SIGNING,
+        buildBody: (l, ctx) => (bodies.push({ lead: ctx.leadId, suspect: ctx.suspect ?? null }), {}),
+        fetch: receiver(new Response(null, { status: 200 })).fetch,
+        log: quiet(),
+        ...(panelSuspect === undefined ? {} : { panelSuspect }),
+      });
+      if (!hook) throw new Error("expected the webhook on");
+      opened.push(hook.outbox);
+      const notify = vi.fn(async (_lead: Lead, _id: number) => undefined);
+      const route = quoteRoute(site, {
+        env: () => ({ leadsDb: { kind: "sqlite", path: ":memory:" }, posthogKey: null, posthogHost: "https://eu.i.posthog.com", trustedProxy: null }),
+        notifier: () => ({ notify }),
+        webhook: () => hook,
+        unavailable: () => ({ title: "", heading: "", body: "", callLabel: "" }),
+        store,
+        limiter: new RateLimiter(1, 60_000),
+        defer: task => void task(),
+        now: () => NOW,
+        log: { warn: vi.fn(), error: vi.fn() },
+      });
+      return { bodies, route, notify };
+    }
+
+    it("names a rate-limited or too-fast lead, and never the honeypot", () => {
+      expect(suspectOf({ spamVerdict: "rate-limited" })).toBe("rate_limited");
+      expect(suspectOf({ spamVerdict: "too-fast" })).toBe("too_fast");
+      expect(suspectOf({ spamVerdict: "honeypot" })).toBeUndefined();
+      expect(suspectOf({ spamVerdict: null })).toBeUndefined();
+    });
+
+    it("is off by default: the queue and the body are as before", async () => {
+      const { bodies, route } = wired(undefined);
+      await route(post({ t: String(NOW - 1_000) }));
+      await route(post());
+      await route(post({ hp_ref: "http://spam" }));
+      // The too-fast lead goes on unmarked; the rate-limited one and the honeypot do not go.
+      expect(bodies).toEqual([{ lead: 1, suspect: null }]);
+    });
+
+    it("on, sends the rate-limited lead marked, the too-fast one too, and never the honeypot nor a mail for them", async () => {
+      const { bodies, route, notify } = wired(true);
+      await route(post({ t: String(NOW - 1_000) }));
+      await route(post());
+      await route(post({ hp_ref: "http://spam" }));
+      expect(bodies).toEqual([
+        { lead: 1, suspect: "too_fast" },
+        { lead: 2, suspect: "rate_limited" },
+      ]);
+      // Mail as before: the too-fast lead only.
+      expect(notify.mock.calls.map(c => c[1])).toEqual([1]);
+    });
   });
 });

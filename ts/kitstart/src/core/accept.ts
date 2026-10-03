@@ -39,6 +39,12 @@ export interface AcceptDeps {
    * here too. A failure logs and changes nothing — the lead is stored.
    */
   enqueue?: (lead: Lead, id: number, meta: { locale: string; formId: string }) => void;
+  /**
+   * Queue a rate-limited lead too, for the panel to show as suspect
+   * (`LeadWebhookOptions.panelSuspect`). Off: it waits in the table, as before.
+   * It is never mailed; a honeypot lead is never sent anywhere.
+   */
+  sendSuspect?: boolean;
   capture: (lead: Lead, formId: string, tags: SubmitTags) => void;
   limiter: RateLimiter;
   now: number;
@@ -139,17 +145,21 @@ async function accept<L extends string, P extends string>(
   // lead (or one from a page cached before the stamp existed) is still sent
   // on, flagged. The honeypot and the rate limit are the server's own
   // evidence, and those leads wait in the table for a reviewer.
-  if (lead.spamVerdict && lead.spamVerdict !== "too-fast") {
-    deps.log.warn(`quote: lead ${id} stored as suspected spam (${lead.spamVerdict}); not notified`);
-    return { kind: "stored", id, lead, locale, formId };
-  }
-  if (deps.enqueue) {
+  const queue = () => {
+    if (!deps.enqueue) return;
     try {
       deps.enqueue(lead, id, { locale, formId });
     } catch (error) {
       deps.log.error(`quote: lead ${id} is stored but could not be queued for its webhook`, error);
     }
+  };
+  if (lead.spamVerdict && lead.spamVerdict !== "too-fast") {
+    const marked = lead.spamVerdict === "rate-limited" && deps.sendSuspect === true;
+    deps.log.warn(`quote: lead ${id} stored as suspected spam (${lead.spamVerdict}); not notified${marked ? ", queued marked suspect" : ""}`);
+    if (marked) queue();
+    return { kind: "stored", id, lead, locale, formId };
   }
+  queue();
   deps.defer(async () => {
     try {
       await deps.notify(lead, id);

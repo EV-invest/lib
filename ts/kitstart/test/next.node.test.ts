@@ -7,7 +7,7 @@ import { brandStatusTarget, createPlaceView, statusTarget, thanksChannel, type L
 import { brandMetadata, createPlaceLoader, healthRoute, ogRoute, placeMetadata, quoteRoute, statusMetadata } from "../src/next/index";
 import { buildEnv, withLanding } from "../src/next/config/index";
 import { createProxy, GONE_HEADER, PROXY_MATCHER } from "../src/proxy/index";
-import { createPlaceSource, openSqliteLeadStore } from "../src/server/index";
+import { createPlaceSource, openSqliteLeadStore, parseServerEnv } from "../src/server/index";
 import { fixture, fixtureSite } from "./support/fixtures";
 
 const site = fixtureSite("aquafix");
@@ -323,6 +323,40 @@ describe("the quote route", () => {
     expect(event).toMatchObject({ event: "lead_form_submit", properties: { form_id: "quote", channel: "callback", experiment: "lead_layout", variant: "single", location_id: "royat" } });
     expect(body).not.toMatch(/0612345678|\+33612345678|63130|J’accepte|consent/);
     vi.unstubAllGlobals();
+  });
+});
+
+describe("the rate limit", () => {
+  it("is LEAD_RATE_LIMIT's, and outside production loose enough for a local stack", () => {
+    const base = { LEADS_DB_PATH: "/data/leads.db" };
+    expect(parseServerEnv({ brand: { id: "x" } }, { ...base, NODE_ENV: "production", TRUSTED_PROXY: "xff:1" }).leadRateLimit).toEqual({ limit: 5, windowMs: 600_000 });
+    expect(parseServerEnv({ brand: { id: "x" } }, base).leadRateLimit).toEqual({ limit: 100, windowMs: 600_000 });
+    expect(parseServerEnv({ brand: { id: "x" } }, { ...base, LEAD_RATE_LIMIT: "20/60" }).leadRateLimit).toEqual({ limit: 20, windowMs: 60_000 });
+    for (const bad of ["20", "0/60", "x/y", "5/0"]) expect(() => parseServerEnv({ brand: { id: "x" } }, { ...base, LEAD_RATE_LIMIT: bad }), bad).toThrow(/LEAD_RATE_LIMIT/);
+  });
+
+  it("is said loudly outside production when it holds a lead back", async () => {
+    const log = { warn: vi.fn(), error: vi.fn() };
+    const route = (production: boolean) =>
+      quoteRoute(site, {
+        env: () => ({ leadsDb: { kind: "sqlite", path: ":memory:" }, posthogKey: null, posthogHost: "x", trustedProxy: null, production, leadRateLimit: { limit: 1, windowMs: 60_000 } }),
+        notifier: () => ({ notify: async () => undefined }),
+        unavailable: () => ({ title: "", heading: "", body: "", callLabel: "" }),
+        store: () => openSqliteLeadStore(":memory:"),
+        defer: () => undefined,
+        log,
+      });
+    const body = () => new URLSearchParams({ location: "royat", locale: "fr", job: "other", zip: "63130", mobile: "0612345678", t: "1" });
+    const req = () => new Request("https://aquafix.top/quote", { method: "POST", body: body(), headers: { host: "royat.aquafix.top", "content-type": "application/x-www-form-urlencoded" } });
+    const dev = route(false);
+    await dev(req());
+    await dev(req());
+    expect(log.warn).toHaveBeenCalledWith(expect.stringMatching(/rate-limited.*NOT sent on.*LEAD_RATE_LIMIT/s));
+    log.warn.mockClear();
+    const prod = route(true);
+    await prod(req());
+    await prod(req());
+    expect(log.warn).not.toHaveBeenCalledWith(expect.stringContaining("LEAD_RATE_LIMIT"));
   });
 });
 

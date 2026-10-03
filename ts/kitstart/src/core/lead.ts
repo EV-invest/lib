@@ -171,6 +171,20 @@ export interface Lead {
   submissionId?: string;
 }
 
+/** What the panel may be told of a suspected lead. */
+export type LeadSuspect = "rate_limited" | "too_fast";
+
+/**
+ * Why a lead the panel receives is suspect, for its `suspect` property, or
+ * nothing for a clean one. Never `honeypot`: a lead that filled the trap is a
+ * bot's, kept in the table and sent nowhere.
+ */
+export function suspectOf(lead: Pick<Lead, "spamVerdict">): LeadSuspect | undefined {
+  if (lead.spamVerdict === "rate-limited") return "rate_limited";
+  if (lead.spamVerdict === "too-fast") return "too_fast";
+  return undefined;
+}
+
 /** The lead's channel, `form` for one that predates the field. */
 export function channelOf(lead: Pick<Lead, "channel">): LeadChannel {
   return lead.channel ?? "form";

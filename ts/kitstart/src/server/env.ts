@@ -35,6 +35,12 @@ export interface ServerEnv {
   leadWebhook: { url: string; keyId: string; secret: string } | null;
   posthogKey: string | null;
   posthogHost: string;
+  /**
+   * Leads one client address may send per window before the rest are kept
+   * as `rate-limited` (`LEAD_RATE_LIMIT`, `<count>/<seconds>`): 5 per 10 min
+   * in production; 100 outside it, where every request shares one address.
+   */
+  leadRateLimit: { limit: number; windowMs: number };
 }
 
 export type EnvSource = Readonly<Record<string, string | undefined>>;
@@ -90,6 +96,16 @@ function leadWebhook(source: EnvSource): ServerEnv["leadWebhook"] {
   return { url, keyId, secret };
 }
 
+function rateLimit(source: EnvSource, production: boolean): ServerEnv["leadRateLimit"] {
+  const raw = opt(source, "LEAD_RATE_LIMIT");
+  if (raw === null) return { limit: production ? 5 : 100, windowMs: 600_000 };
+  const parsed = /^(\d+)\/(\d+)$/.exec(raw);
+  const limit = Number(parsed?.[1]);
+  const seconds = Number(parsed?.[2]);
+  if (!parsed || limit < 1 || seconds < 1) throw new Error("LEAD_RATE_LIMIT: <count>/<seconds>, both at least 1, e.g. 5/600");
+  return { limit, windowMs: seconds * 1000 };
+}
+
 export function parseServerEnv(site: { brand: { id: string } }, source: EnvSource): ServerEnv {
   const production = source["NODE_ENV"] === "production";
   const trust = opt(source, "TRUSTED_PROXY");
@@ -110,6 +126,7 @@ export function parseServerEnv(site: { brand: { id: string } }, source: EnvSourc
     // Explicit because PostHog rejects a project's events at the other
     // region's host; the audience is European, so EU unless told otherwise.
     posthogHost: url(source, "POSTHOG_HOST") ?? "https://eu.i.posthog.com",
+    leadRateLimit: rateLimit(source, production),
   };
 }
 

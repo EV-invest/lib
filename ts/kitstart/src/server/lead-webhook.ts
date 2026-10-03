@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import type { Lead, LeadChannel } from "../core/lead";
+import { suspectOf, type Lead, type LeadChannel, type LeadSuspect } from "../core/lead";
 import type { ServerEnv } from "./env";
 import { openWebhookOutbox, type TickReport, type WebhookOutbox, type WebhookOutboxOptions } from "./webhook-outbox";
 import type { WebhookSigning } from "./webhook-signature";
@@ -16,6 +16,12 @@ export interface LeadWebhookContext {
   at: Date;
   /** Fresh per lead and stored with the body, so every retry carries the same one. */
   idempotencyKey: string;
+  /**
+   * Why the lead is suspect (`suspectOf`), for the panel's `suspect`
+   * property — only under `panelSuspect`; otherwise always absent, and the
+   * body must not carry the property at all.
+   */
+  suspect?: LeadSuspect;
 }
 
 /**
@@ -46,6 +52,8 @@ export interface LeadWebhook {
   start(intervalMs?: number): void;
   stop(): void;
   close(): void;
+  /** Whether a suspect lead is queued, marked (`LeadWebhookOptions.panelSuspect`). */
+  readonly panelSuspect: boolean;
   readonly outbox: WebhookOutbox;
 }
 
@@ -53,6 +61,15 @@ export interface LeadWebhookOptions extends WebhookOutboxOptions {
   /** Absent → the webhook is off, whatever the environment says. */
   buildBody?: BuildWebhookBody | undefined;
   signing: WebhookSigning;
+  /**
+   * The one switch for the panel's `suspect` marker. Off (the default) until
+   * the panel's `lead.created` accepts the property — it refuses an unknown
+   * one, and the outbox would park the lead: a rate-limited lead stays in the
+   * table and `ctx.suspect` stays absent, as before. On: a rate-limited lead
+   * is queued too, and every queued lead's `ctx.suspect` says why it is
+   * suspect, for the brand's body to carry.
+   */
+  panelSuspect?: boolean;
 }
 
 /**
@@ -65,15 +82,17 @@ export function leadWebhook(
   env: Pick<ServerEnv, "leadsDb" | "leadWebhook">,
   options: LeadWebhookOptions,
 ): LeadWebhook | null {
-  const { buildBody, signing, ...outboxOptions } = options;
+  const { buildBody, signing, panelSuspect = false, ...outboxOptions } = options;
   if (!env.leadWebhook || !buildBody) return null;
   if (env.leadsDb.kind !== "sqlite") throw new Error("LEAD_WEBHOOK_URL: the webhook outbox needs the sqlite lead store");
   const outbox = openWebhookOutbox(env.leadsDb.path, { ...env.leadWebhook, signing }, outboxOptions);
   const now = options.now ?? Date.now;
   return {
     outbox,
+    panelSuspect,
     enqueue(lead, id, meta) {
-      const ctx: LeadWebhookContext = { leadId: id, brandId: site.brand.id, ...meta, at: new Date(now()), idempotencyKey: randomUUID() };
+      const suspect = panelSuspect ? suspectOf(lead) : undefined;
+      const ctx: LeadWebhookContext = { leadId: id, brandId: site.brand.id, ...meta, at: new Date(now()), idempotencyKey: randomUUID(), ...(suspect ? { suspect } : {}) };
       const body = JSON.stringify(buildBody(lead, ctx));
       if (typeof body !== "string") throw new Error("buildWebhookBody returned nothing JSON can carry");
       return outbox.enqueue(body, `lead:${id}`);
