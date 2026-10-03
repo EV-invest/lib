@@ -26,6 +26,14 @@ describe("one place from the live source", () => {
     expect(fetch.mock.calls[0]?.[1]).toMatchObject({ cache: "force-cache", next: { revalidate: 600 } });
   });
 
+  it("takes the place's booking, held to the site's Cal.com hosts", async () => {
+    const own = { provider: "cal_com", url: "https://cal.brand.fr/brand/menage" };
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ booking: own })));
+    expect((await live().getPlace("royat", "fr"))?.booking).toBeUndefined();
+    const ownHosts = createPlaceSource({ ...site, booking: { calComHosts: ["cal.brand.fr"] } }, { baseUrl: () => "https://live.example", log });
+    expect((await ownHosts.getPlace("royat", "fr"))?.booking).toEqual(own);
+  });
+
   it("turns the source's own 404 (its JSON) or a 410 into a missing place", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({ error: "withdrawn" }, { status: 404 })));
     expect(await live().getPlace("royat", "fr")).toBeNull();

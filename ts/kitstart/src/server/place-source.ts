@@ -83,7 +83,7 @@ export function createPlaceSource<L extends string, P extends string>(site: Site
     }
     if (!response.ok) return { kind: "failed", status: response.status };
     try {
-      return { kind: "live", place: mergeLive(baked, parsePlaceLive(await response.json(), site.i18n.locales)) };
+      return { kind: "live", place: mergeLive(baked, parsePlaceLive(await response.json(), site.i18n.locales, site.booking ?? {})) };
     } catch (cause) {
       // A body that is not the source's shape is the source failing, not the place.
       return { kind: "unreachable", cause };

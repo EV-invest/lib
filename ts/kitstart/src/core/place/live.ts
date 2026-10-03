@@ -1,3 +1,5 @@
+import type { BookingConfig, BookingRules } from "../booking/model";
+import { BookingConfigError, parseBookingConfig } from "../booking/validate";
 import { parseInstant } from "./rating";
 import type { DayOfWeek, Geo, OpeningHours, Place, PostalAddress, Rating, ServiceArea } from "./types";
 
@@ -18,6 +20,8 @@ export interface PlaceLive<L extends string> {
   serviceArea?: readonly ServiceArea[];
   hours?: readonly OpeningHours[];
   rating?: Rating;
+  /** Validated with the site's Cal.com hosts; one that does not validate is dropped, the baked one kept. */
+  booking?: BookingConfig;
 }
 
 const DAYS: readonly DayOfWeek[] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -81,11 +85,22 @@ function isComplete<L extends string>(record: Partial<Record<L, string>>, locale
   return locales.every(locale => typeof record[locale] === "string");
 }
 
+function booking(v: unknown, rules: BookingRules): BookingConfig | undefined {
+  if (v === undefined || v === null) return undefined;
+  try {
+    return parseBookingConfig(v, rules);
+  } catch (error) {
+    if (error instanceof BookingConfigError) return undefined;
+    throw error;
+  }
+}
+
 /**
  * Drops what does not validate instead of failing the page on one bad field.
- * A landmark counts only when it is given in every one of `locales`.
+ * A landmark counts only when it is given in every one of `locales`; a
+ * `cal_com` booking only on one of `rules.calComHosts` (the site's).
  */
-export function parsePlaceLive<L extends string>(body: unknown, locales: readonly L[]): PlaceLive<L> {
+export function parsePlaceLive<L extends string>(body: unknown, locales: readonly L[], rules: BookingRules = {}): PlaceLive<L> {
   if (!isObject(body)) throw new Error("live location: body is not an object");
   const live: PlaceLive<L> = {};
   const phone = str(body.phone);
@@ -115,6 +130,8 @@ export function parsePlaceLive<L extends string>(body: unknown, locales: readonl
   }
   const r = rating(body.rating);
   if (r) live.rating = r;
+  const b = booking(body.booking, rules);
+  if (b) live.booking = b;
   return live;
 }
 
@@ -125,6 +142,7 @@ export function parsePlaceLive<L extends string>(body: unknown, locales: readonl
  */
 export function mergeLive<L extends string>(baked: Place<L>, live: PlaceLive<L>): Place<L> {
   const front = baked.presence;
+  const booking = live.booking ?? baked.booking;
   return {
     ...baked,
     presence:
@@ -141,5 +159,6 @@ export function mergeLive<L extends string>(baked: Place<L>, live: PlaceLive<L>)
     serviceArea: live.serviceArea ?? baked.serviceArea,
     hours: live.hours ?? baked.hours,
     rating: live.rating ?? baked.rating,
+    ...(booking ? { booking } : {}),
   };
 }
