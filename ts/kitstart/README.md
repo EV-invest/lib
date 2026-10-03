@@ -275,7 +275,8 @@ it is the plain POST to `/quote` it always was.
   sides (`phoneProblem`, `validateLead`): a French number is ten digits from
   `0[1-9]` (or `+33` and nine), any other a `+` and 8 to 15 digits; full-width
   digits read as digits; a run of one digit is no number. One that fails gets
-  a hint when the field is left (`aria-live`, read out) and blocks the submit
+  a hint when the field is left (`aria-live`, read out; when a tap left it,
+  only once the tap is over, so nothing moves under the finger) and blocks the submit
   in the page's words — the browser's bubble would speak its own language. With
   `lead.mobileFormat: "e164"` a number it can read is stored as
   `+33612345678` (`normalizePhone`); the default keeps it as typed, which is

@@ -143,19 +143,34 @@ export function PhoneField(props: {
   });
   const error = props.error ?? validity.shown;
   const marked = Boolean(error) || doubtful;
-  // A hint drawn on the blur a press of the submit causes pushes the button
-  // down between press and release, and the click lands on nothing: the
-  // submit's own check speaks instead.
-  const submitting = useRef(false);
+  // A hint drawn on the blur a press causes pushes whatever is below the
+  // field down between press and release, and the tap lands on nothing (the
+  // consent box, the submit). So a press on this form's submit draws no hint
+  // — the submit's own check speaks instead — and a press anywhere else
+  // draws it only once the press is over.
+  const pressed = useRef<"submit" | "other" | null>(null);
   useEffect(() => {
-    const form = validity.ref.current?.form;
-    if (!form) return;
     const press = (event: PointerEvent) => {
-      submitting.current = event.target instanceof Element && event.target.closest("[type=submit]") !== null;
+      const own = validity.ref.current;
+      const target = event.target instanceof Element ? event.target : null;
+      const submit = target?.closest("[type=submit]");
+      pressed.current = target === own ? null : submit && own?.form?.contains(submit) ? "submit" : "other";
     };
-    form.addEventListener("pointerdown", press, true);
-    return () => form.removeEventListener("pointerdown", press, true);
+    const release = () => {
+      pressed.current = null;
+    };
+    document.addEventListener("pointerdown", press, true);
+    document.addEventListener("pointercancel", release, true);
+    return () => {
+      document.removeEventListener("pointerdown", press, true);
+      document.removeEventListener("pointercancel", release, true);
+    };
   }, [validity.ref]);
+  const judge = (value: string) => {
+    const bad = value.trim() !== "" && phoneProblem(value) !== null;
+    if (bad && !doubtful) onSoftError();
+    setDoubtful(bad);
+  };
   return (
     <Field {...(props.id ? { controlId: props.id } : {})} className={cn("flex flex-col gap-2", c?.field)}>
       <FieldLabel className={c?.label}>{text.phoneLabel}</FieldLabel>
@@ -172,14 +187,20 @@ export function PhoneField(props: {
         aria-describedby={marked ? messageId : undefined}
         onInvalid={validity.onInvalid}
         onBlur={e => {
-          if (submitting.current) {
-            submitting.current = false;
-            return;
-          }
           const value = e.currentTarget.value;
-          const bad = value.trim() !== "" && phoneProblem(value) !== null;
-          if (bad && !doubtful) onSoftError();
-          setDoubtful(bad);
+          const press = pressed.current;
+          pressed.current = null;
+          if (press === "submit") return;
+          if (press === null) return judge(value);
+          // After the release's click, which lands where the press began; a
+          // cancelled press (a scroll) ends the wait too.
+          const over = () => {
+            window.removeEventListener("pointerup", over);
+            window.removeEventListener("pointercancel", over);
+            setTimeout(() => judge(value), 0);
+          };
+          window.addEventListener("pointerup", over);
+          window.addEventListener("pointercancel", over);
         }}
         onChange={e => {
           validity.onChange(e);
