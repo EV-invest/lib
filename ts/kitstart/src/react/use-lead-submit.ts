@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type FormEvent, type FormEventHandler } from "react";
-import { CHANNEL_FIELD, type LeadChannel } from "../core/lead";
+import { CHANNEL_FIELD, SUBMISSION_FIELD, type LeadChannel } from "../core/lead";
 import { THANKS } from "../core/routing";
 
 /** What the visitor just sent, for a brand's in-card success ("we call 06 … back"). */
@@ -15,6 +15,25 @@ export interface LeadSent {
 
 /** Leaving the page, behind a seam a test can stand in for (jsdom cannot navigate). */
 export const navigation = { assign: (url: string): void => window.location.assign(url) };
+
+/**
+ * A v4 UUID. `randomUUID` exists only in a secure context; a LAN dev server
+ * over plain http is not one, but `getRandomValues` works everywhere.
+ */
+export function newSubmissionId(): string {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = ((b[6] ?? 0) & 0x0f) | 0x40;
+  b[8] = ((b[8] ?? 0) & 0x3f) | 0x80;
+  const hex = [...b].map(x => x.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+/** The form's submission id, minted on its first post and kept for a resend of the same lead. */
+function stamp(form: HTMLFormElement): void {
+  const field = form.elements.namedItem(SUBMISSION_FIELD);
+  if (field instanceof HTMLInputElement && field.value === "") field.value = newSubmissionId();
+}
 
 type Answer = { ok: true; location: string } | { ok: false; field: string };
 
@@ -63,6 +82,7 @@ export function useLeadSubmit(
     if (pending.current) return;
     pending.current = true;
     const form = event.currentTarget;
+    stamp(form);
     const data = new FormData(form);
     const body = new URLSearchParams();
     for (const [key, value] of data) if (typeof value === "string") body.append(key, value);

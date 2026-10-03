@@ -10,6 +10,7 @@ import {
   validateCandidate,
   validateLead,
   type AcceptDeps,
+  type Lead,
   type LeadSchema,
 } from "../src/index";
 import { leadRuleDisagreements, PHONE_MATRIX } from "../src/testing/index";
@@ -245,6 +246,57 @@ describe("accepting a lead", () => {
     expect(capture).not.toHaveBeenCalled();
     await flush();
     expect(capture).toHaveBeenCalledWith(expect.objectContaining({ placeSlug: "royat" }), "quote", {});
+  });
+});
+
+describe("a repeated submission", () => {
+  const SID = "3f2b8c1e-5d4a-4f6b-9c7e-1a2b3c4d5e6f";
+  /** A store that keeps rows by submission id, as the SQLite one does under its unique index. */
+  function keeping() {
+    const rows: Lead[] = [];
+    const findSubmission = async (sid: string) => {
+      const at = rows.findIndex(r => r.submissionId === sid);
+      return at === -1 ? null : { id: at + 1, lead: rows[at] as Lead };
+    };
+    const insert = vi.fn(async (lead: Lead) => {
+      if (lead.submissionId && rows.some(r => r.submissionId === lead.submissionId)) throw new Error("UNIQUE constraint failed: leads.submission_id");
+      return rows.push(lead);
+    });
+    return { rows, insert, findSubmission };
+  }
+
+  // LEAD-FORMS-REVIEW-2026-10-03 #3: a lost answer and a resend made two leads.
+  it("dedupes a repeated submission id: one row, the same answer, nothing sent twice", async () => {
+    const store = keeping();
+    const notify = vi.fn(async () => undefined);
+    const enqueue = vi.fn();
+    const { d, flush } = deps({ insert: store.insert, findSubmission: store.findSubmission, notify, enqueue, limiter: new RateLimiter(1, 60_000) });
+    const first = await acceptLead(form({ ...good, submission_id: SID }), "k", d);
+    const again = await acceptLead(form({ ...good, submission_id: SID }), "k", d);
+    expect(first).toMatchObject({ kind: "stored", id: 1, lead: { submissionId: SID, spamVerdict: null } });
+    // Not rate-limited: a resend is not a second hit.
+    expect(again).toMatchObject({ kind: "stored", id: 1, duplicate: true, lead: { submissionId: SID, spamVerdict: null } });
+    await flush();
+    expect(store.rows).toHaveLength(1);
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(enqueue).toHaveBeenCalledTimes(1);
+  });
+
+  it("answers the loser of a race with the winner's row", async () => {
+    const store = keeping();
+    let looked = 0;
+    // The lookup misses (both requests look before either writes); the insert's unique index catches it.
+    const findSubmission = async (sid: string) => (looked++ === 0 ? null : store.findSubmission(sid));
+    await store.insert({ ...readCandidate(PLUMBING, form({ ...good, submission_id: SID }), "royat"), spamVerdict: null, submissionId: SID });
+    const { d } = deps({ insert: store.insert, findSubmission });
+    expect(await acceptLead(form({ ...good, submission_id: SID }), "k", d)).toMatchObject({ kind: "stored", id: 1, duplicate: true });
+    expect(store.rows).toHaveLength(1);
+  });
+
+  it("ignores a submission id that is not one", async () => {
+    const { d } = deps();
+    const out = await acceptLead(form({ ...good, submission_id: "x'; DROP" }), "k", d);
+    expect(out.kind === "stored" && "submissionId" in out.lead).toBe(false);
   });
 });
 

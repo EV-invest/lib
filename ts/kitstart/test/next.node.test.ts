@@ -7,7 +7,7 @@ import { brandStatusTarget, createPlaceView, statusTarget, thanksChannel, type L
 import { brandMetadata, createPlaceLoader, healthRoute, ogRoute, placeMetadata, quoteRoute, statusMetadata } from "../src/next/index";
 import { buildEnv, withLanding } from "../src/next/config/index";
 import { createProxy, GONE_HEADER, PROXY_MATCHER } from "../src/proxy/index";
-import { createPlaceSource } from "../src/server/index";
+import { createPlaceSource, openSqliteLeadStore } from "../src/server/index";
 import { fixture, fixtureSite } from "./support/fixtures";
 
 const site = fixtureSite("aquafix");
@@ -252,6 +252,16 @@ describe("the quote route", () => {
     expect(thanksChannel({})).toBe("form");
     const target = statusTarget(site, { locale: "fr", location: "royat" }, { thanks: true, channel: "callback" });
     expect(target.langHrefs.en).toBe("/en/royat/thanks?channel=callback");
+  });
+
+  it("answers a repeated submission as it answered the first, without a second row", async () => {
+    const store = openSqliteLeadStore(":memory:");
+    const sid = { submission_id: "3f2b8c1e-5d4a-4f6b-9c7e-1a2b3c4d5e6f", channel: "callback", mobile: "07 12 34 56 78", consent: "oui" };
+    const first = await route(store)(post(sid));
+    const again = await route(store)(post({ ...sid, location: "paris" }));
+    expect(first.headers.get("location")).toBe("/fr/thanks?channel=callback");
+    expect(again.headers.get("location")).toBe("/fr/thanks?channel=callback");
+    expect(await store.count()).toBe(1);
   });
 
   it("answers a self-contained, escaped 500 with the phone when the store refuses", async () => {

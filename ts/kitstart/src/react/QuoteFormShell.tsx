@@ -2,7 +2,7 @@ import { cn } from "@evinvest/uikit";
 import type { FormEventHandler, ReactNode } from "react";
 import { FORM_ID_FIELD, LOCALE_FIELD, LOCATION_FIELD } from "../core/accept";
 import { HONEYPOT_FIELD, RENDERED_AT_FIELD } from "../core/antispam";
-import { CARD_FIELD } from "../core/lead";
+import { CARD_FIELD, SUBMISSION_FIELD } from "../core/lead";
 
 /**
  * The quote form's frame: a plain `<form method="post" action="/quote">`
@@ -47,6 +47,9 @@ export function QuoteFormShell(props: QuoteFormShellProps) {
       <input type="hidden" name={FORM_ID_FIELD} value={formId} />
       <input type="hidden" name={RENDERED_AT_FIELD} value={String(renderedAt)} />
       {card && <input type="hidden" name={CARD_FIELD} value={card} />}
+      {/* Empty until the script posts the form: it mints the id then and keeps
+          it for a resend. No value prop — React would put it back on render. */}
+      <input type="hidden" name={SUBMISSION_FIELD} />
       {children}
       {/* Off-screen rather than `display: none`, which some bots skip. Inline,
           so it holds even when Tailwind does not scan the package. */}

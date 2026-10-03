@@ -19,7 +19,8 @@ export interface SubmitTags {
 const FORM_ID = /^[a-z0-9_-]{1,32}$/;
 
 export type Outcome<L extends string> =
-  | { kind: "stored"; id: number; lead: Lead; locale: L; formId: string }
+  /** `duplicate`: a resend of a submission already stored — answered as the first was, nothing sent again. */
+  | { kind: "stored"; id: number; lead: Lead; locale: L; formId: string; duplicate?: true }
   /** `field` names what to fix (`phone`, `consent`, … or `form`); `why` is for the log. */
   | { kind: "invalid"; why: string; field: string; channel: LeadChannel; locale: L; slug: string | null }
   | { kind: "failed"; locale: L; slug: string | null };
@@ -27,6 +28,8 @@ export type Outcome<L extends string> =
 export interface AcceptDeps {
   /** The commit point: resolves once the lead is durable. */
   insert: (lead: Lead) => Promise<number>;
+  /** The lead a submission id was stored as (`LeadStore.findSubmission`); absent → no deduplication. */
+  findSubmission?: (submissionId: string) => Promise<{ id: number; lead: Lead } | null>;
   /** Runs after the response is sent; see the route handler. */
   defer: (task: () => Promise<void> | void) => void;
   notify: (lead: Lead, id: number) => Promise<void>;
@@ -67,6 +70,17 @@ export function createAcceptLead<L extends string, P extends string>(
   return (form, clientKey, deps) => accept(site, form, clientKey, deps);
 }
 
+/** The stored lead for a submission id; a failed lookup is no lookup — the insert's index still holds. */
+async function stored(submissionId: string | undefined, deps: AcceptDeps): Promise<{ id: number; lead: Lead } | null> {
+  if (!submissionId || !deps.findSubmission) return null;
+  try {
+    return await deps.findSubmission(submissionId);
+  } catch (error) {
+    deps.log.error("quote: the lookup of a resent submission failed", error);
+    return null;
+  }
+}
+
 async function accept<L extends string, P extends string>(
   site: Site<L, P>,
   form: FormData,
@@ -84,6 +98,15 @@ async function accept<L extends string, P extends string>(
     deps.log.warn(`quote: rejected a submission for ${slug ?? "no point"} at ${rejection.field}: missing ${rejection.why}`);
     return { kind: "invalid", why: rejection.why, field: rejection.field, channel: channelOf(candidate), locale, slug };
   }
+
+  // It reaches analytics as a property; anything but a short slug is dropped.
+  const posted = field(form, FORM_ID_FIELD);
+  const formId = posted !== null && FORM_ID.test(posted) ? posted : "quote";
+
+  // A resend of a stored submission (its answer was lost) is that lead: no
+  // second row, no second mail, the limit not spent again.
+  const prior = await stored(candidate.submissionId, deps);
+  if (prior) return { kind: "stored", id: prior.id, lead: prior.lead, locale, formId, duplicate: true };
 
   // After validation, so a typo corrected and resent does not spend the limit.
   const verdict = screen({
@@ -105,13 +128,13 @@ async function accept<L extends string, P extends string>(
   try {
     id = await deps.insert(lead);
   } catch (error) {
+    // Two posts of one submission raced past the lookup; the unique index let one in.
+    const winner = await stored(candidate.submissionId, deps);
+    if (winner) return { kind: "stored", id: winner.id, lead: winner.lead, locale, formId, duplicate: true };
     deps.log.error(`quote: the lead store rejected a submission for ${slug ?? "no point"}`, error);
     return { kind: "failed", locale, slug };
   }
 
-  // It reaches analytics as a property; anything but a short slug is dropped.
-  const posted = field(form, FORM_ID_FIELD);
-  const formId = posted !== null && FORM_ID.test(posted) ? posted : "quote";
   // The render stamp comes from the client, so it only marks: a `too-fast`
   // lead (or one from a page cached before the stamp existed) is still sent
   // on, flagged. The honeypot and the rate limit are the server's own
