@@ -16,7 +16,7 @@ stays in the brand.
 | `@evinvest/kitstart` | anywhere (edge, client, server) | `defineSite`, places, routing (`createRouting`), the lead schema and funnel (`createAcceptLead`), the price list (`PricingModel`, `priceOf`, `flowOf`), antispam, JSON-LD / sitemap / robots builders, analytics events, the copy contract |
 | `@evinvest/kitstart/server` | Node, `server-only` | `createServerEnv`, `createPlaceSource`, `createPricingSource`, the lead store (`openLeadStore` by `LEADS_DB_URL`: `sqlite:` today, `postgres://` a stub that refuses at boot), `checkLeadStore`, `leadNotifier`, `leadWebhook` (signed, outboxed), `sendMail`, `clientKey` |
 | `@evinvest/kitstart/proxy` | edge | `createProxy(site)`, `PROXY_MATCHER` |
-| `@evinvest/kitstart/next` | Next server (routes, RSC) | `quoteRoute`, `bookingRoute`, `sitemapRoute`, `robotsRoute`, `ogRoute`, `healthRoute`, `createPlaceLoader`, `loadLocale`, `placeMetadata` / `brandMetadata` / `statusMetadata`, `metadataBase` |
+| `@evinvest/kitstart/next` | Next server (routes, RSC) | `quoteRoute`, `bookingRoute`, `confirmRoute`, `sitemapRoute`, `robotsRoute`, `ogRoute`, `healthRoute`, `createPlaceLoader`, `loadLocale`, `placeMetadata` / `brandMetadata` / `statusMetadata`, `metadataBase` |
 | `@evinvest/kitstart/next/config` | `next.config.ts`, `vitest.config.ts` | `withLanding`, `buildEnv` and the `assets/` readers |
 | `@evinvest/kitstart/react` | either side | `LangSwitch`, `CallBar`, `StatusScreen`, `PlaceDirectory`, `AreaChips`, `Coverage`, `MapFacade` (client), `QuoteFormShell`, `FormSelect` (client), `LeadCapture` (client), `LeadBooking` (client) and its adapters, `Faq`, `AnalyticsBoundary` (client), plus the kit and marketing pieces a landing composes with |
 | `@evinvest/kitstart/testing` | a brand's vitest | `describeLandingContract(site, { globalsCss, proxySource, text })`, `describeLeadStoreContract(name, harness)`, `storefrontPlace`, `serviceAreaPlace`, `testLead` |
@@ -393,9 +393,15 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, pricing, unavai
   "price_changed", reason: "price_changed", cents }`, and the card shows the
   fresh price in place of the old one with `priceChanged` ("Le prix a
   changé : 86 € au lieu de 77 €"); the next submit posts it and is taken. A
-  plain post goes back to its card with `lead_error=price_changed`
-  (`priceChangedGeneric`), the page priced afresh. A page cached before the
-  field posts none and is taken as before. Counted as `lead_form_reject
+  plain post goes to `/quote/confirm` (`confirmRoute`) — never back to its
+  card, whose page may be a cached render still showing the old price, so
+  every resubmit would be refused again. The confirmation is never cached:
+  it prices the answers afresh, says the price changed, and asks again for
+  the phone and the postcode — the URL carries only the need, the answers,
+  the page's ids and the price seen, nothing typed (a brand's extra fields
+  are not carried). Its form posts the fresh `shown_cents` and is taken. A
+  page cached before the field posts none and is taken as before; so does an
+  estimate posted without a script, whose page could not show a price. Counted as `lead_form_reject
   {reason: "price_changed"}`.
 - **After a priced lead** the card stays: the script's answer carries the
   server's `cents` and the lead's reference (`lead`, `leadRef`:
@@ -465,8 +471,9 @@ export const POST = bookingRoute({ env: serverEnv, webhook });
   plain link the browser opens in a new tab. `bookingEmbed` on `LeadCapture`
   (`BOOKING_EMBEDS`: Cal.com's modal, `calComEmbedAdapter`) opens it on the
   page instead — only once the visitor accepted the provider's cookies: its
-  script loads on the click, and its `bookingSuccessful` is `onBooked`, the
-  one way the page learns a slot was taken (`lead_booking_done`). In an A/B
+  script loads on the click, and its `bookingSuccessful` is `onBooked` (once
+  per lead, however often the modal opens), the one way the page learns a
+  slot was taken (`lead_booking_done`). In an A/B
   test both arms must open the same way, or it measures the opening.
 - **Adapters** (`BookingAdapter = { provider, href?, open?, prefillsPhone? }`),
   picked by the chosen provider: `manualAdapter`, `linkAdapter`,
@@ -518,6 +525,10 @@ export const config = { matcher: ["/((?!_next/).*)"] };
 // app/quote/route.ts — `anchor`: the card's id, when it is not `quote`
 export const dynamic = "force-dynamic";
 export const POST = quoteRoute(site, { env: serverEnv, notifier, unavailable, anchor: "devis" });
+
+// app/quote/confirm/route.ts — a plain post whose price changed confirms here, uncached
+export const dynamic = "force-dynamic";
+export const GET = confirmRoute(site, { pricing, text: locale => TEXT[locale].leadCapture });
 
 // app/quote/booking/route.ts — a priced lead's booking request (`booking.requested@1`)
 export const dynamic = "force-dynamic";
@@ -671,7 +682,10 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavai
   panelBooking: true, buildBookingBody })`, `bookingRoute` queues
   `booking.requested@1` through the same outbox, after the lead's
   `lead.created`, once per lead (`requestBooking`; the row's ref is
-  `booking:<leadRef>`). `buildBookingBody(request, ctx)` builds the event —
+  `booking:<leadRef>`), held until the lead's own row (`lead:<row>`) is
+  delivered — a `409` or `425` for it is retried, the panel not having the
+  lead yet — and never queued for a lead whose `lead.created` was not
+  (a suspect held back). `buildBookingBody(request, ctx)` builds the event —
   `bookingRequestedProperties(request)` writes `{ lead_ref, provider,
   preferred_date?, preferred_part? }`, `ctx` has `brandId`, `at`,
   `idempotencyKey`. Off by default, and to stay off until the panel accepts
