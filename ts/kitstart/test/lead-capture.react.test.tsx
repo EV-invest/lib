@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LEAD_CAPTURE_TEXT, type OpeningHours, type Place } from "../src/index";
 import { AnalyticsSinkContext } from "../src/react/analytics-context";
 import { LeadCapture, type LeadCaptureProps } from "../src/react/index";
+import { navigation } from "../src/react/use-lead-submit";
 import { serviceAreaPlace, storefrontPlace } from "../src/testing/index";
 
 const WEEKDAYS: readonly OpeningHours[] = [{ days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], opens: "08:00", closes: "19:00" }];
@@ -48,6 +49,12 @@ const form = (id = "quote-form") => {
   return el;
 };
 const posted = (id = "quote-form") => Object.fromEntries(new FormData(form(id)));
+const input = (name: string, id = "quote-form") => {
+  const el = form(id).querySelector(`input[name=${name}]`);
+  if (!(el instanceof HTMLInputElement)) throw new Error(`no input ${name} in #${id}`);
+  return el;
+};
+
 /** Every channel control in document order, by its label. */
 const channelOrder = () =>
   [...document.querySelectorAll("a[href^='tel:'], a[href^='sms:'], a[href*='wa.me'], summary, #quote-form")].map(el =>
@@ -189,17 +196,86 @@ describe("LeadCapture with a script", () => {
     expect(screen.queryByRole("group", { name: "Communes desservies" })).toBeNull();
   });
 
-  it("hints at a number it cannot read, without refusing it", () => {
+  it("hints at a number it cannot read when the visitor leaves it, in a region that is read out", () => {
     const { wrap, events } = recorder();
     render(wrap(capture()));
-    const phone = form().querySelector("input[name=mobile]");
-    if (!(phone instanceof HTMLInputElement)) throw new Error("no phone");
+    const phone = input("mobile");
+    const live = phone.closest("[role=group]")?.querySelector("[aria-live=polite]");
+    expect(live).not.toBeNull();
     fireEvent.change(phone, { target: { value: "06 12" } });
     fireEvent.blur(phone);
-    expect(screen.getByText(LEAD_CAPTURE_TEXT.fr.phoneHint)).toBeInTheDocument();
+    expect(live).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.phoneHint);
     expect(phone).toHaveAttribute("aria-invalid", "true");
-    expect(phone.checkValidity()).toBe(true);
     expect(events.filter(e => e.event === "lead_form_field_error")).toEqual([{ event: "lead_form_field_error", props: expect.objectContaining({ field: "phone" }) }]);
+    fireEvent.change(phone, { target: { value: "06 12 34 56 78" } });
+    expect(live).toBeEmptyDOMElement();
+    expect(phone).not.toHaveAttribute("aria-invalid");
+  });
+
+  // LEAD-FORMS-REVIEW-2026-10-03 #1, #6, #14: the hint never blocked, the
+  // callback had none, and the bubble spoke the browser's language.
+  it("blocks a number the server would refuse, in both forms, in the page's words", () => {
+    render(capture());
+    for (const id of ["quote-form", "quote-callback-form"]) {
+      const phone = input("mobile", id);
+      for (const bad of ["06 12 34 56 7", "+3361234567", "0000000000", "(415) 555-0123"]) {
+        fireEvent.change(phone, { target: { value: bad } });
+        expect(phone.checkValidity(), `${id} ${bad}`).toBe(false);
+        expect(phone.validationMessage).toBe(LEAD_CAPTURE_TEXT.fr.phoneInvalid);
+      }
+      fireEvent.change(phone, { target: { value: "+1 415 555 0123" } });
+      expect(phone.checkValidity()).toBe(true);
+      fireEvent.change(phone, { target: { value: "" } });
+      expect(phone.validationMessage).toBe(LEAD_CAPTURE_TEXT.fr.required);
+      act(() => void phone.checkValidity());
+      expect(phone).toHaveAttribute("aria-invalid", "true");
+    }
+    expect(input("zip").validationMessage).toBe(LEAD_CAPTURE_TEXT.fr.required);
+    expect(input("consent", "quote-callback-form").validationMessage).toBe(LEAD_CAPTURE_TEXT.fr.consentRequired);
+  });
+
+  it("speaks English on an English page", () => {
+    render(capture({ locale: "en", text: LEAD_CAPTURE_TEXT.en }));
+    fireEvent.change(input("mobile"), { target: { value: "06 12" } });
+    expect(input("mobile").validationMessage).toBe(LEAD_CAPTURE_TEXT.en.phoneInvalid);
+  });
+
+  it("posts its own anchor, for the server to send a refusal back to", () => {
+    render(capture({ id: "devis" }));
+    expect(posted("devis-form")["card"]).toBe("devis");
+    expect(posted("devis-callback-form")["card"]).toBe("devis");
+  });
+
+  // LEAD-FORMS-REVIEW-2026-10-03 #1: the no-JS refusal came back to an empty form with no word.
+  it("shows the server's refusal at the field it names, focused, when the page is opened at it", () => {
+    window.history.replaceState(null, "", "/fr?lead_error=phone&need=boiler#quote");
+    render(capture());
+    const phone = input("mobile");
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.phoneInvalid);
+    expect(phone).toHaveAttribute("aria-invalid", "true");
+    expect(phone.getAttribute("aria-describedby")).toContain(alert.id);
+    expect(document.activeElement).toBe(phone);
+    expect(posted()["job"]).toBe("boiler");
+    // Read once: a reload does not show it again.
+    expect(window.location.search).toBe("?need=boiler");
+    fireEvent.input(phone, { target: { value: "06 12 34 56 78" } });
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("opens the callback on its refusal, with the error at its field", () => {
+    window.history.replaceState(null, "", "/fr?lead_error=consent#quote-callback");
+    render(capture());
+    expect(document.getElementById("quote-callback")).toHaveAttribute("open");
+    const alert = within(form("quote-callback-form")).getByRole("alert");
+    expect(alert).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.consentRequired);
+    expect(document.activeElement).toBe(input("consent", "quote-callback-form"));
+  });
+
+  it("ignores a refusal meant for another card", () => {
+    window.history.replaceState(null, "", "/fr?lead_error=phone#devis");
+    render(capture());
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });
 
@@ -363,7 +439,8 @@ describe("LeadCapture's placeholders and labels", () => {
 });
 
 describe("LeadCapture's in-card success", () => {
-  const thanks = { ok: true, redirected: true, url: "http://localhost/fr/paris/thanks" };
+  const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+  const thanks = () => json(200, { ok: true, location: "/fr/paris/thanks" });
   let submit: ReturnType<typeof vi.spyOn>;
   beforeEach(() => {
     submit = vi.spyOn(HTMLFormElement.prototype, "submit").mockImplementation(() => {});
@@ -383,7 +460,7 @@ describe("LeadCapture's in-card success", () => {
   }
 
   it("posts the form itself and shows the brand's state in place, focused", async () => {
-    const fetch = vi.fn(async () => thanks);
+    const fetch = vi.fn(async () => thanks());
     vi.stubGlobal("fetch", fetch);
     render(capture({ name: { field: "name" }, done: sent => <p>Merci, on rappelle le {sent.phone} ({sent.channel})</p> }));
     fireEvent.change(form().querySelector("input[name=name]") as HTMLInputElement, { target: { value: " Ana " } });
@@ -392,6 +469,7 @@ describe("LeadCapture's in-card success", () => {
     const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
     expect(new URL(url).pathname).toBe("/quote");
     expect(init.method).toBe("POST");
+    expect(new Headers(init.headers).get("accept")).toBe("application/json");
     expect(Object.fromEntries(init.body as URLSearchParams)).toMatchObject({ job: "leak", zip: "75011", mobile: "06 12 34 56 78", name: " Ana ", form_id: "quote" });
     const status = screen.getByRole("status");
     expect(status).toHaveTextContent("Merci, on rappelle le 06 12 34 56 78 (form)");
@@ -402,7 +480,7 @@ describe("LeadCapture's in-card success", () => {
   });
 
   it("does the same for the callback", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => thanks));
+    vi.stubGlobal("fetch", vi.fn(async () => thanks()));
     const done = vi.fn(() => "C’est noté.");
     render(capture({ done }));
     await send("quote-callback-form");
@@ -411,7 +489,7 @@ describe("LeadCapture's in-card success", () => {
   });
 
   it("submits for real on any other answer, or none", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, redirected: true, url: "http://localhost/fr/paris#quote" })));
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("<html>", { status: 500 })));
     render(capture({ done: "Merci" }));
     await send();
     expect(submit).toHaveBeenCalledTimes(1);
@@ -422,21 +500,39 @@ describe("LeadCapture's in-card success", () => {
     expect(submit).toHaveBeenCalledTimes(2);
   });
 
-  it("leaves the form to the browser without a `done`", async () => {
-    const fetch = vi.fn(async () => thanks);
-    vi.stubGlobal("fetch", fetch);
+  it("goes to the thanks page without a `done`", async () => {
+    const assign = vi.spyOn(navigation, "assign").mockImplementation(() => {});
+    vi.stubGlobal("fetch", vi.fn(async () => json(200, { ok: true, location: "/fr/paris/thanks?channel=callback" })));
     render(capture());
-    let prevented: boolean | undefined;
-    // Last on the way up, after React's: read what the form did, then keep
-    // jsdom from navigating, which it cannot.
-    const last = (e: Event) => {
-      prevented = e.defaultPrevented;
-      e.preventDefault();
-    };
-    window.addEventListener("submit", last);
-    act(() => void form().dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
-    window.removeEventListener("submit", last);
-    expect(prevented).toBe(false);
-    expect(fetch).not.toHaveBeenCalled();
+    await send("quote-callback-form");
+    expect(assign).toHaveBeenCalledWith("/fr/paris/thanks?channel=callback");
+    expect(submit).not.toHaveBeenCalled();
+    assign.mockRestore();
+  });
+
+  // LEAD-FORMS-REVIEW-2026-10-03 #1: the refusal must not cost what was typed.
+  it("shows a localized error and keeps the input when the server refuses", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => json(422, { ok: false, field: "phone" })));
+    render(capture({ name: { field: "name" }, done: "Merci" }));
+    fireEvent.change(input("name"), { target: { value: "Ana" } });
+    await send();
+    await act(async () => Promise.resolve());
+    const alert = within(form()).getByRole("alert");
+    expect(alert).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.phoneInvalid);
+    expect(input("mobile")).toHaveAttribute("aria-invalid", "true");
+    expect(document.activeElement).toBe(input("mobile"));
+    expect(posted()).toMatchObject({ zip: "75011", mobile: "06 12 34 56 78", name: "Ana" });
+    expect(submit).not.toHaveBeenCalled();
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("shows a refusal of a brand's own field at the submit, the field marked", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => json(422, { ok: false, field: "bedrooms" })));
+    render(capture({ extras: <input name="bedrooms" defaultValue="9" aria-label="Chambres" /> }));
+    await send();
+    await act(async () => Promise.resolve());
+    expect(within(form()).getByRole("alert")).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.fieldInvalid);
+    expect(screen.getByLabelText("Chambres")).toHaveAttribute("aria-invalid", "true");
+    expect(document.activeElement).toBe(screen.getByLabelText("Chambres"));
   });
 });

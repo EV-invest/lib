@@ -9,11 +9,12 @@ import type { LeadCaptureText } from "../core/lead-capture-text";
 import { servedLocalities, storefrontOf, type Place } from "../core/place/types";
 import type { FormSelectOption } from "./FormSelect";
 import { CallbackForm, ChannelLink, ExperimentFields, type ChannelPart, type Experiment } from "./LeadCaptureChannels";
-import { LocalityField, NameField, PhoneField, type FieldPart } from "./LeadCaptureFields";
+import { FormMessage, LocalityField, NameField, PhoneField, type FieldPart } from "./LeadCaptureFields";
 import { NeedField, type LeadCaptureLayout } from "./LeadCaptureNeed";
 import type { PartClassNames } from "./parts";
 import { QuoteFormShell } from "./QuoteFormShell";
 import { useHydrated, useNeed, useNow, useOpenOnHash } from "./use-lead-context";
+import { errorText, formMessageId, OWN_FIELDS, useLeadError } from "./use-lead-error";
 import { useLeadEvents } from "./use-lead-events";
 import { useLeadSubmit, type LeadSent } from "./use-lead-submit";
 
@@ -51,7 +52,8 @@ export interface LeadCaptureProps {
   /**
    * The card's id, the anchor a call bar links to (`#quote`): the whole card,
    * head included, scrolls into view. The form is `<id>-form`, the callback
-   * `<id>-callback` and its form `<id>-callback-form`.
+   * `<id>-callback` and its form `<id>-callback-form`. Posted as `card`, so a
+   * refused lead comes back here (`?lead_error=<field>#<id>`) and shows why.
    */
   id?: string | undefined;
   text: LeadCaptureText;
@@ -63,10 +65,11 @@ export interface LeadCaptureProps {
   /** Whether the callback starts open; by default only when it is the channel that leads (the place is closed). */
   callbackOpen?: boolean | undefined;
   /**
-   * The card once a lead is taken, in place of everything in it. With it, a
-   * script posts the form itself and shows this on the thanks page's 303;
-   * without a script, or on any other answer, the form posts as it always
-   * did. Without it, a submit goes to the thanks page.
+   * The card once a lead is taken, in place of everything in it. A script
+   * posts the form itself either way, so a refusal keeps what was typed and
+   * shows why; a lead taken shows this, or — without it — goes to the thanks
+   * page. Without a script, or on an answer that is not the route's, the form
+   * posts as it always did.
    */
   done?: ReactNode | ((sent: LeadSent) => ReactNode);
   /** Replaces the title and lede — the brand's own heading. */
@@ -103,7 +106,12 @@ export function LeadCapture(props: LeadCaptureProps) {
   const [need, setNeed] = useNeed(props.need, needs.map(n => n.value), () => setEditing(false));
   const events = useLeadEvents(root, { formId, layout, experiment });
   useOpenOnHash(`${id}-callback`);
-  const [sent, onSubmit] = useLeadSubmit(props.done !== undefined, { mobile: wire.mobile, name: props.name?.field });
+  const [error, setError] = useLeadError(root, id);
+  const [sent, onSubmit] = useLeadSubmit(props.done !== undefined, { mobile: wire.mobile, name: props.name?.field }, (channel, field) => setError({ channel, field }));
+  // The form's refusal by where it shows: under the field the card draws, else above the submit.
+  const formError = error?.channel === "form" ? error.field : null;
+  const at = (field: string) => (formError === field ? errorText(field, text) : null);
+  const above = formError !== null && !OWN_FIELDS.form.includes(formError) ? errorText(formError, text) : null;
   const doneRef = useRef<HTMLDivElement>(null);
   // The form the focus was in is gone: the news takes it, and is read out.
   useEffect(() => doneRef.current?.focus(), [sent]);
@@ -137,6 +145,7 @@ export function LeadCapture(props: LeadCaptureProps) {
       <CallbackForm
         key={ch}
         id={`${id}-callback`}
+        card={id}
         primary={primary}
         open={props.callbackOpen ?? primary}
         formId={formId}
@@ -149,6 +158,8 @@ export function LeadCapture(props: LeadCaptureProps) {
         text={text}
         experiment={experiment}
         onSubmit={onSubmit}
+        error={error?.channel === "callback" ? { field: error.field, text: errorText(error.field, text) } : null}
+        onSoftError={() => events.fieldError("phone")}
         classNames={c}
       />
     ) : ch === "form" ? null : (
@@ -187,6 +198,7 @@ export function LeadCapture(props: LeadCaptureProps) {
         renderedAt={renderedAt}
         honeypotLabel={text.honeypotLabel}
         formId={formId}
+        card={id}
         onSubmit={onSubmit}
         className={cn("group/lead", c?.form)}
       >
@@ -200,6 +212,7 @@ export function LeadCapture(props: LeadCaptureProps) {
           hydrated={hydrated}
           label={text.needLabel}
           changeLabel={text.needChange}
+          requiredText={text.needRequired}
           onPick={pick}
           onEdit={() => {
             setEditing(true);
@@ -216,14 +229,26 @@ export function LeadCapture(props: LeadCaptureProps) {
             placeholder={text.localityPlaceholder}
             required={props.locality !== "optional"}
             optional={text.optional}
+            requiredText={text.required}
+            error={at("locality")}
             hydrated={hydrated}
             classNames={c}
           />
-          <PhoneField name={wire.mobile} label={text.phoneLabel} hint={text.phoneHint} placeholder={text.phonePlaceholder} onSoftError={() => events.fieldError("phone")} classNames={c} />
+          <PhoneField name={wire.mobile} text={text} error={at("phone")} onSoftError={() => events.fieldError("phone")} classNames={c} />
           {props.name && (
-            <NameField name={props.name.field} label={text.nameLabel} placeholder={text.namePlaceholder} required={props.name.required ?? false} optional={text.optional} classNames={c} />
+            <NameField
+              name={props.name.field}
+              label={text.nameLabel}
+              placeholder={text.namePlaceholder}
+              required={props.name.required ?? false}
+              optional={text.optional}
+              requiredText={text.required}
+              error={at("name")}
+              classNames={c}
+            />
           )}
           {props.extras}
+          <FormMessage id={formMessageId(id, "form")} error={above} className={c?.error} />
           <div className={cn("flex flex-col gap-3", c?.trust)}>
             <Button type="submit" size="touch" className={cn("w-full", c?.submit)}>
               {text.submit}

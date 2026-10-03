@@ -131,7 +131,7 @@ for (const javaScriptEnabled of [false, true]) {
       expect(body.get("location")).toBe("paris");
       // The sentence shown is what is posted, and what the lead keeps.
       expect(body.get("consent")).toBe("J’accepte d’être rappelé·e à ce numéro au sujet de ma demande.");
-      await expect(page).toHaveURL(/\/fr\/thanks$/);
+      await expect(page).toHaveURL(/\/fr\/thanks\?channel=callback$/);
     });
 
     test("is refused without the consent", async ({ page }) => {
@@ -207,4 +207,70 @@ test("a scripted post of the form lands on the thanks page", async ({ page }) =>
     return { ok: res.ok, redirected: res.redirected, path: new URL(res.url).pathname };
   });
   expect(answer).toEqual({ ok: true, redirected: true, path: "/fr/thanks" });
+});
+
+// A number the server refuses: never silent, never lost (LEAD-FORMS-REVIEW-2026-10-03 #1).
+const INVALID = "Ce numéro n’est pas valide. Exemple : 06 12 34 56 78 ou +33 6 12 34 56 78.";
+
+test.describe("a refused number, without JavaScript", () => {
+  test.use({ javaScriptEnabled: false, reducedMotion: "reduce" });
+
+  test("goes back to the card, naming the field and keeping the need", async ({ page }) => {
+    await page.goto("/fr#quote");
+    const form = page.locator("#quote-form");
+    await form.getByLabel("Code postal").fill("75011");
+    await form.getByLabel("Téléphone").fill("06 12 34 56 7");
+    await form.getByRole("button", { name: "Recevoir le prix" }).click();
+    await expect(page).toHaveURL(/\/fr\?lead_error=phone&need=standard#quote$/);
+  });
+});
+
+test.describe("a refused number, with JavaScript", () => {
+  const hydrated = (page: Page) => expect(page.locator("#quote select")).toHaveCount(0);
+
+  test("is blocked before it is sent, in the page's words", async ({ page }) => {
+    await page.goto("/fr");
+    await hydrated(page);
+    let sent = 0;
+    page.on("request", r => void (r.method() === "POST" && sent++));
+    const form = page.locator("#quote-form");
+    await form.getByLabel("Code postal").fill("75011");
+    const phone = form.getByLabel("Téléphone");
+    await phone.fill("+3361234567");
+    await form.getByRole("button", { name: "Recevoir le prix" }).click();
+    await expect(phone).toHaveAttribute("aria-invalid", "true");
+    await expect(form.getByRole("alert")).toHaveText(INVALID);
+    expect(await phone.evaluate(el => (el instanceof HTMLInputElement ? el.validationMessage : ""))).toBe(INVALID);
+    expect(sent).toBe(0);
+  });
+
+  test("refused by the server, shows why at the field and keeps what was typed", async ({ page }) => {
+    await page.goto("/fr");
+    await hydrated(page);
+    const form = page.locator("#quote-form");
+    // Past the form's own check, as a stale page's would be.
+    await form.evaluate(el => el instanceof HTMLFormElement && (el.noValidate = true));
+    await form.getByLabel("Code postal").fill("75011");
+    const phone = form.getByLabel("Téléphone");
+    await phone.fill("0000000000");
+    const answered = page.waitForResponse(r => new URL(r.url()).pathname === "/quote");
+    await form.getByRole("button", { name: "Recevoir le prix" }).click();
+    expect((await answered).status()).toBe(422);
+    await expect(form.getByRole("alert")).toHaveText(INVALID);
+    await expect(phone).toBeFocused();
+    await expect(phone).toHaveValue("0000000000");
+    await expect(form.getByLabel("Code postal")).toHaveValue("75011");
+    await expect(page).toHaveURL(/\/fr$/);
+  });
+
+  test("brought back by the no-JS refusal, shows it at the field", async ({ page }) => {
+    await page.goto("/fr?lead_error=phone&need=deep#quote");
+    const form = page.locator("#quote-form");
+    await expect(form.getByRole("alert")).toHaveText(INVALID);
+    await expect(form.getByLabel("Téléphone")).toBeFocused();
+    // The need came back with it: chosen, not asked again.
+    await expect(form.locator("input[name=subject]")).toHaveValue("deep");
+    await expect(form.getByText("Grand ménage")).toBeVisible();
+    await expect(page).toHaveURL(/\/fr\?need=deep#quote$/);
+  });
 });

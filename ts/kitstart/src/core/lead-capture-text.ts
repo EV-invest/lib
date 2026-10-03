@@ -18,8 +18,23 @@ export interface LeadCaptureText {
   /** Names the row of communes a tap fills the locality from. */
   servedLabel: string;
   phoneLabel: string;
-  /** The soft check under a number that does not read as one; it never blocks. */
+  /**
+   * Under a number that does not read as one, once the visitor leaves the
+   * field — a hint while typing; the submit is blocked by `phoneInvalid`.
+   */
   phoneHint: string;
+  /** Blocks the submit: a number the server would refuse. */
+  phoneInvalid: string;
+  /** Blocks the submit: a required field left empty — the browser's own words are its UI language, not the page's. */
+  required: string;
+  /** Blocks the submit: no need picked. */
+  needRequired: string;
+  /** Blocks the callback: the consent box unticked. */
+  consentRequired: string;
+  /** The server refused a field the form cannot word better (a brand's own). */
+  fieldInvalid: string;
+  /** The server refused the request without naming a field. */
+  formInvalid: string;
   nameLabel: string;
   /**
    * Shown in the empty field. None by default: a placeholder is not a label —
@@ -65,6 +80,12 @@ const FR: LeadCaptureText = {
   servedLabel: "Communes desservies",
   phoneLabel: "Téléphone",
   phoneHint: "Vérifiez le numéro : 06 12 34 56 78 ou +33 6 12 34 56 78.",
+  phoneInvalid: "Ce numéro n’est pas valide. Exemple : 06 12 34 56 78 ou +33 6 12 34 56 78.",
+  required: "Ce champ est obligatoire.",
+  needRequired: "Choisissez votre besoin.",
+  consentRequired: "Cochez la case pour que nous puissions vous rappeler.",
+  fieldInvalid: "Vérifiez ce champ.",
+  formInvalid: "Votre demande n’a pas pu être envoyée. Vérifiez le formulaire.",
   nameLabel: "Nom",
   optional: "facultatif",
   submit: "Recevoir le prix",
@@ -94,6 +115,12 @@ const EN: LeadCaptureText = {
   servedLabel: "Towns we serve",
   phoneLabel: "Phone",
   phoneHint: "Check the number: 06 12 34 56 78 or +33 6 12 34 56 78.",
+  phoneInvalid: "This number is not valid. For example: 06 12 34 56 78 or +33 6 12 34 56 78.",
+  required: "This field is required.",
+  needRequired: "Choose what you need.",
+  consentRequired: "Tick the box so we can call you back.",
+  fieldInvalid: "Check this field.",
+  formInvalid: "Your request could not be sent. Check the form.",
   nameLabel: "Name",
   optional: "optional",
   submit: "Get the price",
