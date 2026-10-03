@@ -16,5 +16,8 @@ export const PLACES: readonly Place<Locale>[] = [
     channels: { phone: null, whatsapp: null },
     hours: [{ days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], opens: "08:00", closes: "19:00" }],
     rating: null,
+    // How a priced lead's slot is set. Left out, the card promises a call
+    // (`manual`); the panel's place settings set it live (`PlaceLive.booking`),
+    // e.g. `{ provider: "cal_com", url: "https://cal.com/brand/menage" }`.
   },
 ];
