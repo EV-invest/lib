@@ -80,17 +80,28 @@ describe("the experiments source", () => {
     expect(log.error).toHaveBeenCalledTimes(1);
   });
 
-  it("drops what a failed refresh had: the config in code, as the contract says", async () => {
+  it.each([
+    ["a 503", async () => new Response(null, { status: 503 })],
+    ["unreachable", async () => Promise.reject(new TypeError("fetch failed"))],
+    ["not the panel's shape", async () => Response.json({ nope: true })],
+  ])("keeps the last good overrides when a refresh fails (%s): a kill switch stays off", async (_, failure) => {
     const fetch = vi
       .fn<() => Promise<Response>>()
       .mockResolvedValueOnce(answer({ hero: { enabled: false } }))
-      .mockResolvedValueOnce(new Response(null, { status: 503 }));
+      .mockImplementationOnce(failure)
+      .mockResolvedValueOnce(answer({ hero: { enabled: true } }));
     vi.stubGlobal("fetch", fetch);
     const s = source();
     await s.overrides();
     clock = 1_000;
     await s.overrides();
-    await vi.waitFor(async () => expect(await s.overrides()).toEqual({}));
+    await vi.waitFor(() => expect(log.error).toHaveBeenCalledTimes(1));
+    expect(await s.overrides()).toEqual({ hero: { enabled: false } });
+    expect(fetch).toHaveBeenCalledTimes(2);
+    // Recovered panel: the next refresh after the TTL takes its answer.
+    clock = 2_000;
+    await s.overrides();
+    await vi.waitFor(async () => expect(await s.overrides()).toEqual({ hero: { enabled: true } }));
   });
 
   it("does not ask again until the TTL after a failure", async () => {
