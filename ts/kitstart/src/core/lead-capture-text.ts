@@ -99,8 +99,24 @@ export interface LeadCaptureFlowText {
   bookSubmit: string;
   /** The in-card success of a priced lead; `{price}` the server's. */
   sentPrice: string;
-  /** After a priced lead: the slot is set by a call (no booking provider yet). */
+  /** After a priced lead with a `manual` booking: the slot is set by a call. */
   slotCallback: string;
+  /** Opens the place's booking page (`link`, `cal_com`). */
+  bookCta: string;
+  /** Under it: the call still comes if the visitor books nothing. */
+  bookNote: string;
+  /** Once the provider says the slot is booked. */
+  booked: string;
+  /** `manual`: the optional preference, its day and part of the day. */
+  preferTitle: string;
+  preferDay: string;
+  preferPart: string;
+  partMorning: string;
+  partAfternoon: string;
+  partEvening: string;
+  preferSubmit: string;
+  /** After the preference is sent. */
+  preferSent: string;
   /** A `quote` need that is priced from photos: the ask, and its WhatsApp link. */
   photosTitle: string;
   photosLede: string;
@@ -119,6 +135,17 @@ const FR_FLOW: LeadCaptureFlowText = {
   bookSubmit: "Réserver",
   sentPrice: "Demande enregistrée au prix de {price}.",
   slotCallback: "Nous vous rappelons pour fixer le créneau.",
+  bookCta: "Choisir un créneau",
+  bookNote: "Sinon, nous vous rappelons pour fixer le créneau.",
+  booked: "Créneau réservé. Merci !",
+  preferTitle: "Une préférence pour le créneau ? (facultatif)",
+  preferDay: "Jour",
+  preferPart: "Moment de la journée",
+  partMorning: "Matin",
+  partAfternoon: "Après-midi",
+  partEvening: "Soir",
+  preferSubmit: "Envoyer ma préférence",
+  preferSent: "Préférence notée : nous en tenons compte en vous rappelant.",
   photosTitle: "Envoyez des photos",
   photosLede: "Pour ce besoin, quelques photos nous permettent de vous donner un prix juste.",
   photosCta: "Envoyer des photos sur WhatsApp",
@@ -135,6 +162,17 @@ const EN_FLOW: LeadCaptureFlowText = {
   bookSubmit: "Book",
   sentPrice: "Request saved at {price}.",
   slotCallback: "We will call you to set the slot.",
+  bookCta: "Pick a slot",
+  bookNote: "Otherwise we will call you to set the slot.",
+  booked: "Slot booked. Thank you!",
+  preferTitle: "A preferred slot? (optional)",
+  preferDay: "Day",
+  preferPart: "Time of day",
+  partMorning: "Morning",
+  partAfternoon: "Afternoon",
+  partEvening: "Evening",
+  preferSubmit: "Send my preference",
+  preferSent: "Noted: we will keep it in mind when we call.",
   photosTitle: "Send photos",
   photosLede: "For this job, a few photos let us give you a fair price.",
   photosCta: "Send photos on WhatsApp",

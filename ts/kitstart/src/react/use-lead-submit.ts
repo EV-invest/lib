@@ -15,6 +15,11 @@ export interface LeadSent {
   lead?: string;
   /** The price the server took the lead at, for an `estimate` or `fixed` need. */
   cents?: number;
+  /**
+   * The form's submission id, with `lead` only: the secret a booking request
+   * (`bookingRoute`) proves the lead is this page's with.
+   */
+  submission?: string;
 }
 
 /** Leaving the page, behind a seam a test can stand in for (jsdom cannot navigate). */
@@ -179,7 +184,9 @@ export function useLeadSubmit(done: boolean | ((channel: LeadChannel) => boolean
           // Still pending: the page is leaving, or the form is gone. The next
           // lead from this form (Back, another need) gets an id of its own.
           minted.delete(form);
-          if (typeof done === "function" ? done(lead.channel) : done) setSent({ ...lead, ...(answer.lead ? { lead: answer.lead } : {}), ...(answer.cents !== undefined ? { cents: answer.cents } : {}) });
+          const submission = data.get(SUBMISSION_FIELD);
+          const ref = answer.lead && typeof submission === "string" && submission !== "" ? { lead: answer.lead, submission } : answer.lead ? { lead: answer.lead } : {};
+          if (typeof done === "function" ? done(lead.channel) : done) setSent({ ...lead, ...ref, ...(answer.cents !== undefined ? { cents: answer.cents } : {}) });
           else navigation.assign(answer.location);
         },
         () => {
