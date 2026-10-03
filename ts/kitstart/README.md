@@ -273,7 +273,10 @@ it is the plain POST to `/quote` it always was.
   brand's type size cannot leave it on a half pixel.
 - **Phone.** `type="tel"`, required, never masked, held to one rule on both
   sides (`phoneProblem`, `validateLead`): a French number is ten digits from
-  `0[1-9]` (or `+33` and nine), any other a `+` and 8 to 15 digits; full-width
+  `0[1-9]` (or `+33` and nine), any other a `+` and 8 to 15 digits — and for
+  the plans visitors most often dial from, that plan's national length after
+  the code: `+1` ten, `+44` nine or ten, `+34` and `+41` nine, `+32` eight or
+  nine, `+49` 7 to 13, `+39` 6 to 11 (so `+12345678` is no number); full-width
   digits read as digits; a run of one digit is no number. One that fails gets
   a hint when the field is left (`aria-live`, read out; when a tap left it,
   only once the tap is over, so nothing moves under the finger) and blocks the submit

@@ -119,7 +119,7 @@ describe("the phone rule the form and the server share", () => {
     expect(leadRuleDisagreements(kit)).toEqual([]);
     expect(leadRuleDisagreements({ ...kit, validate: lead => validateLead(lead) ?? (lead.locality === "" ? { field: "locality", why: "a postcode" } : null) })).toEqual([]);
     // The rule brands shipped before: ten digits, whatever they spell.
-    expect(leadRuleDisagreements(PLUMBING)).toEqual(expect.arrayContaining([expect.stringContaining("+12345678"), expect.stringContaining("0000000000")]));
+    expect(leadRuleDisagreements(PLUMBING)).toEqual(expect.arrayContaining([expect.stringContaining("6 12 34 56 78"), expect.stringContaining("0000000000")]));
   });
 
   it("names the field a brand's plain reason is about as the whole form", () => {

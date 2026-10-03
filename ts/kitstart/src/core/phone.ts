@@ -7,9 +7,36 @@
  * `0033 6 …`, a mobile typed without its trunk zero (`6 12 34 56 78`) — all
  * become `+33612345678`. Any other international number is a plausible E.164,
  * 8 to 15 digits after the `+`, compacted (`+44 7911 123456` →
- * `+447911123456`). Full-width digits read as digits; a run of one digit
+ * `+447911123456`) — and, for the plans a visitor here most often dials
+ * from (`NATIONAL_LENGTH`), as long as that plan's numbers are, so `+12345678`
+ * is not a number. Full-width digits read as digits; a run of one digit
  * (`00 00 00 00 00`, `06 66 66 66 66`) is a refusal to give a number, not one.
  */
+/**
+ * The national number's length, after the country code, for the plans the
+ * vertical's visitors most often come from — bounds wide enough for every
+ * real number (Germany and Italy vary by area), short of a library. A plan
+ * not listed keeps E.164's 8 to 15 digits in all.
+ */
+const NATIONAL_LENGTH: Readonly<Record<string, readonly [min: number, max: number]>> = {
+  "1": [10, 10],
+  "32": [8, 9],
+  "34": [9, 9],
+  "39": [6, 11],
+  "41": [9, 9],
+  "44": [9, 10],
+  "49": [7, 13],
+};
+
+function fitsPlan(e164: string): boolean {
+  const digits = e164.slice(1);
+  for (const code of [digits.slice(0, 1), digits.slice(0, 2)]) {
+    const bounds = NATIONAL_LENGTH[code];
+    if (bounds) return digits.length - code.length >= bounds[0] && digits.length - code.length <= bounds[1];
+  }
+  return true;
+}
+
 export function normalizePhone(raw: string): string | null {
   // NFKC: a Japanese or Chinese keyboard types full-width digits and `＋`,
   // and a pasted number may carry no-break spaces. `\s` takes those too.
@@ -23,7 +50,7 @@ export function normalizePhone(raw: string): string | null {
     const trunk = /^0([1-9]\d{8})$/.exec(s);
     if (trunk) e164 = `+33${trunk[1]}`;
     else if (/^[1-9]\d{8}$/.test(s)) e164 = `+33${s}`;
-    else if (/^\+[1-9]\d{7,14}$/.test(s)) e164 = s;
+    else if (/^\+[1-9]\d{7,14}$/.test(s) && fitsPlan(s)) e164 = s;
   }
   if (e164 === null) return null;
   // The subscriber's digits: past `+33` for a French number, past `+` otherwise.
