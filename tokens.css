@@ -20,7 +20,8 @@
  *              accent-trace · accent-debug · accent-info · accent-warn · accent-error
  *              primary-ink — the primary role as ink on a surface, where the
  *              fill and the readable value are different colours
- *   SCALARS    radius · control-* · display-scale · page-* · shadows · fonts
+ *   SCALARS    radius · control-* · display-scale · page-* · shell-* · shadows · fonts
+ *   MOTION     ev-ease-* · ev-dur-* · ev-rise · ev-stagger(-section)
  *   CHARTS     chart-1 … chart-5
  *   MARK       brand-mark · brand-aspect       — supplied, never defined here
  *

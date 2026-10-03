@@ -122,6 +122,26 @@
 
   --sidebar-width: 14rem;
 
+  /* app shell (uikit <AppShell> / <ShellNav> / <BottomTabBar>) */
+  --shell-rail-w: 15.5rem; /* 248px */
+  --shell-tab-bar-h: 4rem; /* 64px, before the bottom safe area */
+
+  /* ── motion ──────────────────────────────────────────────────── *
+   * One place to retune the feel of every animation the kit ships (motion.css
+   * reads these) and every one a consumer writes against them:
+   * `ease-(--ev-ease-out) duration-(--ev-dur-base)`. Quiet on purpose — short,
+   * small travel: motion here says what changed, it never decorates. */
+  --ev-ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* every entrance */
+  --ev-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1); /* state that reverses */
+  --ev-dur-fast: 180ms;
+  --ev-dur-base: 280ms;
+  --ev-dur-slow: 400ms;
+  --ev-rise: 8px; /* how far an entrance travels */
+  --ev-stagger: 35ms; /* between rows of a list */
+  /* between the sections of a page: cards, not rows — at 35ms six of them read
+     as one block twitching; at 50ms the last lands ~0.55s in, still "opening" */
+  --ev-stagger-section: 50ms;
+
   /* page container — responsive gutter + max width (uikit <Container>) */
   --page-max: 90rem; /* 1440px */
   --page-px: 1rem; /* 16px — mobile gutter, scales up below */
