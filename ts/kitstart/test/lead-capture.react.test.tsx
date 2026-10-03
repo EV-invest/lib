@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LEAD_CAPTURE_TEXT, type OpeningHours, type Place } from "../src/index";
+import { LEAD_CAPTURE_TEXT, leadErrorOf, type OpeningHours, type Place } from "../src/index";
 import { AnalyticsSinkContext } from "../src/react/analytics-context";
 import { LeadCapture, type LeadCaptureProps } from "../src/react/index";
 import { navigation, SUBMIT_TIMEOUT_MS } from "../src/react/use-lead-submit";
@@ -90,6 +90,26 @@ describe("LeadCapture without a script", () => {
     expect(f.querySelector("select[name=job]")).not.toBeNull();
     expect(f.querySelector("input[name=mobile]")).toHaveAttribute("type", "tel");
     expect(f.querySelector("input[name=mobile]")).toBeRequired();
+  });
+
+  // LEAD-FORMS-RETEST-2026-10-03 N2: without a script the 303 landed on the
+  // card with no word of why. A page that reads its query hands the refusal
+  // down (`leadErrorOf(searchParams)`), and the server draws it.
+  it("draws a refusal the page hands down, at its field, with no script", () => {
+    const fr = LEAD_CAPTURE_TEXT.fr;
+    document.body.innerHTML = renderToString(capture({ initialError: leadErrorOf({ lead_error: "phone" }) }));
+    expect(input("mobile")).toHaveAttribute("aria-invalid", "true");
+    expect(input("mobile").closest("[role=group]")).toHaveTextContent(fr.phoneInvalid);
+    document.body.innerHTML = renderToString(capture({ initialError: leadErrorOf({ lead_error: "consent" }) }));
+    const callback = document.getElementById("quote-callback");
+    expect(callback).toHaveAttribute("open");
+    expect(callback).toHaveTextContent(fr.consentRequired);
+    document.body.innerHTML = renderToString(capture({ initialError: leadErrorOf({ lead_error: "bedrooms" }) }));
+    expect(form()).toHaveTextContent(fr.fieldInvalid);
+    // Nothing to say, or a value that is not a field name: nothing drawn.
+    expect(leadErrorOf({})).toBeNull();
+    expect(leadErrorOf({ lead_error: "<b>" })).toBeNull();
+    expect(leadErrorOf({ lead_error: ["phone", "x"] })).toEqual({ channel: "form", field: "phone" });
   });
 
   it("does not ask a need the page already knows", () => {

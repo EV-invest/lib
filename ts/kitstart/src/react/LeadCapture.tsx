@@ -3,7 +3,7 @@
 import { cn } from "@evinvest/uikit";
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { resolveChannels, type CaptureChannel } from "../core/channels";
-import type { LeadWire } from "../core/lead";
+import type { LeadError, LeadWire } from "../core/lead";
 import { fillText, openingText } from "../core/lead-capture-format";
 import { flowTextOf, type LeadCaptureText } from "../core/lead-capture-text";
 import { servedLocalities, storefrontOf, type Place } from "../core/place/types";
@@ -101,6 +101,12 @@ export interface LeadCaptureProps {
    * posts as it always did.
    */
   done?: ReactNode | ((sent: LeadSent) => ReactNode);
+  /**
+   * The refusal the page read from its query — `leadErrorOf(searchParams)` —
+   * drawn on the server, so the card says why without a script. A page built
+   * for ISR has no query to read; there the script says it once it runs.
+   */
+  initialError?: LeadError | null | undefined;
   /** Replaces the title and lede — the brand's own heading. */
   head?: ReactNode;
   /** Beside the submit: a guarantee, a live rating. */
@@ -135,7 +141,7 @@ export function LeadCapture(props: LeadCaptureProps) {
   const [need, setNeed] = useNeed(props.need, needs.map(n => n.value), () => setEditing(false));
   const events = useLeadEvents(root, { formId, layout, experiment });
   useOpenOnHash(`${id}-callback`);
-  const [error, setError] = useLeadError(root, id);
+  const [error, setError] = useLeadError(root, id, props.initialError ?? null);
   const flowText = flowTextOf(text, locale);
   // `single` shows its select at the first need until one is picked: that is the need on screen.
   const shownNeed = need ?? (layout === "single" ? needs[0]?.value : undefined);
@@ -193,7 +199,7 @@ export function LeadCapture(props: LeadCaptureProps) {
         id={`${id}-callback`}
         card={id}
         primary={primary}
-        open={props.callbackOpen ?? primary}
+        open={props.initialError?.channel === "callback" || (props.callbackOpen ?? primary)}
         formId={formId}
         placeSlug={place.slug}
         locale={locale}

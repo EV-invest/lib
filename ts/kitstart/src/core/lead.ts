@@ -123,6 +123,30 @@ export const SUBMISSION_ID = /^[A-Za-z0-9-]{16,64}$/;
 /** The query a refused submission is sent back to the form with: `?lead_error=<field>`. */
 export const LEAD_ERROR_PARAM = "lead_error";
 
+/** A refusal the server sent back: which of the card's forms, and the field it is about. */
+export interface LeadError {
+  channel: LeadChannel;
+  field: string;
+}
+
+/** What a refused field may be named: a slug, never markup. */
+export const LEAD_ERROR_FIELD = /^[a-z][a-z0-9_]{0,31}$/;
+
+/**
+ * The refusal a 303 brought the visitor back with, read from a page's
+ * `searchParams` on the server — `LeadCapture`'s `initialError`, so the card
+ * says why without a script. Only a page that reads its query can: one built
+ * for ISR does not, and there the card's script says it. The query cannot
+ * tell the callback from the form (that is the URL's fragment, never sent to
+ * the server): the consent is the callback's, every other field the form's.
+ */
+export function leadErrorOf(searchParams: Readonly<Record<string, string | readonly string[] | undefined>>): LeadError | null {
+  const raw = searchParams[LEAD_ERROR_PARAM];
+  const field = typeof raw === "string" ? raw : raw?.[0];
+  if (field === undefined || !LEAD_ERROR_FIELD.test(field)) return null;
+  return { channel: field === "consent" ? "callback" : "form", field };
+}
+
 /**
  * The card's id, posted so a refusal lands back on it (`#devis`, not a
  * hard-coded `#quote`). Only a slug is ever echoed into the redirect.
