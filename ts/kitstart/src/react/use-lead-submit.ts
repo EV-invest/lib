@@ -61,27 +61,53 @@ async function readAnswer(res: Response): Promise<Answer | null> {
   return null;
 }
 
+/** Why the script's post got no answer: none came back (`network`), or none in time (`timeout`). */
+export type SendFailure = "network" | "timeout";
+
+/** How long the script waits for `/quote` before it says so; the lead is a few short fields. */
+export const SUBMIT_TIMEOUT_MS = 15_000;
+
+export interface LeadSubmitHandlers {
+  /** The route refused the lead: the field to fix. */
+  onRefused: (channel: LeadChannel, field: string) => void;
+  /** No answer: the form stays as typed, with a retry. */
+  onFailed: (channel: LeadChannel, failure: SendFailure) => void;
+}
+
+export interface LeadSubmit {
+  sent: LeadSent | null;
+  onSubmit: FormEventHandler<HTMLFormElement>;
+  /** The form being posted, while it is. */
+  busy: LeadChannel | null;
+  /** The last post that got no answer, until the next one. */
+  failure: { channel: LeadChannel; failure: SendFailure } | null;
+  /** Posts that form again — the same submission id, so never a second lead. */
+  retry: () => void;
+}
+
 /**
  * The lead posted by a script, so a refusal keeps what was typed: the body
  * and the endpoint are the form's own, asked for JSON. Taken → the brand's
  * in-card success when it has one (`done`), else the thanks page the route
- * names. Refused → `onRefused` with the field, the form as it was. Anything
- * else — the store's 500, no network — submits the form for real, so the
- * server's own page says what went wrong.
+ * names. Refused → `onRefused` with the field, the form as it was. No answer
+ * — no network, or nothing in `SUBMIT_TIMEOUT_MS` — is said in place with a
+ * retry, never by leaving the page: the browser's error page would lose the
+ * form. Any other answer (the store's 500) submits the form for real, so the
+ * server's own page says what went wrong; the submission id makes that safe.
  */
-export function useLeadSubmit(
-  done: boolean,
-  fields: { mobile: string; name: string | undefined },
-  onRefused: (channel: LeadChannel, field: string) => void,
-): [LeadSent | null, FormEventHandler<HTMLFormElement>] {
+export function useLeadSubmit(done: boolean, fields: { mobile: string; name: string | undefined }, on: LeadSubmitHandlers): LeadSubmit {
   const [sent, setSent] = useState<LeadSent | null>(null);
+  const [busy, setBusy] = useState<LeadChannel | null>(null);
+  const [failure, setFailure] = useState<LeadSubmit["failure"]>(null);
   const pending = useRef(false);
+  const last = useRef<HTMLFormElement | null>(null);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (pending.current) return;
     pending.current = true;
     const form = event.currentTarget;
+    last.current = form;
     stamp(form);
     const data = new FormData(form);
     const body = new URLSearchParams();
@@ -91,23 +117,42 @@ export function useLeadSubmit(
       return typeof value === "string" ? value.trim() : "";
     };
     const lead: LeadSent = { channel: read(CHANNEL_FIELD) === "callback" ? "callback" : "form", phone: read(fields.mobile), name: read(fields.name) || null };
+    setBusy(lead.channel);
+    setFailure(null);
+    const settle = () => {
+      pending.current = false;
+      setBusy(null);
+    };
     // `form.submit()` neither validates again nor comes back here.
     const fallBack = () => {
-      pending.current = false;
+      settle();
       form.submit();
     };
-    fetch(form.action, { method: "POST", body, headers: { Accept: "application/json" } })
+    // A controller and a timer rather than `AbortSignal.timeout`: one clock the page (and a test) controls.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(new DOMException("no answer in time", "TimeoutError")), SUBMIT_TIMEOUT_MS);
+    fetch(form.action, { method: "POST", body, headers: { Accept: "application/json" }, signal: controller.signal })
       .then(readAnswer)
-      .then(answer => {
-        if (answer === null) return fallBack();
-        if (!answer.ok) {
-          pending.current = false;
-          return onRefused(lead.channel, answer.field);
-        }
-        // Still pending: the page is leaving, or the form is gone.
-        if (done) setSent(lead);
-        else navigation.assign(answer.location);
-      }, fallBack);
+      .then(
+        answer => {
+          if (answer === null) return fallBack();
+          if (!answer.ok) {
+            settle();
+            return on.onRefused(lead.channel, answer.field);
+          }
+          // Still pending: the page is leaving, or the form is gone.
+          if (done) setSent(lead);
+          else navigation.assign(answer.location);
+        },
+        () => {
+          settle();
+          const kind: SendFailure = controller.signal.aborted ? "timeout" : "network";
+          setFailure({ channel: lead.channel, failure: kind });
+          on.onFailed(lead.channel, kind);
+        },
+      )
+      .finally(() => clearTimeout(timer));
   };
-  return [sent, submit];
+  const retry = () => last.current?.requestSubmit();
+  return { sent, onSubmit: submit, busy, failure, retry };
 }
