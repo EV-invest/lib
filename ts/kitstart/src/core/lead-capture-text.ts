@@ -7,8 +7,12 @@
  * The kit ships French and English (`LEAD_CAPTURE_TEXT`) so every brand asks
  * in the same words and an experiment's arms differ only in what it tests; a
  * brand overrides a key by spreading: `{ ...LEAD_CAPTURE_TEXT.fr, submit: "…" }`.
+ *
+ * The flows' words (`LeadCaptureFlowText`) are optional here so a brand's own
+ * text object written before them still type-checks; a key left out falls
+ * back to the kit's, in the page's language (`flowTextOf`).
  */
-export interface LeadCaptureText {
+export interface LeadCaptureText extends Partial<LeadCaptureFlowText> {
   title: string;
   lede: string;
   needLabel: string;
@@ -79,7 +83,78 @@ export interface LeadCaptureText {
   honeypotLabel: string;
 }
 
+/** What the `estimate` and `fixed` flows, the photos ask and the booking print. */
+export interface LeadCaptureFlowText {
+  /** Heads the live price. */
+  priceTitle: string;
+  /** In place of the price until every input is answered. */
+  pricePending: string;
+  /** Under the price: what it includes and when it is paid. */
+  priceNote: string;
+  /** The breakdown's first line: the need's base. */
+  priceBase: string;
+  priceRounding: string;
+  priceMinimum: string;
+  /** The submit of a priced need. */
+  bookSubmit: string;
+  /** The in-card success of a priced lead; `{price}` the server's. */
+  sentPrice: string;
+  /** Opens the place's booking page. */
+  bookingCta: string;
+  /** The booking frame's close button. */
+  bookingClose: string;
+  /** Once Calendly says the slot is booked. */
+  bookingDone: string;
+  /** No booking page: the callback promise instead. */
+  bookingFallback: string;
+  /** A `quote` need that is priced from photos: the ask, and its WhatsApp link. */
+  photosTitle: string;
+  photosLede: string;
+  photosCta: string;
+  /** The WhatsApp message, `{need}` the need's label. */
+  photosMessage: string;
+}
+
+const FR_FLOW: LeadCaptureFlowText = {
+  priceTitle: "Votre prix",
+  pricePending: "Répondez aux questions pour voir le prix.",
+  priceNote: "Prix TTC pour ces réponses, payé après la prestation.",
+  priceBase: "Prix de base",
+  priceRounding: "Arrondi",
+  priceMinimum: "Minimum de prestation",
+  bookSubmit: "Réserver",
+  sentPrice: "Demande enregistrée au prix de {price}.",
+  bookingCta: "Choisir un créneau",
+  bookingClose: "Fermer",
+  bookingDone: "Créneau réservé. La confirmation arrive par e-mail.",
+  bookingFallback: "Nous vous rappelons pour fixer le créneau.",
+  photosTitle: "Envoyez des photos",
+  photosLede: "Pour ce besoin, quelques photos nous permettent de vous donner un prix juste.",
+  photosCta: "Envoyer des photos sur WhatsApp",
+  photosMessage: "Bonjour, voici des photos pour : {need}.",
+};
+
+const EN_FLOW: LeadCaptureFlowText = {
+  priceTitle: "Your price",
+  pricePending: "Answer the questions to see the price.",
+  priceNote: "Price incl. VAT for these answers, paid after the job.",
+  priceBase: "Base price",
+  priceRounding: "Rounding",
+  priceMinimum: "Minimum charge",
+  bookSubmit: "Book",
+  sentPrice: "Request saved at {price}.",
+  bookingCta: "Pick a slot",
+  bookingClose: "Close",
+  bookingDone: "Slot booked. The confirmation is on its way by email.",
+  bookingFallback: "We will call you to set the slot.",
+  photosTitle: "Send photos",
+  photosLede: "For this job, a few photos let us give you a fair price.",
+  photosCta: "Send photos on WhatsApp",
+  photosMessage: "Hello, here are photos for: {need}.",
+};
+
 const FR: LeadCaptureText = {
+  ...FR_FLOW,
   title: "Recevoir un prix",
   lede: "Réponse rapide, sans engagement.",
   needLabel: "Votre besoin",
@@ -119,6 +194,7 @@ const FR: LeadCaptureText = {
 };
 
 const EN: LeadCaptureText = {
+  ...EN_FLOW,
   title: "Get a price",
   lede: "A quick answer, no commitment.",
   needLabel: "What you need",
@@ -158,3 +234,14 @@ const EN: LeadCaptureText = {
 };
 
 export const LEAD_CAPTURE_TEXT: Readonly<Record<"fr" | "en", LeadCaptureText>> = { fr: FR, en: EN };
+
+/** The flows' words for a page: the brand's, else the kit's in its language (English for `en*`, French otherwise). */
+export function flowTextOf(text: LeadCaptureText, locale: string): LeadCaptureFlowText {
+  const kit = locale.startsWith("en") ? EN_FLOW : FR_FLOW;
+  const out: LeadCaptureFlowText = { ...kit };
+  for (const key of Object.keys(kit) as (keyof LeadCaptureFlowText)[]) {
+    const own = text[key];
+    if (own !== undefined) out[key] = own;
+  }
+  return out;
+}
