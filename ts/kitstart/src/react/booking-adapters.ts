@@ -98,6 +98,43 @@ export function calComEmbedOrigin(url: string): string {
  * click, and its `bookingSuccessful` is `onBooked`. Opt-in (`bookingEmbed`),
  * and only once the visitor accepted the provider's cookies.
  */
+/** What the page's one set of Cal.com listeners reports to: the lead last opened, and the leads already booked. */
+interface CalPage {
+  current: BookingContext | null;
+  booked: Set<string>;
+}
+
+/** Per `Cal` instance — one per page — so the listeners are registered once however often the modal opens. */
+const calPages = new WeakMap<CalApi, CalPage>();
+
+function calPage(cal: CalApi, origin: string): CalPage {
+  const known = calPages.get(cal);
+  if (known) return known;
+  const page: CalPage = { current: null, booked: new Set() };
+  calPages.set(cal, page);
+  const booked = (e: unknown) => {
+    const ctx = page.current;
+    // Cal.com may fire both versions of the event for one booking.
+    if (!ctx || page.booked.has(ctx.leadRef)) return;
+    page.booked.add(ctx.leadRef);
+    const detail = isObject(e) ? e.detail : undefined;
+    const data = isObject(detail) && isObject(detail.data) ? detail.data : undefined;
+    const startAt = data?.startTime ?? data?.date;
+    const endAt = data?.endTime;
+    ctx.onBooked?.({ ...(typeof startAt === "string" ? { startAt } : {}), ...(typeof endAt === "string" ? { endAt } : {}) });
+  };
+  cal("init", { origin });
+  cal("on", { action: "bookingSuccessful", callback: booked });
+  cal("on", { action: "bookingSuccessfulV2", callback: booked });
+  return page;
+}
+
+/**
+ * `cal_com` as Cal.com's modal on the page: its script loads only on the
+ * click, and its `bookingSuccessful` is `onBooked` — once per lead, however
+ * often the modal is opened and closed. Opt-in (`bookingEmbed`), and only
+ * once the visitor accepted the provider's cookies.
+ */
 export const calComEmbedAdapter: BookingAdapter<"cal_com"> = {
   provider: "cal_com",
   prefillsPhone: () => true,
@@ -107,19 +144,7 @@ export const calComEmbedAdapter: BookingAdapter<"cal_com"> = {
     const u = new URL(href);
     const origin = calComEmbedOrigin(href);
     const cal = calQueue(window, `${origin}/embed/embed.js`);
-    let done = false;
-    const booked = (e: unknown) => {
-      if (done) return;
-      done = true;
-      const detail = isObject(e) ? e.detail : undefined;
-      const data = isObject(detail) && isObject(detail.data) ? detail.data : undefined;
-      const startAt = data?.startTime ?? data?.date;
-      const endAt = data?.endTime;
-      ctx.onBooked?.({ ...(typeof startAt === "string" ? { startAt } : {}), ...(typeof endAt === "string" ? { endAt } : {}) });
-    };
-    cal("init", { origin });
-    cal("on", { action: "bookingSuccessful", callback: booked });
-    cal("on", { action: "bookingSuccessfulV2", callback: booked });
+    calPage(cal, origin).current = ctx;
     cal("modal", { calLink: u.pathname.slice(1), config: Object.fromEntries(u.searchParams) });
   },
 };
