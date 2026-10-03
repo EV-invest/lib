@@ -52,7 +52,7 @@ export function LeadBookingManual(props: { leadRef: string; locale: string; now:
   const { text, locale, classNames: c } = props;
   const [day, setDay] = useState<string | null>(null);
   const [part, setPart] = useState<PreferredPart | null>(null);
-  const [state, setState] = useState<"idle" | "busy" | "sent">("idle");
+  const [state, setState] = useState<"idle" | "busy" | "sent" | "failed">("idle");
   const days = useMemo(() => {
     const fmt = new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric" });
     return Array.from({ length: DAYS_AHEAD }, (_, i) => {
@@ -68,7 +68,7 @@ export function LeadBookingManual(props: { leadRef: string; locale: string; now:
     if (!report || (day === null && part === null)) return;
     setState("busy");
     const ok = await report.requested({ lead_ref: props.leadRef, provider: "manual", ...(day ? { preferred_date: day } : {}), ...(part ? { preferred_part: part } : {}) });
-    setState(ok ? "sent" : "idle");
+    setState(ok ? "sent" : "failed");
   };
 
   let body: ReactNode = null;
@@ -79,6 +79,11 @@ export function LeadBookingManual(props: { leadRef: string; locale: string; now:
         <p className="text-sm text-ink-soft">{text.preferTitle}</p>
         <Tiles legend={text.preferDay} name="preferred_date" options={days} value={day} onChange={setDay} className={c?.preferOption} />
         <Tiles legend={text.preferPart} name="preferred_part" options={parts} value={part} onChange={setPart} className={c?.preferOption} />
+        {state === "failed" && (
+          <p role="alert" className="text-sm text-ink">
+            {text.preferFailed}
+          </p>
+        )}
         <Button type="submit" variant="outline" size="touch" disabled={state === "busy" || (day === null && part === null)} className={cn("w-full", c?.preferSubmit)}>
           {text.preferSubmit}
         </Button>

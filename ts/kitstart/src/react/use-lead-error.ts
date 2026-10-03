@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type RefObject } from "react";
+import { PRICE_CHANGED } from "../core/accept";
 import { LEAD_CARD_PARAM, LEAD_ERROR_FIELD, LEAD_ERROR_PARAM, type LeadChannel, type LeadError } from "../core/lead";
 import type { LeadCaptureText } from "../core/lead-capture-text";
 
@@ -61,7 +62,8 @@ export function useLeadError(root: RefObject<HTMLElement | null>, id: string, in
     foreign?.setAttribute("aria-describedby", formMessageId(id, error.channel));
     (control ?? document.getElementById(formMessageId(id, error.channel)))?.focus();
     const fixed = (event: Event) => {
-      if (error.field === "form" || (event.target instanceof Element && control?.contains(event.target))) setError(null);
+      // A refusal of the whole form, or of its price, is about every answer: any change answers it.
+      if (error.field === "form" || error.field === PRICE_CHANGED || (event.target instanceof Element && control?.contains(event.target))) setError(null);
     };
     form.addEventListener("input", fixed);
     form.addEventListener("change", fixed);
