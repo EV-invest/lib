@@ -488,6 +488,13 @@ chooses per visitor answer `Cache-Control: private, no-store`.
   (`LEAD_NOTIFY_TO`, or the brand's email). Both are bare addresses
   (`leads@brand.fr`), not `Name <…>`. Off loopback, a server without TLS gets
   nothing; past `MAIL_PER_MINUTE` a minute the lead is stored and only logged.
+- **The mail names the need.** `lead.subject` is the id the form posted
+  (`hot_water`); `leadNotifier(site, env, { needLabel })` names it instead —
+  `needLabel(need)` answers the label in the mail's language (the business's,
+  not the visitor's), `undefined` for a need it does not know, which the mail
+  prints as the id. The default mail uses it, `defaultLeadMail(brand, lead, id,
+  { needLabel })` too, and a brand's `format` gets it as its third argument:
+  `(lead, id, { need }) => LeadMail`.
 - **The rate limit knows whose address it counts.** `TRUSTED_PROXY` is
   `cloudflare` (only `CF-Connecting-IP`) or `xff:<n>` (the n-th
   `X-Forwarded-For` hop from the right); production refuses to boot without it.

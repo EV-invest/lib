@@ -98,6 +98,26 @@ describe("the lead notifier", () => {
     expect(lines).toContain(Buffer.from("Commune : 63130").toString("base64"));
   });
 
+  it("names the need by its label, the id when it has none", async () => {
+    const labels: Record<string, string> = { hot_water: "Eau chaude" };
+    const needLabel = (need: string) => labels[need];
+    expect(defaultLeadMail(BRAND, lead, 1, { needLabel }).text).toContain("Subject  : Eau chaude\n");
+    // A stale form's need, or none given: the id, as before.
+    expect(defaultLeadMail(BRAND, { ...lead, subject: "gone" }, 1, { needLabel }).text).toContain("Subject  : gone\n");
+    expect(defaultLeadMail(BRAND, lead, 1).text).toContain("Subject  : hot_water\n");
+
+    const { port, lines } = await catcher();
+    const smtp = { ...NONE, smtpUrl: `smtp://127.0.0.1:${port}` };
+    await leadNotifier({ brand: BRAND }, smtp, { needLabel }).notify(lead, 2);
+    // The body: base64 lines between the headers' blank line and the closing dot.
+    const body = Buffer.from(lines.slice(lines.indexOf("") + 1, lines.indexOf(".")).join(""), "base64").toString("utf8");
+    expect(body).toContain("Subject  : Eau chaude");
+    // A brand's own format is handed the label too.
+    const format = vi.fn((_l: Lead, id: number, shown: { need: string }) => ({ subject: `#${id}`, text: `Intervention : ${shown.need}` }));
+    await leadNotifier({ brand: BRAND }, smtp, { needLabel, format }).notify(lead, 3);
+    expect(format).toHaveBeenCalledWith(lead, 3, { need: "Eau chaude" });
+  });
+
   it("says a callback request is one, first, in the default mail", () => {
     expect(defaultLeadMail(BRAND, lead, 3).subject).toBe(`${BRAND.name} — new lead (royat)`);
     const mail = defaultLeadMail(BRAND, { ...lead, channel: "callback" }, 3);
