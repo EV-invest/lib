@@ -245,38 +245,79 @@ describe("LeadCapture with a script", () => {
   // LEAD-FORMS-RETEST-2026-10-03 N1: the hint drawn on the blur a tap on the
   // consent causes pushed the box down between press and release, and the
   // tap missed it. Any control, not only the submit.
-  it("holds the hint a tap elsewhere causes until the tap is over, so nothing moves under it", async () => {
-    render(capture());
-    const phone = input("mobile", "quote-callback-form");
-    const consent = form("quote-callback-form").querySelector<HTMLInputElement>("input[type=checkbox]");
-    if (!consent) throw new Error("no consent");
-    const live = phone.closest("[role=group]")?.querySelector("[aria-live=polite]");
-    fireEvent.change(phone, { target: { value: "12 34 56 7" } });
-    fireEvent.pointerDown(consent);
-    fireEvent.blur(phone);
-    expect(live).toBeEmptyDOMElement();
-    fireEvent.pointerUp(consent);
-    fireEvent.click(consent);
-    expect(consent.checked).toBe(true);
-    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
-    expect(live).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.phoneHint);
-    // A press that turns into a scroll ends the wait as well.
-    fireEvent.change(phone, { target: { value: "06 12 34 56 78" } });
-    fireEvent.change(phone, { target: { value: "12 3" } });
-    fireEvent.pointerDown(consent);
-    fireEvent.blur(phone);
-    expect(live).toBeEmptyDOMElement();
-    fireEvent.pointerCancel(consent);
-    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
-    expect(live).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.phoneHint);
-    // From the keyboard nothing is under a pointer: the hint shows at once —
-    // even after a finished tap somewhere else that left no field.
-    fireEvent.pointerDown(document.body);
-    fireEvent.pointerUp(document.body);
-    fireEvent.change(phone, { target: { value: "06 12 34 56 78" } });
-    fireEvent.change(phone, { target: { value: "12 34" } });
-    fireEvent.blur(phone);
-    expect(live).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.phoneHint);
+  describe("the phone hint a press elsewhere causes", () => {
+    const setup = () => {
+      render(capture());
+      const phone = input("mobile", "quote-callback-form");
+      const consent = form("quote-callback-form").querySelector<HTMLInputElement>("input[type=checkbox]");
+      const submit = form("quote-callback-form").querySelector<HTMLButtonElement>("[type=submit]");
+      const live = phone.closest("[role=group]")?.querySelector("[aria-live=polite]");
+      if (!consent || !submit || !live) throw new Error("no callback controls");
+      fireEvent.change(phone, { target: { value: "12 34 56 7" } });
+      return { phone, consent, submit, live };
+    };
+    const settle = () => act(() => new Promise(resolve => setTimeout(resolve, 0)));
+    const hint = LEAD_CAPTURE_TEXT.fr.phoneHint;
+
+    it("waits for the click with a mouse: down, blur, up, click", async () => {
+      const { phone, consent, live } = setup();
+      fireEvent.pointerDown(consent, { pointerType: "mouse" });
+      fireEvent.mouseDown(consent);
+      fireEvent.blur(phone);
+      fireEvent.pointerUp(consent, { pointerType: "mouse" });
+      expect(live).toBeEmptyDOMElement();
+      fireEvent.click(consent);
+      expect(consent.checked).toBe(true);
+      await settle();
+      expect(live).toHaveTextContent(hint);
+    });
+
+    // LEAD-FORMS-RETEST-2026-10-03 N1, on a phone: the touch's own order puts
+    // the release before the blur, so the press must outlive the release.
+    it("waits for the click on touch, where the release comes before the blur", async () => {
+      const { phone, consent, live } = setup();
+      fireEvent.pointerDown(consent, { pointerType: "touch" });
+      fireEvent.pointerUp(consent, { pointerType: "touch" });
+      fireEvent.mouseDown(consent);
+      fireEvent.blur(phone);
+      expect(live).toBeEmptyDOMElement();
+      fireEvent.click(consent);
+      expect(consent.checked).toBe(true);
+      await settle();
+      expect(live).toHaveTextContent(hint);
+    });
+
+    it("draws no hint for a touch on the submit: the submit's own check speaks", async () => {
+      const { phone, submit, live } = setup();
+      fireEvent.pointerDown(submit, { pointerType: "touch" });
+      fireEvent.pointerUp(submit, { pointerType: "touch" });
+      fireEvent.mouseDown(submit);
+      fireEvent.blur(phone);
+      expect(live).toBeEmptyDOMElement();
+      fireEvent.click(submit);
+      await settle();
+      expect(live).not.toHaveTextContent(hint);
+    });
+
+    it("ends the wait on a press that turns into a scroll", async () => {
+      const { phone, consent, live } = setup();
+      fireEvent.pointerDown(consent, { pointerType: "touch" });
+      fireEvent.blur(phone);
+      expect(live).toBeEmptyDOMElement();
+      fireEvent.pointerCancel(consent, { pointerType: "touch" });
+      await settle();
+      expect(live).toHaveTextContent(hint);
+    });
+
+    it("shows it at once on a keyboard blur, even after a finished tap that left no field", () => {
+      const { phone, live } = setup();
+      fireEvent.pointerDown(document.body, { pointerType: "touch" });
+      fireEvent.pointerUp(document.body, { pointerType: "touch" });
+      fireEvent.click(document.body);
+      fireEvent.keyDown(phone, { key: "Tab" });
+      fireEvent.blur(phone);
+      expect(live).toHaveTextContent(hint);
+    });
   });
 
   // An empty message once gave back the field's gap with `-mt-2`, tuned to

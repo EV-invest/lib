@@ -156,17 +156,19 @@ export function PhoneField(props: {
       const submit = target?.closest("[type=submit]");
       pressed.current = target === own ? null : submit && own?.form?.contains(submit) ? "submit" : "other";
     };
-    // A press that blurred nothing must not hold a later keyboard blur.
+    // The press lasts until its click, not its release: on touch the
+    // release comes before the blur it causes (down, up, mousedown, blur,
+    // click). A press that blurred nothing must not hold a later keyboard
+    // blur, so a key ends it too.
     const release = () => {
       pressed.current = null;
     };
+    const ends = ["click", "pointercancel", "keydown"] as const;
     document.addEventListener("pointerdown", press, true);
-    document.addEventListener("pointerup", release, true);
-    document.addEventListener("pointercancel", release, true);
+    for (const type of ends) document.addEventListener(type, release, true);
     return () => {
       document.removeEventListener("pointerdown", press, true);
-      document.removeEventListener("pointerup", release, true);
-      document.removeEventListener("pointercancel", release, true);
+      for (const type of ends) document.removeEventListener(type, release, true);
     };
   }, [validity.ref]);
   const judge = (value: string) => {
@@ -195,15 +197,22 @@ export function PhoneField(props: {
           pressed.current = null;
           if (press === "submit") return;
           if (press === null) return judge(value);
-          // After the release's click, which lands where the press began; a
-          // cancelled press (a scroll) ends the wait too.
+          // After the press's click, which lands where the press began; a
+          // cancelled press (a scroll) ends the wait too, and so does a
+          // release no click follows (dragged off), a moment later.
+          let timer: ReturnType<typeof setTimeout> | undefined;
+          const ends = ["click", "pointercancel"] as const;
           const over = () => {
-            window.removeEventListener("pointerup", over);
-            window.removeEventListener("pointercancel", over);
+            for (const type of ends) window.removeEventListener(type, over, true);
+            window.removeEventListener("pointerup", late, true);
+            clearTimeout(timer);
             setTimeout(() => judge(value), 0);
           };
-          window.addEventListener("pointerup", over);
-          window.addEventListener("pointercancel", over);
+          const late = () => {
+            timer = setTimeout(over, 500);
+          };
+          for (const type of ends) window.addEventListener(type, over, true);
+          window.addEventListener("pointerup", late, true);
         }}
         onChange={e => {
           validity.onChange(e);
