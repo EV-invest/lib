@@ -73,6 +73,22 @@ describe("LeadBooking: link and cal_com", () => {
     expect(events.map(e => e.event)).toEqual(["lead_booking_open", "lead_booking_done"]);
   });
 
+  // Review of #185: every click registered its own listeners, and one booking counted once per click.
+  it("registers Cal.com's listeners once per page: open, close, open, book is one booking", async () => {
+    const { events } = stand({ provider: "cal_com", url: "https://cal.com/vifnet/menage" }, { embed: true });
+    const book = screen.getByRole("button", { name: text.bookCta });
+    fireEvent.click(book);
+    fireEvent.click(book);
+    const queue = (window as unknown as { Cal: { q: unknown[][] } }).Cal.q;
+    expect(queue.filter(([verb]) => verb === "init")).toHaveLength(1);
+    expect(queue.filter(([verb]) => verb === "modal")).toHaveLength(2);
+    const listeners = queue.filter(([verb]) => verb === "on").map(([, arg]) => (arg as { callback: (e: unknown) => void }).callback);
+    for (const listener of listeners) listener({ detail: { data: {} } });
+    expect(await screen.findByText(text.booked)).toBeInTheDocument();
+    expect(events.filter(e => e.event === "lead_booking_done")).toHaveLength(1);
+    expect(document.querySelectorAll("script")).toHaveLength(1);
+  });
+
   it("only promises the call without the lead's reference", () => {
     const { fetch } = stand({ provider: "link", url: "https://book.example.fr/vifnet" }, { sent: { channel: "form", phone: "06", name: null } });
     expect(screen.getByText(text.slotCallback)).toBeInTheDocument();
