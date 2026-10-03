@@ -3,13 +3,16 @@ import {
   checkTiming,
   createAcceptLead,
   MIN_FILL_MS,
+  phoneProblem,
   RateLimiter,
   readCandidate,
   screen,
   validateCandidate,
+  validateLead,
   type AcceptDeps,
   type LeadSchema,
 } from "../src/index";
+import { leadRuleDisagreements, PHONE_MATRIX } from "../src/testing/index";
 import { fixtureSite } from "./support/fixtures";
 
 const NOW = 1_800_000_000_000;
@@ -83,7 +86,53 @@ describe("the lead schema", () => {
     const lead = readCandidate(cleaning, form({ kind: "flat", surface_m2: "123456", notes: "  " }), null);
     expect(lead.extras).toEqual({ surface_m2: "1234" });
     expect(readCandidate(cleaning, form({ notes: "n".repeat(600) }), null).extras["notes"]).toHaveLength(500);
-    expect(validateCandidate(cleaning, lead)).toBeNull();
+    // No rule of its own: the kit's, which asks only for a number to call.
+    expect(validateCandidate(cleaning, lead)).toMatchObject({ field: "phone" });
+    expect(validateCandidate(cleaning, { ...lead, mobile: "06 12 34 56 78" })).toBeNull();
+  });
+});
+
+describe("the phone rule the form and the server share", () => {
+  // The review's matrix (LEAD-FORMS-REVIEW-2026-10-03 §1): each number, and
+  // whether a person typing it gave us a way to reach them.
+  const kit: LeadSchema<"other"> = { subjects: ["other"], wire: { subject: "job", locality: "zip", mobile: "mobile" } };
+  const candidate = (mobile: string, channel: "form" | "callback") =>
+    readCandidate(kit, form({ job: "other", zip: "63130", mobile, ...(channel === "callback" ? { channel, consent: "oui" } : {}) }), null);
+
+  it("client and server phone rules agree on every number of the matrix", () => {
+    for (const { mobile, valid } of PHONE_MATRIX) {
+      expect(phoneProblem(mobile) === null, `client: ${mobile}`).toBe(valid);
+      expect(validateCandidate(kit, candidate(mobile, "form"))?.field ?? null, `form: ${mobile}`).toBe(valid ? null : "phone");
+      expect(validateCandidate(kit, candidate(mobile, "callback"))?.field ?? null, `callback: ${mobile}`).toBe(valid ? null : "phone");
+    }
+  });
+
+  it("reads full-width digits and refuses a run of one digit", () => {
+    expect(phoneProblem("\uff10\uff16\uff11\uff12\uff13\uff14\uff15\uff16\uff17\uff18")).toBeNull();
+    expect(phoneProblem("06 66 66 66 66")).toBe("invalid");
+    expect(phoneProblem("+33 6 66 66 66 66")).toBe("invalid");
+    expect(phoneProblem("   ")).toBe("required");
+  });
+
+  it("is the default rule, which a brand composes with its own and the contract holds to the form's", () => {
+    expect(leadRuleDisagreements(kit)).toEqual([]);
+    expect(leadRuleDisagreements({ ...kit, validate: lead => validateLead(lead) ?? (lead.locality === "" ? { field: "locality", why: "a postcode" } : null) })).toEqual([]);
+    // The rule brands shipped before: ten digits, whatever they spell.
+    expect(leadRuleDisagreements(PLUMBING)).toEqual(expect.arrayContaining([expect.stringContaining("+12345678"), expect.stringContaining("0000000000")]));
+  });
+
+  it("names the field a brand's plain reason is about as the whole form", () => {
+    expect(validateCandidate(PLUMBING, readCandidate(PLUMBING, form({ ...good, zip: " " }), null))).toEqual({ field: "form", why: "the town or postcode we would drive to" });
+    const odd: LeadSchema<"other"> = { ...kit, validate: () => ({ field: "Not A Slug", why: "x" }) };
+    expect(validateCandidate(odd, candidate("0612345678", "form"))?.field).toBe("form");
+  });
+
+  it("collapses control characters and line breaks in a single-line field, and keeps a multi-line extra's lines", () => {
+    const notes: LeadSchema<"other"> = { ...kit, extras: [{ name: "floor", max: 50 }, { name: "notes", max: 500, multiline: true }] };
+    const lead = readCandidate(notes, form({ job: "other", zip: "63130\r\nMobile : 0700000000", mobile: "06 12\t34 56 78", floor: "2\u0000\u2028nd", notes: "line one\nline\u0007 two" }), null);
+    expect(lead.locality).toBe("63130 Mobile : 0700000000");
+    expect(lead.mobile).toBe("06 12 34 56 78");
+    expect(lead.extras).toEqual({ floor: "2 nd", notes: "line one\nline two" });
   });
 });
 
@@ -207,7 +256,7 @@ describe("a callback request", () => {
     const { d } = deps();
     // No job, no postcode: the brand's form rule would refuse it; the callback rule does not.
     expect(await acceptLead(form(callback), "k", d)).toMatchObject({ kind: "stored", lead: { channel: "callback", mobile: "06 12 34 56 78", locality: "" } });
-    expect(await acceptLead(form({ ...callback, mobile: "06 12" }), "k", d)).toMatchObject({ kind: "invalid", why: "a phone number to call back" });
+    expect(await acceptLead(form({ ...callback, mobile: "06 12" }), "k", d)).toMatchObject({ kind: "invalid", field: "phone", channel: "callback" });
   });
 
   it("keeps the consent sentence as posted and stamps when the server accepted it", async () => {
@@ -222,7 +271,7 @@ describe("a callback request", () => {
     for (const consent of [[], ["consent"]] as const) {
       const { d } = deps({ insert });
       const posted = consent.length ? form({ ...callback, consent: "  " }) : form(callback, ["consent"]);
-      expect(await lenient(posted, "k", d)).toMatchObject({ kind: "invalid", why: "consent to be called back" });
+      expect(await lenient(posted, "k", d)).toMatchObject({ kind: "invalid", field: "consent", why: "consent to be called back" });
     }
     expect(insert).not.toHaveBeenCalled();
   });
@@ -236,7 +285,7 @@ describe("a callback request", () => {
   it("takes the brand's own callback rule when it has one", async () => {
     const strict = createAcceptLead({ ...site, lead: { ...PLUMBING, validateCallback: () => "never" } });
     const { d } = deps();
-    expect(await strict(form(callback), "k", d)).toMatchObject({ kind: "invalid", why: "never" });
+    expect(await strict(form(callback), "k", d)).toMatchObject({ kind: "invalid", why: "never", field: "form" });
   });
 
   it("is a form lead when the channel is absent or anything else", () => {

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { isPublished, publicationGaps } from "../core/place/publication";
 import { createRouting, NON_PAGE_ROUTES, pointSuffixes, THANKS } from "../core/routing";
 import { openLaunchBlockers, type OwnerTodo, type Site } from "../core/site";
+import { leadRuleDisagreements } from "./lead-rules";
 import { servedPaths } from "./served-files";
 
 /**
@@ -75,6 +76,12 @@ export function describeLandingContract<L extends string, P extends string>(site
         const moves = site.i18n.locales.some(locale => redirect.to(locale) !== null);
         expect(moves && suffixes.includes(redirect.from), redirect.from).toBe(false);
       }
+    });
+
+    // A number the form lets through and the server refuses sends the visitor
+    // back for nothing they can see; `validateLead` is the shared rule.
+    it("refuses exactly the phone numbers the form blocks", () => {
+      expect(leadRuleDisagreements(site.lead)).toEqual([]);
     });
 
     it("publishes nothing without a domain", () => {

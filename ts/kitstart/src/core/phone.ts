@@ -1,31 +1,53 @@
 /**
- * A phone number as the funnel keeps it: E.164 when the typed value is one we
- * can read, otherwise exactly as typed. Soft by design — a number we cannot
- * parse is still a way to reach someone, and refusing it loses the customer.
+ * A phone number as the funnel reads it: E.164 when the typed value is a
+ * number someone can be reached on, otherwise `null`.
  *
- * Only the French national plan is read (every brand of the vertical is in
- * France): `06 12 34 56 78`, `+33 (0)6 …`, `0033 6 …` and a mobile typed
- * without its trunk zero (`6 12 34 56 78`) all become `+33612345678`. Any
- * other international number is compacted (`+44 7911 123456` →
- * `+447911123456`); anything else is `null`.
+ * Only the French national plan is read closely (every brand of the vertical
+ * is in France): ten digits from `0[1-9]` — `06 12 34 56 78`, `+33 (0)6 …`,
+ * `0033 6 …`, a mobile typed without its trunk zero (`6 12 34 56 78`) — all
+ * become `+33612345678`. Any other international number is a plausible E.164,
+ * 8 to 15 digits after the `+`, compacted (`+44 7911 123456` →
+ * `+447911123456`). Full-width digits read as digits; a run of one digit
+ * (`00 00 00 00 00`, `06 66 66 66 66`) is a refusal to give a number, not one.
  */
 export function normalizePhone(raw: string): string | null {
-  let s = raw.replace(/\(0\)/g, "").replace(/[\s.\-()/ ]/g, "");
+  // NFKC: a Japanese or Chinese keyboard types full-width digits and `＋`,
+  // and a pasted number may carry no-break spaces. `\s` takes those too.
+  let s = raw.normalize("NFKC").replace(/\(0\)/g, "").replace(/[\s.\-()/]/g, "");
   if (s.startsWith("00")) s = `+${s.slice(2)}`;
+  let e164: string | null = null;
   if (s.startsWith("+33")) {
     const national = /^\+330?([1-9]\d{8})$/.exec(s);
-    return national ? `+33${national[1]}` : null;
+    e164 = national ? `+33${national[1]}` : null;
+  } else {
+    const trunk = /^0([1-9]\d{8})$/.exec(s);
+    if (trunk) e164 = `+33${trunk[1]}`;
+    else if (/^[1-9]\d{8}$/.test(s)) e164 = `+33${s}`;
+    else if (/^\+[1-9]\d{7,14}$/.test(s)) e164 = s;
   }
-  const trunk = /^0([1-9]\d{8})$/.exec(s);
-  if (trunk) return `+33${trunk[1]}`;
-  if (/^[1-9]\d{8}$/.test(s)) return `+33${s}`;
-  if (/^\+[1-9]\d{7,14}$/.test(s)) return s;
-  return null;
+  if (e164 === null) return null;
+  // The subscriber's digits: past `+33` for a French number, past `+` otherwise.
+  const subscriber = e164.startsWith("+33") ? e164.slice(3) : e164.slice(1);
+  return /^(\d)\1+$/.test(subscriber) ? null : e164;
 }
 
-/** Whether a typed number reads as one — the form's soft check, never a block. */
+/**
+ * Whether a typed number is one we can call back — the one rule the form,
+ * the callback and the server share (`phoneProblem`, `validateLead`).
+ */
 export function isPlausiblePhone(raw: string): boolean {
   return normalizePhone(raw) !== null;
+}
+
+/**
+ * What is wrong with a typed number, or `null`: `required` when nothing was
+ * typed, `invalid` when it is not a number we can call. The form blocks on it
+ * in the page's words and the server refuses on it — one rule, so a number
+ * the form lets through is never refused behind the visitor's back.
+ */
+export function phoneProblem(raw: string): "required" | "invalid" | null {
+  if (raw.trim() === "") return "required";
+  return isPlausiblePhone(raw) ? null : "invalid";
 }
 
 /**
