@@ -27,9 +27,10 @@ const POSTCODE = /^\d+$/;
 function FieldMessage(props: { id: string; error: string | null; hint?: string | null | undefined; classNames: PartClassNames<FieldPart> | undefined }) {
   const { id, error, hint, classNames: c } = props;
   return (
-    // Empty, it gives back the field's gap rather than vanish: a live region
-    // hidden while empty is not one some screen readers listen to.
-    <div aria-live="polite" className="empty:-mt-2">
+    // Empty, it leaves the flex flow (an absolute child takes no gap, whatever
+    // gap the brand gives the field) rather than vanish: a live region hidden
+    // while empty is not one some screen readers listen to.
+    <div aria-live="polite" className="empty:absolute">
       {error ? (
         <FieldError id={id} className={cn("text-accent-error", c?.error)}>
           {error}

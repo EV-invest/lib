@@ -280,6 +280,10 @@ it is the plain POST to `/quote` it always was.
   `lead.mobileFormat: "e164"` a number it can read is stored as
   `+33612345678` (`normalizePhone`); the default keeps it as typed, which is
   what a brand's tests and tooling look rows up by.
+- **Field messages.** Under each field, a live region (`aria-live`) always
+  in the DOM, so a message appearing in it is read out. Empty, it is out of
+  the field's flex flow (`empty:absolute`, never `hidden`): it takes no gap,
+  so a brand's `classNames.field` may set any gap with no override for it.
 - **Refusals are never silent.** Every required field blocks with the page's
   words and is marked `aria-invalid` once refused. What the server still
   refuses (a brand's own rule, a stale page) comes back to the card: the

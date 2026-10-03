@@ -222,6 +222,25 @@ describe("LeadCapture with a script", () => {
     expect(phone).not.toHaveAttribute("aria-invalid");
   });
 
+  // An empty message once gave back the field's gap with `-mt-2`, tuned to
+  // the kit's `gap-2`: under a brand's other gap every field moved.
+  it("keeps each field's empty message out of the layout, whatever the field's gap, and still read out", () => {
+    render(capture({ name: { field: "name", required: true }, classNames: { field: "gap-1.5" } }));
+    const zip = input("zip");
+    const regions = [...form().querySelectorAll("[aria-live=polite]")].filter(el => el.closest("[role=group]"));
+    expect(regions.length).toBeGreaterThanOrEqual(3);
+    for (const region of regions) {
+      expect(region).toBeEmptyDOMElement();
+      // Out of the flex flow while empty, so no gap is added for it — and
+      // never `hidden`: a region not rendered is not listened to.
+      expect(region.className.split(" ")).toContain("empty:absolute");
+      expect(region.className).not.toMatch(/(^|\s)(hidden|empty:hidden|empty:-?m[tby]?-)/);
+    }
+    const live = zip.closest("[role=group]")?.querySelector("[aria-live=polite]");
+    act(() => void form().checkValidity());
+    expect(live).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.required);
+  });
+
   // LEAD-FORMS-REVIEW-2026-10-03 #1, #6, #14: the hint never blocked, the
   // callback had none, and the bubble spoke the browser's language.
   it("blocks a number the server would refuse, in both forms, in the page's words", () => {
