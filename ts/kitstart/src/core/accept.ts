@@ -13,6 +13,13 @@ export const FORM_ID_FIELD = "form_id";
 /** The site's experiment assignment, posted so the submit counts in the right arm. */
 export const EXPERIMENT_FIELD = "experiment";
 export const VARIANT_FIELD = "variant";
+/**
+ * The price the form showed, in cents — compared with the server's, never
+ * stored as the price: a lead is taken only at the price the visitor saw.
+ */
+export const SHOWN_CENTS_FIELD = "shown_cents";
+/** The refusal of a lead shown at a price that has since changed (`lead_error=price_changed`). */
+export const PRICE_CHANGED = "price_changed";
 
 /** What the submit event carries besides the form id: slugs only, never what was typed. */
 export interface SubmitTags {
@@ -27,8 +34,11 @@ export type Outcome<L extends string> =
    * a submission already stored — answered as the first was, nothing sent again.
    */
   | { kind: "stored"; id: number; ref: string; lead: Lead; locale: L; formId: string; duplicate?: true }
-  /** `field` names what to fix (`phone`, `consent`, … or `form`); `why` is for the log. */
-  | { kind: "invalid"; why: string; field: string; channel: LeadChannel; formId: string; locale: L; slug: string | null }
+  /**
+   * `field` names what to fix (`phone`, `consent`, … or `form`); `why` is for
+   * the log. `cents`: with `price_changed`, the price the lead would be taken at now.
+   */
+  | { kind: "invalid"; why: string; field: string; channel: LeadChannel; formId: string; locale: L; slug: string | null; cents?: number }
   | { kind: "failed"; locale: L; slug: string | null };
 
 export interface AcceptDeps {
@@ -174,6 +184,14 @@ async function accept<L extends string, P extends string>(
   const prior = await stored(candidate.submissionId, deps);
   if (prior) return { kind: "stored", id: prior.id, ref: leadRef(prior.id, candidate.submissionId ?? ""), lead: prior.lead, locale, formId, duplicate: true };
   const sale = await priced(site, form, candidate, deps);
+  // The price shown is the price recorded: a form priced from an older list
+  // is refused with the fresh price, for the visitor to confirm. A page from
+  // before the field posts none, and is taken as before.
+  const shown = field(form, SHOWN_CENTS_FIELD);
+  if (sale.price && shown !== null && /^\d{1,12}$/.test(shown) && Number(shown) !== sale.price.cents) {
+    deps.log.warn(`quote: a ${sale.flow} for ${candidate.subject} was shown at ${shown} and is now ${sale.price.cents}; sent back to confirm`);
+    return { kind: "invalid", why: "price changed", field: PRICE_CHANGED, channel: channelOf(candidate), formId, locale, slug, cents: sale.price.cents };
+  }
 
   // After validation, so a typo corrected and resent does not spend the limit.
   const verdict = screen({
