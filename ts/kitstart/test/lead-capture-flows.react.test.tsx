@@ -14,7 +14,6 @@ import { serviceAreaPlace } from "../src/testing/index";
 const MODEL = parsePricingModel(JSON.parse(readFileSync(join(import.meta.dirname, "fixtures/pricing/valid/cleaning.json"), "utf8")));
 const WEEKDAYS: readonly OpeningHours[] = [{ days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], opens: "08:00", closes: "19:00" }];
 const MONDAY_10H = new Date("2026-10-05T08:00:00Z").getTime();
-const CALENDLY = "https://calendly.com/vifnet/menage";
 const MOBILE = "+33 6 12 34 56 78";
 const NEEDS = [
   { value: "standard", label: "Ménage courant" },
@@ -22,12 +21,12 @@ const NEEDS = [
   { value: "deep", label: "Grand ménage" },
 ];
 const FLOWS = { standard: "estimate", windows: "fixed", deep: "quote" } as const;
-const booked: Place<"fr" | "en"> = serviceAreaPlace(["fr", "en"], { hours: WEEKDAYS, booking: { provider: "calendly", url: CALENDLY } });
+const place: Place<"fr" | "en"> = serviceAreaPlace(["fr", "en"], { hours: WEEKDAYS });
 
 function capture(over: Partial<LeadCaptureProps> = {}): ReactElement {
   return (
     <LeadCapture
-      place={booked}
+      place={place}
       contact={{ phone: MOBILE, whatsapp: MOBILE }}
       locale="fr"
       renderedAt={MONDAY_10H}
@@ -66,14 +65,12 @@ const answerAll = () => {
   answer("frequency", "biweekly");
 };
 const total = () => form().querySelector("[data-price-cents]")?.getAttribute("data-price-cents") ?? null;
-const calendlyInDom = () => document.querySelectorAll('iframe, script[src*="calendly"], link[href*="calendly"]').length;
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(MONDAY_10H);
 });
 afterEach(() => {
-  // React unmounts first: the booking dialog is portalled into the body.
   cleanup();
   document.body.innerHTML = "";
   vi.useRealTimers();
@@ -97,7 +94,6 @@ describe("LeadCapture's flows, without a script", () => {
     expect(f).not.toHaveTextContent(/à partir de|dès/i);
     expect(within(f).getByRole("button", { name: "Réserver" })).toBeTruthy();
     expect(f.querySelector("[name*=cents], [name*=price]")).toBeNull();
-    expect(document.body.innerHTML).not.toContain("calendly");
   });
 
   it("shows a fixed need's price as is", () => {
@@ -163,7 +159,7 @@ describe("LeadCapture's estimate, with a script", () => {
   });
 });
 
-describe("LeadCapture's booking", () => {
+describe("LeadCapture's priced success", () => {
   const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
   const taken = { ok: true, location: "/fr/thanks", lead: "lead-12-0a1b2c3d", cents: 8400 };
 
@@ -181,7 +177,7 @@ describe("LeadCapture's booking", () => {
     return fetch;
   }
 
-  it("stores the lead first, then offers the slot in the card — and frames Calendly only on the click", async () => {
+  it("stores the lead, then confirms the server's price and promises a call to set the slot", async () => {
     const { events, wrap } = recorder();
     render(wrap(capture()));
     answerAll();
@@ -192,34 +188,20 @@ describe("LeadCapture's booking", () => {
     expect(Object.keys(body).filter(k => /cents|price|amount/.test(k))).toEqual([]);
     const status = screen.getByRole("status");
     expect(status).toHaveTextContent(/Demande enregistrée au prix de 84\s€\./);
-    expect(calendlyInDom()).toBe(0);
-    await act(async () => {
-      fireEvent.click(within(status).getByRole("button", { name: "Choisir un créneau" }));
-    });
-    const frame = await screen.findByTitle("Choisir un créneau");
-    const src = new URL(frame.getAttribute("src") ?? "");
-    expect(src.origin + src.pathname).toBe(CALENDLY);
-    expect(Object.fromEntries(src.searchParams)).toEqual({ embed_domain: window.location.host, embed_type: "Inline", name: "Ana", a1: "06 12 34 56 78", utm_content: "lead-12-0a1b2c3d" });
-    expect(events.filter(e => e.event === "lead_booking_open").map(e => e.props)).toEqual([expect.objectContaining({ need: "standard", flow: "estimate" })]);
-
-    // Only Calendly's own word that the slot is booked, and only once.
-    act(() => void window.dispatchEvent(new MessageEvent("message", { origin: "https://evil.example", data: { event: "calendly.event_scheduled" } })));
-    expect(events.filter(e => e.event === "lead_booking_done")).toHaveLength(0);
-    act(() => void window.dispatchEvent(new MessageEvent("message", { origin: "https://calendly.com", data: { event: "calendly.event_scheduled", payload: { invitee: { uri: "x" } } } })));
-    act(() => void window.dispatchEvent(new MessageEvent("message", { origin: "https://calendly.com", data: { event: "calendly.event_scheduled" } })));
-    const done = events.filter(e => e.event === "lead_booking_done");
-    expect(done.map(e => e.props)).toEqual([expect.objectContaining({ need: "standard", flow: "estimate" })]);
+    expect(status).toHaveTextContent("Nous vous rappelons pour fixer le créneau.");
+    expect(document.activeElement).toBe(status);
+    expect(document.querySelectorAll("iframe, script")).toHaveLength(0);
     expect(JSON.stringify(events)).not.toMatch(/06 12|Ana|lead-12/);
-    expect(status).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.bookingDone ?? "");
   });
 
-  it("promises a call to set the slot when the place has no booking page", async () => {
-    render(capture({ place: serviceAreaPlace(["fr", "en"], { hours: WEEKDAYS }), need: "windows" }));
+  it("shows the brand's booking in place of the promise, given the lead", async () => {
+    const booking = vi.fn((sent: { lead?: string }) => <p>Réservez : {sent.lead}</p>);
+    render(capture({ need: "windows", booking }));
     await send({ ...taken, cents: 8900 });
     const status = screen.getByRole("status");
     expect(status).toHaveTextContent(/89\s€/);
-    expect(status).toHaveTextContent("Nous vous rappelons pour fixer le créneau.");
-    expect(within(status).queryByRole("button")).toBeNull();
+    expect(status).toHaveTextContent("Réservez : lead-12-0a1b2c3d");
+    expect(status).not.toHaveTextContent("Nous vous rappelons pour fixer le créneau.");
   });
 
   it("still goes to the thanks page for a quote need", async () => {

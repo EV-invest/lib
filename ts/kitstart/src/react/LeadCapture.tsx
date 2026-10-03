@@ -10,7 +10,7 @@ import { servedLocalities, storefrontOf, type Place } from "../core/place/types"
 import { flowOf, type LeadFlows } from "../core/pricing/flow";
 import type { PricingModel } from "../core/pricing/model";
 import type { FormSelectOption } from "./FormSelect";
-import { LeadCaptureBooking, type BookingPart } from "./LeadCaptureBooking";
+import { LeadCapturePriced, type PricedPart } from "./LeadCapturePriced";
 import { CallbackForm, ChannelLink, ExperimentFields, PhotosAsk, type ChannelPart, type Experiment } from "./LeadCaptureChannels";
 import { EstimateInputs, PriceBox, useEstimate, type EstimatePart } from "./LeadCaptureEstimate";
 import { FormMessage, LocalityField, NameField, PhoneField, type FieldPart } from "./LeadCaptureFields";
@@ -25,7 +25,7 @@ import { useLeadSubmit, type LeadSent } from "./use-lead-submit";
 
 export type LeadCapturePart =
   | "root" | "head" | "title" | "lede" | "form" | "contact" | "submit" | "trust" | "privacy" | "opening" | "others" | "done"
-  | "needs" | "need" | "summary" | FieldPart | ChannelPart | EstimatePart | BookingPart;
+  | "needs" | "need" | "summary" | FieldPart | ChannelPart | EstimatePart | PricedPart;
 
 export interface LeadCaptureProps {
   /** Its hours order the channels; its service area suggests the commune. */
@@ -57,6 +57,12 @@ export interface LeadCaptureProps {
    * has WhatsApp. The callback is offered as always.
    */
   photos?: readonly string[] | undefined;
+  /**
+   * After a priced lead, in place of "we call you to set the slot": a
+   * booking provider's widget, when the brand has one. None ships with the
+   * kit yet.
+   */
+  booking?: ReactNode | ((sent: LeadSent) => ReactNode);
   /** The need the page already knows; `?need=` and `[data-need]` triggers set it too. */
   need?: string | undefined;
   /** `single` (one screen) or `qualify-first` (the need, then the contact) — an experiment's switch. */
@@ -221,16 +227,8 @@ export function LeadCapture(props: LeadCaptureProps) {
       <div ref={root} {...rootProps}>
         <div ref={doneRef} role="status" tabIndex={-1} className={cn("flex flex-col gap-4 outline-none", c?.done)}>
           {done}
-          {sent.channel === "form" && flow !== "quote" && shownNeed !== undefined && (
-            <LeadCaptureBooking
-              sent={sent}
-              booking={place.booking ?? null}
-              locale={locale}
-              text={flowText}
-              onOpen={() => events.bookingOpen(shownNeed, flow)}
-              onBooked={() => events.bookingDone(shownNeed, flow)}
-              classNames={c}
-            />
+          {sent.channel === "form" && flow !== "quote" && (
+            <LeadCapturePriced sent={sent} booking={typeof props.booking === "function" ? props.booking(sent) : props.booking} locale={locale} text={flowText} classNames={c} />
           )}
         </div>
       </div>

@@ -99,14 +99,8 @@ export interface LeadCaptureFlowText {
   bookSubmit: string;
   /** The in-card success of a priced lead; `{price}` the server's. */
   sentPrice: string;
-  /** Opens the place's booking page. */
-  bookingCta: string;
-  /** The booking frame's close button. */
-  bookingClose: string;
-  /** Once Calendly says the slot is booked. */
-  bookingDone: string;
-  /** No booking page: the callback promise instead. */
-  bookingFallback: string;
+  /** After a priced lead: the slot is set by a call (no booking provider yet). */
+  slotCallback: string;
   /** A `quote` need that is priced from photos: the ask, and its WhatsApp link. */
   photosTitle: string;
   photosLede: string;
@@ -124,10 +118,7 @@ const FR_FLOW: LeadCaptureFlowText = {
   priceMinimum: "Minimum de prestation",
   bookSubmit: "Réserver",
   sentPrice: "Demande enregistrée au prix de {price}.",
-  bookingCta: "Choisir un créneau",
-  bookingClose: "Fermer",
-  bookingDone: "Créneau réservé. La confirmation arrive par e-mail.",
-  bookingFallback: "Nous vous rappelons pour fixer le créneau.",
+  slotCallback: "Nous vous rappelons pour fixer le créneau.",
   photosTitle: "Envoyez des photos",
   photosLede: "Pour ce besoin, quelques photos nous permettent de vous donner un prix juste.",
   photosCta: "Envoyer des photos sur WhatsApp",
@@ -143,10 +134,7 @@ const EN_FLOW: LeadCaptureFlowText = {
   priceMinimum: "Minimum charge",
   bookSubmit: "Book",
   sentPrice: "Request saved at {price}.",
-  bookingCta: "Pick a slot",
-  bookingClose: "Close",
-  bookingDone: "Slot booked. The confirmation is on its way by email.",
-  bookingFallback: "We will call you to set the slot.",
+  slotCallback: "We will call you to set the slot.",
   photosTitle: "Send photos",
   photosLede: "For this job, a few photos let us give you a fair price.",
   photosCta: "Send photos on WhatsApp",

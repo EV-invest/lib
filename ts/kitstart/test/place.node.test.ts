@@ -167,38 +167,6 @@ describe("the live overlay", () => {
   it("refuses a body that is not an object", () => {
     expect(() => parsePlaceLive([], ["fr"])).toThrow(/not an object/);
   });
-
-  it("takes a booking only on a Calendly scheduling page", () => {
-    const booking = (url: unknown, provider: unknown = "calendly") => parsePlaceLive({ booking: { provider, url } }, ["fr"]).booking ?? null;
-    expect(booking("https://calendly.com/vifnet/menage")).toEqual({ provider: "calendly", url: "https://calendly.com/vifnet/menage" });
-    expect(booking("https://calendly.com/vifnet/menage?month=2026-10")?.url).toBe("https://calendly.com/vifnet/menage?month=2026-10");
-    for (const url of [
-      "http://calendly.com/vifnet",
-      "https://www.calendly.com/vifnet",
-      "https://calendly.com.evil.example/vifnet",
-      "https://evil.example/calendly.com/vifnet",
-      "https://user@calendly.com/vifnet",
-      "https://calendly.com:8443/vifnet",
-      "https://calendly.com/vifnet#x",
-      "https://calendly.com/vifnet#",
-      "https://calendly.com/",
-      "https://calendly.com",
-      "javascript:alert(1)",
-      "",
-      42,
-    ]) {
-      expect(booking(url), String(url)).toBeNull();
-    }
-    expect(booking("https://calendly.com/vifnet", "cal.com")).toBeNull();
-    expect(parsePlaceLive({ booking: "https://calendly.com/vifnet" }, ["fr"])).toEqual({});
-  });
-
-  it("merges a live booking over the baked one, and keeps the baked one without", () => {
-    const baked = royat({ booking: { provider: "calendly", url: "https://calendly.com/baked/x" } });
-    expect(mergeLive(baked, { booking: { provider: "calendly", url: "https://calendly.com/live/x" } }).booking?.url).toBe("https://calendly.com/live/x");
-    expect(mergeLive(baked, {}).booking?.url).toBe("https://calendly.com/baked/x");
-    expect(mergeLive(royat(), {}).booking).toBeUndefined();
-  });
 });
 
 describe("the rating", () => {

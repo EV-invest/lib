@@ -1,5 +1,5 @@
 import { parseInstant } from "./rating";
-import { calendlyUrl, type DayOfWeek, type Geo, type OpeningHours, type Place, type PlaceBooking, type PostalAddress, type Rating, type ServiceArea } from "./types";
+import type { DayOfWeek, Geo, OpeningHours, Place, PostalAddress, Rating, ServiceArea } from "./types";
 
 /**
  * The live half of a place, as `GET <source>/locations/<slug>` answers it.
@@ -18,7 +18,6 @@ export interface PlaceLive<L extends string> {
   serviceArea?: readonly ServiceArea[];
   hours?: readonly OpeningHours[];
   rating?: Rating;
-  booking?: PlaceBooking;
 }
 
 const DAYS: readonly DayOfWeek[] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -116,10 +115,6 @@ export function parsePlaceLive<L extends string>(body: unknown, locales: readonl
   }
   const r = rating(body.rating);
   if (r) live.rating = r;
-  if (isObject(body.booking) && body.booking.provider === "calendly") {
-    const url = calendlyUrl(body.booking.url);
-    if (url) live.booking = { provider: "calendly", url };
-  }
   return live;
 }
 
@@ -146,6 +141,5 @@ export function mergeLive<L extends string>(baked: Place<L>, live: PlaceLive<L>)
     serviceArea: live.serviceArea ?? baked.serviceArea,
     hours: live.hours ?? baked.hours,
     rating: live.rating ?? baked.rating,
-    ...(live.booking ? { booking: live.booking } : {}),
   };
 }

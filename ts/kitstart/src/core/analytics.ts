@@ -25,10 +25,6 @@ export const EVENTS = {
   // An estimate's price, shown for a full set of answers: the need and the
   // price's band (`centsBucket`), never the price — once per band and need.
   estimateShown: "lead_estimate_shown",
-  // After a priced lead: the booking page opened (a click), and Calendly
-  // saying the slot was booked (its `calendly.event_scheduled` message).
-  bookingOpen: "lead_booking_open",
-  bookingDone: "lead_booking_done",
 } as const;
 
 export type IntentChannel = "form_open" | "whatsapp" | "phone" | "sms" | "callback" | "booking";
@@ -64,9 +60,8 @@ export const ALLOWED_PROPS = [
   "reason",
   // A field error that blocked the submit (`true`), or a hint (`false`).
   "blocking",
-  // The brand's subject slug, and how it is sold (`quote` | `estimate` | `fixed`).
+  // The brand's subject slug.
   "need",
-  "flow",
   // A price's band, `"5000-7500"` (`centsBucket`) — never the price.
   "cents_bucket",
 ] as const;
