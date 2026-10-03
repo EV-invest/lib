@@ -1,0 +1,14 @@
+{
+  "default": "google_calendar",
+  "providers": {
+    "link": {
+      "url": "https://book.example.fr/vifnet"
+    },
+    "google_calendar": {
+      "url": "https://calendar.app.google/AbC123xyz"
+    },
+    "cal_com": {
+      "url": "https://cal.com/vifnet/menage"
+    }
+  }
+}

@@ -1,4 +1,8 @@
 {
-  "provider": "cal_com",
-  "url": "https://cal.com/vifnet/menage?layout=month_view"
+  "default": "cal_com",
+  "providers": {
+    "cal_com": {
+      "url": "https://cal.com/vifnet/menage?layout=month_view"
+    }
+  }
 }

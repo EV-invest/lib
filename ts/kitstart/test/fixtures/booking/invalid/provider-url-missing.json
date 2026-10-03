@@ -1,0 +1,6 @@
+{
+  "default": "manual",
+  "providers": {
+    "link": {}
+  }
+}

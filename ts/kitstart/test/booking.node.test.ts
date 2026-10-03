@@ -5,7 +5,7 @@ import {
   BookingConfigError,
   bookingConfigProblems,
   bookingHref,
-  bookingForVariant,
+  BOOKING_EXPERIMENT,
   bookingOf,
   bookingRequestedProperties,
   bookingRequestProblems,
@@ -13,6 +13,7 @@ import {
   DEFAULT_BOOKING,
   parseBookingConfig,
   parseBookingRequest,
+  type BookingChoice,
   type BookingConfig,
   type BookingPrefill,
   type BookingRules,
@@ -40,9 +41,12 @@ describe("the booking config fixtures", () => {
     expect(() => parseBookingConfig(value, RULES)).toThrow(BookingConfigError);
   });
 
-  it("covers every provider", () => {
-    const providers = new Set(files("valid").map(f => parseBookingConfig(read(`valid/${f}`), RULES).provider));
-    expect([...providers].sort()).toEqual(["cal_com", "link", "manual"]);
+  it("covers every provider, as a default and as a page", () => {
+    const providers = new Set(files("valid").flatMap(f => {
+      const config = parseBookingConfig(read(`valid/${f}`), RULES);
+      return [config.default, ...Object.keys(config.providers)];
+    }));
+    expect([...providers].sort()).toEqual(["cal_com", "google_calendar", "link", "manual"]);
   });
 });
 
@@ -62,7 +66,7 @@ describe("the booking.requested fixtures", () => {
 
 interface HrefCase {
   name: string;
-  config: BookingConfig;
+  choice: BookingChoice;
   prefill: BookingPrefill;
   href: string | null;
 }
@@ -70,8 +74,8 @@ interface HrefCase {
 describe("bookingHref against hrefs.json", () => {
   const cases = read("hrefs.json") as HrefCase[];
   it.each(cases.map(c => [c.name, c] as const))("%s", (_, c) => {
-    expect(bookingConfigProblems(c.config, RULES)).toEqual([]);
-    expect(bookingHref(c.config, c.prefill)).toBe(c.href);
+    if (c.choice.provider !== "manual") expect(bookingConfigProblems({ default: c.choice.provider, providers: { [c.choice.provider]: { url: c.choice.url } } }, RULES)).toEqual([]);
+    expect(bookingHref(c.choice, c.prefill)).toBe(c.href);
   });
 
   it("never puts the reference in a fragment", () => {
@@ -79,16 +83,40 @@ describe("bookingHref against hrefs.json", () => {
   });
 });
 
+interface ChooseCase {
+  name: string;
+  booking: BookingConfig | null;
+  variant: string | null;
+  choice: BookingChoice;
+}
+
+describe("bookingOf against choose.json: the booking_provider experiment picks among the place's providers", () => {
+  const cases = read("choose.json") as ChooseCase[];
+  it.each(cases.map(c => [c.name, c] as const))("%s", (_, c) => {
+    if (c.booking) expect(bookingConfigProblems(c.booking, RULES)).toEqual([]);
+    expect(bookingOf(c.booking ? { booking: c.booking } : {}, c.variant)).toEqual(c.choice);
+  });
+
+  it("takes no inherited name for a provider", () => {
+    expect(bookingOf({}, "toString")).toEqual({ provider: "manual" });
+    expect(DEFAULT_BOOKING).toEqual({ default: "manual", providers: {} });
+    expect(BOOKING_EXPERIMENT).toBe("booking_provider");
+  });
+});
+
 describe("the Cal.com host list", () => {
-  it("defaults to the hosted cloud", () => {
-    expect(bookingConfigProblems({ provider: "cal_com", url: "https://cal.com/a/b" })).toEqual([]);
-    expect(bookingConfigProblems({ provider: "cal_com", url: "https://cal.evinvest.ltd/a/b" })).toHaveLength(1);
+  const cal = (url: string) => ({ default: "cal_com", providers: { cal_com: { url } } });
+
+  it("defaults to ours and the hosted cloud", () => {
+    expect(bookingConfigProblems(cal("https://cal.com/a/b"))).toEqual([]);
+    expect(bookingConfigProblems(cal("https://cal.evinvest.ltd/a/b"))).toEqual([]);
+    expect(bookingConfigProblems(cal("https://cal.brand.fr/a/b"))).toHaveLength(1);
   });
 
   it("is the site's own list when it names one, replacing the default", () => {
-    const own = { calComHosts: ["cal.evinvest.ltd"] };
-    expect(bookingConfigProblems({ provider: "cal_com", url: "https://cal.evinvest.ltd/a/b" }, own)).toEqual([]);
-    expect(bookingConfigProblems({ provider: "cal_com", url: "https://cal.com/a/b" }, own)).toHaveLength(1);
+    const own = { calComHosts: ["cal.brand.fr"] };
+    expect(bookingConfigProblems(cal("https://cal.brand.fr/a/b"), own)).toEqual([]);
+    expect(bookingConfigProblems(cal("https://cal.com/a/b"), own)).toHaveLength(1);
   });
 
   it("refuses a host list entry that is not a lowercase DNS name", () => {
@@ -97,33 +125,9 @@ describe("the Cal.com host list", () => {
   });
 });
 
-describe("bookingOf", () => {
-  it("promises a call when the place names no booking", () => {
-    expect(bookingOf({})).toEqual(DEFAULT_BOOKING);
-    expect(DEFAULT_BOOKING).toEqual({ provider: "manual" });
-    expect(bookingOf({ booking: { provider: "link", url: "https://x.example/a" } }).provider).toBe("link");
-  });
-});
-
 describe("bookingConfigProblems", () => {
   it("names the field it refuses", () => {
-    expect(bookingConfigProblems({ provider: "link", url: "http://x.example/a" })).toEqual(['booking.url: must start with "https://"']);
-    expect(bookingConfigProblems({ provider: "manual", url: "https://x.example" })).toEqual(["booking.url: unknown field"]);
-  });
-});
-
-describe("bookingForVariant", () => {
-  const arms = { google: { provider: "link", url: "https://calendar.app.google/abc" }, calendly: { provider: "calendly", url: "https://calendly.com/brand/menage" } };
-  const place = { booking: { provider: "cal_com", url: "https://cal.com/brand/menage" } as const };
-
-  it("picks the arm the variant names, a provider outside the closed set included", () => {
-    expect(bookingForVariant(place, "google", arms)).toEqual(arms.google);
-    expect(bookingForVariant(place, "calendly", arms)).toEqual(arms.calendly);
-  });
-
-  it("falls back to the place's booking, then to a call", () => {
-    expect(bookingForVariant(place, "control", arms)).toEqual(place.booking);
-    expect(bookingForVariant(place, null, arms)).toEqual(place.booking);
-    expect(bookingForVariant({}, "toString", arms)).toEqual({ provider: "manual" });
+    expect(bookingConfigProblems({ default: "link", providers: { link: { url: "http://x.example/a" } } })).toEqual(['booking.providers.link.url: must start with "https://"']);
+    expect(bookingConfigProblems({ default: "google_calendar", providers: {} })).toEqual(['booking.default: "google_calendar" is not one of the providers']);
   });
 });

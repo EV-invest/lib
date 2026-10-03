@@ -206,7 +206,7 @@ describe("LeadCapture's priced success", () => {
   });
 
   it("offers the place's Cal.com booking, prefilled with the lead, loading nothing of Cal.com's", async () => {
-    render(capture({ need: "windows", place: { ...place, booking: { provider: "cal_com", url: "https://cal.com/brand/vitres" } } }));
+    render(capture({ need: "windows", place: { ...place, booking: { default: "cal_com", providers: { cal_com: { url: "https://cal.com/brand/vitres" } } } } }));
     await send({ ...taken, cents: 8900 });
     const link = screen.getByRole("link", { name: "Choisir un créneau" });
     expect(link.getAttribute("href")).toMatch(/^https:\/\/cal\.com\/brand\/vitres\?name=Ana&attendeePhoneNumber=%2B33612345678&metadata\[ref\]=lead-12-0a1b2c3d$/);
@@ -237,11 +237,20 @@ describe("LeadCapture's priced success", () => {
     expect(document.querySelector("input[name=shown_cents]")?.getAttribute("value")).toBe("8900");
   });
 
-  it("offers the booking the brand resolved (an experiment's arm) over the place's", async () => {
-    const place2 = { ...place, booking: { provider: "cal_com", url: "https://cal.com/brand/vitres" } as const };
-    render(capture({ need: "windows", place: place2, bookingConfig: { provider: "link", url: "https://calendar.app.google/abc" } }));
+  it("offers the provider the booking_provider variant names, with the phone hint for Google", async () => {
+    const booking = { default: "manual", providers: { google_calendar: { url: "https://calendar.app.google/AbC123xyz" } } } as const;
+    render(capture({ need: "windows", place: { ...place, booking }, bookingVariant: "google_calendar" }));
     await send({ ...taken, cents: 8900 });
-    expect(screen.getByRole("link", { name: "Choisir un créneau" })).toHaveAttribute("href", "https://calendar.app.google/abc?ref=lead-12-0a1b2c3d");
+    expect(screen.getByRole("link", { name: "Choisir un créneau" })).toHaveAttribute("href", "https://calendar.app.google/AbC123xyz");
+    expect(screen.getByRole("status")).toHaveTextContent("Indiquez le même numéro de téléphone en réservant");
+  });
+
+  it("offers the place's default to a visitor outside the experiment", async () => {
+    const booking = { default: "manual", providers: { google_calendar: { url: "https://calendar.app.google/AbC123xyz" } } } as const;
+    render(capture({ need: "windows", place: { ...place, booking } }));
+    await send({ ...taken, cents: 8900 });
+    expect(screen.queryByRole("link", { name: "Choisir un créneau" })).toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent("Nous vous rappelons pour fixer le créneau.");
   });
 
   it("still goes to the thanks page for a quote need", async () => {

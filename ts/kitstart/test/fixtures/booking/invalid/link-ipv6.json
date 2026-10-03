@@ -1,4 +1,8 @@
 {
-  "provider": "link",
-  "url": "https://[::1]/vifnet"
+  "default": "link",
+  "providers": {
+    "link": {
+      "url": "https://[::1]/vifnet"
+    }
+  }
 }

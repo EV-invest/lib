@@ -1,0 +1,8 @@
+{
+  "default": "google_calendar",
+  "providers": {
+    "google_calendar": {
+      "url": "https://calendar.google.com/calendar/appointments/schedules/AcZssZ0abc?gv=true"
+    }
+  }
+}

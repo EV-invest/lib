@@ -1,5 +1,5 @@
 import { normalizePhone } from "../phone";
-import type { BookingConfig } from "./model";
+import type { BookingChoice } from "./model";
 
 /** What the page knows of the lead when the visitor asks for a slot. */
 export interface BookingPrefill {
@@ -36,26 +36,28 @@ function withQuery(url: string, pairs: readonly (readonly [string, string])[]): 
 }
 
 /**
- * The page a click opens, or `null` for `manual`. The lead's reference always
- * goes in the QUERY, never the fragment: `link` as `ref=<leadRef>` (and
- * nothing else — an arbitrary host gets no personal data), `cal_com` as
- * `metadata[ref]=<leadRef>` with the name and the phone prefilled, so the
- * booking comes back to the panel naming its lead.
+ * The page a click opens, or `null` for `manual`. The lead's reference goes
+ * in the QUERY, never the fragment: `link` as `ref=<leadRef>` (and nothing
+ * else — an arbitrary host gets no personal data); `cal_com` as
+ * `metadata[ref]` with the name and the phone. `google_calendar` takes no
+ * parameter: its URL as is, and the panel matches by contact and time.
  */
-export function bookingHref(config: BookingConfig, prefill: BookingPrefill): string | null {
-  switch (config.provider) {
+export function bookingHref(choice: BookingChoice, prefill: BookingPrefill): string | null {
+  const name = prefill.name?.trim();
+  const phone = prefill.phone ? normalizePhone(prefill.phone) : null;
+  switch (choice.provider) {
     case "manual":
       return null;
     case "link":
-      return withQuery(config.url, [["ref", prefill.leadRef]]);
+      return withQuery(choice.url, [["ref", prefill.leadRef]]);
+    case "google_calendar":
+      return choice.url;
     case "cal_com": {
       const pairs: [string, string][] = [];
-      const name = prefill.name?.trim();
       if (name) pairs.push(["name", name]);
-      const phone = prefill.phone ? normalizePhone(prefill.phone) : null;
       if (phone) pairs.push(["attendeePhoneNumber", phone]);
       pairs.push(["metadata[ref]", prefill.leadRef]);
-      return withQuery(config.url, pairs);
+      return withQuery(choice.url, pairs);
     }
   }
 }

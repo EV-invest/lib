@@ -22,10 +22,12 @@ export { LeadBooking, type LeadBookingProps } from "./LeadBooking";
 export type { BookingPart } from "./LeadBookingManual";
 export {
   BOOKING_ADAPTERS,
+  BOOKING_EMBEDS,
   bookingAdapters,
   calComAdapter,
   calComEmbedAdapter,
   calComEmbedOrigin,
+  googleCalendarAdapter,
   linkAdapter,
   manualAdapter,
   type BookedSlot,

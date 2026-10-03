@@ -1,0 +1,8 @@
+{
+  "default": "manual",
+  "providers": {
+    "doctolib": {
+      "url": "https://www.doctolib.fr/x"
+    }
+  }
+}

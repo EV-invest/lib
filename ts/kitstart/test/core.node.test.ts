@@ -51,8 +51,8 @@ describe("the site composition root", () => {
   });
 
   it("holds a baked booking to the site's Cal.com hosts, and the hosts to DNS names", () => {
-    const own = { ...place, booking: { provider: "cal_com", url: "https://cal.brand.fr/brand/menage" } as const };
-    expect(() => defineSite({ ...base, places: [own] })).toThrow(/place "royat": booking.url: the host/);
+    const own = { ...place, booking: { default: "cal_com", providers: { cal_com: { url: "https://cal.brand.fr/brand/menage" } } } as const };
+    expect(() => defineSite({ ...base, places: [own] })).toThrow(/place "royat": booking.providers.cal_com.url: the host/);
     expect(defineSite({ ...base, places: [own], booking: { calComHosts: ["cal.com", "cal.brand.fr"] } }).places[0]?.booking).toEqual(own.booking);
     expect(() => defineSite({ ...base, places: [place], booking: { calComHosts: ["Cal.com"] } })).toThrow(/booking.calComHosts\[0\]/);
   });

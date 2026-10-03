@@ -1,4 +1,8 @@
 {
-  "provider": "link",
-  "url": 42
+  "default": "manual",
+  "providers": {
+    "link": {
+      "url": 42
+    }
+  }
 }

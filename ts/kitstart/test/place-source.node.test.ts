@@ -27,7 +27,7 @@ describe("one place from the live source", () => {
   });
 
   it("takes the place's booking, held to the site's Cal.com hosts", async () => {
-    const own = { provider: "cal_com", url: "https://cal.brand.fr/brand/menage" };
+    const own = { default: "cal_com", providers: { cal_com: { url: "https://cal.brand.fr/brand/menage" } } };
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({ booking: own })));
     expect((await live().getPlace("royat", "fr"))?.booking).toBeUndefined();
     const ownHosts = createPlaceSource({ ...site, booking: { calComHosts: ["cal.brand.fr"] } }, { baseUrl: () => "https://live.example", log });
