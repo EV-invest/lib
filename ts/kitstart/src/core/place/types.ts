@@ -1,3 +1,4 @@
+import type { BookingConfig } from "../booking/model";
 /**
  * The place model. Three words, one each:
  *
@@ -79,6 +80,11 @@ export interface Place<L extends string> {
   hours: readonly OpeningHours[] | null;
   /** Live only. */
   rating: Rating | null;
+  /**
+   * How a priced lead's slot is set (`PlaceLive.booking`, the panel's place
+   * settings); absent → `DEFAULT_BOOKING`, a call (`bookingOf`).
+   */
+  booking?: BookingConfig;
 }
 
 /** The storefront half of a place, or `null` for a service-area business. */

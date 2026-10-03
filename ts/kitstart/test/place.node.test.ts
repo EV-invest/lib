@@ -195,3 +195,32 @@ describe("served localities", () => {
     expect(servedLocalities(sab())).toEqual(["Royat", "Ceyrat"]);
   });
 });
+
+describe("a place's booking, live over baked", () => {
+  const cal = { provider: "cal_com", url: "https://cal.com/brand/menage" } as const;
+
+  it("takes a valid booking from the source", () => {
+    expect(parsePlaceLive({ booking: cal }, ["fr"])).toEqual({ booking: cal });
+    expect(parsePlaceLive({ booking: { provider: "manual" } }, ["fr"])).toEqual({ booking: { provider: "manual" } });
+  });
+
+  it("drops a booking that does not validate, and keeps the rest", () => {
+    const body = { phone: "+33 4 00 00 00 00", booking: { provider: "link", url: "http://x.example/a" } };
+    expect(parsePlaceLive(body, ["fr"])).toEqual({ phone: "+33 4 00 00 00 00" });
+    expect(parsePlaceLive({ booking: { provider: "calendly", url: "https://calendly.com/a/b" } }, ["fr"])).toEqual({});
+    expect(parsePlaceLive({ booking: null }, ["fr"])).toEqual({});
+  });
+
+  it("holds a cal_com host to the site's list", () => {
+    const own = { provider: "cal_com", url: "https://cal.brand.fr/brand/menage" };
+    expect(parsePlaceLive({ booking: own }, ["fr"])).toEqual({});
+    expect(parsePlaceLive({ booking: own }, ["fr"], { calComHosts: ["cal.com", "cal.brand.fr"] })).toEqual({ booking: own });
+  });
+
+  it("merges the live booking over the baked one, and leaves none when neither has one", () => {
+    expect(mergeLive(sab(), { booking: cal }).booking).toEqual(cal);
+    expect(mergeLive(sab({ booking: cal }), {}).booking).toEqual(cal);
+    expect(mergeLive(sab({ booking: cal }), { booking: { provider: "manual" } }).booking).toEqual({ provider: "manual" });
+    expect("booking" in mergeLive(sab(), {})).toBe(false);
+  });
+});
