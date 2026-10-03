@@ -4,6 +4,7 @@ import type { BookingRequest } from "../core/booking/model";
 import { suspectOf, type Lead, type LeadChannel, type LeadSuspect } from "../core/lead";
 import type { LeadFlow } from "../core/pricing/flow";
 import type { ServerEnv } from "./env";
+import { experimentsDeclaredBody, type DeclareOutcome, type ExperimentsDeclaration } from "./experiments-declared";
 import { openWebhookOutbox, type TickReport, type WebhookOutbox, type WebhookOutboxOptions } from "./webhook-outbox";
 import type { WebhookSigning } from "./webhook-signature";
 
@@ -36,6 +37,14 @@ export interface LeadWebhookContext {
    * the properties. `panelFlowProperties` writes them as the panel reads them.
    */
   flow?: PanelFlow;
+  /**
+   * The visitor's analytics id as the page posted it (`ANALYTICS_ID_FIELD`),
+   * for `lead.created`'s `analytics_id` — so PostHog joins the lead to the
+   * visit. Absent from a page without the script, an older page, or one
+   * without analytics. Write it only once the panel's contract has the
+   * property: it refuses an unknown one, and the outbox would park the lead.
+   */
+  analyticsId?: string;
 }
 
 /** A lead's sale as the panel's `lead.created` may carry it. */
@@ -119,7 +128,7 @@ export type BookingQueued = { kind: "queued"; row: number } | { kind: "off" } | 
 
 export interface LeadWebhook {
   /** Builds, serialises and queues the lead's body; returns the outbox row. */
-  enqueue(lead: Lead, id: number, meta: { locale: string; formId: string; leadRef?: string }): number;
+  enqueue(lead: Lead, id: number, meta: { locale: string; formId: string; leadRef?: string; analyticsId?: string }): number;
   tick(): Promise<TickReport>;
   start(intervalMs?: number): void;
   stop(): void;
@@ -140,6 +149,13 @@ export interface LeadWebhook {
    * suspect held back); `off` without `panelBooking` or a `buildBookingBody`.
    */
   requestBooking?(request: BookingRequest): BookingQueued;
+  /**
+   * Queues `experiments.declared@1` — the experiments this build runs — in
+   * the same outbox, signed as a lead is. Experiments the panel would refuse
+   * are left out and listed in `skipped`. `declareExperiments` is the safe
+   * wrapper for a start.
+   */
+  declareExperiments?(experiments: ExperimentsDeclaration, summaries?: Readonly<Record<string, string>>): DeclareOutcome;
   readonly outbox: WebhookOutbox;
 }
 
@@ -189,6 +205,7 @@ export function leadWebhook(
   if (env.leadsDb.kind !== "sqlite") throw new Error("LEAD_WEBHOOK_URL: the webhook outbox needs the sqlite lead store");
   const outbox = openWebhookOutbox(env.leadsDb.path, { ...env.leadWebhook, signing }, outboxOptions);
   const now = options.now ?? Date.now;
+  const sourceId = env.leadWebhook.keyId;
   return {
     outbox,
     panelSuspect,
@@ -205,6 +222,11 @@ export function leadWebhook(
       if (typeof body !== "string") throw new Error("buildBookingBody returned nothing JSON can carry");
       const row = outbox.enqueueOnce(body, `booking:${request.leadRef}`, lead);
       return row === null ? { kind: "duplicate" } : { kind: "queued", row };
+    },
+    declareExperiments(experiments, summaries) {
+      const { body, skipped } = experimentsDeclaredBody(experiments, { brandId: site.brand.id, sourceId, at: new Date(now()), ...(summaries ? { summaries } : {}) });
+      const row = outbox.enqueue(JSON.stringify(body), `experiments:${body.events[0].id}`);
+      return { kind: "queued", row, skipped };
     },
     enqueue(lead, id, meta) {
       const suspect = panelSuspect ? suspectOf(lead) : undefined;

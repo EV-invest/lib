@@ -416,6 +416,35 @@ describe("the quote route with a webhook", () => {
     hook.stop();
   });
 
+  it("hands the page's analytics id to the body builder, and drops one that is not the panel's shape", async () => {
+    const seenIds: (string | null)[] = [];
+    const hook = leadWebhook(site, { leadsDb: { kind: "sqlite", path: ":memory:" }, leadWebhook: { url: TARGET.url, keyId: "k", secret: "s" } }, {
+      signing: SIGNING,
+      buildBody: (_l, ctx) => (seenIds.push(ctx.analyticsId ?? null), {}),
+      fetch: receiver(new Response(null, { status: 200 })).fetch,
+      log: quiet(),
+    });
+    if (!hook) throw new Error("expected the webhook on");
+    opened.push(hook.outbox);
+    const route = quoteRoute(site, {
+      env: () => ({ leadsDb: { kind: "sqlite", path: ":memory:" }, posthogKey: null, posthogHost: "https://eu.i.posthog.com", trustedProxy: null }),
+      notifier: () => ({ notify: async () => undefined }),
+      webhook: () => hook,
+      unavailable: () => ({ title: "", heading: "", body: "", callLabel: "" }),
+      store,
+      limiter: new RateLimiter(100, 60_000),
+      defer: () => undefined,
+      now: () => NOW,
+      log: { warn: vi.fn(), error: vi.fn() },
+    });
+    const id = "0192f0a4-7b3c-4d2e-9f10-123456789abc";
+    for (const fields of [{ analytics_id: id }, {}, { analytics_id: "has space" }, { analytics_id: "x".repeat(129) }, { analytics_id: "" }]) {
+      expect((await route(post({ ...fields, zip: String(63130 + seenIds.length) }))).status).toBe(303);
+    }
+    expect(seenIds).toEqual([id, null, null, null, null]);
+    hook.stop();
+  });
+
   // LEAD-FORMS-REVIEW-2026-10-03 #9: a rate-limited lead was thanked and never seen.
   describe("and the panel's suspect marker", () => {
     function wired(panelSuspect: boolean | undefined, production = true) {

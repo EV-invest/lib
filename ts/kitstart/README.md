@@ -45,7 +45,7 @@ brand's `flake.nix` is its own config plus one call — `template/flake.nix` is
 the whole of one:
 
 ```nix
-inputs.ev.url = "github:EV-invest/lib?ref=@evinvest/kitstart-v0.11.0"; # the version in package-lock.json
+inputs.ev.url = "github:EV-invest/lib?ref=@evinvest/kitstart-v0.12.0"; # the version in package-lock.json
 inputs.ev.inputs.v_flakes.follows = "v_flakes";
 
 landing = ev.lib.mkLanding {
@@ -681,6 +681,13 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavai
   Every booking joins its lead by it (Cal.com's `metadata[ref]`, a link's
   `ref`, `booking.requested`'s `lead_ref`): **a brand must send this as the
   panel lead id** in `lead.created`, not an id it computes itself.
+- **`ctx.analyticsId` — the visit, for PostHog.** The `distinct_id` of the
+  page's beacons (`AnalyticsBoundary` holds one per page, in memory), posted
+  by `LeadCapture`'s script as `analytics_id` and checked against
+  `[A-Za-z0-9._:-]{1,128}`. Write it as `lead.created`'s `analytics_id`
+  property so the panel's PostHog events of the lead join the visit — once
+  the panel accepts the property. Absent for a plain post, a page with no
+  analytics key, or an older page; never stored with the lead.
 - **Booking requests: `panelBooking`, off.** With `leadWebhook(…, {
   panelBooking: true, buildBookingBody })`, `bookingRoute` queues
   `booking.requested@1` through the same outbox, after the lead's
@@ -717,6 +724,54 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavai
 - **Restarts.** Rows are in the leads file; `start()` ticks every
   `WEBHOOK_TICK_MS` and a new process picks up what is due. Rows queued for a
   previous URL stay in place and are counted at open.
+
+## Experiments from the panel
+
+The experiments live in code (`@evinvest/experiments`, one `as const` config);
+the panel decides their weights and kill switch, and PostHog counts them.
+
+**Overrides** (`createExperimentsSource`): `GET <base>/experiments`, the same
+base as the place source, `{ "experiments": { "<key>": { enabled?, weights?,
+holdout? } } }`. The proxy reads it on every request, so it answers from memory:
+the first call waits for the panel (1.5 s timeout), later ones are served from
+the cache, and past the 30 s TTL the stale answer is served while one refresh
+runs behind it. An unreachable panel, a non-200 or a body of another shape is
+logged and keeps the last good answer — a kill switch must not come back on
+because the panel blinked — or `{}`, the config in code, when there was none
+yet; either way the panel is not asked again before the TTL.
+
+```ts
+// shared/config/env.ts
+export const experimentOverrides = createExperimentsSource({ baseUrl: () => serverEnv().locationsApiUrl });
+// proxy.ts — the same applied config wherever a variant is read
+const live = applyOverrides(experiments, await experimentOverrides.overrides());
+```
+
+Only types are checked here; whether a field fits the code (weights of the
+declared length, holdout in `[0, 1)`) is `applyOverrides`' call.
+
+**Declaration** (`declareExperiments`): at every start the landing tells the
+panel which experiments this build runs — `experiments.declared@1`, one event
+with every experiment's key, variants, weights, `enabled`, `holdout` and an
+optional one-line `summary`, under a fresh UUIDv7. It goes through the lead
+webhook's outbox, signed and retried like a lead (so it needs the same
+`LEAD_WEBHOOK_URL` and sqlite lead store), and the panel keeps the latest by
+`occurredAt`; an experiment missing from it is retired there.
+
+```ts
+// instrumentation.ts
+export async function register() {
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  declareExperiments(webhook, experiments, { summaries: { lead_layout: "Two steps beat one long form" } });
+}
+```
+
+It never throws and never holds the start: no webhook, one that cannot be
+built, or a queue that refuses the row is logged and skipped — the panel keeps
+the last declaration. An experiment the panel would refuse (key not
+`[a-z0-9_]{1,64}`, fewer than two unique slug variants, weights not one per
+variant, negative or summing to zero, holdout outside `[0, 1)`, summary over
+200 characters) is left out and logged, since the panel judges the event whole.
 
 ## The site
 

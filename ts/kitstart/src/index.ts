@@ -183,6 +183,7 @@ export {
 
 export {
   createAcceptLead,
+  ANALYTICS_ID_FIELD,
   EXPERIMENT_FIELD,
   FORM_ID_FIELD,
   leadRef,
@@ -224,6 +225,7 @@ export {
 
 export {
   ALLOWED_PROPS,
+  ANALYTICS_ID,
   analyticsSink,
   countsAsPageView,
   EVENTS,

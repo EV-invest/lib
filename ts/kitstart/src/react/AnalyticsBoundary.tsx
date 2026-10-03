@@ -2,9 +2,10 @@
 
 import { ContactLinkTracker } from "@evinvest/marketing/tracker";
 import { usePathname } from "next/navigation.js";
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { analyticsSink, countsAsPageView, EVENTS, experimentProps, type AnalyticsTarget, type IntentChannel } from "../core/analytics";
-import { AnalyticsSinkContext, experimentOf } from "./analytics-context";
+import { AnalyticsIdContext, AnalyticsSinkContext, experimentOf } from "./analytics-context";
+import { newSubmissionId } from "./use-lead-submit";
 
 /**
  * `data-intent` on a link or button marks a conversion intent that is not a
@@ -35,7 +36,10 @@ function source(): string {
 export function AnalyticsBoundary({ target, placeSlug, children }: { target: AnalyticsTarget; placeSlug: string | null; children: ReactNode }) {
   // On the target's values: a server layout hands a fresh object every render.
   const { key, host, brandId } = target;
-  const sink = useMemo(() => analyticsSink({ key, host, brandId }, placeSlug), [key, host, brandId, placeSlug]);
+  // One visitor for the boundary's life, in memory only: a sink rebuilt for
+  // another place keeps it, and a lead posted from the page can name it.
+  const [distinctId] = useState(newSubmissionId);
+  const sink = useMemo(() => analyticsSink({ key, host, brandId }, placeSlug, distinctId), [key, host, brandId, placeSlug, distinctId]);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -59,13 +63,15 @@ export function AnalyticsBoundary({ target, placeSlug, children }: { target: Ana
   // A link inside an experiment's island (`LeadCapture`) carries the
   // assignment on itself, which is what the tracker reads.
   return (
-    <AnalyticsSinkContext.Provider value={sink}>
-      <ContactLinkTracker
-        channels={["phone", "whatsapp"]}
-        onContact={({ channel, data }) => sink.capture(EVENTS.intent, { channel, ...experimentProps(data["experiment"], data["variant"]) }, { transport: "beacon" })}
-      >
-        {children}
-      </ContactLinkTracker>
-    </AnalyticsSinkContext.Provider>
+    <AnalyticsIdContext.Provider value={key ? distinctId : null}>
+      <AnalyticsSinkContext.Provider value={sink}>
+        <ContactLinkTracker
+          channels={["phone", "whatsapp"]}
+          onContact={({ channel, data }) => sink.capture(EVENTS.intent, { channel, ...experimentProps(data["experiment"], data["variant"]) }, { transport: "beacon" })}
+        >
+          {children}
+        </ContactLinkTracker>
+      </AnalyticsSinkContext.Provider>
+    </AnalyticsIdContext.Provider>
   );
 }

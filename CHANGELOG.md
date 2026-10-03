@@ -112,6 +112,25 @@ Rust crate and its TypeScript mirror at once.
 
 ### Added
 
+- **`applyOverrides`** (`@evinvest/experiments`): lays an operator's
+  `{ enabled?, weights?, holdout? }` per key over the config in code, so a
+  landing's proxy can take weights and the kill switch from the Service-Arb
+  panel without a deploy. Each field is checked against the code on its own
+  (weights of the declared length, `>= 0`, sum `> 0`; holdout in `[0, 1)`;
+  enabled a boolean) and dropped when invalid; unknown keys are ignored and
+  variants never come from outside the code. TS-only for now.
+- **Experiments from the Service-Arb panel** (`@evinvest/kitstart/server`).
+  `createExperimentsSource` reads `GET <base>/experiments` for the proxy:
+  the first call waits (1.5 s timeout), later ones answer from memory with a
+  30 s TTL and stale-while-revalidate; a failure keeps the last good answer
+  (`{}`, the config in code, before the first one). `declareExperiments` queues `experiments.declared@1` in the lead
+  webhook's outbox at start (signed and retried like a lead, never throwing),
+  leaving out and logging an experiment the panel would refuse.
+- **`analytics_id` on a lead** (`@evinvest/kitstart`). `AnalyticsBoundary`
+  now holds one beacon `distinct_id` per page (in memory) and `LeadCapture`'s
+  script posts it; `quoteRoute` passes it, checked against
+  `[A-Za-z0-9._:-]{1,128}`, to the webhook as `ctx.analyticsId` for the
+  brand's `lead.created` body. Optional both ways: an older page posts none.
 - **`i18n::t!`** (Rust): `$key` and `$en` are `literal` fragments, so the
   compiler is the literal-ness gate the TypeScript extractor has to enforce by
   hand. Natively each site also registers its pair with `i18n::catalogue()`, so
