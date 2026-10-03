@@ -325,11 +325,11 @@ describe("kitstart-outbox", () => {
 });
 
 describe("the panel's channel", () => {
-  // The panel refuses a lead.created outside its closed set, which would park
-  // the lead in the outbox: a callback travels as a form until it accepts one.
-  it("is form for a form and, for now, for a callback too", () => {
+  // The panel's closed set (form | phone_inbound | callback) refuses a
+  // lead.created outside it, which would park the lead in the outbox.
+  it("is the lead's own channel: form for a form, callback for a callback", () => {
     expect(panelChannel("form")).toBe("form");
-    expect(panelChannel("callback")).toBe("form");
+    expect(panelChannel("callback")).toBe("callback");
   });
 });
 

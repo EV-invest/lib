@@ -650,8 +650,8 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavai
   loopback — the body carries PII. All checked at boot.
 - **The channel.** `channelOf(lead)` is `form` or `callback`. For the
   Service-Arb panel, map it through `panelChannel`: its `properties.channel`
-  is a closed set and refuses the whole event outside it, so a callback goes
-  as `form` until the panel accepts `callback` (one constant to flip).
+  is a closed set (`form` | `phone_inbound` | `callback`) that refuses the
+  whole event outside it, and a callback goes as `callback` (panel v0.3.0 on).
 - **Queued before the 303, sent after it.** The body is built once, from the
   lead and `ctx` (`leadId`, `brandId`, `locale`, `formId`, `at`, and a fresh
   `idempotencyKey` for the receiver to deduplicate by), and written to the
