@@ -703,3 +703,55 @@ export type {
   TickerStatProps,
   TradesTapeRowProps,
 } from "./components/terminal";
+
+// App shell — TS-only: the frame a signed-in app's screens sit in. Router-agnostic
+// (`linkComponent` + `pathname`); motion is CSS in `motion.css`.
+export { AppShell } from "./components/app-shell";
+export type { AppShellProps, ShellBreakpoint } from "./components/app-shell";
+
+export {
+  isNavItemActive,
+  isPlainLeftClick,
+  navItemMatch,
+  resolveActiveNavItem,
+} from "./components/nav-model";
+export type { NavGroup, NavItem, NavItemState, NavMatch } from "./components/nav-model";
+export { usePendingNavigation } from "./components/use-shell-nav";
+
+export { ShellNav } from "./components/shell-nav";
+export type { ShellNavLabels, ShellNavProps } from "./components/shell-nav";
+
+export { NavBadge, NavDot } from "./components/nav-badge";
+export type { NavBadgeProps, NavBadgeVariant, NavDotProps, NavDotTone } from "./components/nav-badge";
+
+export { BottomTabBar } from "./components/bottom-tab-bar";
+export type { BottomTabBarLabels, BottomTabBarProps } from "./components/bottom-tab-bar";
+
+export { MobileAppBar } from "./components/mobile-app-bar";
+export type { MobileAppBarBack, MobileAppBarLabels, MobileAppBarProps } from "./components/mobile-app-bar";
+
+export { PageFrame, PageHeading, SectionLabel } from "./components/page-frame";
+export type {
+  PageFrameProps,
+  PageFrameWidth,
+  PageHeadingProps,
+  SectionLabelProps,
+  SectionLabelTone,
+} from "./components/page-frame";
+
+export { SectionNav } from "./components/section-nav";
+export type {
+  SectionNavGroup,
+  SectionNavItem,
+  SectionNavLabels,
+  SectionNavProps,
+} from "./components/section-nav";
+
+export { ResourceError } from "./components/resource-error";
+export type { ResourceErrorLabels, ResourceErrorProps } from "./components/resource-error";
+
+export { SystemBanner } from "./components/system-banner";
+export type { SystemBannerLabels, SystemBannerProps, SystemBannerTone } from "./components/system-banner";
+
+export { Settled } from "./components/settled";
+export type { SettledProps } from "./components/settled";
