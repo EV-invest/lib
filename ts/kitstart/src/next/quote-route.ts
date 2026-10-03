@@ -1,4 +1,5 @@
 import { after } from "next/server.js";
+import { CONFIRM_PATH, confirmQuery } from "./confirm-route";
 import { createAcceptLead, EXPERIMENT_FIELD, PRICE_CHANGED, VARIANT_FIELD } from "../core/accept";
 import { analyticsSink, EVENTS, experimentProps } from "../core/analytics";
 import { RateLimiter } from "../core/antispam";
@@ -277,6 +278,9 @@ export function quoteRoute<L extends string, P extends string>(
           defer(() => sink.capture(EVENTS.formReject, props));
         }
         if (scripted) return json(422, { ok: false, field: outcome.field, ...(repriced && outcome.cents !== undefined ? { reason: PRICE_CHANGED, cents: outcome.cents } : {}) });
+        // The card's page may be a cached render still showing the old price:
+        // a plain post confirms on a page that is never cached instead.
+        if (repriced) return seeOther(`${CONFIRM_PATH}?${confirmQuery(site, form)}`);
         return seeOther(href(request, outcome.slug, outcome.locale, refused(form, outcome.field, outcome.channel)));
       }
       case "failed":
