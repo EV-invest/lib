@@ -34,3 +34,16 @@ export function openingText(opening: Opening | null, text: Pick<LeadCaptureText,
   if (opening.inDays === 1) return fillText(text.openingTomorrow, { time });
   return fillText(text.openingLater, { time, day: weekdayText(opening.day, locale) });
 }
+
+/**
+ * Cents as the page's language writes euros: `84 €`, `84,50 €`, `€84.50`.
+ * Whole euros drop the cents a rounded price never has; a signed line of a
+ * breakdown is `+8,50 €` / `−9,35 €`.
+ */
+export function formatCents(cents: number, locale: string, signed = false): string {
+  const digits = cents % 100 === 0 ? 0 : 2;
+  const format = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", minimumFractionDigits: digits, maximumFractionDigits: digits });
+  const text = format.format(Math.abs(cents) / 100);
+  if (!signed) return cents < 0 ? `−${text}` : text;
+  return `${cents < 0 ? "−" : "+"}${text}`;
+}
