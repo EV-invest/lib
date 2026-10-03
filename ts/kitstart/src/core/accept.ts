@@ -76,9 +76,10 @@ function tag(seed: string): string {
 }
 
 /**
- * The lead's public reference, `lead-<row>-<8 hex>`: what the visitor's
- * booking carries (`utm_content`) and the webhook offers the panel as its
- * lead id (`LeadWebhookContext.leadRef`), so a booking finds its lead. The
+ * The lead's public reference, `lead-<row>-<8 hex>`: the one the script's
+ * answer gives the page (`LeadSent.lead`) and the webhook offers the panel
+ * (`LeadWebhookContext.leadRef`), so whatever the page does next — a booking,
+ * once there is a provider — can name its lead. The
  * row id for a person matching it to the mail; the tag because row ids start
  * over if the leads file is ever recreated. Seeded by the submission id when
  * there is one, so a resend is answered with the same reference.

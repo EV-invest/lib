@@ -25,9 +25,8 @@ export interface LeadWebhookContext {
   suspect?: LeadSuspect;
   /**
    * The lead's public reference (`leadRef`, `lead-<row>-<8 hex>`): the one
-   * the visitor's booking carries as `utm_content`. A brand whose panel joins
-   * bookings to leads sends it as the panel's lead id. Absent only on a
-   * context built by hand.
+   * the page was answered with (`LeadSent.lead`), so a later step on the page
+   * can name the lead the panel knows. Absent only on a context built by hand.
    */
   leadRef?: string;
   /**
