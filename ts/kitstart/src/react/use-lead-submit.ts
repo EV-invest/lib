@@ -11,7 +11,7 @@ export interface LeadSent {
   phone: string;
   /** The name field's value, when the form has one and it was filled. */
   name: string | null;
-  /** The lead's public reference, as the route answered it (`leadRef`): what a booking carries. */
+  /** The lead's public reference, as the route answered it (`leadRef`), for a `booking` to name the lead. */
   lead?: string;
   /** The price the server took the lead at, for an `estimate` or `fixed` need. */
   cents?: number;
