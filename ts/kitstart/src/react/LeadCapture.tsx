@@ -5,10 +5,14 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { resolveChannels, type CaptureChannel } from "../core/channels";
 import type { LeadWire } from "../core/lead";
 import { fillText, openingText } from "../core/lead-capture-format";
-import type { LeadCaptureText } from "../core/lead-capture-text";
+import { flowTextOf, type LeadCaptureText } from "../core/lead-capture-text";
 import { servedLocalities, storefrontOf, type Place } from "../core/place/types";
+import { flowOf, type LeadFlows } from "../core/pricing/flow";
+import type { PricingModel } from "../core/pricing/model";
 import type { FormSelectOption } from "./FormSelect";
-import { CallbackForm, ChannelLink, ExperimentFields, type ChannelPart, type Experiment } from "./LeadCaptureChannels";
+import { LeadCaptureBooking, type BookingPart } from "./LeadCaptureBooking";
+import { CallbackForm, ChannelLink, ExperimentFields, PhotosAsk, type ChannelPart, type Experiment } from "./LeadCaptureChannels";
+import { EstimateInputs, PriceBox, useEstimate, type EstimatePart } from "./LeadCaptureEstimate";
 import { FormMessage, LocalityField, NameField, PhoneField, type FieldPart } from "./LeadCaptureFields";
 import { NeedField, type LeadCaptureLayout } from "./LeadCaptureNeed";
 import type { PartClassNames } from "./parts";
@@ -21,7 +25,7 @@ import { useLeadSubmit, type LeadSent } from "./use-lead-submit";
 
 export type LeadCapturePart =
   | "root" | "head" | "title" | "lede" | "form" | "contact" | "submit" | "trust" | "privacy" | "opening" | "others" | "done"
-  | "needs" | "need" | "summary" | FieldPart | ChannelPart;
+  | "needs" | "need" | "summary" | FieldPart | ChannelPart | EstimatePart | BookingPart;
 
 export interface LeadCaptureProps {
   /** Its hours order the channels; its service area suggests the commune. */
@@ -35,6 +39,24 @@ export interface LeadCaptureProps {
   wire: LeadWire;
   /** The brand's subjects with their labels, in order. */
   needs: readonly FormSelectOption[];
+  /**
+   * How each need is sold — `site.lead.flows`, the map the server prices
+   * with. A need runs `estimate` or `fixed` only when `pricing` prices it so
+   * (`flowOf`); otherwise, and without the two, every need is a `quote`.
+   */
+  flows?: LeadFlows | undefined;
+  /**
+   * The price list the page priced from — `createPricingSource(site).model()`
+   * on the server page, handed down as data. An estimate's price is computed
+   * here as the visitor answers, and again by the route, whose number is kept.
+   */
+  pricing?: PricingModel | null | undefined;
+  /**
+   * `quote` needs a price is given from photos (a deep clean, after-works):
+   * a WhatsApp link to send them, prefilled with the need, when the place
+   * has WhatsApp. The callback is offered as always.
+   */
+  photos?: readonly string[] | undefined;
   /** The need the page already knows; `?need=` and `[data-need]` triggers set it too. */
   need?: string | undefined;
   /** `single` (one screen) or `qualify-first` (the need, then the contact) — an experiment's switch. */
@@ -108,8 +130,16 @@ export function LeadCapture(props: LeadCaptureProps) {
   const events = useLeadEvents(root, { formId, layout, experiment });
   useOpenOnHash(`${id}-callback`);
   const [error, setError] = useLeadError(root, id);
+  const flowText = flowTextOf(text, locale);
+  // `single` shows its select at the first need until one is picked: that is the need on screen.
+  const shownNeed = need ?? (layout === "single" ? needs[0]?.value : undefined);
+  const model = props.pricing ?? null;
+  const flow = flowOf(props.flows, model, shownNeed);
+  const estimate = useEstimate(model, shownNeed, flow, events.estimateShown);
+  // A priced lead stays in the card, where its slot is booked.
+  const staysInCard = (ch: "form" | "callback") => props.done !== undefined || (ch === "form" && flow !== "quote");
   const { sent, onSubmit, busy, failure, retry } = useLeadSubmit(
-    props.done !== undefined,
+    staysInCard,
     { mobile: wire.mobile, name: props.name?.field },
     { onRefused: (channel, field) => setError({ channel, field }), onFailed: (channel, why) => events.submitError(why, channel) },
   );
@@ -185,11 +215,23 @@ export function LeadCapture(props: LeadCaptureProps) {
   const contactClass = contactShown ? "flex" : "hidden group-has-[[data-need-option]:checked]/lead:flex";
 
   const rootProps = { id, className: cn("flex w-full flex-col gap-6", props.className, c?.root), "data-experiment": experiment?.name, "data-variant": experiment?.variant };
-  if (sent && props.done !== undefined) {
+  if (sent && staysInCard(sent.channel)) {
+    const done = typeof props.done === "function" ? props.done(sent) : props.done;
     return (
       <div ref={root} {...rootProps}>
-        <div ref={doneRef} role="status" tabIndex={-1} className={cn("outline-none", c?.done)}>
-          {typeof props.done === "function" ? props.done(sent) : props.done}
+        <div ref={doneRef} role="status" tabIndex={-1} className={cn("flex flex-col gap-4 outline-none", c?.done)}>
+          {done}
+          {sent.channel === "form" && flow !== "quote" && shownNeed !== undefined && (
+            <LeadCaptureBooking
+              sent={sent}
+              booking={place.booking ?? null}
+              locale={locale}
+              text={flowText}
+              onOpen={() => events.bookingOpen(shownNeed, flow)}
+              onBooked={() => events.bookingDone(shownNeed, flow)}
+              classNames={c}
+            />
+          )}
         </div>
       </div>
     );
@@ -235,6 +277,13 @@ export function LeadCapture(props: LeadCaptureProps) {
           classNames={c}
         />
         <div className={cn("flex-col gap-5", contactClass, c?.contact)}>
+          {model && shownNeed !== undefined && flow === "estimate" && (
+            <EstimateInputs model={model} need={shownNeed} locale={locale} answers={estimate.answers} onAnswer={estimate.answer} required={hydrated} classNames={c} />
+          )}
+          {model && flow !== "quote" && <PriceBox model={model} flow={flow} price={estimate.price} locale={locale} text={flowText} classNames={c} />}
+          {flow === "quote" && shownNeed !== undefined && props.photos?.includes(shownNeed) && (
+            <PhotosAsk whatsapp={contact.whatsapp} needLabel={needs.find(n => n.value === shownNeed)?.label ?? shownNeed} text={flowText} experiment={experiment} className={c?.photos} />
+          )}
           <LocalityField
             name={wire.locality}
             label={text.localityLabel}
@@ -265,7 +314,7 @@ export function LeadCapture(props: LeadCaptureProps) {
           <FormMessage id={formMessageId(id, "form")} error={above} className={c?.error} />
           <FailureMessage failure={failure?.channel === "form" ? failure.failure : null} text={text} onRetry={retry} className={c?.error} />
           <div className={cn("flex flex-col gap-3", c?.trust)}>
-            <SubmitButton busy={busy === "form"} label={text.submit} sending={text.sending} className={c?.submit} />
+            <SubmitButton busy={busy === "form"} label={flow === "quote" ? text.submit : flowText.bookSubmit} sending={text.sending} className={c?.submit} />
             {props.trust}
           </div>
           {opening && lead !== "callback" && <p className={cn("text-sm text-ink-soft", c?.opening)}>{opening}</p>}

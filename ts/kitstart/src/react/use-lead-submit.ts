@@ -11,6 +11,10 @@ export interface LeadSent {
   phone: string;
   /** The name field's value, when the form has one and it was filled. */
   name: string | null;
+  /** The lead's public reference, as the route answered it (`leadRef`): what a booking carries. */
+  lead?: string;
+  /** The price the server took the lead at, for an `estimate` or `fixed` need. */
+  cents?: number;
 }
 
 /** Leaving the page, behind a seam a test can stand in for (jsdom cannot navigate). */
@@ -54,7 +58,9 @@ function stamp(form: HTMLFormElement): void {
   field.value = id;
 }
 
-type Answer = { ok: true; location: string } | { ok: false; field: string };
+type Answer = { ok: true; location: string; lead?: string; cents?: number } | { ok: false; field: string };
+
+const LEAD_REF = /^lead-\d+-[0-9a-f]{8}$/;
 
 /** A root-relative path on this origin — never `//elsewhere`. */
 const OWN_PATH = /^\/(?!\/)/;
@@ -72,8 +78,15 @@ async function readAnswer(res: Response): Promise<Answer | null> {
       throw error;
     });
     if (typeof body !== "object" || body === null) return null;
-    const { ok, location, field } = body as Record<string, unknown>;
-    if (ok === true && typeof location === "string" && OWN_PATH.test(location)) return { ok, location };
+    const { ok, location, field, lead, cents } = body as Record<string, unknown>;
+    if (ok === true && typeof location === "string" && OWN_PATH.test(location)) {
+      return {
+        ok,
+        location,
+        ...(typeof lead === "string" && LEAD_REF.test(lead) ? { lead } : {}),
+        ...(typeof cents === "number" && Number.isSafeInteger(cents) && cents >= 0 ? { cents } : {}),
+      };
+    }
     if (ok === false && typeof field === "string") return { ok, field };
     return null;
   }
@@ -110,15 +123,15 @@ export interface LeadSubmit {
 
 /**
  * The lead posted by a script, so a refusal keeps what was typed: the body
- * and the endpoint are the form's own, asked for JSON. Taken → the brand's
- * in-card success when it has one (`done`), else the thanks page the route
+ * and the endpoint are the form's own, asked for JSON. Taken → the in-card
+ * success when the card has one for that channel (`done`), else the thanks page the route
  * names. Refused → `onRefused` with the field, the form as it was. No answer
  * — no network, or nothing in `SUBMIT_TIMEOUT_MS` — is said in place with a
  * retry, never by leaving the page: the browser's error page would lose the
  * form. Any other answer (the store's 500) submits the form for real, so the
  * server's own page says what went wrong; the submission id makes that safe.
  */
-export function useLeadSubmit(done: boolean, fields: { mobile: string; name: string | undefined }, on: LeadSubmitHandlers): LeadSubmit {
+export function useLeadSubmit(done: boolean | ((channel: LeadChannel) => boolean), fields: { mobile: string; name: string | undefined }, on: LeadSubmitHandlers): LeadSubmit {
   const [sent, setSent] = useState<LeadSent | null>(null);
   const [busy, setBusy] = useState<LeadChannel | null>(null);
   const [failure, setFailure] = useState<LeadSubmit["failure"]>(null);
@@ -166,7 +179,7 @@ export function useLeadSubmit(done: boolean, fields: { mobile: string; name: str
           // Still pending: the page is leaving, or the form is gone. The next
           // lead from this form (Back, another need) gets an id of its own.
           minted.delete(form);
-          if (done) setSent(lead);
+          if (typeof done === "function" ? done(lead.channel) : done) setSent({ ...lead, ...(answer.lead ? { lead: answer.lead } : {}), ...(answer.cents !== undefined ? { cents: answer.cents } : {}) });
           else navigation.assign(answer.location);
         },
         () => {

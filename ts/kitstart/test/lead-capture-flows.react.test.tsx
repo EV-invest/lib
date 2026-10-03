@@ -1,0 +1,242 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import type { AnalyticsSink } from "@evinvest/analytics";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { renderToString } from "react-dom/server";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { LEAD_CAPTURE_TEXT, parsePricingModel, type LeadCaptureText, type OpeningHours, type Place } from "../src/index";
+import { AnalyticsSinkContext } from "../src/react/analytics-context";
+import { LeadCapture, type LeadCaptureProps } from "../src/react/index";
+import { navigation } from "../src/react/use-lead-submit";
+import { serviceAreaPlace } from "../src/testing/index";
+
+const MODEL = parsePricingModel(JSON.parse(readFileSync(join(import.meta.dirname, "fixtures/pricing/valid/cleaning.json"), "utf8")));
+const WEEKDAYS: readonly OpeningHours[] = [{ days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], opens: "08:00", closes: "19:00" }];
+const MONDAY_10H = new Date("2026-10-05T08:00:00Z").getTime();
+const CALENDLY = "https://calendly.com/vifnet/menage";
+const MOBILE = "+33 6 12 34 56 78";
+const NEEDS = [
+  { value: "standard", label: "Ménage courant" },
+  { value: "windows", label: "Vitres" },
+  { value: "deep", label: "Grand ménage" },
+];
+const FLOWS = { standard: "estimate", windows: "fixed", deep: "quote" } as const;
+const booked: Place<"fr" | "en"> = serviceAreaPlace(["fr", "en"], { hours: WEEKDAYS, booking: { provider: "calendly", url: CALENDLY } });
+
+function capture(over: Partial<LeadCaptureProps> = {}): ReactElement {
+  return (
+    <LeadCapture
+      place={booked}
+      contact={{ phone: MOBILE, whatsapp: MOBILE }}
+      locale="fr"
+      renderedAt={MONDAY_10H}
+      wire={{ subject: "job", locality: "zip", mobile: "mobile" }}
+      needs={NEEDS}
+      flows={FLOWS}
+      pricing={MODEL}
+      photos={["deep"]}
+      name={{ field: "name" }}
+      text={LEAD_CAPTURE_TEXT.fr}
+      {...over}
+    />
+  );
+}
+
+function recorder() {
+  const events: { event: string; props: Record<string, unknown> }[] = [];
+  const sink: AnalyticsSink = { capture: (event, props) => void events.push({ event, props: { ...props } }) };
+  return { events, wrap: (node: ReactElement) => <AnalyticsSinkContext.Provider value={sink}>{node}</AnalyticsSinkContext.Provider> };
+}
+
+const form = () => {
+  const el = document.getElementById("quote-form");
+  if (!(el instanceof HTMLFormElement)) throw new Error("no form");
+  return el;
+};
+const answer = (input: string, option: string) => {
+  const el = form().querySelector(`input[name=estimate_${input}][value=${option}]`);
+  if (!(el instanceof HTMLInputElement)) throw new Error(`no answer ${input}=${option}`);
+  fireEvent.click(el);
+};
+const answerAll = () => {
+  answer("zone", "proche");
+  answer("bedrooms", "t3");
+  answer("surface", "s70");
+  answer("frequency", "biweekly");
+};
+const total = () => form().querySelector("[data-price-cents]")?.getAttribute("data-price-cents") ?? null;
+const calendlyInDom = () => document.querySelectorAll('iframe, script[src*="calendly"], link[href*="calendly"]').length;
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(MONDAY_10H);
+});
+afterEach(() => {
+  // React unmounts first: the booking dialog is portalled into the body.
+  cleanup();
+  document.body.innerHTML = "";
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+  window.history.replaceState(null, "", "/");
+});
+
+describe("LeadCapture's flows, without a script", () => {
+  it("asks an estimate's questions as tiles that post, says the price comes with the answers, and books", () => {
+    document.body.innerHTML = renderToString(capture());
+    const f = form();
+    expect([...new Set([...f.querySelectorAll<HTMLInputElement>("input[type=radio][name^=estimate_]")].map(i => i.name))]).toEqual([
+      "estimate_zone",
+      "estimate_bedrooms",
+      "estimate_surface",
+      "estimate_frequency",
+    ]);
+    // Not required before the script: an unanswered estimate is still a lead, a quote.
+    expect(f.querySelector("input[name=estimate_zone]")?.hasAttribute("required")).toBe(false);
+    expect(f).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.pricePending ?? "");
+    expect(f).not.toHaveTextContent(/à partir de|dès/i);
+    expect(within(f).getByRole("button", { name: "Réserver" })).toBeTruthy();
+    expect(f.querySelector("[name*=cents], [name*=price]")).toBeNull();
+    expect(document.body.innerHTML).not.toContain("calendly");
+  });
+
+  it("shows a fixed need's price as is", () => {
+    document.body.innerHTML = renderToString(capture({ need: "windows" }));
+    expect(total()).toBe("8900");
+    expect(form()).toHaveTextContent(/89\s€/);
+    expect(form().querySelector("input[name^=estimate_]")).toBeNull();
+  });
+
+  it("leaves a quote need as it was", () => {
+    document.body.innerHTML = renderToString(capture({ need: "deep", photos: [] }));
+    expect(form().querySelector("[aria-live][class*=bg-card]")).toBeNull();
+    expect(within(form()).getByRole("button", { name: "Recevoir le prix" })).toBeTruthy();
+  });
+
+  it("is a quote form for every need without a price list, or one that does not price the need", () => {
+    document.body.innerHTML = renderToString(capture({ pricing: null }));
+    expect(form().querySelector("input[name^=estimate_]")).toBeNull();
+    expect(within(form()).getByRole("button", { name: "Recevoir le prix" })).toBeTruthy();
+    document.body.innerHTML = renderToString(capture({ pricing: { ...MODEL, needs: {} } }));
+    expect(form().querySelector("input[name^=estimate_]")).toBeNull();
+  });
+});
+
+describe("LeadCapture's estimate, with a script", () => {
+  it("prices the answers live, with how, read out, and reprices on a change", () => {
+    render(capture());
+    expect(total()).toBeNull();
+    answerAll();
+    expect(total()).toBe("8400");
+    const box = form().querySelector("[data-price-cents]")?.closest("[aria-live]");
+    expect(box?.getAttribute("aria-live")).toBe("polite");
+    expect(box).toHaveTextContent(/2 chambres\+30\s€/);
+    expect(box).toHaveTextContent(/Toutes les 2 semaines−9,35\s€/);
+    expect(box).toHaveTextContent(/Arrondi−0,15\s€/);
+    answer("frequency", "once");
+    expect(total()).toBe("9400");
+    // Required once the script runs: a price needs every answer.
+    expect(form().querySelector<HTMLInputElement>("input[name=estimate_zone]")?.required).toBe(true);
+  });
+
+  it("reports the price's band once per band, never the price", () => {
+    const { events, wrap } = recorder();
+    render(wrap(capture()));
+    answerAll();
+    answer("frequency", "weekly");
+    answer("frequency", "biweekly");
+    answer("frequency", "once");
+    const shown = events.filter(e => e.event === "lead_estimate_shown").map(e => e.props);
+    expect(shown).toEqual([
+      expect.objectContaining({ need: "standard", cents_bucket: "7500-10000", form_id: "quote" }),
+    ]);
+    expect(JSON.stringify(shown)).not.toMatch(/8400|9400|8000/);
+  });
+
+  it("offers photos by WhatsApp for a quote need that asks for them, only with a WhatsApp", () => {
+    render(capture({ need: "deep" }));
+    const link = within(form()).getByRole("link", { name: "Envoyer des photos sur WhatsApp" });
+    expect(decodeURIComponent(link.getAttribute("href") ?? "")).toContain("Bonjour, voici des photos pour : Grand ménage.");
+    document.body.innerHTML = "";
+    render(capture({ need: "deep", contact: { phone: MOBILE, whatsapp: null } }));
+    expect(within(form()).queryByRole("link", { name: "Envoyer des photos sur WhatsApp" })).toBeNull();
+  });
+});
+
+describe("LeadCapture's booking", () => {
+  const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
+  const taken = { ok: true, location: "/fr/thanks", lead: "lead-12-0a1b2c3d", cents: 8400 };
+
+  async function send(fetchAnswer: unknown = taken) {
+    const fetch = vi.fn(async () => json(fetchAnswer));
+    vi.stubGlobal("fetch", fetch);
+    const f = form();
+    fireEvent.change(f.querySelector("input[name=zip]") as HTMLInputElement, { target: { value: "75011" } });
+    fireEvent.change(f.querySelector("input[name=mobile]") as HTMLInputElement, { target: { value: "06 12 34 56 78" } });
+    fireEvent.change(f.querySelector("input[name=name]") as HTMLInputElement, { target: { value: "Ana" } });
+    await act(async () => {
+      fireEvent.submit(f);
+      await Promise.resolve();
+    });
+    return fetch;
+  }
+
+  it("stores the lead first, then offers the slot in the card — and frames Calendly only on the click", async () => {
+    const { events, wrap } = recorder();
+    render(wrap(capture()));
+    answerAll();
+    const fetch = await send();
+    const body = Object.fromEntries((fetch.mock.calls[0] as unknown as [string, RequestInit])[1].body as URLSearchParams);
+    expect(body).toMatchObject({ job: "standard", estimate_zone: "proche", estimate_bedrooms: "t3", estimate_surface: "s70", estimate_frequency: "biweekly" });
+    // The price is the server's to set: nothing the visitor could tamper with is posted.
+    expect(Object.keys(body).filter(k => /cents|price|amount/.test(k))).toEqual([]);
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent(/Demande enregistrée au prix de 84\s€\./);
+    expect(calendlyInDom()).toBe(0);
+    await act(async () => {
+      fireEvent.click(within(status).getByRole("button", { name: "Choisir un créneau" }));
+    });
+    const frame = await screen.findByTitle("Choisir un créneau");
+    const src = new URL(frame.getAttribute("src") ?? "");
+    expect(src.origin + src.pathname).toBe(CALENDLY);
+    expect(Object.fromEntries(src.searchParams)).toEqual({ embed_domain: window.location.host, embed_type: "Inline", name: "Ana", a1: "06 12 34 56 78", utm_content: "lead-12-0a1b2c3d" });
+    expect(events.filter(e => e.event === "lead_booking_open").map(e => e.props)).toEqual([expect.objectContaining({ need: "standard", flow: "estimate" })]);
+
+    // Only Calendly's own word that the slot is booked, and only once.
+    act(() => void window.dispatchEvent(new MessageEvent("message", { origin: "https://evil.example", data: { event: "calendly.event_scheduled" } })));
+    expect(events.filter(e => e.event === "lead_booking_done")).toHaveLength(0);
+    act(() => void window.dispatchEvent(new MessageEvent("message", { origin: "https://calendly.com", data: { event: "calendly.event_scheduled", payload: { invitee: { uri: "x" } } } })));
+    act(() => void window.dispatchEvent(new MessageEvent("message", { origin: "https://calendly.com", data: { event: "calendly.event_scheduled" } })));
+    const done = events.filter(e => e.event === "lead_booking_done");
+    expect(done.map(e => e.props)).toEqual([expect.objectContaining({ need: "standard", flow: "estimate" })]);
+    expect(JSON.stringify(events)).not.toMatch(/06 12|Ana|lead-12/);
+    expect(status).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.bookingDone ?? "");
+  });
+
+  it("promises a call to set the slot when the place has no booking page", async () => {
+    render(capture({ place: serviceAreaPlace(["fr", "en"], { hours: WEEKDAYS }), need: "windows" }));
+    await send({ ...taken, cents: 8900 });
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent(/89\s€/);
+    expect(status).toHaveTextContent("Nous vous rappelons pour fixer le créneau.");
+    expect(within(status).queryByRole("button")).toBeNull();
+  });
+
+  it("still goes to the thanks page for a quote need", async () => {
+    const assign = vi.spyOn(navigation, "assign").mockImplementation(() => {});
+    render(capture({ need: "deep" }));
+    await send({ ok: true, location: "/fr/thanks" });
+    expect(assign).toHaveBeenCalledWith("/fr/thanks");
+    assign.mockRestore();
+  });
+
+  it("speaks English on an English page, kit words included when the brand's text predates them", () => {
+    const older: LeadCaptureText = { ...LEAD_CAPTURE_TEXT.en };
+    delete older.pricePending;
+    delete older.bookSubmit;
+    render(capture({ locale: "en", text: older }));
+    expect(within(form()).getByRole("button", { name: "Book" })).toBeTruthy();
+    expect(form()).toHaveTextContent("Answer the questions to see the price.");
+    expect(form()).toHaveTextContent("Inner suburbs");
+  });
+});
