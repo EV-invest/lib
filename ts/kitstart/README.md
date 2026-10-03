@@ -233,7 +233,7 @@ it is the plain POST to `/quote` it always was.
 | `done` | the card after a lead is taken — a node, or `(sent: LeadSent) => node` (`{ channel, phone, name }`), shown in place. Without it, a lead taken goes to the thanks page the route names. Either way a script posts the form itself (asking `/quote` for JSON), so a refusal keeps what was typed; an answer that is not the route's, or no network, submits the form for real; without a script nothing changes (303) |
 | `flows`, `pricing`, `photos` | how each need is sold (`site.lead.flows`), the page's price list (`createPricingSource(site).model()`), and the `quote` needs priced from photos — see [Form variants](#form-variants-quote-estimate-fixed) |
 | `booking` | after a priced lead, in place of "we call you to set the slot": a node or `(sent) => node` — a booking provider's widget, when the brand has one (none ships with the kit) |
-| `initialError` | `leadErrorOf(searchParams)` on a page that reads its query: the refusal a 303 brought back, drawn on the server so the card says why without a script (see *Refusals*) |
+| `initialError` | `leadErrorOf(searchParams)` on a page that reads its query: the refusal a 303 brought back, drawn on the server by the card it names (`lead_card`) so the card says why without a script (see *Refusals*) |
 | `head`, `trust` | the brand's heading instead of the title; a slot beside the submit. Like `extras`, `done` and `booking`, any node, built on the server or not, and never asked for a `key`: each slot sits alone in a keyed fragment |
 | `className` · `classNames` | the root · its parts: `root`, `head`, `title`, `lede`, `form`, `contact`, `field`, `label`, `control` (every input, the need's select in both states, the callback's phone), `hint`, `error` (a refusal: under the field, or above the submit), `chips`, `chip`, `needs`, `need`, `summary`, `submit`, `trust`, `privacy`, `opening`, `others`, `channel`, `primary`, `callback`, `callbackSummary`, `callbackForm`, `callbackLede`, `callbackSubmit`, `consent`, `done`, and for the flows `estimate`, `estimateInput`, `estimateLegend`, `estimateOption`, `price`, `priceTotal`, `breakdown`, `priceNote`, `photos`, `priced`, `pricedPrice`, `pricedNote` |
 
@@ -294,13 +294,15 @@ it is the plain POST to `/quote` it always was.
   refuses (a brand's own rule, a stale page) comes back to the card: the
   script's post gets a `422 { field }` and the form, as typed, shows the error
   at that field (`role="alert"`, focused); the plain post gets a 303 to
-  `?lead_error=<field>&need=<need>#<id>` (`#<id>-callback` for a callback,
+  `?lead_error=<field>&need=<need>&lead_card=<id>#<id>` (`#<id>-callback` for a callback,
   opened), which the card reads once the script runs and then drops from the
   URL. Only slugs ride in that URL — never a phone or a name. Without a
   script that text is the page's to draw: a page that reads its query passes
   `initialError={leadErrorOf(await searchParams)}` and the server renders it
-  (the consent opens the callback; the query cannot tell a callback's phone
-  from the form's, so that one shows at the form's). A page built for ISR
+  in the card the 303 named (`lead_card=<id>` or `<id>-callback`, beside the
+  fragment the server never sees): only that card draws it, at its form or
+  its callback (opened). A URL from before `lead_card` is drawn by every card
+  as it reads — the consent at the callback, anything else at the form. A page built for ISR
   reads no query, so without a script it lands on the card with the field
   marked by nothing — the limit of a cached page. A field the card
   does not draw (a brand's `extras`) shows its error above the submit and is

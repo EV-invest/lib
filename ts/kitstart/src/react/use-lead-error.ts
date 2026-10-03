@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type RefObject } from "react";
-import { LEAD_ERROR_FIELD, LEAD_ERROR_PARAM, type LeadChannel, type LeadError } from "../core/lead";
+import { LEAD_CARD_PARAM, LEAD_ERROR_FIELD, LEAD_ERROR_PARAM, type LeadChannel, type LeadError } from "../core/lead";
 import type { LeadCaptureText } from "../core/lead-capture-text";
 
 export type { LeadError };
@@ -45,6 +45,7 @@ export function useLeadError(root: RefObject<HTMLElement | null>, id: string, in
     const channel = url.hash === `#${id}` ? "form" : url.hash === `#${id}-callback` ? "callback" : null;
     if (field === null || channel === null) return;
     url.searchParams.delete(LEAD_ERROR_PARAM);
+    url.searchParams.delete(LEAD_CARD_PARAM);
     window.history.replaceState(window.history.state, "", url);
     if (LEAD_ERROR_FIELD.test(field)) setError({ channel, field });
   }, [id]);

@@ -201,7 +201,7 @@ describe("the quote route", () => {
       store: () => memory(),
       log: { warn: vi.fn(), error: vi.fn() },
     })(post({}));
-    expect(res.headers.get("location")).toBe("/fr?lead_error=form&need=other#quote");
+    expect(res.headers.get("location")).toBe("/fr?lead_error=form&need=other&lead_card=quote#quote");
     expect((await route(memory())(post({ location: "paris" }))).headers.get("location")).toBe("/fr/thanks");
   });
 
@@ -209,21 +209,21 @@ describe("the quote route", () => {
   it("names the refused field and lands on the card's own anchor, never a hard-coded one", async () => {
     const store = memory();
     const bad = { mobile: "06 12 34 56 7" };
-    expect((await route(store)(post(bad))).headers.get("location")).toBe("/fr?lead_error=phone&need=other#quote");
+    expect((await route(store)(post(bad))).headers.get("location")).toBe("/fr?lead_error=phone&need=other&lead_card=quote#quote");
     const devis = quoteRoute(site, { ...deps(store), anchor: "devis" });
-    expect((await devis(post(bad))).headers.get("location")).toBe("/fr?lead_error=phone&need=other#devis");
+    expect((await devis(post(bad))).headers.get("location")).toBe("/fr?lead_error=phone&need=other&lead_card=devis#devis");
     // The card posts its own id; one that is not a slug is not echoed.
-    expect((await devis(post({ ...bad, card: "quote-band" }))).headers.get("location")).toBe("/fr?lead_error=phone&need=other#quote-band");
-    expect((await devis(post({ ...bad, card: "x\"><script>" }))).headers.get("location")).toBe("/fr?lead_error=phone&need=other#devis");
+    expect((await devis(post({ ...bad, card: "quote-band" }))).headers.get("location")).toBe("/fr?lead_error=phone&need=other&lead_card=quote-band#quote-band");
+    expect((await devis(post({ ...bad, card: "x\"><script>" }))).headers.get("location")).toBe("/fr?lead_error=phone&need=other&lead_card=devis#devis");
     // A need the brand does not offer is not echoed either; nothing typed ever is.
-    expect((await route(store)(post({ ...bad, job: "<b>" }))).headers.get("location")).toBe("/fr?lead_error=phone#quote");
+    expect((await route(store)(post({ ...bad, job: "<b>" }))).headers.get("location")).toBe("/fr?lead_error=phone&lead_card=quote#quote");
     expect(store.rows).toHaveLength(0);
     expect(() => quoteRoute(site, { ...deps(store), anchor: "#devis" })).toThrow(/anchor/);
   });
 
   it("opens the callback at its own anchor when the callback is refused", async () => {
     const res = await route(memory())(post({ channel: "callback", mobile: "07 12 34 56 78" }));
-    expect(res.headers.get("location")).toBe("/fr?lead_error=consent#quote-callback");
+    expect(res.headers.get("location")).toBe("/fr?lead_error=consent&lead_card=quote-callback#quote-callback");
   });
 
   it("answers a script with JSON: 422 and the field when refused, the thanks page when taken", async () => {

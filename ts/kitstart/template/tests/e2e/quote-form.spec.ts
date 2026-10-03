@@ -221,7 +221,7 @@ test.describe("a refused number, without JavaScript", () => {
     await form.getByLabel("Code postal").fill("75011");
     await form.getByLabel("Téléphone").fill("06 12 34 56 7");
     await form.getByRole("button", { name: "Recevoir le prix" }).click();
-    await expect(page).toHaveURL(/\/fr\?lead_error=phone&need=standard#quote$/);
+    await expect(page).toHaveURL(/\/fr\?lead_error=phone&need=standard&lead_card=quote#quote$/);
   });
 });
 
