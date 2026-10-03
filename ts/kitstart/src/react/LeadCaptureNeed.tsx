@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, cn, Field, FieldLabel } from "@evinvest/uikit";
+import { useEffect, useRef } from "react";
 import { FormSelect, type FormSelectOption } from "./FormSelect";
 import type { PartClassNames } from "./parts";
 
@@ -18,6 +19,8 @@ export interface NeedFieldProps {
   hydrated: boolean;
   label: string;
   changeLabel: string;
+  /** Blocks the submit while no tile is chosen, in the page's words. */
+  requiredText: string;
   onPick: (need: string) => void;
   onEdit: () => void;
   classNames?: PartClassNames<NeedPart> | undefined;
@@ -32,6 +35,10 @@ export interface NeedFieldProps {
  */
 export function NeedField(props: NeedFieldProps) {
   const { layout, name, needs, need, editing, hydrated, label, changeLabel, onPick, onEdit, classNames: c } = props;
+  const group = useRef<HTMLFieldSetElement>(null);
+  useEffect(() => {
+    for (const radio of group.current?.querySelectorAll<HTMLInputElement>("input[type=radio]") ?? []) radio.setCustomValidity(need === undefined ? props.requiredText : "");
+  });
   const chosen = needs.find(n => n.value === need);
   if (chosen && !editing) {
     return (
@@ -56,7 +63,7 @@ export function NeedField(props: NeedFieldProps) {
     );
   }
   return (
-    <fieldset className={cn("flex flex-col gap-2", c?.field)}>
+    <fieldset ref={group} className={cn("flex flex-col gap-2", c?.field)}>
       <legend className={cn("mb-2 text-sm font-medium text-ink", c?.label)}>{label}</legend>
       <div className={cn("grid grid-cols-1 gap-2 sm:grid-cols-2", c?.needs)}>
         {needs.map(n => (

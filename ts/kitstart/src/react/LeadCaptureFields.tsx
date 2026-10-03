@@ -1,12 +1,15 @@
 "use client";
 
-import { Button, cn, Field, FieldDescription, FieldLabel, Input } from "@evinvest/uikit";
-import { useId, useRef, useState } from "react";
-import { isPlausiblePhone } from "../core/phone";
+import { Button, cn, Field, FieldDescription, FieldError, FieldLabel, Input } from "@evinvest/uikit";
+import { useEffect, useId, useRef, useState } from "react";
+import type { LeadCaptureText } from "../core/lead-capture-text";
+import { CONSENT_FIELD } from "../core/lead";
+import { phoneProblem } from "../core/phone";
 import type { PartClassNames } from "./parts";
 import { PHONE_INPUT_PROPS } from "./QuoteFormShell";
+import { useValidity } from "./use-validity";
 
-export type FieldPart = "field" | "label" | "control" | "hint" | "chips" | "chip";
+export type FieldPart = "field" | "label" | "control" | "hint" | "error" | "chips" | "chip";
 
 /** More than this and the row is a list to read, not a tap to save typing. */
 const MAX_CHIPS = 6;
@@ -15,6 +18,32 @@ const optionalLabel = (label: string, optional: string | null) => (optional ? `$
 
 /** Digits only: a postcode, which the numeric keypad can type and edit. */
 const POSTCODE = /^\d+$/;
+
+/**
+ * What a field says under itself: the error that blocks (the server's, or the
+ * browser's refusal in the page's words) as an alert, else a hint. Always in
+ * the DOM: a live region announces only what changes inside it.
+ */
+function FieldMessage(props: { id: string; error: string | null; hint?: string | null | undefined; classNames: PartClassNames<FieldPart> | undefined }) {
+  const { id, error, hint, classNames: c } = props;
+  return (
+    // Empty, it gives back the field's gap rather than vanish: a live region
+    // hidden while empty is not one some screen readers listen to.
+    <div aria-live="polite" className="empty:-mt-2">
+      {error ? (
+        <FieldError id={id} className={cn("text-accent-error", c?.error)}>
+          {error}
+        </FieldError>
+      ) : hint ? (
+        <FieldDescription id={id} className={cn("text-accent-error", c?.hint)}>
+          {hint}
+        </FieldDescription>
+      ) : null}
+    </div>
+  );
+}
+
+const required = (text: string, on: boolean) => (el: HTMLInputElement) => (on && el.value.trim() === "" ? text : "");
 
 export function LocalityField(props: {
   name: string;
@@ -25,11 +54,16 @@ export function LocalityField(props: {
   placeholder: string | undefined;
   required: boolean;
   optional: string;
+  requiredText: string;
+  /** The server's refusal of this field, in the page's words. */
+  error: string | null;
   hydrated: boolean;
   classNames?: PartClassNames<FieldPart> | undefined;
 }) {
-  const { name, label, servedLabel, served, required, optional, hydrated, classNames: c } = props;
-  const input = useRef<HTMLInputElement>(null);
+  const { name, label, servedLabel, served, optional, hydrated, classNames: c } = props;
+  const messageId = useId();
+  const validity = useValidity(required(props.requiredText, props.required));
+  const error = props.error ?? validity.shown;
   const chips = hydrated && served.length > 1 && served.length <= MAX_CHIPS;
   // A commune's name filled in or a tap away must stay editable: iOS's numeric
   // keypad has no letters, so the keypad follows what the field is offered.
@@ -37,18 +71,22 @@ export function LocalityField(props: {
   const numeric = served.length > MAX_CHIPS || served.every(s => POSTCODE.test(s));
   return (
     <Field className={cn("flex flex-col gap-2", c?.field)}>
-      <FieldLabel className={c?.label}>{optionalLabel(label, required ? null : optional)}</FieldLabel>
+      <FieldLabel className={c?.label}>{optionalLabel(label, props.required ? null : optional)}</FieldLabel>
       <Input
-        ref={input}
+        ref={validity.ref}
         name={name}
         size="lg"
         inputMode={numeric ? "numeric" : "text"}
         autoComplete="postal-code"
         placeholder={props.placeholder}
         enterKeyHint="next"
-        required={required}
+        required={props.required}
         defaultValue={served.length === 1 ? served[0] : undefined}
         data-lead-field="locality"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? messageId : undefined}
+        onInvalid={validity.onInvalid}
+        onChange={validity.onChange}
         className={c?.control}
       />
       {chips && (
@@ -61,7 +99,10 @@ export function LocalityField(props: {
               size="touch"
               className={cn("px-3", c?.chip)}
               onClick={() => {
-                if (input.current) input.current.value = commune;
+                const el = validity.ref.current;
+                if (!el) return;
+                el.value = commune;
+                validity.recheck(el);
               }}
             >
               {commune}
@@ -69,55 +110,83 @@ export function LocalityField(props: {
           ))}
         </div>
       )}
+      <FieldMessage id={messageId} error={error} classNames={c} />
     </Field>
   );
 }
 
+export type PhoneText = Pick<LeadCaptureText, "phoneLabel" | "phoneHint" | "phoneInvalid" | "required" | "phonePlaceholder">;
+
 /**
- * The number, required and never masked. A value that does not read as a
- * phone gets a hint under it when the visitor leaves the field — a hint, not
- * a refusal: the server keeps what it cannot parse, as typed.
+ * The number, required and never masked, on the rule the server holds it to
+ * (`phoneProblem`): one it would refuse blocks the submit, in the page's
+ * words. Leaving the field with such a number shows the hint already — a
+ * hint, read out, not yet an error.
  */
 export function PhoneField(props: {
   name: string;
-  label: string;
-  hint: string;
-  placeholder: string | undefined;
+  /** Named when the label is not the `Field`'s own (the callback's). */
+  id?: string | undefined;
+  text: PhoneText;
+  /** The server's refusal of this field, in the page's words. */
+  error: string | null;
   onSoftError: () => void;
   classNames?: PartClassNames<FieldPart> | undefined;
 }) {
-  const { name, label, hint, onSoftError, classNames: c } = props;
-  const hintId = useId();
+  const { name, text, onSoftError, classNames: c } = props;
+  const messageId = useId();
   const [doubtful, setDoubtful] = useState(false);
+  const validity = useValidity(el => {
+    const problem = phoneProblem(el.value);
+    return problem === "required" ? text.required : problem === "invalid" ? text.phoneInvalid : "";
+  });
+  const error = props.error ?? validity.shown;
+  const marked = Boolean(error) || doubtful;
+  // A hint drawn on the blur a press of the submit causes pushes the button
+  // down between press and release, and the click lands on nothing: the
+  // submit's own check speaks instead.
+  const submitting = useRef(false);
+  useEffect(() => {
+    const form = validity.ref.current?.form;
+    if (!form) return;
+    const press = (event: PointerEvent) => {
+      submitting.current = event.target instanceof Element && event.target.closest("[type=submit]") !== null;
+    };
+    form.addEventListener("pointerdown", press, true);
+    return () => form.removeEventListener("pointerdown", press, true);
+  }, [validity.ref]);
   return (
-    <Field className={cn("flex flex-col gap-2", c?.field)}>
-      <FieldLabel className={c?.label}>{label}</FieldLabel>
+    <Field {...(props.id ? { controlId: props.id } : {})} className={cn("flex flex-col gap-2", c?.field)}>
+      <FieldLabel className={c?.label}>{text.phoneLabel}</FieldLabel>
       <Input
+        ref={validity.ref}
         name={name}
         size="lg"
         {...PHONE_INPUT_PROPS}
         enterKeyHint="send"
-        placeholder={props.placeholder}
+        placeholder={text.phonePlaceholder}
         required
         data-lead-field="phone"
-        aria-invalid={doubtful || undefined}
-        aria-describedby={doubtful ? hintId : undefined}
+        aria-invalid={marked || undefined}
+        aria-describedby={marked ? messageId : undefined}
+        onInvalid={validity.onInvalid}
         onBlur={e => {
+          if (submitting.current) {
+            submitting.current = false;
+            return;
+          }
           const value = e.currentTarget.value;
-          const bad = value.trim() !== "" && !isPlausiblePhone(value);
+          const bad = value.trim() !== "" && phoneProblem(value) !== null;
           if (bad && !doubtful) onSoftError();
           setDoubtful(bad);
         }}
-        onInput={e => {
-          if (doubtful && isPlausiblePhone(e.currentTarget.value)) setDoubtful(false);
+        onChange={e => {
+          validity.onChange(e);
+          if (doubtful && phoneProblem(e.currentTarget.value) === null) setDoubtful(false);
         }}
         className={c?.control}
       />
-      {doubtful && (
-        <FieldDescription id={hintId} className={cn("text-accent-error", c?.hint)}>
-          {hint}
-        </FieldDescription>
-      )}
+      <FieldMessage id={messageId} error={error} hint={doubtful ? text.phoneHint : null} classNames={c} />
     </Field>
   );
 }
@@ -128,13 +197,79 @@ export function NameField(props: {
   placeholder: string | undefined;
   required: boolean;
   optional: string;
+  requiredText: string;
+  error: string | null;
   classNames?: PartClassNames<FieldPart> | undefined;
 }) {
-  const { name, label, placeholder, required, optional, classNames: c } = props;
+  const { name, label, placeholder, optional, classNames: c } = props;
+  const messageId = useId();
+  const validity = useValidity(required(props.requiredText, props.required));
+  const error = props.error ?? validity.shown;
   return (
     <Field className={cn("flex flex-col gap-2", c?.field)}>
-      <FieldLabel className={c?.label}>{optionalLabel(label, required ? null : optional)}</FieldLabel>
-      <Input name={name} size="lg" autoComplete="name" enterKeyHint="next" placeholder={placeholder} required={required} data-lead-field="name" className={c?.control} />
+      <FieldLabel className={c?.label}>{optionalLabel(label, props.required ? null : optional)}</FieldLabel>
+      <Input
+        ref={validity.ref}
+        name={name}
+        size="lg"
+        autoComplete="name"
+        enterKeyHint="next"
+        placeholder={placeholder}
+        required={props.required}
+        data-lead-field="name"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? messageId : undefined}
+        onInvalid={validity.onInvalid}
+        onChange={validity.onChange}
+        className={c?.control}
+      />
+      <FieldMessage id={messageId} error={error} classNames={c} />
     </Field>
+  );
+}
+
+/**
+ * The callback's consent: a native checkbox, so `required` holds without a
+ * script (the kit's checkbox is a button), whose value is the sentence beside
+ * it — the lead keeps what was agreed to, word for word.
+ */
+export function ConsentField(props: { sentence: string; requiredText: string; error: string | null; className: string | undefined; classNames: PartClassNames<FieldPart> | undefined }) {
+  const messageId = useId();
+  const validity = useValidity(el => (el.checked ? "" : props.requiredText));
+  const error = props.error ?? validity.shown;
+  return (
+    <div className="flex flex-col gap-2">
+      <label className={cn("flex min-h-11 items-start gap-3 text-sm text-ink", props.className)}>
+        <input
+          ref={validity.ref}
+          type="checkbox"
+          name={CONSENT_FIELD}
+          value={props.sentence}
+          required
+          data-lead-field="consent"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? messageId : undefined}
+          onInvalid={validity.onInvalid}
+          onChange={validity.onChange}
+          className="mt-0.5 size-5 shrink-0 accent-primary"
+        />
+        <span>{props.sentence}</span>
+      </label>
+      <FieldMessage id={messageId} error={error} classNames={props.classNames} />
+    </div>
+  );
+}
+
+/**
+ * A refusal no field shows under itself — a brand's extra, the whole form —
+ * just above the submit. Only there when there is one: an alert is read out
+ * as it is inserted, and an empty box would add the form's gap.
+ */
+export function FormMessage(props: { id: string; error: string | null; className: string | undefined }) {
+  if (!props.error) return null;
+  return (
+    <FieldError id={props.id} tabIndex={-1} className={cn("text-accent-error outline-none", props.className)}>
+      {props.error}
+    </FieldError>
   );
 }

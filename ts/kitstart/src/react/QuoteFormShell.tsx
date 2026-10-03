@@ -2,6 +2,7 @@ import { cn } from "@evinvest/uikit";
 import type { FormEventHandler, ReactNode } from "react";
 import { FORM_ID_FIELD, LOCALE_FIELD, LOCATION_FIELD } from "../core/accept";
 import { HONEYPOT_FIELD, RENDERED_AT_FIELD } from "../core/antispam";
+import { CARD_FIELD } from "../core/lead";
 
 /**
  * The quote form's frame: a plain `<form method="post" action="/quote">`
@@ -24,6 +25,8 @@ export interface QuoteFormShellProps {
   /** The honeypot's label — read only by a bot filling every field. */
   honeypotLabel: string;
   formId?: string;
+  /** The card's anchor, posted so a refusal lands back on it (`quoteRoute`). */
+  card?: string | undefined;
   action?: string;
   id?: string;
   className?: string;
@@ -36,13 +39,14 @@ export interface QuoteFormShellProps {
 export const PHONE_INPUT_PROPS = { type: "tel", inputMode: "tel", autoComplete: "tel" } as const;
 
 export function QuoteFormShell(props: QuoteFormShellProps) {
-  const { placeSlug, locale, renderedAt, honeypotLabel, formId = "quote", action = "/quote", id = "quote", className, onSubmit, children } = props;
+  const { placeSlug, locale, renderedAt, honeypotLabel, formId = "quote", card, action = "/quote", id = "quote", className, onSubmit, children } = props;
   return (
     <form id={id} method="post" action={action} onSubmit={onSubmit} className={cn("relative flex w-full flex-col gap-5", className)}>
       {placeSlug && <input type="hidden" name={LOCATION_FIELD} value={placeSlug} />}
       <input type="hidden" name={LOCALE_FIELD} value={locale} />
       <input type="hidden" name={FORM_ID_FIELD} value={formId} />
       <input type="hidden" name={RENDERED_AT_FIELD} value={String(renderedAt)} />
+      {card && <input type="hidden" name={CARD_FIELD} value={card} />}
       {children}
       {/* Off-screen rather than `display: none`, which some bots skip. Inline,
           so it holds even when Tailwind does not scan the package. */}

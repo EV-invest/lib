@@ -226,13 +226,13 @@ it is the plain POST to `/quote` it always was.
 | `prefer` | a channel moved first when available (a `default_channel` arm) |
 | `experiment` | `{ name, variant }`, slugs: on every event and posted with the form |
 | `timeZone` | `Europe/Paris` by default |
-| `formId`, `id` | `quote` · `quote`: the id is the card's (root), so `#quote` scrolls to the whole card, head included; the form is `<id>-form`, the callback `<id>-callback` (its form `<id>-callback-form`) |
-| `text` | `LeadCaptureText`: `LEAD_CAPTURE_TEXT.fr` / `.en`, plain strings (`{need}`, `{day}`, `{time}` filled in); optional `localityPlaceholder`, `phonePlaceholder`, `namePlaceholder` (none by default) |
+| `formId`, `id` | `quote` · `quote`: the id is the card's (root), so `#quote` scrolls to the whole card, head included; the form is `<id>-form`, the callback `<id>-callback` (its form `<id>-callback-form`). Both forms post it as `card`, so a refused lead comes back to `#<id>` |
+| `text` | `LeadCaptureText`: `LEAD_CAPTURE_TEXT.fr` / `.en`, plain strings (`{need}`, `{day}`, `{time}` filled in); optional `localityPlaceholder`, `phonePlaceholder`, `namePlaceholder` (none by default). The errors are words of the page too: `phoneInvalid`, `required`, `needRequired`, `consentRequired`, `fieldInvalid`, `formInvalid` — a brand spreading `LEAD_CAPTURE_TEXT` has them |
 | `labels` | `visible` (default) · `hidden`: every field's label `sr-only` — still the field's accessible name — for a design that draws placeholders |
 | `callbackOpen` | whether the callback starts open; by default only when it leads (the place is closed). `#<id>-callback` opens it either way |
-| `done` | the card after a lead is taken — a node, or `(sent: LeadSent) => node` (`{ channel, phone, name }`). With it a script posts the form itself and shows this in place on the thanks page's 303; any other answer, or no network, submits the form for real; without a script nothing changes (303 → `/thanks`). Without it, every submit goes to `/thanks` |
+| `done` | the card after a lead is taken — a node, or `(sent: LeadSent) => node` (`{ channel, phone, name }`), shown in place. Without it, a lead taken goes to the thanks page the route names. Either way a script posts the form itself (asking `/quote` for JSON), so a refusal keeps what was typed; an answer that is not the route's, or no network, submits the form for real; without a script nothing changes (303) |
 | `head`, `trust` | the brand's heading instead of the title; a slot beside the submit |
-| `className` · `classNames` | the root · its parts: `root`, `head`, `title`, `lede`, `form`, `contact`, `field`, `label`, `control` (every input, the need's select in both states, the callback's phone), `hint`, `chips`, `chip`, `needs`, `need`, `summary`, `submit`, `trust`, `privacy`, `opening`, `others`, `channel`, `primary`, `callback`, `callbackSummary`, `callbackForm`, `callbackLede`, `callbackSubmit`, `consent`, `done` |
+| `className` · `classNames` | the root · its parts: `root`, `head`, `title`, `lede`, `form`, `contact`, `field`, `label`, `control` (every input, the need's select in both states, the callback's phone), `hint`, `error` (a refusal: under the field, or above the submit), `chips`, `chip`, `needs`, `need`, `summary`, `submit`, `trust`, `privacy`, `opening`, `others`, `channel`, `primary`, `callback`, `callbackSummary`, `callbackForm`, `callbackLede`, `callbackSubmit`, `consent`, `done` |
 
 - **Taps.** A need the page knows is not asked again, and a place serving one
   commune fills it: focus the phone, type, send — two taps. `qualify-first`
@@ -252,11 +252,12 @@ it is the plain POST to `/quote` it always was.
 - **Callback.** A `<details>` with its own small form: the phone and a native,
   required consent, posted to `/quote` with `channel=callback`. The consent's
   value is the sentence it shows (`text.callbackConsent`, in the page's
-  language); the server refuses a callback without it — back to the form, as
-  any invalid lead, whatever the brand's rule — and stores it with the lead:
+  language); the server refuses a callback without it — back to the callback,
+  open, naming the consent, whatever the brand's rule — and stores it with the lead:
   `consent_text` word for word, `consent_at` when the server accepted it
-  (`Lead.consent`). Then the lead is held to `lead.validateCallback` (a
-  readable number, by default), not to the form's rule. The consent goes into
+  (`Lead.consent`). Then the lead is held to `lead.validateCallback` (the
+  phone rule, by default), not to the form's rule. Its phone is the form's
+  field: the same hint, the same block. The consent goes into
   no event; a webhook body built by the brand should leave `lead.consent` out.
 - **Locality.** A postcode field (`autoComplete="postal-code"`). A storefront
   with no named zone fills in its own postcode; a named zone fills in its one
@@ -267,11 +268,25 @@ it is the plain POST to `/quote` it always was.
   `inline-flex`) with `leading-6` after the brand's `channel` /
   `callbackSummary` classes unless they set a line height of their own, so a
   brand's type size cannot leave it on a half pixel.
-- **Phone.** `type="tel"`, required, never masked. A number that does not read
-  as one gets a hint when the field is left; the server keeps it. With
+- **Phone.** `type="tel"`, required, never masked, held to one rule on both
+  sides (`phoneProblem`, `validateLead`): a French number is ten digits from
+  `0[1-9]` (or `+33` and nine), any other a `+` and 8 to 15 digits; full-width
+  digits read as digits; a run of one digit is no number. One that fails gets
+  a hint when the field is left (`aria-live`, read out) and blocks the submit
+  in the page's words — the browser's bubble would speak its own language. With
   `lead.mobileFormat: "e164"` a number it can read is stored as
   `+33612345678` (`normalizePhone`); the default keeps it as typed, which is
   what a brand's tests and tooling look rows up by.
+- **Refusals are never silent.** Every required field blocks with the page's
+  words and is marked `aria-invalid` once refused. What the server still
+  refuses (a brand's own rule, a stale page) comes back to the card: the
+  script's post gets a `422 { field }` and the form, as typed, shows the error
+  at that field (`role="alert"`, focused); the plain post gets a 303 to
+  `?lead_error=<field>&need=<need>#<id>` (`#<id>-callback` for a callback,
+  opened), which the card reads once the script runs and then drops from the
+  URL. Only slugs ride in that URL — never a phone or a name. A field the card
+  does not draw (a brand's `extras`) shows its error above the submit and is
+  marked itself.
 - **Events** (through `AnalyticsBoundary`'s sink; none outside one):
   `lead_form_view` (half in view, once), `lead_form_start` (first focus),
   `lead_form_field_error {field}` (the browser refused it, or the phone hint
@@ -280,9 +295,10 @@ it is the plain POST to `/quote` it always was.
   `variant`; `contact_intent_click {channel}` for `phone`, `whatsapp`, `sms`,
   `callback`, with the experiment; and on the server `lead_form_submit
   {form_id, channel}` with the posted experiment.
-- **Weight.** 5.6 KB gz of first-load JS on the template's place page
-  (157,287 → 162,985 B against its 158,000 B target: +3.2 %, a warning
-  within the 20 % tolerance).
+- **Weight.** 8.2 KB gz of first-load JS on the template's place page
+  (157,287 → 165,711 B against its 158,000 B target: +4.9 %, a warning
+  within the 20 % tolerance); the refusals and the shared phone rule are
+  2.0 KB of it.
 
 Tailwind v4 does not scan `node_modules`; the brand's `globals.css` names the
 package:
@@ -311,9 +327,9 @@ export const proxy = createProxy(site);
 // included — let past, it would be a cached bare 404 without the phone.
 export const config = { matcher: ["/((?!_next/).*)"] };
 
-// app/quote/route.ts
+// app/quote/route.ts — `anchor`: the card's id, when it is not `quote`
 export const dynamic = "force-dynamic";
-export const POST = quoteRoute(site, { env: serverEnv, notifier, unavailable });
+export const POST = quoteRoute(site, { env: serverEnv, notifier, unavailable, anchor: "devis" });
 
 // app/sitemap.ts — reads the Host header, so it is dynamic; pages are not
 export const dynamic = "force-dynamic";
@@ -323,6 +339,24 @@ export default sitemapRoute(site, places);
 export function generateStaticParams() { return []; }
 export const revalidate = 600;
 ```
+
+**The lead rule.** `site.lead.validate` defaults to `validateLead`: the
+number the form itself blocks on. A brand's own rule composes with it and
+names the field it refuses, which the form shows the error at:
+
+```ts
+validate: lead => validateLead(lead) ?? (lead.locality === "" ? { field: "locality", why: "a postcode" } : null),
+```
+
+A bare string still works — a refusal of the whole `form`. The landing
+contract (`describeLandingContract`) holds the rule to the form's phone check
+over `PHONE_MATRIX` (`leadRuleDisagreements`), so the server never refuses a
+number the form let through.
+
+**The thanks page.** A callback lands on `/thanks?channel=callback`; read it
+with `thanksChannel(searchParams)` to promise a call instead of a quote, and
+pass `{ thanks: true, channel }` to `statusTarget` so the language switch
+keeps it.
 
 `createPlaceLoader(site, places)(params)` returns the `PlaceView` for a page,
 reading the link mode from the `location` param (`_royat` = host mode).

@@ -1,12 +1,12 @@
-import { Button, buttonVariants, cn, FieldLabel, Input } from "@evinvest/uikit";
+import { Button, buttonVariants, cn } from "@evinvest/uikit";
 import { EXPERIMENT_FIELD, VARIANT_FIELD } from "../core/accept";
 import { channelHref, type CaptureChannel } from "../core/channels";
-import { CHANNEL_FIELD, CONSENT_FIELD } from "../core/lead";
+import { CHANNEL_FIELD } from "../core/lead";
 import type { LeadCaptureText } from "../core/lead-capture-text";
 import type { FormEventHandler } from "react";
-import type { FieldPart } from "./LeadCaptureFields";
+import { ConsentField, FormMessage, PhoneField, type FieldPart } from "./LeadCaptureFields";
 import { partWithLeading, type PartClassNames } from "./parts";
-import { PHONE_INPUT_PROPS, QuoteFormShell } from "./QuoteFormShell";
+import { QuoteFormShell } from "./QuoteFormShell";
 
 /**
  * `channel` and `primary` dress every way out, the callback's summary
@@ -82,6 +82,8 @@ export function ChannelLink(props: {
  */
 export function CallbackForm(props: {
   id: string;
+  /** The card's id, posted so a refusal opens this callback again. */
+  card: string;
   /** The channel that leads: the primary face. */
   primary: boolean;
   open: boolean;
@@ -95,9 +97,13 @@ export function CallbackForm(props: {
   text: LeadCaptureText;
   experiment: Experiment | undefined;
   onSubmit: FormEventHandler<HTMLFormElement> | undefined;
+  /** The server's refusal: the field and its words. */
+  error: { field: string; text: string } | null;
+  onSoftError: () => void;
   classNames?: PartClassNames<ChannelPart | FieldPart> | undefined;
 }) {
-  const { id, primary, open, formId, placeSlug, locale, renderedAt, mobileName, subject, opening, text, experiment, classNames: c } = props;
+  const { id, primary, open, formId, placeSlug, locale, renderedAt, mobileName, subject, opening, text, experiment, error, classNames: c } = props;
+  const at = (field: string) => (error?.field === field ? error.text : null);
   return (
     <details id={id} open={open} className={cn("w-full", c?.callback)}>
       {/* A block, not the button's inline-flex: an inline box sits in a line box
@@ -120,6 +126,7 @@ export function CallbackForm(props: {
         renderedAt={renderedAt}
         honeypotLabel={text.honeypotLabel}
         formId={formId}
+        card={props.card}
         onSubmit={props.onSubmit}
         className={cn("mt-4 gap-4", c?.callbackForm)}
       >
@@ -127,28 +134,9 @@ export function CallbackForm(props: {
         {subject && <input type="hidden" name={subject.name} value={subject.value} />}
         <ExperimentFields experiment={experiment} />
         <p className={cn("text-ink-soft", c?.callbackLede)}>{opening ?? text.callbackLede}</p>
-        <div className={cn("flex flex-col gap-2", c?.field)}>
-          <FieldLabel htmlFor={`${id}-phone`} className={c?.label}>
-            {text.phoneLabel}
-          </FieldLabel>
-          <Input
-            id={`${id}-phone`}
-            name={mobileName}
-            size="lg"
-            {...PHONE_INPUT_PROPS}
-            enterKeyHint="send"
-            placeholder={text.phonePlaceholder}
-            required
-            data-lead-field="phone"
-            className={c?.control}
-          />
-        </div>
-        <label className={cn("flex min-h-11 items-start gap-3 text-sm text-ink", c?.consent)}>
-          {/* Native, so `required` holds without a script (the kit's checkbox is a
-              button); its value is the sentence beside it, which the lead keeps. */}
-          <input type="checkbox" name={CONSENT_FIELD} value={text.callbackConsent} required data-lead-field="consent" className="mt-0.5 size-5 shrink-0 accent-primary" />
-          <span>{text.callbackConsent}</span>
-        </label>
+        <PhoneField id={`${id}-phone`} name={mobileName} text={text} error={at("phone")} onSoftError={props.onSoftError} classNames={c} />
+        <ConsentField sentence={text.callbackConsent} requiredText={text.consentRequired} error={at("consent")} className={c?.consent} classNames={c} />
+        <FormMessage id={`${id}-error`} error={error && error.field !== "phone" && error.field !== "consent" ? error.text : null} className={c?.error} />
         <Button type="submit" size="touch" className={cn("w-full", c?.callbackSubmit)}>
           {text.callbackSubmit}
         </Button>
