@@ -2,6 +2,7 @@
 
 import { cn } from "@evinvest/uikit";
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
+import { PRICE_CHANGED, SHOWN_CENTS_FIELD } from "../core/accept";
 import { resolveChannels, type CaptureChannel } from "../core/channels";
 import { leadErrorFor, type LeadError, type LeadWire, type PageLeadError } from "../core/lead";
 import { fillText, openingText } from "../core/lead-capture-format";
@@ -26,6 +27,7 @@ import { errorText, formMessageId, OWN_FIELDS, useLeadError } from "./use-lead-e
 import { useLeadEvents } from "./use-lead-events";
 import { FailureMessage, SubmitButton } from "./LeadCaptureSubmit";
 import { useLeadSubmit, type LeadSent } from "./use-lead-submit";
+import { useRepriced } from "./use-repriced";
 
 export type LeadCapturePart =
   | "root" | "head" | "title" | "lede" | "form" | "contact" | "submit" | "trust" | "privacy" | "opening" | "others" | "done"
@@ -162,17 +164,24 @@ export function LeadCapture(props: LeadCaptureProps) {
   const model = props.pricing ?? null;
   const flow = flowOf(props.flows, model, shownNeed);
   const estimate = useEstimate(model, shownNeed, flow, events.estimateShown);
+  const repriced = useRepriced(estimate.price, shownNeed, flowText, locale);
   // A priced lead stays in the card: its price is confirmed there, and the slot promised.
   const staysInCard = (ch: "form" | "callback") => props.done !== undefined || (ch === "form" && flow !== "quote");
   const { sent, onSubmit, busy, failure, retry } = useLeadSubmit(
     staysInCard,
     { mobile: wire.mobile, name: props.name?.field },
-    { onRefused: (channel, field) => setError({ channel, field }), onFailed: (channel, why) => events.submitError(why, channel) },
+    {
+      onRefused: (channel, field, cents) => {
+        repriced.refused(field, cents);
+        setError({ channel, field });
+      },
+      onFailed: (channel, why) => events.submitError(why, channel),
+    },
   );
   // The form's refusal by where it shows: under the field the card draws, else above the submit.
   const formError = error?.channel === "form" ? error.field : null;
   const at = (field: string) => (formError === field ? errorText(field, text) : null);
-  const above = formError !== null && !OWN_FIELDS.form.includes(formError) ? errorText(formError, text) : null;
+  const above = formError === PRICE_CHANGED ? repriced.message() : formError !== null && !OWN_FIELDS.form.includes(formError) ? errorText(formError, text) : null;
   const doneRef = useRef<HTMLDivElement>(null);
   // The form the focus was in is gone: the news takes it, and is read out.
   useEffect(() => doneRef.current?.focus(), [sent]);
@@ -320,7 +329,9 @@ export function LeadCapture(props: LeadCaptureProps) {
           {model && shownNeed !== undefined && flow === "estimate" && (
             <EstimateInputs model={model} need={shownNeed} locale={locale} answers={estimate.answers} onAnswer={estimate.answer} required={hydrated} classNames={c} />
           )}
-          {model && flow !== "quote" && <PriceBox model={model} flow={flow} price={estimate.price} locale={locale} text={flowText} classNames={c} />}
+          {model && flow !== "quote" && <PriceBox model={model} flow={flow} price={repriced.price} locale={locale} text={flowText} classNames={c} />}
+          {/* Compared by the server, never stored: a lead is taken at the price it was shown. */}
+          {flow !== "quote" && repriced.shownCents !== undefined && <input type="hidden" name={SHOWN_CENTS_FIELD} value={repriced.shownCents} />}
           {flow === "quote" && shownNeed !== undefined && props.photos?.includes(shownNeed) && (
             <PhotosAsk whatsapp={contact.whatsapp} needLabel={needs.find(n => n.value === shownNeed)?.label ?? shownNeed} text={flowText} experiment={experiment} className={c?.photos} />
           )}

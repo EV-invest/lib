@@ -101,6 +101,10 @@ export interface LeadCaptureFlowText {
   sentPrice: string;
   /** After a priced lead with a `manual` booking: the slot is set by a call. */
   slotCallback: string;
+  /** The price changed under the form: `{price}` the fresh one, `{shown}` the one shown; the submit confirms it. */
+  priceChanged: string;
+  /** The same, without a script — the page shows the fresh price for the answers given again. */
+  priceChangedGeneric: string;
   /** Opens the place's booking page (`link`, `cal_com`). */
   bookCta: string;
   /** Under it: the call still comes if the visitor books nothing. */
@@ -135,6 +139,8 @@ const FR_FLOW: LeadCaptureFlowText = {
   bookSubmit: "Réserver",
   sentPrice: "Demande enregistrée au prix de {price}.",
   slotCallback: "Nous vous rappelons pour fixer le créneau.",
+  priceChanged: "Le prix a changé : {price} au lieu de {shown}. Confirmez pour envoyer votre demande à ce prix.",
+  priceChangedGeneric: "Le prix a changé depuis l’affichage de la page. Vérifiez le nouveau prix et confirmez.",
   bookCta: "Choisir un créneau",
   bookNote: "Sinon, nous vous rappelons pour fixer le créneau.",
   booked: "Créneau réservé. Merci !",
@@ -162,6 +168,8 @@ const EN_FLOW: LeadCaptureFlowText = {
   bookSubmit: "Book",
   sentPrice: "Request saved at {price}.",
   slotCallback: "We will call you to set the slot.",
+  priceChanged: "The price has changed: {price} instead of {shown}. Confirm to send your request at this price.",
+  priceChangedGeneric: "The price has changed since the page was shown. Check the new price and confirm.",
   bookCta: "Pick a slot",
   bookNote: "Otherwise we will call you to set the slot.",
   booked: "Slot booked. Thank you!",

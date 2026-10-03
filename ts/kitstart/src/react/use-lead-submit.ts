@@ -63,7 +63,7 @@ function stamp(form: HTMLFormElement): void {
   field.value = id;
 }
 
-type Answer = { ok: true; location: string; lead?: string; cents?: number } | { ok: false; field: string };
+type Answer = { ok: true; location: string; lead?: string; cents?: number } | { ok: false; field: string; cents?: number };
 
 const LEAD_REF = /^lead-\d+-[0-9a-f]{8}$/;
 
@@ -92,7 +92,8 @@ async function readAnswer(res: Response): Promise<Answer | null> {
         ...(typeof cents === "number" && Number.isSafeInteger(cents) && cents >= 0 ? { cents } : {}),
       };
     }
-    if (ok === false && typeof field === "string") return { ok, field };
+    // `cents`: with `price_changed`, the price the lead would be taken at now.
+    if (ok === false && typeof field === "string") return { ok, field, ...(typeof cents === "number" && Number.isSafeInteger(cents) && cents >= 0 ? { cents } : {}) };
     return null;
   }
   if (res.ok && res.redirected) {
@@ -110,7 +111,8 @@ export const SUBMIT_TIMEOUT_MS = 15_000;
 
 export interface LeadSubmitHandlers {
   /** The route refused the lead: the field to fix. */
-  onRefused: (channel: LeadChannel, field: string) => void;
+  /** `cents`: with `price_changed`, the server's fresh price. */
+  onRefused: (channel: LeadChannel, field: string, cents?: number) => void;
   /** No answer: the form stays as typed, with a retry. */
   onFailed: (channel: LeadChannel, failure: SendFailure) => void;
 }
@@ -179,7 +181,7 @@ export function useLeadSubmit(done: boolean | ((channel: LeadChannel) => boolean
           if (answer === null) return fallBack();
           if (!answer.ok) {
             settle();
-            return on.onRefused(lead.channel, answer.field);
+            return on.onRefused(lead.channel, answer.field, answer.cents);
           }
           // Still pending: the page is leaving, or the form is gone. The next
           // lead from this form (Back, another need) gets an id of its own.
