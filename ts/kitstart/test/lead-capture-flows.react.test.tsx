@@ -231,6 +231,16 @@ describe("LeadCapture's priced success", () => {
     expect(JSON.stringify(events)).not.toMatch(/9900|8400/);
   });
 
+  // Review of #185: the refusal stayed above the submit after the answers changed.
+  it("takes the price-changed words away once the answers change", async () => {
+    render(capture());
+    answerAll();
+    await send({ ok: false, field: "price_changed", reason: "price_changed", cents: 9900 });
+    expect(form()).toHaveTextContent(/Le prix a changé/);
+    answer("frequency", "once");
+    expect(form()).not.toHaveTextContent(/Le prix a changé/);
+  });
+
   it("says the price changed on a page the server sent back, without a script", () => {
     document.body.innerHTML = renderToString(capture({ need: "windows", initialError: leadErrorOf({ lead_error: "price_changed" }) }));
     expect(document.body).toHaveTextContent("Le prix a changé depuis l’affichage de la page. Vérifiez le nouveau prix et confirmez.");
