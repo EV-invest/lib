@@ -22,6 +22,20 @@ export function useNow(renderedAt: number): number {
   return useSyncExternalStore(subscribeMinute, minuteNow, () => renderedAt);
 }
 
+/**
+ * `value`, held at what it was when `hold` turned on, until it turns off. The
+ * channel order runs on the clock, and a channel that moves is a form React
+ * draws anew: what was typed is gone, and the retry of a post still waiting
+ * on the server would go to a form no longer on the page.
+ */
+export function useHeld<T>(value: T, hold: boolean): T {
+  const [held, setHeld] = useState<{ value: T } | null>(null);
+  // Adjusted during render, React's own pattern for state derived from a prop.
+  if (hold && held === null) setHeld({ value });
+  if (!hold && held !== null) setHeld(null);
+  return held ? held.value : value;
+}
+
 const subscribeNothing = () => () => {};
 /** `false` on the server and while hydrating, `true` from the render after. */
 export const useHydrated = (): boolean => useSyncExternalStore(subscribeNothing, () => true, () => false);

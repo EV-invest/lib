@@ -22,7 +22,7 @@ import { FormMessage, LocalityField, NameField, PhoneField, type FieldPart } fro
 import { NeedField, type LeadCaptureLayout } from "./LeadCaptureNeed";
 import type { PartClassNames } from "./parts";
 import { QuoteFormShell } from "./QuoteFormShell";
-import { useHydrated, useNeed, useNow, useOpenOnHash } from "./use-lead-context";
+import { useHeld, useHydrated, useNeed, useNow, useOpenOnHash } from "./use-lead-context";
 import { errorText, formMessageId, OWN_FIELDS, useLeadError } from "./use-lead-error";
 import { useLeadEvents } from "./use-lead-events";
 import { FailureMessage, SubmitButton } from "./LeadCaptureSubmit";
@@ -192,7 +192,9 @@ export function LeadCapture(props: LeadCaptureProps) {
   const doneRef = useRef<HTMLDivElement>(null);
   // The form the focus was in is gone: the news takes it, and is read out.
   useEffect(() => doneRef.current?.focus(), [sent]);
-  const resolved = resolveChannels({ ...contact, hours: place.hours }, { now: new Date(useNow(renderedAt)), timeZone: props.timeZone, prefer: props.prefer });
+  // Held while a lead is posting or failed: its form stays where it is, for the retry.
+  const now = useHeld(useNow(renderedAt), busy !== null || failure !== null);
+  const resolved = resolveChannels({ ...contact, hours: place.hours }, { now: new Date(now), timeZone: props.timeZone, prefer: props.prefer });
   const opening = openingText(resolved.nextOpening, text, locale);
   const needLabel = needs.find(n => n.value === need)?.label;
   const message = needLabel ? fillText(text.message, { need: needLabel }) : text.messageGeneric;
