@@ -194,6 +194,7 @@ export function quoteRoute<L extends string, P extends string>(
     }
     const outcome = await accept(form, clientKey(request.headers, env.trustedProxy ?? DEV_TRUST), {
       insert: lead => leadStore().insert(lead),
+      findSubmission: async submissionId => (await leadStore().findSubmission?.(submissionId)) ?? null,
       defer,
       notify: (lead, id) => {
         notifier ??= deps.notifier();

@@ -107,6 +107,10 @@ export interface LeadConsent {
   at: string;
 }
 
+/** The script's id for one submission, minted once and kept across its resends. */
+export const SUBMISSION_FIELD = "submission_id";
+export const SUBMISSION_ID = /^[A-Za-z0-9-]{16,64}$/;
+
 /** The query a refused submission is sent back to the form with: `?lead_error=<field>`. */
 export const LEAD_ERROR_PARAM = "lead_error";
 
@@ -159,6 +163,12 @@ export interface Lead {
   channel?: LeadChannel;
   /** Only on a callback lead: the consent it was posted with. */
   consent?: LeadConsent;
+  /**
+   * The script's id for this submission (`SUBMISSION_FIELD`): a resend after
+   * a lost answer carries the same one, and the store keeps one row per id.
+   * Absent on a plain post, which has no script to mint one.
+   */
+  submissionId?: string;
 }
 
 /** The lead's channel, `form` for one that predates the field. */
@@ -183,7 +193,13 @@ export type LeadCandidate = Omit<Lead, "spamVerdict" | "consent"> & { consentTex
  * (`@evinvest/kitstart/testing`) before `LEADS_DB_URL` may select it.
  */
 export interface LeadStore {
+  /** Rejects a second lead with a `submissionId` the store already holds (a unique index). */
   insert(lead: Lead): Promise<number>;
+  /**
+   * The row a submission id was stored under, read back as a lead, or `null`.
+   * Absent on an adapter that does not dedupe: every post is then a lead.
+   */
+  findSubmission?(submissionId: string): Promise<{ id: number; lead: Lead } | null>;
   count(): Promise<number>;
   /** The schema version the storage stands at after opening. */
   schemaVersion(): Promise<number>;
@@ -195,9 +211,10 @@ export interface LeadStore {
 /**
  * The lead schema's version, shared by every adapter: 1 the Rust server's
  * table (`job`, `zip`, `mobile`, `at`), 2 + the place, 3 + the spam verdict,
- * 4 + the brand's extras, 5 + the channel and the callback's consent. Append only.
+ * 4 + the brand's extras, 5 + the channel and the callback's consent, 6 + the
+ * script's submission id, unique. Append only.
  */
-export const LEAD_SCHEMA_VERSION = 5;
+export const LEAD_SCHEMA_VERSION = 6;
 
 /** A field is capped, not rejected: a long answer is still a customer. */
 export const MAX_FIELD = 200;
@@ -237,6 +254,7 @@ export function readCandidate(
   const mobile = field(form, schema.wire.mobile, MAX_FIELD) ?? "";
   const callback = form.get(CHANNEL_FIELD) === "callback";
   const consent = callback ? field(form, CONSENT_FIELD, MAX_CONSENT) : null;
+  const submission = field(form, SUBMISSION_FIELD, 64);
   return {
     subject: field(form, schema.wire.subject, MAX_FIELD) ?? "",
     locality: field(form, schema.wire.locality, MAX_FIELD) ?? "",
@@ -245,6 +263,7 @@ export function readCandidate(
     placeSlug,
     channel: callback ? "callback" : "form",
     ...(consent ? { consentText: consent } : {}),
+    ...(submission && SUBMISSION_ID.test(submission) ? { submissionId: submission } : {}),
   };
 }
 

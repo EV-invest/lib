@@ -2,7 +2,7 @@ import "server-only";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
-import { channelOf, LEAD_SCHEMA_VERSION, type LeadStore } from "../core/lead";
+import { channelOf, LEAD_SCHEMA_VERSION, type Lead, type LeadStore, type SpamVerdict } from "../core/lead";
 
 /**
  * The SQLite adapter of the `LeadStore` port: one file on the pod's volume.
@@ -13,6 +13,7 @@ import { channelOf, LEAD_SCHEMA_VERSION, type LeadStore } from "../core/lead";
  * nothing — and map to the lead's `subject`, `locality` and `mobile`.
  */
 export interface SqliteLeadStore extends LeadStore {
+  findSubmission(submissionId: string): Promise<{ id: number; lead: Lead } | null>;
   /** The schema version the file is at after opening. */
   version(): number;
 }
@@ -67,6 +68,13 @@ const STEPS: readonly ((db: DatabaseSync) => void)[] = [
     db.exec("ALTER TABLE leads ADD COLUMN consent_at TEXT");
     db.exec("ALTER TABLE leads ADD COLUMN consent_text TEXT");
   },
+  // 6 — the script's id for a submission, so a resend after a lost answer is
+  // the same row. Unique where present; a plain post has none, and NULLs
+  // never collide.
+  db => {
+    db.exec("ALTER TABLE leads ADD COLUMN submission_id TEXT");
+    db.exec("CREATE UNIQUE INDEX leads_submission_id ON leads (submission_id) WHERE submission_id IS NOT NULL");
+  },
 ];
 
 if (STEPS.length !== LEAD_SCHEMA_VERSION) {
@@ -76,6 +84,32 @@ if (STEPS.length !== LEAD_SCHEMA_VERSION) {
 }
 
 const RUST_COLUMNS = ["id", "job", "zip", "mobile", "at"];
+
+function str(row: unknown, key: string): string | null {
+  const value = column(row, key);
+  return typeof value === "string" ? value : null;
+}
+
+const VERDICTS: readonly string[] = ["honeypot", "too-fast", "rate-limited"] satisfies SpamVerdict[];
+
+/** A stored row read back as the lead it was written from. */
+function leadOf(row: unknown): Lead {
+  const verdict = str(row, "spam_verdict");
+  const extras: unknown = JSON.parse(str(row, "extras") ?? "{}");
+  const consentAt = str(row, "consent_at");
+  const submissionId = str(row, "submission_id");
+  return {
+    subject: str(row, "job") ?? "",
+    locality: str(row, "zip") ?? "",
+    mobile: str(row, "mobile") ?? "",
+    extras: Object.fromEntries(Object.entries(typeof extras === "object" && extras !== null ? extras : {}).filter((e): e is [string, string] => typeof e[1] === "string")),
+    placeSlug: str(row, "location_id"),
+    spamVerdict: verdict !== null && VERDICTS.includes(verdict) ? (verdict as SpamVerdict) : null,
+    channel: str(row, "channel") === "callback" ? "callback" : "form",
+    ...(consentAt !== null ? { consent: { at: consentAt, text: str(row, "consent_text") ?? "" } } : {}),
+    ...(submissionId !== null ? { submissionId } : {}),
+  };
+}
 
 function userVersion(db: DatabaseSync): number {
   return integer(db.prepare("PRAGMA user_version").get(), "user_version");
@@ -155,7 +189,10 @@ export function openSqliteLeadStore(path: string): SqliteLeadStore {
     throw error;
   }
   const insert = db.prepare(
-    "INSERT INTO leads (job, zip, mobile, location_id, spam_verdict, extras, channel, consent_at, consent_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+    "INSERT INTO leads (job, zip, mobile, location_id, spam_verdict, extras, channel, consent_at, consent_text, submission_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+  );
+  const bySubmission = db.prepare(
+    "SELECT id, job, zip, mobile, location_id, spam_verdict, extras, channel, consent_at, consent_text, submission_id FROM leads WHERE submission_id = ?",
   );
   const count = db.prepare("SELECT COUNT(*) AS n FROM leads");
   return {
@@ -172,9 +209,14 @@ export function openSqliteLeadStore(path: string): SqliteLeadStore {
           channelOf(lead),
           lead.consent?.at ?? null,
           lead.consent?.text ?? null,
+          lead.submissionId ?? null,
         ),
         "id",
       );
+    },
+    async findSubmission(submissionId) {
+      const row = bySubmission.get(submissionId);
+      return row === undefined ? null : { id: integer(row, "id"), lead: leadOf(row) };
     },
     async count() {
       return integer(count.get(), "n");

@@ -94,6 +94,8 @@ export {
   MAX_FIELD,
   readCandidate,
   rejectionOf,
+  SUBMISSION_FIELD,
+  SUBMISSION_ID,
   validateCallbackLead,
   validateCandidate,
   validateLead,

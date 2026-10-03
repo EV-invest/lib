@@ -83,7 +83,7 @@ describe("choosing the lead store", () => {
   it("checks the store at boot and says which one won", async () => {
     const info = vi.fn();
     await checkLeadStore({ leadsDb: { kind: "sqlite", path: tmp() }, leadsDbFrom: "LEADS_DB_URL" }, { info });
-    expect(info).toHaveBeenCalledWith(expect.stringMatching(/^leads: sqlite at .*, schema v5 \(from LEADS_DB_URL\)$/));
+    expect(info).toHaveBeenCalledWith(expect.stringMatching(/^leads: sqlite at .*, schema v6 \(from LEADS_DB_URL\)$/));
     await expect(checkLeadStore({ leadsDb: { kind: "postgres", url: "postgres://db/x" }, leadsDbFrom: "LEADS_DB_URL" }, { info })).rejects.toThrow(
       LeadStoreNotImplemented,
     );
@@ -125,7 +125,7 @@ const columnsOf = (path: string): unknown[] => {
   return names;
 };
 
-const ALL = ["id", "job", "zip", "mobile", "at", "location_id", "spam_verdict", "extras", "channel", "consent_at", "consent_text"];
+const ALL = ["id", "job", "zip", "mobile", "at", "location_id", "spam_verdict", "extras", "channel", "consent_at", "consent_text", "submission_id"];
 
 describe("the sqlite store's migrations", () => {
   it("keeps the channel and a callback's consent; a row from before has neither", async () => {
@@ -142,6 +142,24 @@ describe("the sqlite store's migrations", () => {
       { channel: "form", consent_at: null, consent_text: null },
     ]);
     check.close();
+  });
+
+  it("brings a version 5 file to 6, its rows kept and the submission id unique", async () => {
+    const path = tmp();
+    const old = new (sqlite().DatabaseSync)(path);
+    old.exec(`CREATE TABLE leads (id INTEGER PRIMARY KEY AUTOINCREMENT, job TEXT NOT NULL, zip TEXT NOT NULL, mobile TEXT NOT NULL, at TEXT NOT NULL DEFAULT (datetime('now')),
+      location_id TEXT, spam_verdict TEXT, extras TEXT, channel TEXT, consent_at TEXT, consent_text TEXT)`);
+    old.exec("INSERT INTO leads (job, zip, mobile, channel) VALUES ('other', '63130', '+33612345678', 'form')");
+    old.exec("PRAGMA user_version = 5");
+    old.close();
+    const store = openSqliteLeadStore(path);
+    expect(store.version()).toBe(6);
+    const sid = "3f2b8c1e-5d4a-4f6b-9c7e-1a2b3c4d5e6f";
+    expect(await store.insert(lead({ submissionId: sid }))).toBe(2);
+    await expect(store.insert(lead({ submissionId: sid }))).rejects.toThrow(/UNIQUE/);
+    expect(await store.count()).toBe(2);
+    expect((await store.findSubmission(sid))?.id).toBe(2);
+    await store.close();
   });
 
   it("creates a fresh file at the latest version", async () => {

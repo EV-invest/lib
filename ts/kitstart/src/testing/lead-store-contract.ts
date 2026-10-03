@@ -58,6 +58,26 @@ export function describeLeadStoreContract(name: string, harness: () => LeadStore
       await store.close();
     });
 
+    // LEAD-FORMS-REVIEW-2026-10-03 #3: a resend after a lost answer is the same lead.
+    it("keeps one row per submission id, and finds it back", async () => {
+      const store = await harness().open();
+      if (!store.findSubmission) return void (await store.close());
+      const sid = "3f2b8c1e-5d4a-4f6b-9c7e-1a2b3c4d5e6f";
+      const first = await store.insert(lead({ submissionId: sid, channel: "callback", consent: { text: "Oui.", at: "2026-10-03T10:00:00.000Z" }, extras: { name: "Ana" } }));
+      await expect(store.insert(lead({ submissionId: sid }))).rejects.toThrow();
+      expect(await store.count()).toBe(1);
+      expect(await store.findSubmission(sid)).toEqual({
+        id: first,
+        lead: lead({ submissionId: sid, channel: "callback", consent: { text: "Oui.", at: "2026-10-03T10:00:00.000Z" }, extras: { name: "Ana" } }),
+      });
+      expect(await store.findSubmission("00000000-0000-4000-8000-000000000000")).toBeNull();
+      // Leads without one (the no-JS post) never collide.
+      await store.insert(lead());
+      await store.insert(lead());
+      expect(await store.count()).toBe(3);
+      await store.close();
+    });
+
     it("keeps what it acknowledged across a close and a reopen", async () => {
       const h = harness();
       if (!h.reopen) return;
