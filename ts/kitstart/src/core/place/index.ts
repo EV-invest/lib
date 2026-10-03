@@ -1,10 +1,12 @@
 export {
+  calendlyUrl,
   servedLocalities,
   storefrontOf,
   type DayOfWeek,
   type Geo,
   type OpeningHours,
   type Place,
+  type PlaceBooking,
   type PostalAddress,
   type Presence,
   type Rating,
