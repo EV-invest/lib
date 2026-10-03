@@ -20,8 +20,21 @@ export interface LeadMail {
 
 export type NotifyEnv = Pick<ServerEnv, "smtpUrl" | "notifyTo" | "notifyFrom" | "smsToken">;
 
+/**
+ * The need's label in the mail's language — the business's, whatever the
+ * visitor's — or `undefined` for one it does not know (a stale form's).
+ */
+export type NeedLabel = (need: string) => string | undefined;
+
+/** What a mail shows in place of the raw lead: the need as `needLabel` names it, else its id. */
+export interface LeadMailShown {
+  need: string;
+}
+
+const shownOf = (lead: Lead, needLabel: NeedLabel | undefined): LeadMailShown => ({ need: needLabel?.(lead.subject) ?? lead.subject });
+
 /** A plain default; a brand passes `format` to write it in its own language. */
-export function defaultLeadMail(brand: Pick<BrandFacts, "name">, lead: Lead, id: number): LeadMail {
+export function defaultLeadMail(brand: Pick<BrandFacts, "name">, lead: Lead, id: number, options: { needLabel?: NeedLabel | undefined } = {}): LeadMail {
   const place = lead.placeSlug ?? "unknown";
   // A callback request is a promise to ring the customer: it says so first.
   const callback = channelOf(lead) === "callback";
@@ -30,7 +43,7 @@ export function defaultLeadMail(brand: Pick<BrandFacts, "name">, lead: Lead, id:
     text: [
       `Lead #${id} — place ${place}${callback ? " — CALL BACK" : ""}${lead.spamVerdict ? ` — suspect (${lead.spamVerdict})` : ""}`,
       "",
-      `Subject  : ${lead.subject}`,
+      `Subject  : ${shownOf(lead, options.needLabel).need}`,
       `Locality : ${lead.locality}`,
       `Mobile   : ${lead.mobile}`,
       ...Object.entries(lead.extras).map(([name, value]) => `${name} : ${value}`),
@@ -52,7 +65,14 @@ export function leadNotifier(
   site: { brand: BrandFacts },
   env: NotifyEnv,
   options: {
-    format?: (lead: Lead, id: number) => LeadMail;
+    /** The brand's mail; `shown.need` is the need's label (`needLabel`), else its id. */
+    format?: (lead: Lead, id: number, shown: LeadMailShown) => LeadMail;
+    /**
+     * Names the need in the mail — `lead.subject` is the id the form posted
+     * (`hot_water`), which the business should not have to decode. The labels
+     * the brand hands `LeadCapture` as `needs`, in the mail's language.
+     */
+    needLabel?: NeedLabel;
     log?: Pick<Console, "warn">;
     /** `MAIL_PER_MINUTE` by default: a flood that passes the antispam must not become a mail flood. */
     mailPerMinute?: number;
@@ -63,7 +83,8 @@ export function leadNotifier(
   const log = options.log ?? console;
   const now = options.now ?? Date.now;
   const cap = options.mailPerMinute ?? MAIL_PER_MINUTE;
-  const format = options.format ?? ((lead: Lead, id: number) => defaultLeadMail(brand, lead, id));
+  const { needLabel } = options;
+  const format = options.format ?? ((lead: Lead, id: number) => defaultLeadMail(brand, lead, id, { needLabel }));
   let window = { start: Number.NEGATIVE_INFINITY, sent: 0 };
   const spend = (): boolean => {
     const t = now();
@@ -86,7 +107,7 @@ export function leadNotifier(
       if (mail && !spend()) {
         log.warn(`lead ${id}: over ${cap} notification mails a minute; stored, not mailed`);
       } else if (mail) {
-        const { subject, text } = format(lead, id);
+        const { subject, text } = format(lead, id, shownOf(lead, needLabel));
         channels.push(sendMail(mail.url, { from: mail.from, to: mail.to, subject, text }, { helo: mail.helo }));
       }
       if (env.smsToken) {

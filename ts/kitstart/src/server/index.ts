@@ -12,7 +12,7 @@ export { describeLeadDb, openLeadStore, parseLeadDb, type LeadDb } from "./lead-
 export { openSqliteLeadStore, type SqliteLeadStore } from "./lead-store-sqlite";
 export { LeadStoreNotImplemented, openPostgresLeadStore } from "./lead-store-postgres";
 export { parseSmtpUrl, sendMail, type Mail, type SendOptions } from "./smtp";
-export { defaultLeadMail, leadNotifier, MAIL_PER_MINUTE, type LeadMail, type LeadNotifier, type NotifyEnv } from "./notify";
+export { defaultLeadMail, leadNotifier, MAIL_PER_MINUTE, type LeadMail, type LeadMailShown, type LeadNotifier, type NeedLabel, type NotifyEnv } from "./notify";
 export { clientKey, NO_CLIENT_ADDRESS, parseProxyTrust, type ProxyTrust } from "./client-key";
 export { checkLeadStore } from "./boot";
 export {
