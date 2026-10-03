@@ -233,7 +233,7 @@ it is the plain POST to `/quote` it always was.
 | `done` | the card after a lead is taken — a node, or `(sent: LeadSent) => node` (`{ channel, phone, name }`), shown in place. Without it, a lead taken goes to the thanks page the route names. Either way a script posts the form itself (asking `/quote` for JSON), so a refusal keeps what was typed; an answer that is not the route's, or no network, submits the form for real; without a script nothing changes (303) |
 | `flows`, `pricing`, `photos` | how each need is sold (`site.lead.flows`), the page's price list (`createPricingSource(site).model()`), and the `quote` needs priced from photos — see [Form variants](#form-variants-quote-estimate-fixed) |
 | `booking` | after a priced lead, in place of the place's booking (`LeadBooking`, from `place.booking`): a node or `(sent) => node` |
-| `calComEmbed` · `bookingAdapters` | `cal_com` as Cal.com's modal (its script on the click) rather than a new tab · the brand's adapters over the built-ins (from a client component) — see [Booking](#booking-manual-link-cal_com) |
+| `bookingVariant` · `bookingEmbed` · `bookingAdapters` | the `booking_provider` variant that picks the place's provider · the providers' embeds (after cookie consent) rather than a new tab · the brand's adapters over the built-ins (from a client component) — see [Booking](#booking-manual-link-google_calendar-cal_com) |
 | `initialError` | `leadErrorOf(searchParams)` on a page that reads its query: the refusal a 303 brought back, drawn on the server by the card it names (`lead_card`) so the card says why without a script (see *Refusals*) |
 | `head`, `trust` | the brand's heading instead of the title; a slot beside the submit. Like `extras`, `done` and `booking`, any node, built on the server or not, and never asked for a `key`: each slot sits alone in a keyed fragment |
 | `className` · `classNames` | the root · its parts: `root`, `head`, `title`, `lede`, `form`, `contact`, `field`, `label`, `control` (every input, the need's select in both states, the callback's phone), `hint`, `error` (a refusal: under the field, or above the submit), `chips`, `chip`, `needs`, `need`, `summary`, `submit`, `trust`, `privacy`, `opening`, `others`, `channel`, `primary`, `callback`, `callbackSummary`, `callbackForm`, `callbackLede`, `callbackSubmit`, `consent`, `done`, and for the flows `estimate`, `estimateInput`, `estimateLegend`, `estimateOption`, `price`, `priceTotal`, `breakdown`, `priceNote`, `photos`, `priced`, `pricedPrice`, `pricedNote`, and for the booking `booking`, `bookingCta`, `bookingNote`, `prefer`, `preferOption`, `preferSubmit` |
@@ -408,7 +408,7 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, pricing, unavai
   WhatsApp; the callback stays where it is.
 - **Words.** `LEAD_CAPTURE_TEXT` carries them (`priceTitle`, `pricePending`,
   `priceNote`, `priceBase`, `priceRounding`, `priceMinimum`, `bookSubmit`,
-  `sentPrice`, `priceChanged*`, `slotCallback`, `book*`, `booked`,
+  `sentPrice`, `priceChanged*`, `slotCallback`, `book*` (`bookPhoneHint` too), `booked`,
   `prefer*`, `part*`, `photos*`); optional in `LeadCaptureText`, so
   a brand's own text from before them falls back to the kit's in the page's
   language (`flowTextOf`).
@@ -419,55 +419,62 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, pricing, unavai
   (166,459 → 170,375 B against its 158,000 B target: +7.8 %, within the 20 %
   tolerance).
 
-### Booking: `manual`, `link`, `cal_com`
+### Booking: `manual`, `link`, `google_calendar`, `cal_com`
 
 How a priced lead's slot is set, per place, provider-agnostic. The default is
-`manual` — a call; `link` and `cal_com` are built-in adapters, and another
-provider (Calendly, Google appointment schedules) is one more adapter a brand
-registers, `LeadCapture` untouched.
+`manual` — a call. A place may also have pages on `link`, `google_calendar`
+and `cal_com`, and the `booking_provider` experiment picks among them; the
+first A/B is `google_calendar` against `manual`. `calendly` is the next
+adapter, on the same seams.
 
 ```ts
 // shared/config/places.ts — baked, optional; the panel's place settings override it (`PlaceLive.booking`)
-{ slug: "paris", …, booking: { provider: "cal_com", url: "https://cal.com/brand/menage" } }
-// shared/config/site.ts — the Cal.com hosts a place may book on (default ["cal.com"])
+{ slug: "paris", …, booking: { default: "manual", providers: { google_calendar: { url: "https://calendar.app.google/…" } } } }
+// shared/config/site.ts — the Cal.com hosts a place may book on (default ["cal.evinvest.ltd", "cal.com"])
 export const site = defineSite({ …, booking: { calComHosts: ["cal.com", "cal.brand.fr"] } });
+// the page: the experiment's variant picks the provider among the place's
+<LeadCapture … bookingVariant={assignment(BOOKING_EXPERIMENT)} />
 // app/quote/booking/route.ts
 export const dynamic = "force-dynamic";
 export const POST = bookingRoute({ env: serverEnv, webhook });
 ```
 
-- **The config** (`BookingConfig`): `{ provider: "manual" }` — the card
-  promises a call and offers an optional preference: a day of the coming week
-  and a part of the day (`morning | afternoon | evening`), no free text;
-  `{ provider: "link", url }` — any booking page, opened with
-  `ref=<leadRef>`; `{ provider: "cal_com", url }` — a Cal.com event,
-  `https://<allowed host>/<user>/<event>`, opened with `name`,
-  `attendeePhoneNumber` (E.164) and `metadata[ref]=<leadRef>`. A place with
-  none is `manual` (`bookingOf`, `DEFAULT_BOOKING`). The ref always rides in
-  the query, never the fragment. `bookingConfigProblems` holds the strict
-  URL rule; the panel mirrors it from
-  [`test/fixtures/booking/`](./test/fixtures/booking/README.md).
+- **The config** (`BookingConfig`): `{ default, providers: { <provider>: { url } } }`.
+  `manual` has no page and is always available: the card promises a call and
+  offers an optional preference — a day of the coming week and a part of the
+  day (`morning | afternoon | evening`), no free text. `link` — any booking
+  page, opened with `ref=<leadRef>`. `google_calendar` — a schedule on
+  `calendar.app.google` or `calendar.google.com/calendar/appointments/…`,
+  opened as is: it takes no parameter, so the card asks the visitor to type
+  the same phone there (`bookPhoneHint`) and the panel matches by contact and
+  time. `cal_com` — `https://<allowed host>/<user>/<event>`, opened with
+  `name`, `attendeePhoneNumber` (E.164) and `metadata[ref]=<leadRef>`.
+  `default` is `manual` or one of `providers`; a place with no booking is
+  `manual` (`DEFAULT_BOOKING`). A ref always rides in the query, never the
+  fragment. `bookingConfigProblems` holds the strict URL rules; the panel
+  mirrors them from [`test/fixtures/booking/`](./test/fixtures/booking/README.md).
   `defineSite` refuses a baked booking or host list that does not validate;
   a live one that does not is dropped and the baked one kept.
-- **Nothing third-party before the click.** `link` and `cal_com` are plain
-  links the browser opens in a new tab. `calComEmbed` on `LeadCapture`
-  (`calComEmbedAdapter`) opens Cal.com's modal instead: its script loads on
-  the click, and its `bookingSuccessful` is `onBooked` — the one way the page
-  learns a slot was taken (`lead_booking_done`, "Créneau réservé").
-- **Adapters** (`BookingAdapter = { provider, href?, open? }`), picked by the
-  config's `provider`: the built-ins are `manualAdapter`, `linkAdapter`,
-  `calComAdapter`; `bookingAdapters` on `LeadCapture` registers a brand's own
-  by provider name, any name (from a client component — a server one cannot
-  pass functions). A provider no adapter knows promises the call.
-- **An experiment's arm: one entry point.** `bookingForVariant(place, variant,
-  arms)` answers the arm's config for the variant, else the place's
-  (`bookingOf`); the page passes it as `LeadCapture`'s `bookingConfig`
-  (serialisable, so a server component can). An arm's provider may be one
-  outside the closed set while its contract is pending; its
-  `booking.requested` is then refused by the route (`422`) and only the
-  events count it. `lead_booking_open` / `lead_booking_done {provider}`
-  compare the arms.
-- **`booking.requested@1`.** Opening a `link` / `cal_com` page, or sending a
+- **The choice: one entry point.** `bookingOf(place, variant)` answers the
+  provider the `booking_provider` variant (`BOOKING_EXPERIMENT`, the same key
+  on every brand) names, when the place has it (`manual` always), else the
+  place's `default`. `LeadCapture` calls it with `bookingVariant`. The chosen
+  provider is what `booking.requested@1` and `lead_booking_open` /
+  `lead_booking_done {provider}` carry, so the arms compare.
+- **Nothing third-party before the click.** Every provider with a page is a
+  plain link the browser opens in a new tab. `bookingEmbed` on `LeadCapture`
+  (`BOOKING_EMBEDS`: Cal.com's modal, `calComEmbedAdapter`) opens it on the
+  page instead — only once the visitor accepted the provider's cookies: its
+  script loads on the click, and its `bookingSuccessful` is `onBooked`, the
+  one way the page learns a slot was taken (`lead_booking_done`). In an A/B
+  test both arms must open the same way, or it measures the opening.
+- **Adapters** (`BookingAdapter = { provider, href?, open?, prefillsPhone? }`),
+  picked by the chosen provider: `manualAdapter`, `linkAdapter`,
+  `googleCalendarAdapter`, `calComAdapter`; `bookingAdapters` on
+  `LeadCapture` registers a brand's own by provider name (from a client
+  component — a server one cannot pass functions). A provider no adapter
+  knows promises the call.
+- **`booking.requested@1`.** Opening a provider's page, or sending a
   `manual` preference, posts `{ submission, lead_ref, provider,
   preferred_date?, preferred_part? }` to `/quote/booking` (`bookingRoute`).
   The submission id proves the lead is this page's (a `lead_ref` alone books
@@ -477,6 +484,9 @@ export const POST = bookingRoute({ env: serverEnv, webhook });
 - **`ctx.leadRef` is the panel's lead id.** A booking comes back to the panel
   carrying `leadRef` (`metadata[ref]`, `ref`, `lead_ref`), so a brand's
   `lead.created` must send `ctx.leadRef` as its lead id — not an id of its own.
+- **Weight.** The booking and the price confirmation add about 3.1 KB gz of
+  first-load JS to the template's place page (170,853 → 173,979 B against
+  its 158,000 B target: +10.1 %, within the 20 % tolerance).
 
 Tailwind v4 does not scan `node_modules`; the brand's `globals.css` names the
 package:
