@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, type RefObject } from "react";
 import { EVENTS, experimentProps, type LeadField, type LeadStep } from "../core/analytics";
-import type { LeadFlow } from "../core/pricing/flow";
 import { centsBucket } from "../core/pricing/price";
 import { useAnalyticsSink } from "./analytics-context";
 
@@ -17,9 +16,6 @@ export interface LeadEvents {
   submitError(reason: "network" | "timeout", channel: "form" | "callback"): void;
   /** An estimate's price for a full set of answers: its band only, once per need and band. */
   estimateShown(need: string, cents: number): void;
-  /** The booking page opened, by a click; and Calendly saying the slot is booked. */
-  bookingOpen(need: string, flow: LeadFlow): void;
-  bookingDone(need: string, flow: LeadFlow): void;
 }
 
 /**
@@ -82,8 +78,6 @@ export function useLeadEvents(root: RefObject<HTMLElement | null>, tags: { formI
         shown.current.add(key);
         sink?.capture(EVENTS.estimateShown, { ...props, need, cents_bucket });
       },
-      bookingOpen: (need, flow) => sink?.capture(EVENTS.bookingOpen, { ...props, need, flow }),
-      bookingDone: (need, flow) => sink?.capture(EVENTS.bookingDone, { ...props, need, flow }),
     }),
     [sink, props],
   );
