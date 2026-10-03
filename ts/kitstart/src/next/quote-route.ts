@@ -144,6 +144,15 @@ export function quoteRoute<L extends string, P extends string>(
     }
     return webhook;
   };
+  // Read before the lead is stored, so a webhook that cannot be built must
+  // not throw here: it would cost the lead. `enqueue` says why, after the insert.
+  const suspectQueued = (): boolean => {
+    try {
+      return leadWebhook()?.panelSuspect ?? false;
+    } catch {
+      return false;
+    }
+  };
   const leadStore = (): LeadStore => {
     store ??= deps.store ? deps.store() : openLeadStore(deps.env().leadsDb);
     return store;
@@ -202,7 +211,7 @@ export function quoteRoute<L extends string, P extends string>(
     const outcome = await accept(form, clientKey(request.headers, env.trustedProxy ?? DEV_TRUST), {
       insert: lead => leadStore().insert(lead),
       findSubmission: async submissionId => (await leadStore().findSubmission?.(submissionId)) ?? null,
-      sendSuspect: leadWebhook()?.panelSuspect ?? false,
+      sendSuspect: suspectQueued(),
       defer,
       notify: (lead, id) => {
         notifier ??= deps.notifier();
@@ -229,7 +238,8 @@ export function quoteRoute<L extends string, P extends string>(
       now: deps.now?.() ?? Date.now(),
       log,
     });
-    if (outcome.kind === "stored" && env.production === false && (outcome.lead.spamVerdict === "rate-limited" || outcome.lead.spamVerdict === "honeypot")) {
+    const held = outcome.kind === "stored" && !outcome.duplicate && (outcome.lead.spamVerdict === "honeypot" || (outcome.lead.spamVerdict === "rate-limited" && !suspectQueued()));
+    if (held && outcome.kind === "stored" && env.production === false) {
       // A local stack posts every test lead from one address: say it, loudly.
       log.warn(
         `\n!!! quote (development): lead ${outcome.id} stored as ${outcome.lead.spamVerdict} and NOT sent on — no mail, no webhook.\n` +

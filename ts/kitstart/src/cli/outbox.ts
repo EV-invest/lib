@@ -9,7 +9,9 @@ import type { DatabaseSync } from "node:sqlite";
 export const USAGE = `kitstart-outbox <status | requeue> [--db <leads.db>]
 
   status    rows of webhook_outbox by state and target
-  requeue   every dead row back to pending, due now, its tries and horizon fresh
+  requeue   dead rows back to pending, due now, their tries and horizon fresh —
+            only the receiver's of --target, else LEAD_WEBHOOK_URL; all
+            without either (a running site sends only its own target's)
 
 The file is --db, else LEADS_DB_URL (sqlite:///<path>), else LEADS_DB_PATH.`;
 
@@ -55,10 +57,17 @@ export function runOutboxCli(args: readonly string[], env: Env, print: (line: st
   const db = open(path);
   try {
     if (command === "requeue") {
-      const done = db
-        .prepare("UPDATE webhook_outbox SET state = 'pending', attempts = 0, created_at = ?, next_attempt_at = ?, done_at = NULL WHERE state = 'dead'")
-        .run(now, now);
-      print(`requeued ${Number(done.changes)} dead row(s); the running site sends them on its next tick`);
+      const at = args.indexOf("--target");
+      const raw = at !== -1 ? args[at + 1] : env["LEAD_WEBHOOK_URL"]?.trim();
+      // Spelt as the server stores it (`checkWebhookUrl`), or nothing would match.
+      const target = raw ? new URL(raw).toString() : null;
+      const sql = "UPDATE webhook_outbox SET state = 'pending', attempts = 0, created_at = ?, next_attempt_at = ?, done_at = NULL WHERE state = 'dead'";
+      const done = target === null ? db.prepare(sql).run(now, now) : db.prepare(`${sql} AND target = ?`).run(now, now, target);
+      print(
+        target === null
+          ? `requeued ${Number(done.changes)} dead row(s) of every target; a running site sends those of its own LEAD_WEBHOOK_URL on its next tick`
+          : `requeued ${Number(done.changes)} dead row(s) for ${target}; the running site sends them on its next tick`,
+      );
       return 0;
     }
     const rows = db.prepare("SELECT state, target, COUNT(*) AS n FROM webhook_outbox GROUP BY state, target ORDER BY state, target").all();

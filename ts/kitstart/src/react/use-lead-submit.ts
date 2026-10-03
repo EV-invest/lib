@@ -29,10 +29,29 @@ export function newSubmissionId(): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
-/** The form's submission id, minted on its first post and kept for a resend of the same lead. */
+/**
+ * The ids this page minted, by form, with what each was minted for. Kept in
+ * memory, not read back from the field: a browser restores a hidden field's
+ * value on Back, and a new lead would go out under an old one's id.
+ */
+const minted = new WeakMap<HTMLFormElement, { id: string; lead: string }>();
+
+/**
+ * The form's submission id, written into its field: the same for a resend of
+ * the same lead, a new one as soon as anything posted differs — a number
+ * fixed after a timeout is another lead, which must not be answered with the
+ * first one's row.
+ */
 function stamp(form: HTMLFormElement): void {
   const field = form.elements.namedItem(SUBMISSION_FIELD);
-  if (field instanceof HTMLInputElement && field.value === "") field.value = newSubmissionId();
+  if (!(field instanceof HTMLInputElement)) return;
+  const posted = new FormData(form);
+  posted.delete(SUBMISSION_FIELD);
+  const lead = new URLSearchParams([...posted].filter((e): e is [string, string] => typeof e[1] === "string")).toString();
+  const known = minted.get(form);
+  const id = known && known.lead === lead ? known.id : newSubmissionId();
+  minted.set(form, { id, lead });
+  field.value = id;
 }
 
 type Answer = { ok: true; location: string } | { ok: false; field: string };
@@ -47,7 +66,11 @@ const OWN_PATH = /^\/(?!\/)/;
  */
 async function readAnswer(res: Response): Promise<Answer | null> {
   if ((res.ok || res.status === 422) && (res.headers.get("content-type") ?? "").includes("application/json")) {
-    const body: unknown = await res.json().catch(() => null);
+    // Not JSON is no answer; a body cut off (the network, the timeout) is no answer either — thrown on.
+    const body: unknown = await res.json().catch((error: unknown) => {
+      if (error instanceof SyntaxError) return null;
+      throw error;
+    });
     if (typeof body !== "object" || body === null) return null;
     const { ok, location, field } = body as Record<string, unknown>;
     if (ok === true && typeof location === "string" && OWN_PATH.test(location)) return { ok, location };
@@ -140,7 +163,9 @@ export function useLeadSubmit(done: boolean, fields: { mobile: string; name: str
             settle();
             return on.onRefused(lead.channel, answer.field);
           }
-          // Still pending: the page is leaving, or the form is gone.
+          // Still pending: the page is leaving, or the form is gone. The next
+          // lead from this form (Back, another need) gets an id of its own.
+          minted.delete(form);
           if (done) setSent(lead);
           else navigation.assign(answer.location);
         },
