@@ -55,4 +55,30 @@ describe("Sheet", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     expect(queryByRole("dialog")).toBeNull();
   });
+
+  it("focuses the panel itself on open, not its first control", () => {
+    const { getByText, getByRole } = render(
+      <Sheet>
+        <SheetTrigger>open</SheetTrigger>
+        <SheetContent>
+          <button type="button">Call</button>
+        </SheetContent>
+      </Sheet>,
+    );
+    fireEvent.click(getByText("open"));
+    const panel = getByRole("dialog");
+    expect(document.activeElement).toBe(panel);
+    expect(panel).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("the overlay runs on the panel's clock and holds its last frame", () => {
+    const { getByText, baseElement } = render(tree());
+    fireEvent.click(getByText("open"));
+    const overlay = baseElement.querySelector('[data-slot="sheet-overlay"]')!;
+    expect(overlay).toHaveClass(
+      "data-[state=open]:duration-500",
+      "data-[state=closed]:duration-300",
+      "data-[state=closed]:fill-mode-forwards",
+    );
+  });
 });

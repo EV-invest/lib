@@ -7,7 +7,8 @@ use tailwind_fuse::{AsTailwindClass, TwVariant};
 pub const DRAWER_CONTENT_BASE: &str = "bg-background fixed z-50 flex h-auto border border-border";
 
 /// Scrim behind the panel; its fade is motion.css, keyed on `data-slot="drawer-overlay"` + `data-state`.
-pub const DRAWER_OVERLAY: &str = "fixed inset-0 z-50 bg-black/50";
+/// A closing scrim still covers the page through its 500ms fade, so it lets clicks through as soon as it closes.
+pub const DRAWER_OVERLAY: &str = "fixed inset-0 z-50 bg-black/50 data-[state=closed]:pointer-events-none";
 
 /// Drag affordance, rendered for the bottom direction only.
 pub const DRAWER_HANDLE: &str = "bg-muted mx-auto mt-4 h-2 w-[100px] shrink-0 rounded-full";

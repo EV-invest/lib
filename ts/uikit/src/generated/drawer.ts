@@ -10,7 +10,7 @@ export const drawerDirectionClasses = {
 } as const;
 export type DrawerDirection = keyof typeof drawerDirectionClasses;
 
-export const DRAWER_OVERLAY = "fixed inset-0 z-50 bg-black/50";
+export const DRAWER_OVERLAY = "fixed inset-0 z-50 bg-black/50 data-[state=closed]:pointer-events-none";
 
 export const DRAWER_HANDLE = "bg-muted mx-auto mt-4 h-2 w-[100px] shrink-0 rounded-full";
 
