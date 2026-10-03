@@ -31,6 +31,9 @@ export const site = defineSite({
   publication: SERVICE_AREA_GATE,
   lead: LEAD,
   pricing: PRICING,
+  // The Cal.com hosts a place's `cal_com` booking may be on. A brand on its
+  // own Cal.com adds its domain: ["cal.com", "cal.brand.fr"].
+  booking: { calComHosts: ["cal.com"] },
 });
 
 export type PageKey = (typeof site.pageKeys)[number];

@@ -19,7 +19,9 @@
 //   (`tests/e2e/quote-form.spec.ts`, `flows.spec.ts`) against the standalone
 //   build, its live source a stand-in panel (`mock-panel.mjs`) — the form
 //   posting without JavaScript and the kit's list with it, the estimate priced
-//   and re-priced by the server, its success promising the call. The runner is this
+//   and re-priced by the server (a changed price confirmed, never recorded
+//   silently), its success offering the place's booking — Cal.com loaded on
+//   the click only, or a call with a preference. The runner is this
 //   package's `@playwright/test`, linked into `tests/e2e` as a brand's flake
 //   links its own; its browser must be installed (`npx playwright install
 //   chromium`). The section screenshots stay a brand's: their baselines are
