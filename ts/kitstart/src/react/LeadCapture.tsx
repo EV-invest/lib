@@ -142,7 +142,7 @@ export function LeadCapture(props: LeadCaptureProps) {
   const model = props.pricing ?? null;
   const flow = flowOf(props.flows, model, shownNeed);
   const estimate = useEstimate(model, shownNeed, flow, events.estimateShown);
-  // A priced lead stays in the card, where its slot is booked.
+  // A priced lead stays in the card: its price is confirmed there, and the slot promised.
   const staysInCard = (ch: "form" | "callback") => props.done !== undefined || (ch === "form" && flow !== "quote");
   const { sent, onSubmit, busy, failure, retry } = useLeadSubmit(
     staysInCard,
