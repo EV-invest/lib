@@ -315,7 +315,10 @@ it is the plain POST to `/quote` it always was.
   never makes a second lead. While it runs the form's submit is disabled, `aria-busy` and
   says `sending`. No answer — no network, or none in 15 s
   (`SUBMIT_TIMEOUT_MS`) — is said in place with a retry that sends the same
-  lead; the page is never left for the browser's error page.
+  lead; the page is never left for the browser's error page. While a post
+  runs or waits for its retry, the channels keep their order: the hours
+  turning (the place closing) would move the callback, and a moved form is a
+  new one — what was typed gone, the retry sent nowhere.
 - **Events** (through `AnalyticsBoundary`'s sink; none outside one):
   `lead_form_view` (half in view, once), `lead_form_start` (first focus),
   `lead_form_field_error {field, blocking}` (`blocking: true` the browser
