@@ -222,6 +222,40 @@ describe("LeadCapture with a script", () => {
     expect(phone).not.toHaveAttribute("aria-invalid");
   });
 
+  // LEAD-FORMS-RETEST-2026-10-03 N1: the hint drawn on the blur a tap on the
+  // consent causes pushed the box down between press and release, and the
+  // tap missed it. Any control, not only the submit.
+  it("holds the hint a tap elsewhere causes until the tap is over, so nothing moves under it", async () => {
+    render(capture());
+    const phone = input("mobile", "quote-callback-form");
+    const consent = form("quote-callback-form").querySelector<HTMLInputElement>("input[type=checkbox]");
+    if (!consent) throw new Error("no consent");
+    const live = phone.closest("[role=group]")?.querySelector("[aria-live=polite]");
+    fireEvent.change(phone, { target: { value: "12 34 56 7" } });
+    fireEvent.pointerDown(consent);
+    fireEvent.blur(phone);
+    expect(live).toBeEmptyDOMElement();
+    fireEvent.pointerUp(consent);
+    fireEvent.click(consent);
+    expect(consent.checked).toBe(true);
+    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+    expect(live).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.phoneHint);
+    // A press that turns into a scroll ends the wait as well.
+    fireEvent.change(phone, { target: { value: "06 12 34 56 78" } });
+    fireEvent.change(phone, { target: { value: "12 3" } });
+    fireEvent.pointerDown(consent);
+    fireEvent.blur(phone);
+    expect(live).toBeEmptyDOMElement();
+    fireEvent.pointerCancel(consent);
+    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+    expect(live).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.phoneHint);
+    // From the keyboard nothing is under a pointer: the hint shows at once.
+    fireEvent.change(phone, { target: { value: "06 12 34 56 78" } });
+    fireEvent.change(phone, { target: { value: "12 34" } });
+    fireEvent.blur(phone);
+    expect(live).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.phoneHint);
+  });
+
   // An empty message once gave back the field's gap with `-mt-2`, tuned to
   // the kit's `gap-2`: under a brand's other gap every field moved.
   it("keeps each field's empty message out of the layout, whatever the field's gap, and still read out", () => {
