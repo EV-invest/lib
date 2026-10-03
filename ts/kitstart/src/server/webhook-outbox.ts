@@ -23,12 +23,29 @@ export interface WebhookTarget {
   signing: WebhookSigning;
 }
 
+/** What `onDead` is told of a row given up on: its error as tagged (`HTTP 503`), never the receiver's words. */
+export interface DeadRow {
+  id: number;
+  ref: string | null;
+  attempts: number;
+  error: string;
+}
+
 export interface WebhookOutboxOptions {
-  /** Tries per row, the first included; past it the row is `dead`. */
+  /**
+   * How long a row is retried, from when it was queued (or requeued); past it
+   * a failure makes it `dead`. 48 hours by default: a receiver down over a
+   * night and a day still gets its leads.
+   */
+  horizonMs?: number;
+  /** A cap on tries per row besides the horizon, the first included; none by default. */
   maxAttempts?: number;
   /** The wait after the first failure; doubled after each next one. */
   baseDelayMs?: number;
+  /** The longest wait between two tries: an hour by default. */
   maxDelayMs?: number;
+  /** Told of every row given up on, after the error log — the alert hook. */
+  onDead?: (row: DeadRow) => void;
   /** Per request, so a hung receiver does not hold the tick. */
   timeoutMs?: number;
   /** Rows sent per tick. */
@@ -66,10 +83,20 @@ export interface WebhookOutbox {
   start(intervalMs?: number): void;
   stop(): void;
   rows(): OutboxRow[];
+  /**
+   * Puts this target's `dead` rows back in the queue, due now, with their
+   * tries and horizon fresh — after a key rotation or an outage longer than
+   * the horizon. Answers how many. `kitstart-outbox requeue` does the same
+   * from a shell.
+   */
+  requeueDead(): number;
   close(): void;
 }
 
+/** The old default cap on tries; kept for a brand that passes it as `maxAttempts`. The horizon decides now. */
 export const WEBHOOK_MAX_ATTEMPTS = 12;
+export const WEBHOOK_HORIZON_MS = 48 * 60 * 60_000;
+export const WEBHOOK_MAX_DELAY_MS = 60 * 60_000;
 export const WEBHOOK_TICK_MS = 10_000;
 
 const SCHEMA = `
@@ -140,7 +167,8 @@ function state(row: unknown): OutboxState {
 
 type Verdict =
   | { kind: "delivered"; note: string | null }
-  | { kind: "retry"; tag: string; why: string; afterMs: number | null }
+  /** `alarm`: retried, but a person should look — the key or the URL is likely wrong. */
+  | { kind: "retry"; tag: string; why: string; afterMs: number | null; alarm?: string }
   | { kind: "dead"; tag: string; why: string };
 
 /** `Retry-After` in seconds; the HTTP-date form is rare enough to ignore. */
@@ -186,6 +214,10 @@ async function judge(response: Response, rowId: number, log: Pick<Console, "warn
   const tag = `HTTP ${status}`;
   const why = said ? `${tag}: ${said}` : tag;
   if (status === 408 || status === 429 || status >= 500) return { kind: "retry", tag, why, afterMs: retryAfter(response) };
+  // A rotated key (401, 403) or a receiver moved or not yet deployed (404):
+  // fixed by a person, after which the lead must still arrive.
+  if (status === 401 || status === 403) return { kind: "retry", tag, why, afterMs: null, alarm: "check LEAD_WEBHOOK_KEY_ID / LEAD_WEBHOOK_SECRET against the receiver's key" };
+  if (status === 404) return { kind: "retry", tag, why, afterMs: null, alarm: "check LEAD_WEBHOOK_URL" };
   // 3xx included: redirects are not followed, since the target was vetted and its Location was not.
   return { kind: "dead", tag, why };
 }
@@ -198,9 +230,10 @@ async function judge(response: Response, rowId: number, log: Pick<Console, "warn
  * agreed to take them.
  */
 export function openWebhookOutbox(path: string, target: WebhookTarget, options: WebhookOutboxOptions = {}): WebhookOutbox {
-  const maxAttempts = options.maxAttempts ?? WEBHOOK_MAX_ATTEMPTS;
+  const horizon = options.horizonMs ?? WEBHOOK_HORIZON_MS;
+  const maxAttempts = options.maxAttempts ?? Number.POSITIVE_INFINITY;
   const baseDelay = options.baseDelayMs ?? 5_000;
-  const maxDelay = options.maxDelayMs ?? 60 * 60_000;
+  const maxDelay = options.maxDelayMs ?? WEBHOOK_MAX_DELAY_MS;
   const timeoutMs = options.timeoutMs ?? 10_000;
   const batch = options.batch ?? 20;
   const send = options.fetch ?? fetch;
@@ -221,7 +254,7 @@ export function openWebhookOutbox(path: string, target: WebhookTarget, options: 
 
   const insert = db.prepare("INSERT INTO webhook_outbox (target, ref, body, created_at, next_attempt_at) VALUES (?, ?, ?, ?, ?) RETURNING id");
   const due = db.prepare(
-    "SELECT id, body, attempts FROM webhook_outbox WHERE state = 'pending' AND target = ? AND next_attempt_at <= ? ORDER BY next_attempt_at, id LIMIT ?",
+    "SELECT id, ref, body, attempts, created_at FROM webhook_outbox WHERE state = 'pending' AND target = ? AND next_attempt_at <= ? ORDER BY next_attempt_at, id LIMIT ?",
   );
   // A lease: another process ticking the same file skips a row while it is in flight.
   const claim = db.prepare("UPDATE webhook_outbox SET next_attempt_at = ? WHERE id = ? AND state = 'pending' AND next_attempt_at <= ?");
@@ -229,6 +262,10 @@ export function openWebhookOutbox(path: string, target: WebhookTarget, options: 
   const reschedule = db.prepare("UPDATE webhook_outbox SET attempts = ?, next_attempt_at = ?, last_error = ? WHERE id = ?");
   const list = db.prepare("SELECT id, ref, state, attempts, next_attempt_at, last_error FROM webhook_outbox ORDER BY id");
   const stranded = db.prepare("SELECT COUNT(*) AS n FROM webhook_outbox WHERE state = 'pending' AND target <> ?");
+  // `created_at` restarts the horizon: a requeued row is queued anew.
+  const requeue = db.prepare(
+    "UPDATE webhook_outbox SET state = 'pending', attempts = 0, created_at = ?, next_attempt_at = ?, done_at = NULL WHERE state = 'dead' AND target = ?",
+  );
 
   const left = int(stranded.get(target.url), "n");
   if (left > 0) log.warn(`webhook: ${left} pending row(s) queued for another target; left in place, not sent`);
@@ -265,19 +302,27 @@ export function openWebhookOutbox(path: string, target: WebhookTarget, options: 
       const id = int(row, "id");
       const body = text(row, "body") ?? "";
       const attempts = int(row, "attempts") + 1;
+      const queuedAt = int(row, "created_at");
       if (Number(claim.run(t + timeoutMs + 5_000, id, t).changes) === 0) continue;
       const verdict = await deliver(id, body);
       if (verdict.kind === "delivered") {
         finish.run("delivered", attempts, verdict.note?.slice(0, ERROR_CAP) ?? null, now(), id);
         report.delivered += 1;
-      } else if (verdict.kind === "dead" || attempts >= maxAttempts) {
+      } else if (verdict.kind === "dead" || attempts >= maxAttempts || now() - queuedAt >= horizon) {
         finish.run("dead", attempts, verdict.why, now(), id);
-        log.error(`webhook: outbox #${id} dead after ${attempts} attempt(s): ${verdict.tag}`);
+        log.error(`webhook: outbox #${id} dead after ${attempts} attempt(s): ${verdict.tag}; requeue with requeueDead() or \`kitstart-outbox requeue\``);
         report.dead += 1;
+        try {
+          options.onDead?.({ id, ref: text(row, "ref"), attempts, error: verdict.tag });
+        } catch (error) {
+          log.error("webhook: the onDead hook failed", error);
+        }
       } else {
         const wait = backoff(attempts, verdict.afterMs);
         reschedule.run(attempts, now() + wait, verdict.why, id);
-        log.warn(`webhook: outbox #${id} attempt ${attempts} failed (${verdict.tag}); next in ${Math.round(wait / 1000)} s`);
+        const line = `webhook: outbox #${id} attempt ${attempts} failed (${verdict.tag}); next in ${Math.round(wait / 1000)} s`;
+        if (verdict.alarm) log.error(`${line} — ${verdict.alarm}`);
+        else log.warn(line);
         report.retried += 1;
       }
     }
@@ -323,6 +368,10 @@ export function openWebhookOutbox(path: string, target: WebhookTarget, options: 
         nextAttemptAt: int(row, "next_attempt_at"),
         lastError: text(row, "last_error"),
       }));
+    },
+    requeueDead() {
+      const t = now();
+      return Number(requeue.run(t, t, target.url).changes);
     },
     close() {
       stop();

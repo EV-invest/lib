@@ -57,7 +57,8 @@
   "types": "./dist/index.d.ts",
   "main": "./dist/index.js",
   "bin": {
-    "kitstart-size": "./dist/cli/kitstart-size.js"
+    "kitstart-size": "./dist/cli/kitstart-size.js",
+    "kitstart-outbox": "./dist/cli/kitstart-outbox.js"
   },
   "files": [
     "dist",
