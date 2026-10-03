@@ -138,5 +138,7 @@ describe("LeadBooking: manual", () => {
     fireEvent.click(screen.getByRole("button", { name: text.preferSubmit }));
     await waitFor(() => expect(screen.getByRole("button", { name: text.preferSubmit })).toBeEnabled());
     expect(screen.queryByText(text.preferSent)).toBeNull();
+    // Review of #185: a brand without the route lost the preference without a word.
+    expect(screen.getByText(text.preferFailed)).toBeInTheDocument();
   });
 });
