@@ -42,6 +42,7 @@ import {
 import { TerminalDemo } from "./TerminalDemo";
 import { DrawerDemo } from "./DrawerDemo";
 import { BrandsDemo } from "./BrandsDemo";
+import { ShellDemo } from "./ShellDemo";
 
 const POSITIONS: ToastPosition[] = [
   "top-left",
@@ -323,6 +324,12 @@ export default function App() {
           <Section title="Terminal" hint="fake data; the chart host is empty on purpose">
             <div className="w-full">
               <TerminalDemo />
+            </div>
+          </Section>
+
+          <Section title="App shell" hint="rail from lg, tab bar below; clicks mark at once, the fake router lands 250ms later">
+            <div className="w-full">
+              <ShellDemo />
             </div>
           </Section>
         </div>
