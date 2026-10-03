@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, cn, Field, FieldLabel } from "@evinvest/uikit";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type KeyboardEvent, type MouseEvent } from "react";
 import { FormSelect, type FormSelectOption } from "./FormSelect";
 import type { PartClassNames } from "./parts";
 
@@ -21,7 +21,10 @@ export interface NeedFieldProps {
   changeLabel: string;
   /** Blocks the submit while no tile is chosen, in the page's words. */
   requiredText: string;
+  /** The visitor's answer: a tap, Enter or Space — `qualify-first` moves on. */
   onPick: (need: string) => void;
+  /** An arrow key moved the choice: chosen, but the visitor is still choosing. */
+  onSelect: (need: string) => void;
   onEdit: () => void;
   classNames?: PartClassNames<NeedPart> | undefined;
 }
@@ -34,8 +37,12 @@ export interface NeedFieldProps {
  * per need: one tap answers it.
  */
 export function NeedField(props: NeedFieldProps) {
-  const { layout, name, needs, need, editing, hydrated, label, changeLabel, onPick, onEdit, classNames: c } = props;
+  const { layout, name, needs, need, editing, hydrated, label, changeLabel, onPick, onSelect, onEdit, classNames: c } = props;
   const group = useRef<HTMLFieldSetElement>(null);
+  // A radio group answers arrows with a click (`detail` 0) and a change, the
+  // same events a tap makes: what moves on is told apart by its key or pointer.
+  const pointer = useRef(false);
+  const answered = useRef(false);
   useEffect(() => {
     for (const radio of group.current?.querySelectorAll<HTMLInputElement>("input[type=radio]") ?? []) radio.setCustomValidity(need === undefined ? props.requiredText : "");
   });
@@ -74,7 +81,33 @@ export function NeedField(props: NeedFieldProps) {
               value={n.value}
               required
               checked={need === n.value}
-              onChange={() => onPick(n.value)}
+              onPointerDown={() => {
+                pointer.current = true;
+              }}
+              onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+                pointer.current = false;
+                answered.current = false;
+                if (e.key !== "Enter") return;
+                // From a radio, Enter would submit the form half filled.
+                e.preventDefault();
+                answered.current = true;
+                onPick(n.value);
+              }}
+              onKeyUp={(e: KeyboardEvent<HTMLInputElement>) => {
+                if (e.key !== " ") return;
+                answered.current = true;
+                onPick(n.value);
+              }}
+              onClick={(e: MouseEvent<HTMLInputElement>) => {
+                if (e.detail === 0 && !pointer.current) return;
+                pointer.current = false;
+                answered.current = true;
+                onPick(n.value);
+              }}
+              onChange={() => {
+                if (!answered.current) onSelect(n.value);
+                answered.current = false;
+              }}
               className="peer absolute inset-0 opacity-0"
               data-need-option=""
               data-lead-field="need"

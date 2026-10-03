@@ -139,6 +139,11 @@ export function LeadCapture(props: LeadCaptureProps) {
     setEditing(false);
     events.step("contact");
   };
+  // An arrow key in `qualify-first`: the tile is chosen, the group stays open.
+  const select = (value: string) => {
+    setNeed(value);
+    setEditing(true);
+  };
 
   const channel = (ch: CaptureChannel, primary: boolean) =>
     ch === "callback" ? (
@@ -214,6 +219,7 @@ export function LeadCapture(props: LeadCaptureProps) {
           changeLabel={text.needChange}
           requiredText={text.needRequired}
           onPick={pick}
+          onSelect={select}
           onEdit={() => {
             setEditing(true);
             events.step("need");
