@@ -122,8 +122,8 @@ Rust crate and its TypeScript mirror at once.
 - **Experiments from the Service-Arb panel** (`@evinvest/kitstart/server`).
   `createExperimentsSource` reads `GET <base>/experiments` for the proxy:
   the first call waits (1.5 s timeout), later ones answer from memory with a
-  30 s TTL and stale-while-revalidate; any failure is `{}`, the config in
-  code. `declareExperiments` queues `experiments.declared@1` in the lead
+  30 s TTL and stale-while-revalidate; a failure keeps the last good answer
+  (`{}`, the config in code, before the first one). `declareExperiments` queues `experiments.declared@1` in the lead
   webhook's outbox at start (signed and retried like a lead, never throwing),
   leaving out and logging an experiment the panel would refuse.
 - **`analytics_id` on a lead** (`@evinvest/kitstart`). `AnalyticsBoundary`

@@ -733,7 +733,9 @@ holdout? } } }`. The proxy reads it on every request, so it answers from memory:
 the first call waits for the panel (1.5 s timeout), later ones are served from
 the cache, and past the 30 s TTL the stale answer is served while one refresh
 runs behind it. An unreachable panel, a non-200 or a body of another shape is
-`{}` — the config in code — logged, and not asked again before the TTL.
+logged and keeps the last good answer — a kill switch must not come back on
+because the panel blinked — or `{}`, the config in code, when there was none
+yet; either way the panel is not asked again before the TTL.
 
 ```ts
 // shared/config/env.ts

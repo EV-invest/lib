@@ -23,8 +23,10 @@ export type ExperimentOverrides = Readonly<Record<string, ExperimentOverride>>;
  * first call waits for the panel (bounded by `timeoutMs`), every later one is
  * served from the cache — past the TTL too, while one refresh runs behind it
  * (stale-while-revalidate). The source never throws and never makes a page
- * wait on the panel twice: no base URL, an unreachable panel, a non-200, a
- * body that is not the panel's shape — each is `{}`, the config in code.
+ * wait on the panel twice. A failed refresh — an unreachable panel, a
+ * non-200, a body that is not the panel's shape — keeps the last good answer:
+ * a kill switch must not turn itself back on because the panel blinked. With
+ * no good answer yet (or no base URL) it is `{}`, the config in code.
  */
 export interface ExperimentsSourceOptions {
   /** The brand's base on the panel (`LOCATIONS_API_URL`), read when asked; `null` → no overrides. */
@@ -76,35 +78,38 @@ export function createExperimentsSource(options: ExperimentsSourceOptions): Expe
   let cached: { base: string; at: number; value: ExperimentOverrides } | null = null;
   let inflight: Promise<ExperimentOverrides> | null = null;
 
-  async function load(base: string): Promise<ExperimentOverrides> {
+  /** The panel's overrides, or `null` when it could not say. */
+  async function load(base: string): Promise<ExperimentOverrides | null> {
     let response: Response;
     try {
       // `no-store`: the cache is this module's; Next's data cache would add a second TTL.
       response = await fetch(`${base}/experiments`, { cache: "no-store", headers: { Accept: "application/json" }, signal: AbortSignal.timeout(timeoutMs) });
     } catch (cause) {
-      log.error("experiments: the panel is unreachable, using the config in code", cause);
-      return NONE;
+      log.error("experiments: the panel is unreachable, keeping the last good overrides", cause);
+      return null;
     }
     if (response.status !== 200) {
-      log.error(`experiments: the panel answered ${response.status}, using the config in code`);
-      return NONE;
+      log.error(`experiments: the panel answered ${response.status}, keeping the last good overrides`);
+      return null;
     }
     let body: unknown;
     try {
       body = await response.json();
     } catch (cause) {
-      log.error("experiments: the panel's body is not JSON, using the config in code", cause);
-      return NONE;
+      log.error("experiments: the panel's body is not JSON, keeping the last good overrides", cause);
+      return null;
     }
     const parsed = parseExperimentOverrides(body);
-    if (parsed === null) log.error("experiments: the panel's body is not { experiments: {…} }, using the config in code");
-    return parsed ?? NONE;
+    if (parsed === null) log.error("experiments: the panel's body is not { experiments: {…} }, keeping the last good overrides");
+    return parsed;
   }
 
   // One request at a time, however many visitors arrive while it runs.
   function refresh(base: string): Promise<ExperimentOverrides> {
     inflight ??= load(base)
-      .then(value => {
+      .then(loaded => {
+        // A failure still restarts the clock, so a down panel is asked once per TTL.
+        const value = loaded ?? (cached?.base === base ? cached.value : NONE);
         cached = { base, at: now(), value };
         return value;
       })
