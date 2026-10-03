@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LEAD_CAPTURE_TEXT, type OpeningHours, type Place } from "../src/index";
 import { AnalyticsSinkContext } from "../src/react/analytics-context";
 import { LeadCapture, type LeadCaptureProps } from "../src/react/index";
-import { navigation } from "../src/react/use-lead-submit";
+import { navigation, SUBMIT_TIMEOUT_MS } from "../src/react/use-lead-submit";
 import { serviceAreaPlace, storefrontPlace } from "../src/testing/index";
 
 const WEEKDAYS: readonly OpeningHours[] = [{ days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], opens: "08:00", closes: "19:00" }];
@@ -532,16 +532,67 @@ describe("LeadCapture's in-card success", () => {
     expect(screen.getByRole("status")).toHaveTextContent("C’est noté.");
   });
 
-  it("submits for real on any other answer, or none", async () => {
+  it("submits for real on an answer that is not the route's: the server's own page says why", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("<html>", { status: 500 })));
     render(capture({ done: "Merci" }));
     await send();
     expect(submit).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("status")).toBeNull();
-    vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("offline"))));
+  });
+
+  // LEAD-FORMS-REVIEW-2026-10-03 #4: offline, form.submit() opened the browser's error page and lost the form.
+  it("does not resubmit when the network fails: it says so, keeps the form, and retries the same lead", async () => {
+    const { wrap, events } = recorder();
+    const fetch = vi.fn(async (): Promise<Response> => Promise.reject(new TypeError("Failed to fetch")));
+    vi.stubGlobal("fetch", fetch);
+    render(wrap(capture({ done: "Merci" })));
     await send();
     await act(async () => Promise.resolve());
-    expect(submit).toHaveBeenCalledTimes(2);
+    expect(submit).not.toHaveBeenCalled();
+    const alert = within(form()).getByRole("alert");
+    expect(alert).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.networkError);
+    expect(posted()).toMatchObject({ zip: "75011", mobile: "06 12 34 56 78" });
+    expect(events.filter(e => e.event === "lead_form_submit_error").map(e => e.props)).toEqual([expect.objectContaining({ reason: "network", channel: "form" })]);
+    fetch.mockImplementation(async () => json(200, { ok: true, location: "/fr/paris/thanks" }));
+    await act(async () => {
+      fireEvent.click(within(alert).getByRole("button", { name: LEAD_CAPTURE_TEXT.fr.retry }));
+      await Promise.resolve();
+    });
+    await act(async () => Promise.resolve());
+    expect(fetch).toHaveBeenCalledTimes(2);
+    const sid = (n: number) => Object.fromEntries((fetch.mock.calls[n] as unknown as [string, RequestInit])[1].body as URLSearchParams)["submission_id"];
+    expect(sid(1)).toBe(sid(0));
+    expect(screen.getByRole("status")).toHaveTextContent("Merci");
+  });
+
+  // LEAD-FORMS-REVIEW-2026-10-03 #5: a hung server left the card waiting forever, the button live.
+  it("shows the busy state while sending, and gives up after the timeout with a retry", async () => {
+    vi.useRealTimers();
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"], now: MONDAY_10H });
+    const hang = vi.fn(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((_, reject) => init.signal?.addEventListener("abort", () => reject(init.signal?.reason))),
+    );
+    vi.stubGlobal("fetch", hang);
+    render(capture());
+    await send();
+    const button = within(form()).getByRole("button", { name: LEAD_CAPTURE_TEXT.fr.sending });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    // The callback is its own form: still free.
+    expect(within(form("quote-callback-form")).getByRole("button", { name: LEAD_CAPTURE_TEXT.fr.callbackSubmit })).toBeEnabled();
+    await act(async () => {
+      vi.advanceTimersByTime(SUBMIT_TIMEOUT_MS - 1);
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+    });
+    expect(within(form()).queryByRole("alert")).toBeNull();
+    await act(async () => {
+      vi.advanceTimersByTime(1);
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+    });
+    expect(within(form()).getByRole("alert")).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.timeoutError);
+    expect(within(form()).getByRole("button", { name: LEAD_CAPTURE_TEXT.fr.submit })).toBeEnabled();
+    expect(submit).not.toHaveBeenCalled();
   });
 
   // LEAD-FORMS-REVIEW-2026-10-03 #3: the server can only dedupe what carries an id.

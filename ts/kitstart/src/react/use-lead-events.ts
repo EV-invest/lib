@@ -10,6 +10,8 @@ export const FIELD_ATTR = "data-lead-field";
 export interface LeadEvents {
   step(step: LeadStep): void;
   fieldError(field: LeadField): void;
+  /** The script's post got no answer: `network` or `timeout`, and which form. */
+  submitError(reason: "network" | "timeout", channel: "form" | "callback"): void;
 }
 
 /**
@@ -63,6 +65,7 @@ export function useLeadEvents(root: RefObject<HTMLElement | null>, tags: { formI
     () => ({
       step: step => sink?.capture(EVENTS.formStep, { ...props, step }),
       fieldError: field => sink?.capture(EVENTS.fieldError, { ...props, field }),
+      submitError: (reason, channel) => sink?.capture(EVENTS.submitError, { ...props, reason, channel }),
     }),
     [sink, props],
   );
