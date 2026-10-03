@@ -2,6 +2,8 @@ import type { LocaleRegistry } from "@evinvest/i18n";
 import type { LeadSchema } from "./lead";
 import type { PublicationPolicy } from "./place/publication";
 import type { Place } from "./place/types";
+import type { PricingModel } from "./pricing/model";
+import { pricingProblemsFor } from "./pricing/validate";
 
 /**
  * The composition root of a landing site: every brand fact the machinery reads
@@ -61,6 +63,12 @@ export interface SiteConfig<L extends string, P extends string> {
   publication: PublicationPolicy;
   /** What the quote form asks and what a lead must have. */
   lead: LeadSchema<string>;
+  /**
+   * The baked price list: what `estimate` and `fixed` needs (`lead.flows`)
+   * are priced from when the live source (`createPricingSource`) is absent,
+   * down, or serves nothing valid. Absent → every need is a `quote` then.
+   */
+  pricing?: PricingModel;
   legacyRedirects?: readonly LegacyRedirect<L>[];
   /**
    * Paths the brand serves as files besides the routes every landing has
@@ -100,6 +108,14 @@ export function defineSite<const L extends string, const P extends string>(confi
     if (!file.startsWith("/") || file.endsWith("/") || file.startsWith("/_next/")) throw new Error(`defineSite: public file "${file}" must be a path like "/icon.svg"`);
     // `decide` passes a file only without a language: under one it is a page path.
     if (config.i18n.isLocale(file.split("/")[1] ?? "")) throw new Error(`defineSite: public file "${file}" must not sit under a language`);
+  }
+  if (config.pricing) {
+    // Baked into the build: a model the live source would refuse must not ship.
+    const problems = pricingProblemsFor(config.pricing, config.i18n.locales);
+    if (problems.length > 0) throw new Error(`defineSite: pricing: ${problems.join("; ")}`);
+  }
+  for (const need of Object.keys(config.lead.flows ?? {})) {
+    if (!config.lead.subjects.includes(need)) throw new Error(`defineSite: lead.flows names "${need}", which is not one of lead.subjects`);
   }
   if (config.topology.kind === "single" && !placeSlugs.includes(config.topology.place)) {
     throw new Error(`defineSite: topology.place "${config.topology.place}" is not one of the places`);
