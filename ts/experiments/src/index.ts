@@ -20,6 +20,12 @@
 import { hashRng } from './hash';
 
 export { fnv1a32, hashRng, hashToUnit } from './hash';
+export {
+  applyOverrides,
+  type ExperimentOverride,
+  type ExperimentOverrides,
+  type OverriddenConfig,
+} from './overrides';
 
 /**
  * Shape of an experiments config: a map from experiment key to its declared

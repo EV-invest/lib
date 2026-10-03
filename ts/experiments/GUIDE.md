@@ -93,6 +93,37 @@ Other proxy options — `rng`, `cookie` (`prefix`, `maxAge`, `path`, `domain`,
 behaviour above. Per-experiment `enabled: false` and `holdout` live in the
 config itself.
 
+### Weights and the kill switch from outside the code
+
+The config in code is the declaration — keys, variants, default weights. An
+operator can re-weight an experiment or switch it off without a deploy by
+serving overrides (`{ "<key>": { enabled?, weights?, holdout? } }`), which the
+proxy lays over the declaration on every request with `applyOverrides`:
+
+```ts
+import { applyOverrides } from "@evinvest/experiments";
+import { abProxy } from "@evinvest/experiments/next";
+
+export async function proxy(request: NextRequest) {
+  // `overrides()` must answer from memory: this runs on every request.
+  return abProxy(applyOverrides(experiments, await source.overrides()), request);
+}
+```
+
+Each field is taken only when it is valid against the code: `weights` of the
+same length as the variants, every weight `>= 0`, sum `> 0`; `holdout` in
+`[0, 1)`; `enabled` a boolean. An invalid field is dropped (the others still
+apply), a key the code does not declare is ignored, and variants never come
+from the overrides. No overrides at all (`null`, an outage) is the code config.
+
+Two consequences to keep in mind:
+
+- **Read the variant with the same config.** `getVariant(experiments, …)` with
+  the code config would resolve a stored cookie for an experiment the operator
+  switched off. Apply the overrides wherever the variant is read.
+- **Weights move only new visitors.** A cookie already set keeps its arm;
+  `enabled: false` is the one change that reaches everybody at once.
+
 ## 3. Read the variant on the server + render a branch
 
 Keep the page agnostic of A/B: each section reads its own variant in a server
@@ -269,5 +300,7 @@ response (see `test/next.node.test.ts`).
   makes a single pick deterministic; cross-visit consistency comes from the
   proxy's cookie, or from `pickVariantFor` with a stable subject.
 - **`enabled: false` is a hard kill switch.** It beats stored cookies and forced
-  variants alike — every helper returns the control.
+  variants alike — every helper returns the control. Served from outside the
+  code (`applyOverrides`), it only works where the overridden config is the
+  one passed in.
 - **The proxy runs on nodejs.** Don't move it to the edge runtime.

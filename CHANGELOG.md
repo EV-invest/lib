@@ -112,6 +112,13 @@ Rust crate and its TypeScript mirror at once.
 
 ### Added
 
+- **`applyOverrides`** (`@evinvest/experiments`): lays an operator's
+  `{ enabled?, weights?, holdout? }` per key over the config in code, so a
+  landing's proxy can take weights and the kill switch from the Service-Arb
+  panel without a deploy. Each field is checked against the code on its own
+  (weights of the declared length, `>= 0`, sum `> 0`; holdout in `[0, 1)`;
+  enabled a boolean) and dropped when invalid; unknown keys are ignored and
+  variants never come from outside the code. TS-only for now.
 - **`i18n::t!`** (Rust): `$key` and `$en` are `literal` fragments, so the
   compiler is the literal-ness gate the TypeScript extractor has to enforce by
   hand. Natively each site also registers its pair with `i18n::catalogue()`, so
