@@ -16,9 +16,9 @@ stays in the brand.
 | `@evinvest/kitstart` | anywhere (edge, client, server) | `defineSite`, places, routing (`createRouting`), the lead schema and funnel (`createAcceptLead`), the price list (`PricingModel`, `priceOf`, `flowOf`), antispam, JSON-LD / sitemap / robots builders, analytics events, the copy contract |
 | `@evinvest/kitstart/server` | Node, `server-only` | `createServerEnv`, `createPlaceSource`, `createPricingSource`, the lead store (`openLeadStore` by `LEADS_DB_URL`: `sqlite:` today, `postgres://` a stub that refuses at boot), `checkLeadStore`, `leadNotifier`, `leadWebhook` (signed, outboxed), `sendMail`, `clientKey` |
 | `@evinvest/kitstart/proxy` | edge | `createProxy(site)`, `PROXY_MATCHER` |
-| `@evinvest/kitstart/next` | Next server (routes, RSC) | `quoteRoute`, `sitemapRoute`, `robotsRoute`, `ogRoute`, `healthRoute`, `createPlaceLoader`, `loadLocale`, `placeMetadata` / `brandMetadata` / `statusMetadata`, `metadataBase` |
+| `@evinvest/kitstart/next` | Next server (routes, RSC) | `quoteRoute`, `bookingRoute`, `sitemapRoute`, `robotsRoute`, `ogRoute`, `healthRoute`, `createPlaceLoader`, `loadLocale`, `placeMetadata` / `brandMetadata` / `statusMetadata`, `metadataBase` |
 | `@evinvest/kitstart/next/config` | `next.config.ts`, `vitest.config.ts` | `withLanding`, `buildEnv` and the `assets/` readers |
-| `@evinvest/kitstart/react` | either side | `LangSwitch`, `CallBar`, `StatusScreen`, `PlaceDirectory`, `AreaChips`, `Coverage`, `MapFacade` (client), `QuoteFormShell`, `FormSelect` (client), `LeadCapture` (client), `Faq`, `AnalyticsBoundary` (client), plus the kit and marketing pieces a landing composes with |
+| `@evinvest/kitstart/react` | either side | `LangSwitch`, `CallBar`, `StatusScreen`, `PlaceDirectory`, `AreaChips`, `Coverage`, `MapFacade` (client), `QuoteFormShell`, `FormSelect` (client), `LeadCapture` (client), `LeadBooking` (client) and its adapters, `Faq`, `AnalyticsBoundary` (client), plus the kit and marketing pieces a landing composes with |
 | `@evinvest/kitstart/testing` | a brand's vitest | `describeLandingContract(site, { globalsCss, proxySource, text })`, `describeLeadStoreContract(name, harness)`, `storefrontPlace`, `serviceAreaPlace`, `testLead` |
 | `@evinvest/kitstart/testing/e2e` | a brand's Playwright | `defineSectionSuite(sections)`, `settle(page, selector)`, `BREAKPOINTS` |
 | bin `kitstart-size` | plain node | `kitstart-size [<build root>] [--route …] [--budget …]`: first-load JS of a place page against the target in `tests/bundle_budget.txt` (passes with a warning up to its tolerance, 20 % by default — see [The bundle budget](#the-bundle-budget)); fails closed |
@@ -232,10 +232,11 @@ it is the plain POST to `/quote` it always was.
 | `callbackOpen` | whether the callback starts open; by default only when it leads (the place is closed). `#<id>-callback` opens it either way |
 | `done` | the card after a lead is taken — a node, or `(sent: LeadSent) => node` (`{ channel, phone, name }`), shown in place. Without it, a lead taken goes to the thanks page the route names. Either way a script posts the form itself (asking `/quote` for JSON), so a refusal keeps what was typed; an answer that is not the route's, or no network, submits the form for real; without a script nothing changes (303) |
 | `flows`, `pricing`, `photos` | how each need is sold (`site.lead.flows`), the page's price list (`createPricingSource(site).model()`), and the `quote` needs priced from photos — see [Form variants](#form-variants-quote-estimate-fixed) |
-| `booking` | after a priced lead, in place of "we call you to set the slot": a node or `(sent) => node` — a booking provider's widget, when the brand has one (none ships with the kit) |
+| `booking` | after a priced lead, in place of the place's booking (`LeadBooking`, from `place.booking`): a node or `(sent) => node` |
+| `calComEmbed` · `bookingAdapters` | `cal_com` as Cal.com's modal (its script on the click) rather than a new tab · the brand's adapters over the built-ins (from a client component) — see [Booking](#booking-manual-link-cal_com) |
 | `initialError` | `leadErrorOf(searchParams)` on a page that reads its query: the refusal a 303 brought back, drawn on the server by the card it names (`lead_card`) so the card says why without a script (see *Refusals*) |
 | `head`, `trust` | the brand's heading instead of the title; a slot beside the submit. Like `extras`, `done` and `booking`, any node, built on the server or not, and never asked for a `key`: each slot sits alone in a keyed fragment |
-| `className` · `classNames` | the root · its parts: `root`, `head`, `title`, `lede`, `form`, `contact`, `field`, `label`, `control` (every input, the need's select in both states, the callback's phone), `hint`, `error` (a refusal: under the field, or above the submit), `chips`, `chip`, `needs`, `need`, `summary`, `submit`, `trust`, `privacy`, `opening`, `others`, `channel`, `primary`, `callback`, `callbackSummary`, `callbackForm`, `callbackLede`, `callbackSubmit`, `consent`, `done`, and for the flows `estimate`, `estimateInput`, `estimateLegend`, `estimateOption`, `price`, `priceTotal`, `breakdown`, `priceNote`, `photos`, `priced`, `pricedPrice`, `pricedNote` |
+| `className` · `classNames` | the root · its parts: `root`, `head`, `title`, `lede`, `form`, `contact`, `field`, `label`, `control` (every input, the need's select in both states, the callback's phone), `hint`, `error` (a refusal: under the field, or above the submit), `chips`, `chip`, `needs`, `need`, `summary`, `submit`, `trust`, `privacy`, `opening`, `others`, `channel`, `primary`, `callback`, `callbackSummary`, `callbackForm`, `callbackLede`, `callbackSubmit`, `consent`, `done`, and for the flows `estimate`, `estimateInput`, `estimateLegend`, `estimateOption`, `price`, `priceTotal`, `breakdown`, `priceNote`, `photos`, `priced`, `pricedPrice`, `pricedNote`, and for the booking `booking`, `bookingCta`, `bookingNote`, `prefer`, `preferOption`, `preferSubmit` |
 
 - **Taps.** A need the page knows is not asked again, and a place serving one
   commune fills it: focus the phone, type, send — two taps. `qualify-first`
@@ -385,25 +386,86 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, pricing, unavai
   `quoted_cents`, `pricing_valid_from`, `estimate_inputs`). An estimate
   whose answers do not price (a stale page, a forged answer) is kept as a
   `quote` — never refused. A callback has no flow.
+- **The price shown is the price recorded.** The form also posts the price
+  it showed, `shown_cents` (`SHOWN_CENTS_FIELD`) — compared, never stored.
+  When the server's price differs (the panel changed the list under an open
+  page), the lead is not taken: a script gets `422 { ok: false, field:
+  "price_changed", reason: "price_changed", cents }`, and the card shows the
+  fresh price in place of the old one with `priceChanged` ("Le prix a
+  changé : 86 € au lieu de 77 €"); the next submit posts it and is taken. A
+  plain post goes back to its card with `lead_error=price_changed`
+  (`priceChangedGeneric`), the page priced afresh. A page cached before the
+  field posts none and is taken as before. Counted as `lead_form_reject
+  {reason: "price_changed"}`.
 - **After a priced lead** the card stays: the script's answer carries the
   server's `cents` and the lead's reference (`lead`, `leadRef`:
   `lead-<row>-<8 hex>`), and the card confirms the price (`sentPrice`) and
-  promises a call to set the slot (`slotCallback`) — or shows the brand's
-  `booking`. The lead is stored first, so an abandoned booking is still a
-  lead to call. A `quote` need, and any callback, behave as before.
+  offers the place's booking (below) — or shows the brand's own `booking`.
+  The lead is stored first, so an abandoned booking is still a lead to
+  call. A `quote` need, and any callback, behave as before.
 - **Photos.** A `quote` need listed in `photos` offers "Envoyez des photos"
   — a WhatsApp link with the need in the message — when the place has
   WhatsApp; the callback stays where it is.
 - **Words.** `LEAD_CAPTURE_TEXT` carries them (`priceTitle`, `pricePending`,
   `priceNote`, `priceBase`, `priceRounding`, `priceMinimum`, `bookSubmit`,
-  `sentPrice`, `slotCallback`, `photos*`); optional in `LeadCaptureText`, so
+  `sentPrice`, `priceChanged*`, `slotCallback`, `book*`, `booked`,
+  `prefer*`, `part*`, `photos*`); optional in `LeadCaptureText`, so
   a brand's own text from before them falls back to the kit's in the page's
   language (`flowTextOf`).
 - **Events.** `lead_estimate_shown {need, cents_bucket}` once per need and
-  price band (`centsBucket`: `"7500-10000"`), never the price.
+  price band (`centsBucket`: `"7500-10000"`), never the price;
+  `lead_booking_open {provider}` and `lead_booking_done {provider}` (below).
 - **Weight.** About 3.9 KB gz of first-load JS on the template's place page
   (166,459 → 170,375 B against its 158,000 B target: +7.8 %, within the 20 %
   tolerance).
+
+### Booking: `manual`, `link`, `cal_com`
+
+How a priced lead's slot is set, per place, provider-agnostic. Cal.com is the
+default provider; Calendly will be one more adapter on the same seams.
+
+```ts
+// shared/config/places.ts — baked; the panel's place settings override it (`PlaceLive.booking`)
+{ slug: "paris", …, booking: { provider: "cal_com", url: "https://cal.com/brand/menage" } }
+// shared/config/site.ts — the Cal.com hosts a place may book on (default ["cal.com"])
+export const site = defineSite({ …, booking: { calComHosts: ["cal.com", "cal.brand.fr"] } });
+// app/quote/booking/route.ts
+export const dynamic = "force-dynamic";
+export const POST = bookingRoute({ env: serverEnv, webhook });
+```
+
+- **The config** (`BookingConfig`): `{ provider: "manual" }` — the card
+  promises a call and offers an optional preference: a day of the coming week
+  and a part of the day (`morning | afternoon | evening`), no free text;
+  `{ provider: "link", url }` — any booking page, opened with
+  `ref=<leadRef>`; `{ provider: "cal_com", url }` — a Cal.com event,
+  `https://<allowed host>/<user>/<event>`, opened with `name`,
+  `attendeePhoneNumber` (E.164) and `metadata[ref]=<leadRef>`. A place with
+  none is `manual` (`bookingOf`, `DEFAULT_BOOKING`). The ref always rides in
+  the query, never the fragment. `bookingConfigProblems` holds the strict
+  URL rule; the panel mirrors it from
+  [`test/fixtures/booking/`](./test/fixtures/booking/README.md).
+  `defineSite` refuses a baked booking or host list that does not validate;
+  a live one that does not is dropped and the baked one kept.
+- **Nothing third-party before the click.** `link` and `cal_com` are plain
+  links the browser opens in a new tab. `calComEmbed` on `LeadCapture`
+  (`calComEmbedAdapter`) opens Cal.com's modal instead: its script loads on
+  the click, and its `bookingSuccessful` is `onBooked` — the one way the page
+  learns a slot was taken (`lead_booking_done`, "Créneau réservé").
+- **Adapters** (`BookingAdapter = { provider, href?, open? }`): the built-ins
+  are `manualAdapter`, `linkAdapter`, `calComAdapter`; `bookingAdapters`
+  on `LeadCapture` puts a brand's own over them (from a client component — a
+  server one cannot pass functions).
+- **`booking.requested@1`.** Opening a `link` / `cal_com` page, or sending a
+  `manual` preference, posts `{ submission, lead_ref, provider,
+  preferred_date?, preferred_part? }` to `/quote/booking` (`bookingRoute`).
+  The submission id proves the lead is this page's (a `lead_ref` alone books
+  nothing); only a priced lead (`estimate`, `fixed`) books; one request per
+  lead. It is queued on the lead webhook's outbox behind `panelBooking` (off)
+  — see the lead webhook.
+- **`ctx.leadRef` is the panel's lead id.** A booking comes back to the panel
+  carrying `leadRef` (`metadata[ref]`, `ref`, `lead_ref`), so a brand's
+  `lead.created` must send `ctx.leadRef` as its lead id — not an id of its own.
 
 Tailwind v4 does not scan `node_modules`; the brand's `globals.css` names the
 package:
@@ -435,6 +497,10 @@ export const config = { matcher: ["/((?!_next/).*)"] };
 // app/quote/route.ts — `anchor`: the card's id, when it is not `quote`
 export const dynamic = "force-dynamic";
 export const POST = quoteRoute(site, { env: serverEnv, notifier, unavailable, anchor: "devis" });
+
+// app/quote/booking/route.ts — a priced lead's booking request (`booking.requested@1`)
+export const dynamic = "force-dynamic";
+export const POST = bookingRoute({ env: serverEnv, webhook });
 
 // app/sitemap.ts — reads the Host header, so it is dynamic; pages are not
 export const dynamic = "force-dynamic";
@@ -574,8 +640,21 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavai
   and `fixed` only; `estimate_inputs` (input → answer, slugs, at most 12)
   for an `estimate` that asked anything. Off by default, and to stay off
   until the panel accepts them — it refuses unknown properties, and the
-  outbox would park the lead. `ctx.leadRef` is the lead's reference the page
-  was answered with, whatever the switch.
+  outbox would park the lead.
+- **`ctx.leadRef` — send it as the panel's lead id.** The lead's reference
+  the page was answered with (`lead-<row>-<8 hex>`), whatever the switch.
+  Every booking joins its lead by it (Cal.com's `metadata[ref]`, a link's
+  `ref`, `booking.requested`'s `lead_ref`): **a brand must send this as the
+  panel lead id** in `lead.created`, not an id it computes itself.
+- **Booking requests: `panelBooking`, off.** With `leadWebhook(…, {
+  panelBooking: true, buildBookingBody })`, `bookingRoute` queues
+  `booking.requested@1` through the same outbox, after the lead's
+  `lead.created`, once per lead (`requestBooking`; the row's ref is
+  `booking:<leadRef>`). `buildBookingBody(request, ctx)` builds the event —
+  `bookingRequestedProperties(request)` writes `{ lead_ref, provider,
+  preferred_date?, preferred_part? }`, `ctx` has `brandId`, `at`,
+  `idempotencyKey`. Off by default, and to stay off until the panel accepts
+  the event type: off, a request is answered and dropped.
 - **The rate limit** is `LEAD_RATE_LIMIT` (`<count>/<seconds>`): 5 per 10
   minutes per address in production, 100 outside it, where every request of
   a local stack shares one address. Outside production a lead held back as
