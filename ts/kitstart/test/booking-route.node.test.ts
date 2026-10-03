@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { bookingRequestedProperties, leadRef, type BookingRequest, type Lead } from "../src/index";
 import { bookingRoute } from "../src/next/index";
-import { leadWebhook, openSqliteLeadStore, type LeadWebhook } from "../src/server/index";
+import { leadWebhook, openSqliteLeadStore, openWebhookOutbox, type LeadWebhook } from "../src/server/index";
 import { testLead } from "../src/testing/index";
 import { fixtureSite } from "./support/fixtures";
 
@@ -141,5 +141,22 @@ describe("bookingRoute", () => {
     expect((await route(post("submission=x", "application/x-www-form-urlencoded"))).status).toBe(415);
     expect((await route(post("{not json"))).status).toBe(400);
     expect((await route(post({ submission: SUBMISSION, pad: "x".repeat(5000) }))).status).toBe(413);
+  });
+});
+
+describe("the outbox file from before after_ref", () => {
+  it("gains the column on open and keeps its rows", async () => {
+    const path = join(mkdtempSync(join(tmpdir(), "kitstart-outbox-old-")), "leads.db");
+    const sqlite = process.getBuiltinModule("node:sqlite");
+    const old = new sqlite.DatabaseSync(path);
+    old.exec(`CREATE TABLE webhook_outbox (id INTEGER PRIMARY KEY AUTOINCREMENT, target TEXT NOT NULL, ref TEXT, body TEXT NOT NULL, created_at INTEGER NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0, next_attempt_at INTEGER NOT NULL, state TEXT NOT NULL DEFAULT 'pending', last_error TEXT, done_at INTEGER)`);
+    old.prepare("INSERT INTO webhook_outbox (target, ref, body, created_at, next_attempt_at) VALUES (?, 'lead:1', '{}', 0, 0)").run(URL_);
+    old.close();
+    const outbox = openWebhookOutbox(path, { url: URL_, keyId: "k", secret: "s", signing: SIGNING }, { fetch: vi.fn(async () => new Response(null, { status: 200 })), log: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } });
+    expect(outbox.enqueueOnce("{}", "booking:x", "lead:1")).toBe(2);
+    expect(await outbox.tick()).toEqual({ delivered: 1, retried: 0, dead: 0 });
+    expect(await outbox.tick()).toEqual({ delivered: 1, retried: 0, dead: 0 });
+    outbox.close();
   });
 });

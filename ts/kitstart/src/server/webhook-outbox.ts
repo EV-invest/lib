@@ -80,9 +80,13 @@ export interface WebhookOutbox {
   /**
    * Queues a body unless a row with the same `ref` was ever queued, in one
    * statement — two pods racing on one ref queue it once. Answers the new
-   * row, or `null` when the ref was there.
+   * row, or `null` when the ref was there. With `after`, the row is not sent
+   * until the row of that ref is delivered, and a `409` or `425` for it is
+   * retried: the receiver has not seen what it depends on yet.
    */
-  enqueueOnce?(body: string, ref: string): number | null;
+  enqueueOnce?(body: string, ref: string, after?: string): number | null;
+  /** Whether a row with this `ref` was ever queued, whatever its state. */
+  hasRef?(ref: string): boolean;
   /** One pass over the rows that are due; concurrent calls share the running one. */
   tick(): Promise<TickReport>;
   /** Ticks every `intervalMs` until `stop`; a second call is a no-op. */
@@ -121,6 +125,15 @@ CREATE TABLE IF NOT EXISTS webhook_outbox (
 CREATE INDEX IF NOT EXISTS webhook_outbox_due ON webhook_outbox (state, target, next_attempt_at);
 CREATE INDEX IF NOT EXISTS webhook_outbox_ref ON webhook_outbox (ref);
 `;
+
+/**
+ * Added after the table shipped: a file from before gets it on open. A row's
+ * `after_ref` holds it until the row of that ref is delivered.
+ */
+function addAfterRef(db: DatabaseSync): void {
+  const columns = db.prepare("PRAGMA table_info(webhook_outbox)").all();
+  if (!columns.some(c => column(c, "name") === "after_ref")) db.exec("ALTER TABLE webhook_outbox ADD COLUMN after_ref TEXT");
+}
 
 /** How much of a receiver's answer a row keeps. */
 const ERROR_CAP = 500;
@@ -210,7 +223,7 @@ async function multiStatus(response: Response, rowId: number, log: Pick<Console,
   return { kind: "delivered", note: `rejected ${reasons.join("; ")}` };
 }
 
-async function judge(response: Response, rowId: number, log: Pick<Console, "warn">): Promise<Verdict> {
+async function judge(response: Response, rowId: number, log: Pick<Console, "warn">, dependent: boolean): Promise<Verdict> {
   const status = response.status;
   if (status === 207) return multiStatus(response, rowId, log);
   if (status >= 200 && status < 300) {
@@ -221,6 +234,8 @@ async function judge(response: Response, rowId: number, log: Pick<Console, "warn
   const tag = `HTTP ${status}`;
   const why = said ? `${tag}: ${said}` : tag;
   if (status === 408 || status === 429 || status >= 500) return { kind: "retry", tag, why, afterMs: retryAfter(response) };
+  // A row that follows another: the receiver may not have taken that one yet.
+  if (dependent && (status === 409 || status === 425)) return { kind: "retry", tag, why, afterMs: retryAfter(response) };
   // A rotated key (401, 403) or a receiver moved or not yet deployed (404):
   // fixed by a person, after which the lead must still arrive.
   if (status === 401 || status === 403) return { kind: "retry", tag, why, afterMs: null, alarm: "check LEAD_WEBHOOK_KEY_ID / LEAD_WEBHOOK_SECRET against the receiver's key" };
@@ -236,7 +251,7 @@ async function judge(response: Response, rowId: number, log: Pick<Console, "warn
  * rows stay, are counted at open, and are not sent to a receiver that never
  * agreed to take them.
  */
-export function openWebhookOutbox(path: string, target: WebhookTarget, options: WebhookOutboxOptions = {}): WebhookOutbox & Required<Pick<WebhookOutbox, "enqueueOnce">> {
+export function openWebhookOutbox(path: string, target: WebhookTarget, options: WebhookOutboxOptions = {}): WebhookOutbox & Required<Pick<WebhookOutbox, "enqueueOnce" | "hasRef">> {
   const horizon = options.horizonMs ?? WEBHOOK_HORIZON_MS;
   const maxAttempts = options.maxAttempts ?? Number.POSITIVE_INFINITY;
   const baseDelay = options.baseDelayMs ?? 5_000;
@@ -254,6 +269,7 @@ export function openWebhookOutbox(path: string, target: WebhookTarget, options: 
     db.exec("PRAGMA busy_timeout = 5000");
     db.exec("PRAGMA journal_mode = WAL");
     db.exec(SCHEMA);
+    addAfterRef(db);
   } catch (error) {
     db.close();
     throw error;
@@ -261,10 +277,14 @@ export function openWebhookOutbox(path: string, target: WebhookTarget, options: 
 
   const insert = db.prepare("INSERT INTO webhook_outbox (target, ref, body, created_at, next_attempt_at) VALUES (?, ?, ?, ?, ?) RETURNING id");
   const insertOnce = db.prepare(
-    "INSERT INTO webhook_outbox (target, ref, body, created_at, next_attempt_at) SELECT ?, ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM webhook_outbox WHERE ref = ?) RETURNING id",
+    "INSERT INTO webhook_outbox (target, ref, body, created_at, next_attempt_at, after_ref) SELECT ?, ?, ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM webhook_outbox WHERE ref = ?) RETURNING id",
   );
+  const byRef = db.prepare("SELECT 1 FROM webhook_outbox WHERE ref = ? LIMIT 1");
+  // A row waits for the row it follows to be delivered; held, it is not due.
   const due = db.prepare(
-    "SELECT id, ref, body, attempts, created_at FROM webhook_outbox WHERE state = 'pending' AND target = ? AND next_attempt_at <= ? ORDER BY next_attempt_at, id LIMIT ?",
+    `SELECT id, ref, body, attempts, created_at, after_ref FROM webhook_outbox AS o WHERE state = 'pending' AND target = ? AND next_attempt_at <= ?
+       AND (after_ref IS NULL OR EXISTS (SELECT 1 FROM webhook_outbox AS d WHERE d.ref = o.after_ref AND d.state = 'delivered'))
+     ORDER BY next_attempt_at, id LIMIT ?`,
   );
   // A lease: another process ticking the same file skips a row while it is in flight.
   const claim = db.prepare("UPDATE webhook_outbox SET next_attempt_at = ? WHERE id = ? AND state = 'pending' AND next_attempt_at <= ?");
@@ -286,7 +306,7 @@ export function openWebhookOutbox(path: string, target: WebhookTarget, options: 
     return Math.min(maxDelay, Math.max(plain + Math.floor(plain * 0.2 * random()), hinted ?? 0));
   }
 
-  async function deliver(id: number, body: string): Promise<Verdict> {
+  async function deliver(id: number, body: string, dependent: boolean): Promise<Verdict> {
     try {
       const response = await send(target.url, {
         method: "POST",
@@ -295,7 +315,7 @@ export function openWebhookOutbox(path: string, target: WebhookTarget, options: 
         redirect: "manual",
         signal: AbortSignal.timeout(timeoutMs),
       });
-      return await judge(response, id, log);
+      return await judge(response, id, log, dependent);
     } catch (error) {
       // The name and code only: a fetch error's message is safe, but its cause chain is the runtime's to word.
       const name = error instanceof Error ? error.name : "error";
@@ -314,7 +334,7 @@ export function openWebhookOutbox(path: string, target: WebhookTarget, options: 
       const attempts = int(row, "attempts") + 1;
       const queuedAt = int(row, "created_at");
       if (Number(claim.run(t + timeoutMs + 5_000, id, t).changes) === 0) continue;
-      const verdict = await deliver(id, body);
+      const verdict = await deliver(id, body, text(row, "after_ref") !== null);
       if (verdict.kind === "delivered") {
         finish.run("delivered", attempts, verdict.note?.slice(0, ERROR_CAP) ?? null, now(), id);
         report.delivered += 1;
@@ -357,10 +377,13 @@ export function openWebhookOutbox(path: string, target: WebhookTarget, options: 
       const t = now();
       return int(insert.get(target.url, ref, body, t, t), "id");
     },
-    enqueueOnce(body, ref) {
+    enqueueOnce(body, ref, after) {
       const t = now();
-      const row = insertOnce.get(target.url, ref, body, t, t, ref);
+      const row = insertOnce.get(target.url, ref, body, t, t, after ?? null, ref);
       return row === undefined ? null : int(row, "id");
+    },
+    hasRef(ref) {
+      return byRef.get(ref) !== undefined;
     },
     tick,
     start(intervalMs = WEBHOOK_TICK_MS) {
