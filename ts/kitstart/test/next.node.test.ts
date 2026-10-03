@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { brandStatusTarget, createPlaceView, statusTarget, type Lead, type LeadStore, type Place } from "../src/index";
+import { brandStatusTarget, createPlaceView, statusTarget, thanksChannel, type Lead, type LeadStore, type Place } from "../src/index";
 import { brandMetadata, createPlaceLoader, healthRoute, ogRoute, placeMetadata, quoteRoute, statusMetadata } from "../src/next/index";
 import { buildEnv, withLanding } from "../src/next/config/index";
 import { createProxy, GONE_HEADER, PROXY_MATCHER } from "../src/proxy/index";
@@ -173,16 +173,16 @@ describe("the quote route", () => {
       close: async () => undefined,
     };
   };
-  const route = (store: LeadStore, log = { warn: vi.fn(), error: vi.fn() }) =>
-    quoteRoute(site, {
-      env: () => ({ leadsDb: { kind: "sqlite", path: ":memory:" }, posthogKey: null, posthogHost: "https://eu.i.posthog.com", trustedProxy: null }),
-      notifier: () => ({ notify: async () => undefined }),
-      unavailable: locale => ({ title: `500 ${locale}`, heading: "Oops <b>", body: "Call us", callLabel: "Call" }),
-      store: () => store,
-      defer: () => undefined,
-      now: () => NOW,
-      log,
-    });
+  const deps = (store: LeadStore, log = { warn: vi.fn(), error: vi.fn() }) => ({
+    env: () => ({ leadsDb: { kind: "sqlite", path: ":memory:" }, posthogKey: null, posthogHost: "https://eu.i.posthog.com", trustedProxy: null }) as const,
+    notifier: () => ({ notify: async () => undefined }),
+    unavailable: (locale: string) => ({ title: `500 ${locale}`, heading: "Oops <b>", body: "Call us", callLabel: "Call" }),
+    store: () => store,
+    defer: () => undefined,
+    now: () => NOW,
+    log,
+  });
+  const route = (store: LeadStore, log = { warn: vi.fn(), error: vi.fn() }) => quoteRoute(site, deps(store, log));
 
   it("stores the lead and answers 303 to the place's thank-you page on the host it came from", async () => {
     const store = memory();
@@ -193,7 +193,7 @@ describe("the quote route", () => {
     expect((await route(memory())(post({}, "aquafix.top"))).headers.get("location")).toBe("/fr/royat/thanks");
   });
 
-  it("sends an invalid lead back to the form, and a lead with no place to the brand", async () => {
+  it("sends an invalid lead back to the card with the field it is about, and a lead with no place to the brand", async () => {
     const res = await quoteRoute({ ...site, lead: { ...site.lead, validate: () => "no" } }, {
       env: () => ({ leadsDb: { kind: "sqlite", path: ":memory:" }, posthogKey: null, posthogHost: "x", trustedProxy: null }),
       notifier: () => ({ notify: async () => undefined }),
@@ -201,8 +201,57 @@ describe("the quote route", () => {
       store: () => memory(),
       log: { warn: vi.fn(), error: vi.fn() },
     })(post({}));
-    expect(res.headers.get("location")).toBe("/fr#quote");
+    expect(res.headers.get("location")).toBe("/fr?lead_error=form&need=other#quote");
     expect((await route(memory())(post({ location: "paris" }))).headers.get("location")).toBe("/fr/thanks");
+  });
+
+  // LEAD-FORMS-REVIEW-2026-10-03 #1, #2: a refusal was a 303 to `#quote` and nothing else.
+  it("names the refused field and lands on the card's own anchor, never a hard-coded one", async () => {
+    const store = memory();
+    const bad = { mobile: "06 12 34 56 7" };
+    expect((await route(store)(post(bad))).headers.get("location")).toBe("/fr?lead_error=phone&need=other#quote");
+    const devis = quoteRoute(site, { ...deps(store), anchor: "devis" });
+    expect((await devis(post(bad))).headers.get("location")).toBe("/fr?lead_error=phone&need=other#devis");
+    // The card posts its own id; one that is not a slug is not echoed.
+    expect((await devis(post({ ...bad, card: "quote-band" }))).headers.get("location")).toBe("/fr?lead_error=phone&need=other#quote-band");
+    expect((await devis(post({ ...bad, card: "x\"><script>" }))).headers.get("location")).toBe("/fr?lead_error=phone&need=other#devis");
+    // A need the brand does not offer is not echoed either; nothing typed ever is.
+    expect((await route(store)(post({ ...bad, job: "<b>" }))).headers.get("location")).toBe("/fr?lead_error=phone#quote");
+    expect(store.rows).toHaveLength(0);
+    expect(() => quoteRoute(site, { ...deps(store), anchor: "#devis" })).toThrow(/anchor/);
+  });
+
+  it("opens the callback at its own anchor when the callback is refused", async () => {
+    const res = await route(memory())(post({ channel: "callback", mobile: "07 12 34 56 78" }));
+    expect(res.headers.get("location")).toBe("/fr?lead_error=consent#quote-callback");
+  });
+
+  it("answers a script with JSON: 422 and the field when refused, the thanks page when taken", async () => {
+    const asked = (fields: Record<string, string>) => {
+      const req = post(fields);
+      req.headers.set("accept", "application/json");
+      return req;
+    };
+    const store = memory();
+    const refused = await route(store)(asked({ mobile: "+3361234567" }));
+    expect(refused.status).toBe(422);
+    expect(await refused.json()).toEqual({ ok: false, field: "phone" });
+    const taken = await route(store)(asked({}));
+    expect(taken.status).toBe(200);
+    expect(await taken.json()).toEqual({ ok: true, location: "/fr/thanks" });
+    expect(store.rows).toHaveLength(1);
+  });
+
+  // LEAD-FORMS-REVIEW-2026-10-03 #12: the thanks page could not tell a callback from a quote.
+  it("tells the thanks page a callback was asked for", async () => {
+    const res = await route(memory())(post({ channel: "callback", mobile: "07 12 34 56 78", consent: "oui" }));
+    expect(res.headers.get("location")).toBe("/fr/thanks?channel=callback");
+    expect(thanksChannel(new URL(`https://x${res.headers.get("location")}`).searchParams)).toBe("callback");
+    expect(thanksChannel({ channel: ["callback", "form"] })).toBe("callback");
+    expect(thanksChannel({ channel: "sms" })).toBe("form");
+    expect(thanksChannel({})).toBe("form");
+    const target = statusTarget(site, { locale: "fr", location: "royat" }, { thanks: true, channel: "callback" });
+    expect(target.langHrefs.en).toBe("/en/royat/thanks?channel=callback");
   });
 
   it("answers a self-contained, escaped 500 with the phone when the store refuses", async () => {
