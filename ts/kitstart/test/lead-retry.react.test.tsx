@@ -4,6 +4,7 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LEAD_CAPTURE_TEXT, parsePricingModel, type OpeningHours, type Place } from "../src/index";
+import { AnalyticsIdContext } from "../src/react/analytics-context";
 import { LeadCapture, type LeadCaptureProps } from "../src/react/index";
 import { SUBMIT_TIMEOUT_MS } from "../src/react/use-lead-submit";
 import { serviceAreaPlace } from "../src/testing/index";
@@ -68,8 +69,8 @@ function hangOnce() {
     return Promise.resolve(new Response(JSON.stringify({ ok: true, location: "/fr/thanks", lead: "lead-1-0a1b2c3d" }), { status: 200, headers: { "content-type": "application/json" } }));
   });
   vi.stubGlobal("fetch", fetch);
-  const sid = (n: number) => Object.fromEntries((fetch.mock.calls[n] as unknown as [string, RequestInit])[1].body as URLSearchParams)["submission_id"];
-  return { fetch, sid };
+  const field = (n: number, name: string) => Object.fromEntries((fetch.mock.calls[n] as unknown as [string, RequestInit])[1].body as URLSearchParams)[name];
+  return { fetch, sid: (n: number) => field(n, "submission_id"), field };
 }
 
 /** Past the timeout, and past a minute's tick of the opening hours' clock. */
@@ -98,9 +99,9 @@ afterEach(() => {
 
 describe("a retry after the server hung", () => {
   // vifnet tests/e2e/lead-robust.spec.ts, "the server hangs…", step by step.
-  it("posts the same submission id as the post it repeats, for a need picked from the list", async () => {
-    const { fetch, sid } = hangOnce();
-    render(capture());
+  it("posts the same submission id as the post it repeats, for a need picked from the list, and the same analytics id", async () => {
+    const { fetch, sid, field } = hangOnce();
+    render(<AnalyticsIdContext.Provider value="0192f0a4-7b3c">{capture()}</AnalyticsIdContext.Provider>);
     fireEvent.click(screen.getByRole("combobox", { name: LEAD_CAPTURE_TEXT.fr.needLabel }));
     fireEvent.click(screen.getByRole("option", { name: "Grand ménage" }));
     const f = form();
@@ -123,6 +124,7 @@ describe("a retry after the server hung", () => {
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(sid(0)).toMatch(/^[0-9a-f-]{36}$/);
     expect(sid(1)).toBe(sid(0));
+    expect([field(0, "analytics_id"), field(1, "analytics_id")]).toEqual(["0192f0a4-7b3c", "0192f0a4-7b3c"]);
     expect(screen.getByRole("status")).toHaveTextContent("C’est noté, Amanda Reyes !");
   });
 
