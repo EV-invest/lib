@@ -28,3 +28,14 @@ describe("the flows' events", () => {
     for (const prop of ["need", "cents_bucket"]) expect(ALLOWED_PROPS).toContain(prop);
   });
 });
+
+// LEAD-FORMS-RETEST-2026-10-03 N4: a lost answer is often a lead the server
+// already stored; the words must not say it never left.
+describe("the words for a lost answer", () => {
+  it("claim nothing about whether the lead left, and promise no second one", () => {
+    expect(LEAD_CAPTURE_TEXT.fr.networkError).not.toMatch(/pas partie|pas été envoyée/);
+    expect(LEAD_CAPTURE_TEXT.fr.networkError).toContain("ne sera pas envoyée deux fois");
+    expect(LEAD_CAPTURE_TEXT.en.networkError).not.toMatch(/not sent|wasn’t sent|was not/);
+    expect(LEAD_CAPTURE_TEXT.en.networkError).toContain("will not be sent twice");
+  });
+});
