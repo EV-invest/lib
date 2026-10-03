@@ -227,7 +227,7 @@ it is the plain POST to `/quote` it always was.
 | `experiment` | `{ name, variant }`, slugs: on every event and posted with the form |
 | `timeZone` | `Europe/Paris` by default |
 | `formId`, `id` | `quote` · `quote`: the id is the card's (root), so `#quote` scrolls to the whole card, head included; the form is `<id>-form`, the callback `<id>-callback` (its form `<id>-callback-form`). Both forms post it as `card`, so a refused lead comes back to `#<id>` |
-| `text` | `LeadCaptureText`: `LEAD_CAPTURE_TEXT.fr` / `.en`, plain strings (`{need}`, `{day}`, `{time}` filled in); optional `localityPlaceholder`, `phonePlaceholder`, `namePlaceholder` (none by default). The errors are words of the page too: `phoneInvalid`, `required`, `needRequired`, `consentRequired`, `fieldInvalid`, `formInvalid` — a brand spreading `LEAD_CAPTURE_TEXT` has them |
+| `text` | `LeadCaptureText`: `LEAD_CAPTURE_TEXT.fr` / `.en`, plain strings (`{need}`, `{day}`, `{time}` filled in); optional `localityPlaceholder`, `phonePlaceholder`, `namePlaceholder` (none by default). The errors are words of the page too: `phoneInvalid`, `required`, `needRequired`, `consentRequired`, `fieldInvalid`, `formInvalid`, and the post's `sending`, `networkError`, `timeoutError`, `retry` — a brand spreading `LEAD_CAPTURE_TEXT` has them |
 | `labels` | `visible` (default) · `hidden`: every field's label `sr-only` — still the field's accessible name — for a design that draws placeholders |
 | `callbackOpen` | whether the callback starts open; by default only when it leads (the place is closed). `#<id>-callback` opens it either way |
 | `done` | the card after a lead is taken — a node, or `(sent: LeadSent) => node` (`{ channel, phone, name }`), shown in place. Without it, a lead taken goes to the thanks page the route names. Either way a script posts the form itself (asking `/quote` for JSON), so a refusal keeps what was typed; an answer that is not the route's, or no network, submits the form for real; without a script nothing changes (303) |
@@ -288,18 +288,28 @@ it is the plain POST to `/quote` it always was.
   URL. Only slugs ride in that URL — never a phone or a name. A field the card
   does not draw (a brand's `extras`) shows its error above the submit and is
   marked itself.
+- **Sending.** The script's post (asking `/quote` for JSON) carries a
+  `submission_id` it mints once per lead; the store keeps one row per id, so
+  a resend after a lost answer is answered as the first was and never makes
+  a second lead. While it runs the form's submit is disabled, `aria-busy` and
+  says `sending`. No answer — no network, or none in 15 s
+  (`SUBMIT_TIMEOUT_MS`) — is said in place with a retry that sends the same
+  lead; the page is never left for the browser's error page.
 - **Events** (through `AnalyticsBoundary`'s sink; none outside one):
   `lead_form_view` (half in view, once), `lead_form_start` (first focus),
-  `lead_form_field_error {field}` (the browser refused it, or the phone hint
-  showed — the field's role, never its value), `lead_form_step {step}`
+  `lead_form_field_error {field, blocking}` (`blocking: true` the browser
+  refused it, `false` the phone hint showed — the field's role, never its
+  value), `lead_form_submit_error {reason, channel}` (`network` /
+  `timeout`), `lead_form_step {step}`
   (`contact` / `need`), each with `form_id`, `layout`, `experiment`,
   `variant`; `contact_intent_click {channel}` for `phone`, `whatsapp`, `sms`,
   `callback`, with the experiment; and on the server `lead_form_submit
-  {form_id, channel}` with the posted experiment.
-- **Weight.** 8.2 KB gz of first-load JS on the template's place page
-  (157,287 → 165,711 B against its 158,000 B target: +4.9 %, a warning
+  {form_id, channel}` and `lead_form_reject {form_id, channel, field,
+  reason}` with the posted experiment.
+- **Weight.** 8.9 KB gz of first-load JS on the template's place page
+  (157,287 → 166,361 B against its 158,000 B target: +5.3 %, a warning
   within the 20 % tolerance); the refusals and the shared phone rule are
-  2.0 KB of it.
+  2.0 KB of it, sending (the id, the busy state, the retry) 0.6 KB.
 
 Tailwind v4 does not scan `node_modules`; the brand's `globals.css` names the
 package:
@@ -387,6 +397,8 @@ chooses per visitor answer `Cache-Control: private, no-store`.
   adapter passes `describeLeadStoreContract` and migrates itself to
   `LEAD_SCHEMA_VERSION` on open. SQLite keeps the Rust server's columns
   (`job`, `zip`, `mobile`) and recognises every earlier table in place.
+  Schema 6 adds `submission_id` under a unique index (where present): one
+  row per script submission, read back by `findSubmission`.
 - **Mail is checked at boot.** With `SMTP_URL` set, `leadNotifier` throws when
   it is built if the URL is malformed (the error never repeats it), there is
   no sender (`LEAD_NOTIFY_FROM`, or `leads@<domain>`) or no recipient
@@ -443,15 +455,33 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavai
   lead and `ctx` (`leadId`, `brandId`, `locale`, `formId`, `at`, and a fresh
   `idempotencyKey` for the receiver to deduplicate by), and written to the
   `webhook_outbox` table before the visitor is thanked; the send runs in
-  `after`. A lead the notifier skips (honeypot, rate limit) is not queued.
+  `after`. A lead the notifier skips (honeypot, rate limit) is not queued —
+  unless `panelSuspect` (below) queues the rate-limited one.
+- **Suspect leads: `panelSuspect`, off.** `suspectOf(lead)` is
+  `rate_limited`, `too_fast` or nothing — never `honeypot`, whose lead goes
+  nowhere. With `leadWebhook(…, { panelSuspect: true })` a rate-limited lead
+  is queued too (still never mailed) and `ctx.suspect` names why a lead is
+  suspect, for the body's `suspect` property. Off by default, and to stay off
+  until the panel's `lead.created` accepts the property: it refuses an
+  unknown one, and the outbox would park the lead. Off, nothing changes.
+- **The rate limit** is `LEAD_RATE_LIMIT` (`<count>/<seconds>`): 5 per 10
+  minutes per address in production, 100 outside it, where every request of
+  a local stack shares one address. Outside production a lead held back as
+  rate-limited or honeypot is logged loudly.
 - **Signature.** Three headers named by `signing.headers`: the key id, the
   timestamp (unix seconds) and `hex(HMAC-SHA256(secret, prefix + timestamp +
   "." + body))`, signed afresh on each attempt. Prefix and names are required.
 - **At-least-once.** 2xx is delivered. A `207` is delivered too, and an item
   it marks `rejected` is final — logged by index, not retried. 5xx, 408, 429
   and network errors retry, doubling from 5 s up to an hour (with jitter, and
-  at least `Retry-After`), `WEBHOOK_MAX_ATTEMPTS` (12) times; any other status,
-  3xx included, is final. A final row stays as `dead` with its `last_error`.
+  at least `Retry-After`), for 48 hours from queueing (`horizonMs`;
+  `maxAttempts` is an optional cap). 401, 403 and 404 retry too, logged as
+  errors naming the setting to check — a rotated key, a moved receiver. Any
+  other status, 3xx included, is final. A final row stays as `dead` with its
+  `last_error`, `onDead({ id, ref, attempts, error })` is told (an alert), and
+  `requeueDead()` — or `kitstart-outbox requeue` on the leads file, with
+  `kitstart-outbox status` to count rows — puts the dead rows back, due now,
+  their horizon fresh.
 - **PII stays in the body.** Logs name the row, the attempt and the status;
   the receiver's own words (which may echo a field) go to the row's
   `last_error`, never to the log.

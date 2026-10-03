@@ -274,3 +274,22 @@ test.describe("a refused number, with JavaScript", () => {
     await expect(page).toHaveURL(/\/fr\?need=deep#quote$/);
   });
 });
+
+// No network at the press of submit: the form stays, says so, and sends the
+// same lead once the network is back (LEAD-FORMS-REVIEW-2026-10-03 #4).
+test("offline, the form says so, keeps what was typed and sends it on retry", async ({ page, context }) => {
+  await page.goto("/fr");
+  await expect(page.locator("#quote select")).toHaveCount(0);
+  const form = page.locator("#quote-form");
+  await form.getByLabel("Code postal").fill("75011");
+  await form.getByLabel("Téléphone").fill("0612345678");
+  await context.setOffline(true);
+  await form.getByRole("button", { name: "Recevoir le prix" }).click();
+  const alert = form.getByRole("alert");
+  await expect(alert).toContainText("Pas de connexion");
+  await expect(page).toHaveURL(/\/fr$/);
+  await expect(form.getByLabel("Téléphone")).toHaveValue("0612345678");
+  await context.setOffline(false);
+  await alert.getByRole("button", { name: "Réessayer" }).click();
+  await expect(page).toHaveURL(/\/fr\/thanks$/);
+});
