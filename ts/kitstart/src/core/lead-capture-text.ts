@@ -35,6 +35,14 @@ export interface LeadCaptureText {
   fieldInvalid: string;
   /** The server refused the request without naming a field. */
   formInvalid: string;
+  /** On the submit while the script posts the form. */
+  sending: string;
+  /** The post never reached the server: nothing was sent, the form is as typed. */
+  networkError: string;
+  /** No answer in time: it may have arrived — a retry cannot make a second lead. */
+  timeoutError: string;
+  /** Beside the two above: sends the same lead again. */
+  retry: string;
   nameLabel: string;
   /**
    * Shown in the empty field. None by default: a placeholder is not a label —
@@ -86,6 +94,10 @@ const FR: LeadCaptureText = {
   consentRequired: "Cochez la case pour que nous puissions vous rappeler.",
   fieldInvalid: "Vérifiez ce champ.",
   formInvalid: "Votre demande n’a pas pu être envoyée. Vérifiez le formulaire.",
+  sending: "Envoi…",
+  networkError: "Pas de connexion : votre demande n’est pas partie. Vérifiez le réseau et réessayez.",
+  timeoutError: "Le serveur ne répond pas. Réessayez : votre demande ne sera pas envoyée deux fois.",
+  retry: "Réessayer",
   nameLabel: "Nom",
   optional: "facultatif",
   submit: "Recevoir le prix",
@@ -121,6 +133,10 @@ const EN: LeadCaptureText = {
   consentRequired: "Tick the box so we can call you back.",
   fieldInvalid: "Check this field.",
   formInvalid: "Your request could not be sent. Check the form.",
+  sending: "Sending…",
+  networkError: "No connection: your request was not sent. Check the network and try again.",
+  timeoutError: "The server is not answering. Try again: your request will not be sent twice.",
+  retry: "Try again",
   nameLabel: "Name",
   optional: "optional",
   submit: "Get the price",

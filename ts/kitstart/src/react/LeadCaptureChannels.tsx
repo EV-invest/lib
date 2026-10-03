@@ -5,6 +5,8 @@ import { CHANNEL_FIELD } from "../core/lead";
 import type { LeadCaptureText } from "../core/lead-capture-text";
 import type { FormEventHandler } from "react";
 import { ConsentField, FormMessage, PhoneField, type FieldPart } from "./LeadCaptureFields";
+import { FailureMessage, SubmitButton } from "./LeadCaptureSubmit";
+import type { SendFailure } from "./use-lead-submit";
 import { partWithLeading, type PartClassNames } from "./parts";
 import { QuoteFormShell } from "./QuoteFormShell";
 
@@ -99,6 +101,10 @@ export function CallbackForm(props: {
   onSubmit: FormEventHandler<HTMLFormElement> | undefined;
   /** The server's refusal: the field and its words. */
   error: { field: string; text: string } | null;
+  /** The script is posting this form. */
+  busy: boolean;
+  failure: SendFailure | null;
+  onRetry: () => void;
   onSoftError: () => void;
   classNames?: PartClassNames<ChannelPart | FieldPart> | undefined;
 }) {
@@ -137,9 +143,8 @@ export function CallbackForm(props: {
         <PhoneField id={`${id}-phone`} name={mobileName} text={text} error={at("phone")} onSoftError={props.onSoftError} classNames={c} />
         <ConsentField sentence={text.callbackConsent} requiredText={text.consentRequired} error={at("consent")} className={c?.consent} classNames={c} />
         <FormMessage id={`${id}-error`} error={error && error.field !== "phone" && error.field !== "consent" ? error.text : null} className={c?.error} />
-        <Button type="submit" size="touch" className={cn("w-full", c?.callbackSubmit)}>
-          {text.callbackSubmit}
-        </Button>
+        <FailureMessage failure={props.failure} text={text} onRetry={props.onRetry} className={c?.error} />
+        <SubmitButton busy={props.busy} label={text.callbackSubmit} sending={text.sending} className={c?.callbackSubmit} />
       </QuoteFormShell>
     </details>
   );

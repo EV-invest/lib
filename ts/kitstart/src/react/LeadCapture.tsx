@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, cn } from "@evinvest/uikit";
+import { cn } from "@evinvest/uikit";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { resolveChannels, type CaptureChannel } from "../core/channels";
 import type { LeadWire } from "../core/lead";
@@ -16,6 +16,7 @@ import { QuoteFormShell } from "./QuoteFormShell";
 import { useHydrated, useNeed, useNow, useOpenOnHash } from "./use-lead-context";
 import { errorText, formMessageId, OWN_FIELDS, useLeadError } from "./use-lead-error";
 import { useLeadEvents } from "./use-lead-events";
+import { FailureMessage, SubmitButton } from "./LeadCaptureSubmit";
 import { useLeadSubmit, type LeadSent } from "./use-lead-submit";
 
 export type LeadCapturePart =
@@ -107,7 +108,11 @@ export function LeadCapture(props: LeadCaptureProps) {
   const events = useLeadEvents(root, { formId, layout, experiment });
   useOpenOnHash(`${id}-callback`);
   const [error, setError] = useLeadError(root, id);
-  const [sent, onSubmit] = useLeadSubmit(props.done !== undefined, { mobile: wire.mobile, name: props.name?.field }, (channel, field) => setError({ channel, field }));
+  const { sent, onSubmit, busy, failure, retry } = useLeadSubmit(
+    props.done !== undefined,
+    { mobile: wire.mobile, name: props.name?.field },
+    { onRefused: (channel, field) => setError({ channel, field }), onFailed: (channel, why) => events.submitError(why, channel) },
+  );
   // The form's refusal by where it shows: under the field the card draws, else above the submit.
   const formError = error?.channel === "form" ? error.field : null;
   const at = (field: string) => (formError === field ? errorText(field, text) : null);
@@ -164,6 +169,9 @@ export function LeadCapture(props: LeadCaptureProps) {
         experiment={experiment}
         onSubmit={onSubmit}
         error={error?.channel === "callback" ? { field: error.field, text: errorText(error.field, text) } : null}
+        busy={busy === "callback"}
+        failure={failure?.channel === "callback" ? failure.failure : null}
+        onRetry={retry}
         onSoftError={() => events.fieldError("phone")}
         classNames={c}
       />
@@ -255,10 +263,9 @@ export function LeadCapture(props: LeadCaptureProps) {
           )}
           {props.extras}
           <FormMessage id={formMessageId(id, "form")} error={above} className={c?.error} />
+          <FailureMessage failure={failure?.channel === "form" ? failure.failure : null} text={text} onRetry={retry} className={c?.error} />
           <div className={cn("flex flex-col gap-3", c?.trust)}>
-            <Button type="submit" size="touch" className={cn("w-full", c?.submit)}>
-              {text.submit}
-            </Button>
+            <SubmitButton busy={busy === "form"} label={text.submit} sending={text.sending} className={c?.submit} />
             {props.trust}
           </div>
           {opening && lead !== "callback" && <p className={cn("text-sm text-ink-soft", c?.opening)}>{opening}</p>}

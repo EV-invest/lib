@@ -18,6 +18,8 @@ export const EVENTS = {
   formStart: "lead_form_start",
   fieldError: "lead_form_field_error",
   formStep: "lead_form_step",
+  // The script's post that never got an answer (no network, no answer in time).
+  submitError: "lead_form_submit_error",
 } as const;
 
 export type IntentChannel = "form_open" | "whatsapp" | "phone" | "sms" | "callback" | "booking";
@@ -50,6 +52,7 @@ export const ALLOWED_PROPS = [
   "field",
   "step",
   "layout",
+  "reason",
 ] as const;
 
 /** What an experiment's assignment looks like on the wire: short slugs, nothing a person typed. */
