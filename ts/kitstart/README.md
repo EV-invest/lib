@@ -678,6 +678,13 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavai
   Every booking joins its lead by it (Cal.com's `metadata[ref]`, a link's
   `ref`, `booking.requested`'s `lead_ref`): **a brand must send this as the
   panel lead id** in `lead.created`, not an id it computes itself.
+- **`ctx.analyticsId` — the visit, for PostHog.** The `distinct_id` of the
+  page's beacons (`AnalyticsBoundary` holds one per page, in memory), posted
+  by `LeadCapture`'s script as `analytics_id` and checked against
+  `[A-Za-z0-9._:-]{1,128}`. Write it as `lead.created`'s `analytics_id`
+  property so the panel's PostHog events of the lead join the visit — once
+  the panel accepts the property. Absent for a plain post, a page with no
+  analytics key, or an older page; never stored with the lead.
 - **Booking requests: `panelBooking`, off.** With `leadWebhook(…, {
   panelBooking: true, buildBookingBody })`, `bookingRoute` queues
   `booking.requested@1` through the same outbox, after the lead's

@@ -1,4 +1,4 @@
-import { experimentProps } from "./analytics";
+import { ANALYTICS_ID, experimentProps } from "./analytics";
 import { HONEYPOT_FIELD, LEGACY_HONEYPOT_FIELDS, RENDERED_AT_FIELD, screen, type RateLimiter } from "./antispam";
 import { channelOf, MAX_FIELD, readCandidate, validateCandidate, type Lead, type LeadCandidate, type LeadChannel, type LeadPrice } from "./lead";
 import { flowOf, readEstimateInputs, type LeadFlow } from "./pricing/flow";
@@ -13,6 +13,12 @@ export const FORM_ID_FIELD = "form_id";
 /** The site's experiment assignment, posted so the submit counts in the right arm. */
 export const EXPERIMENT_FIELD = "experiment";
 export const VARIANT_FIELD = "variant";
+/**
+ * The page's analytics id (`ANALYTICS_ID`), posted by the script only: the
+ * webhook's `ctx.analyticsId`, for `lead.created`'s `analytics_id`. Never
+ * stored with the lead and never a reason to refuse one.
+ */
+export const ANALYTICS_ID_FIELD = "analytics_id";
 /**
  * The price the form showed, in cents — compared with the server's, never
  * stored as the price: a lead is taken only at the price the visitor saw.
@@ -54,7 +60,7 @@ export interface AcceptDeps {
    * answer, where a crash cannot drop it; a lead the notifier skips is skipped
    * here too. A failure logs and changes nothing — the lead is stored.
    */
-  enqueue?: (lead: Lead, id: number, meta: { locale: string; formId: string; leadRef: string }) => void;
+  enqueue?: (lead: Lead, id: number, meta: { locale: string; formId: string; leadRef: string; analyticsId?: string }) => void;
   /**
    * The price list to price an `estimate` or `fixed` lead with
    * (`createPricingSource(…).model`); absent → `site.pricing`. A failure is
@@ -227,10 +233,12 @@ async function accept<L extends string, P extends string>(
   // lead (or one from a page cached before the stamp existed) is still sent
   // on, flagged. The honeypot and the rate limit are the server's own
   // evidence, and those leads wait in the table for a reviewer.
+  const rawAnalyticsId = form.get(ANALYTICS_ID_FIELD);
+  const analyticsId = typeof rawAnalyticsId === "string" && ANALYTICS_ID.test(rawAnalyticsId) ? rawAnalyticsId : undefined;
   const queue = () => {
     if (!deps.enqueue) return;
     try {
-      deps.enqueue(lead, id, { locale, formId, leadRef: ref });
+      deps.enqueue(lead, id, { locale, formId, leadRef: ref, ...(analyticsId ? { analyticsId } : {}) });
     } catch (error) {
       deps.log.error(`quote: lead ${id} is stored but could not be queued for its webhook`, error);
     }

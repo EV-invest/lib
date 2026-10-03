@@ -72,6 +72,13 @@ export const ALLOWED_PROPS = [
   "provider",
 ] as const;
 
+/**
+ * The beacon's `distinct_id` as a lead may carry it to the panel
+ * (`lead.created`'s `analytics_id`), so PostHog can join the lead to the
+ * visit. The panel's own rule; anything else is dropped, never refused.
+ */
+export const ANALYTICS_ID = /^[A-Za-z0-9._:-]{1,128}$/;
+
 /** What an experiment's assignment looks like on the wire: short slugs, nothing a person typed. */
 export const EXPERIMENT_SLUG = /^[a-z0-9_-]{1,32}$/;
 
@@ -103,11 +110,14 @@ export interface AnalyticsTarget {
  * Cookieless by construction: a beacon sink keeps its `distinct_id` in memory,
  * writes no cookie and no storage, and needs no consent banner. `sendBeacon`
  * because the events that matter most — a tap on `tel:` or `wa.me` — are
- * followed by the page handing the visitor to another app.
+ * followed by the page handing the visitor to another app. `distinctId`:
+ * the visitor's id, held by the caller so a lead can name it; a random one
+ * per sink without it.
  */
-export function analyticsSink(target: AnalyticsTarget, locationId: string | null): AnalyticsSink {
+export function analyticsSink(target: AnalyticsTarget, locationId: string | null, distinctId?: string): AnalyticsSink {
   return createBeaconSink({
     key: target.key ?? undefined,
+    ...(distinctId !== undefined ? { distinctId } : {}),
     host: target.host,
     allowedProps: ALLOWED_PROPS,
     globalProps: locationId ? { brand_id: target.brandId, location_id: locationId } : { brand_id: target.brandId },

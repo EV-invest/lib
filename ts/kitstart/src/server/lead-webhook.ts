@@ -37,6 +37,14 @@ export interface LeadWebhookContext {
    * the properties. `panelFlowProperties` writes them as the panel reads them.
    */
   flow?: PanelFlow;
+  /**
+   * The visitor's analytics id as the page posted it (`ANALYTICS_ID_FIELD`),
+   * for `lead.created`'s `analytics_id` — so PostHog joins the lead to the
+   * visit. Absent from a page without the script, an older page, or one
+   * without analytics. Write it only once the panel's contract has the
+   * property: it refuses an unknown one, and the outbox would park the lead.
+   */
+  analyticsId?: string;
 }
 
 /** A lead's sale as the panel's `lead.created` may carry it. */
@@ -123,7 +131,7 @@ export type BookingQueued = { kind: "queued"; row: number } | { kind: "off" } | 
 
 export interface LeadWebhook {
   /** Builds, serialises and queues the lead's body; returns the outbox row. */
-  enqueue(lead: Lead, id: number, meta: { locale: string; formId: string; leadRef?: string }): number;
+  enqueue(lead: Lead, id: number, meta: { locale: string; formId: string; leadRef?: string; analyticsId?: string }): number;
   tick(): Promise<TickReport>;
   start(intervalMs?: number): void;
   stop(): void;
