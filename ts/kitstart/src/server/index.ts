@@ -7,6 +7,15 @@ import "server-only";
 
 export { createServerEnv, parseServerEnv, type EnvSource, type ServerEnv } from "./env";
 export { createPlaceSource, PLACE_REVALIDATE_SECONDS, PlaceSourceError, type PlaceSource, type PlaceSourceOptions } from "./place-source";
+export {
+  createExperimentsSource,
+  EXPERIMENTS_TTL_MS,
+  parseExperimentOverrides,
+  type ExperimentOverride,
+  type ExperimentOverrides,
+  type ExperimentsSource,
+  type ExperimentsSourceOptions,
+} from "./experiments-source";
 export { createPricingSource, type PricingSource, type PricingSourceOptions } from "./pricing-source";
 export { describeLeadDb, openLeadStore, parseLeadDb, type LeadDb } from "./lead-store";
 export { openSqliteLeadStore, type SqliteLeadStore } from "./lead-store-sqlite";
