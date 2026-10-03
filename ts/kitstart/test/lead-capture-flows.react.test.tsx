@@ -237,6 +237,13 @@ describe("LeadCapture's priced success", () => {
     expect(document.querySelector("input[name=shown_cents]")?.getAttribute("value")).toBe("8900");
   });
 
+  it("offers the booking the brand resolved (an experiment's arm) over the place's", async () => {
+    const place2 = { ...place, booking: { provider: "cal_com", url: "https://cal.com/brand/vitres" } as const };
+    render(capture({ need: "windows", place: place2, bookingConfig: { provider: "link", url: "https://calendar.app.google/abc" } }));
+    await send({ ...taken, cents: 8900 });
+    expect(screen.getByRole("link", { name: "Choisir un créneau" })).toHaveAttribute("href", "https://calendar.app.google/abc?ref=lead-12-0a1b2c3d");
+  });
+
   it("still goes to the thanks page for a quote need", async () => {
     const assign = vi.spyOn(navigation, "assign").mockImplementation(() => {});
     render(capture({ need: "deep" }));

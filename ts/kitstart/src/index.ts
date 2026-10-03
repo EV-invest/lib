@@ -254,6 +254,7 @@ export {
   BOOKING_STATUSES,
   BookingConfigError,
   bookingConfigProblems,
+  bookingForVariant,
   bookingHref,
   bookingOf,
   bookingRequestedProperties,
@@ -274,6 +275,7 @@ export {
   type BookingRequestedProperties,
   type BookingRules,
   type BookingStatus,
+  type OpenBookingConfig,
   type PreferredPart,
 } from "./core/booking/index";
 

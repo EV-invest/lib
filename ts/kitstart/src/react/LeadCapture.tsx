@@ -7,7 +7,7 @@ import { resolveChannels, type CaptureChannel } from "../core/channels";
 import { leadErrorFor, type LeadError, type LeadWire, type PageLeadError } from "../core/lead";
 import { fillText, openingText } from "../core/lead-capture-format";
 import { flowTextOf, type LeadCaptureText } from "../core/lead-capture-text";
-import { bookingOf } from "../core/booking/model";
+import { bookingOf, type OpenBookingConfig } from "../core/booking/model";
 import { servedLocalities, storefrontOf, type Place } from "../core/place/types";
 import { flowOf, type LeadFlows } from "../core/pricing/flow";
 import type { PricingModel } from "../core/pricing/model";
@@ -64,16 +64,22 @@ export interface LeadCaptureProps {
    */
   photos?: readonly string[] | undefined;
   /**
-   * After a priced lead: how the slot is set. By default the place's own
-   * booking (`place.booking`, `manual` when it has none) through its
-   * provider's adapter — `LeadBooking`. A node here replaces it whole.
+   * After a priced lead: how the slot is set. By default `bookingConfig`,
+   * else the place's own booking (`place.booking`, `manual` when it has
+   * none), through its provider's adapter — `LeadBooking`. A node here
+   * replaces it whole.
    */
   booking?: ReactNode | ((sent: LeadSent) => ReactNode);
   /**
    * The built-in booking adapters with the brand's over them (a `calendly`
    * later) — from a client component only: a server one cannot pass functions.
    */
-  bookingAdapters?: Partial<BookingAdapters> | undefined;
+  bookingAdapters?: BookingAdapters | undefined;
+  /**
+   * The booking to offer, when the brand resolves it rather than the place —
+   * an experiment's arm (`bookingForVariant`). Default `bookingOf(place)`.
+   */
+  bookingConfig?: OpenBookingConfig | undefined;
   /** `cal_com` as Cal.com's modal, its script loaded on the click, instead of a new tab. */
   calComEmbed?: boolean | undefined;
   /** The need the page already knows; `?need=` and `[data-need]` triggers set it too. */
@@ -261,7 +267,7 @@ export function LeadCapture(props: LeadCaptureProps) {
               sent={sent}
               booking={
                 props.booking === undefined ? (
-                  <LeadBooking booking={bookingOf(place)} sent={sent} locale={locale} text={flowText} adapters={props.bookingAdapters} calComEmbed={props.calComEmbed} formId={formId} classNames={c} />
+                  <LeadBooking booking={props.bookingConfig ?? bookingOf(place)} sent={sent} locale={locale} text={flowText} adapters={props.bookingAdapters} calComEmbed={props.calComEmbed} formId={formId} classNames={c} />
                 ) : typeof props.booking === "function" ? (
                   props.booking(sent)
                 ) : (

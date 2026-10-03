@@ -2,6 +2,7 @@ export {
   BOOKING_LIMITS,
   BOOKING_PROVIDERS,
   BOOKING_STATUSES,
+  bookingForVariant,
   bookingOf,
   DEFAULT_BOOKING,
   DEFAULT_CAL_COM_HOSTS,
@@ -15,6 +16,7 @@ export {
   type BookingRequestedProperties,
   type BookingRules,
   type BookingStatus,
+  type OpenBookingConfig,
   type PreferredPart,
 } from "./model";
 export {
