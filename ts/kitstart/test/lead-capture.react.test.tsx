@@ -215,7 +215,8 @@ describe("LeadCapture with a script", () => {
     fireEvent.blur(phone);
     expect(live).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.phoneHint);
     expect(phone).toHaveAttribute("aria-invalid", "true");
-    expect(events.filter(e => e.event === "lead_form_field_error")).toEqual([{ event: "lead_form_field_error", props: expect.objectContaining({ field: "phone" }) }]);
+    // A hint, not yet a refusal: told apart from the browser's block.
+    expect(events.filter(e => e.event === "lead_form_field_error")).toEqual([{ event: "lead_form_field_error", props: expect.objectContaining({ field: "phone", blocking: false }) }]);
     fireEvent.change(phone, { target: { value: "06 12 34 56 78" } });
     expect(live).toBeEmptyDOMElement();
     expect(phone).not.toHaveAttribute("aria-invalid");
@@ -337,7 +338,7 @@ describe("LeadCapture's events", () => {
     expect(events).toEqual([
       { event: "lead_form_view", props: tags },
       { event: "lead_form_start", props: tags },
-      { event: "lead_form_field_error", props: { ...tags, field: "locality" } },
+      { event: "lead_form_field_error", props: { ...tags, field: "locality", blocking: true } },
     ]);
     expect(JSON.stringify(events)).not.toContain("0612345678");
   });

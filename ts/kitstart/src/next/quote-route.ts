@@ -1,6 +1,6 @@
 import { after } from "next/server.js";
-import { createAcceptLead } from "../core/accept";
-import { analyticsSink, EVENTS } from "../core/analytics";
+import { createAcceptLead, EXPERIMENT_FIELD, VARIANT_FIELD } from "../core/accept";
+import { analyticsSink, EVENTS, experimentProps } from "../core/analytics";
 import { RateLimiter } from "../core/antispam";
 import { CARD_FIELD, CARD_ID, channelOf, LEAD_ERROR_PARAM, type LeadChannel, type LeadStore } from "../core/lead";
 import type { Place } from "../core/place/types";
@@ -111,6 +111,11 @@ function seeOther(location: string): Response {
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
 }
+
+const text = (form: FormData, name: string): string | null => {
+  const value = form.get(name);
+  return typeof value === "string" ? value : null;
+};
 
 /** `LeadCapture`'s own post asks for JSON; a plain form post never does. */
 const wantsJson = (request: Request): boolean => (request.headers.get("accept") ?? "").includes("application/json");
@@ -228,9 +233,17 @@ export function quoteRoute<L extends string, P extends string>(
         const location = href(request, outcome.lead.placeSlug, outcome.locale, thanksSuffix(channelOf(outcome.lead)));
         return scripted ? json(200, { ok: true, location }) : seeOther(location);
       }
-      case "invalid":
+      case "invalid": {
+        const tags = experimentProps(text(form, EXPERIMENT_FIELD), text(form, VARIANT_FIELD));
+        // The field's role and why — never what was typed.
+        const props = { form_id: outcome.formId, channel: outcome.channel, field: outcome.field, reason: "invalid", ...tags };
+        if (env.posthogKey) {
+          const sink = analyticsSink({ key: env.posthogKey, host: env.posthogHost, brandId: site.brand.id }, outcome.slug);
+          defer(() => sink.capture(EVENTS.formReject, props));
+        }
         if (scripted) return json(422, { ok: false, field: outcome.field });
         return seeOther(href(request, outcome.slug, outcome.locale, refused(form, outcome.field, outcome.channel)));
+      }
       case "failed":
         return unavailable(outcome.slug, outcome.locale);
     }

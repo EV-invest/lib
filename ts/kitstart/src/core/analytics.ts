@@ -20,6 +20,8 @@ export const EVENTS = {
   formStep: "lead_form_step",
   // The script's post that never got an answer (no network, no answer in time).
   submitError: "lead_form_submit_error",
+  // The server's refusal (`reason`, the `field`): the visitor was sent back.
+  formReject: "lead_form_reject",
 } as const;
 
 export type IntentChannel = "form_open" | "whatsapp" | "phone" | "sms" | "callback" | "booking";
@@ -53,6 +55,8 @@ export const ALLOWED_PROPS = [
   "step",
   "layout",
   "reason",
+  // A field error that blocked the submit (`true`), or a hint (`false`).
+  "blocking",
 ] as const;
 
 /** What an experiment's assignment looks like on the wire: short slugs, nothing a person typed. */
