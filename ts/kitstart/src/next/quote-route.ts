@@ -2,11 +2,12 @@ import { after } from "next/server.js";
 import { createAcceptLead } from "../core/accept";
 import { analyticsSink, EVENTS } from "../core/analytics";
 import { RateLimiter } from "../core/antispam";
-import { channelOf, type LeadStore } from "../core/lead";
+import { CARD_FIELD, CARD_ID, channelOf, LEAD_ERROR_PARAM, type LeadChannel, type LeadStore } from "../core/lead";
 import type { Place } from "../core/place/types";
 import { createPlaceView } from "../core/place/view";
-import { createRouting, THANKS } from "../core/routing";
+import { createRouting } from "../core/routing";
 import { bakedPlace, contactOf, type Site } from "../core/site";
+import { thanksSuffix } from "../core/status";
 import { clientKey, type ProxyTrust } from "../server/client-key";
 import type { ServerEnv } from "../server/env";
 import { openLeadStore } from "../server/lead-store";
@@ -16,10 +17,14 @@ import type { LeadNotifier } from "../server/notify";
 /**
  * `app/quote/route.ts` — the no-JS path, and the one that has to keep working:
  * a plain form POST answered with a 303, so a refresh does not resubmit.
+ * A refused lead goes back to its card with the field to fix
+ * (`/fr?lead_error=phone#devis`); a script asking for JSON (`Accept:
+ * application/json`) is answered `422 { ok: false, field }` instead, and
+ * `200 { ok: true, location }` for a lead taken.
  *
  * ```ts
  * export const dynamic = "force-dynamic";
- * export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavailable });
+ * export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavailable, anchor: "devis" });
  * ```
  */
 export interface UnavailableCopy {
@@ -45,6 +50,13 @@ export interface QuoteRouteDeps<L extends string> {
   /** Opened on first use (`next build` imports the route); defaults to `LEADS_DB_URL`'s. */
   store?: () => LeadStore;
   limiter?: RateLimiter;
+  /**
+   * The card's id a refused lead is sent back to, when the form did not post
+   * its own (`card`, which `LeadCapture` does): `quote` by default, the
+   * `LeadCapture` default. A slug, `[a-z0-9-]`; a callback lands on
+   * `<anchor>-callback`.
+   */
+  anchor?: string;
   /** Work after the response; `after` from `next/server` by default. */
   defer?: (task: () => Promise<void> | void) => void;
   now?: () => number;
@@ -96,10 +108,19 @@ function seeOther(location: string): Response {
   return new Response(null, { status: 303, headers: { Location: location } });
 }
 
+function json(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
+}
+
+/** `LeadCapture`'s own post asks for JSON; a plain form post never does. */
+const wantsJson = (request: Request): boolean => (request.headers.get("accept") ?? "").includes("application/json");
+
 export function quoteRoute<L extends string, P extends string>(
   site: Site<L, P>,
   deps: QuoteRouteDeps<L>,
 ): (request: Request) => Promise<Response> {
+  const anchor = deps.anchor ?? "quote";
+  if (!CARD_ID.test(anchor)) throw new Error(`quoteRoute: the anchor must be a slug ([a-z0-9-]), got ${JSON.stringify(anchor)}`);
   const accept = createAcceptLead(site);
   const routing = createRouting(site);
   const limiter = deps.limiter ?? new RateLimiter(5, 10 * 60_000);
@@ -129,6 +150,20 @@ export function quoteRoute<L extends string, P extends string>(
     // apex fallback path.
     const mode = routing.hostSlug(request.headers.get("host") ?? "") === place.slug ? "host" : "path";
     return createPlaceView(site, place, locale, mode).href(suffix);
+  }
+
+  /**
+   * Back to the card, with the field to fix and the need already chosen —
+   * slugs only: a phone or a name in a URL ends up in logs and analytics. The
+   * card is the one the form posted, if its id is a slug.
+   */
+  function refused(form: FormData, field: string, channel: LeadChannel): string {
+    const query = new URLSearchParams({ [LEAD_ERROR_PARAM]: field });
+    const subject = form.get(site.lead.wire.subject);
+    if (channel === "form" && typeof subject === "string" && site.lead.subjects.includes(subject as P)) query.set("need", subject);
+    const posted = form.get(CARD_FIELD);
+    const card = typeof posted === "string" && CARD_ID.test(posted) ? posted : anchor;
+    return `?${query}#${card}${channel === "callback" ? "-callback" : ""}`;
   }
 
   /** Self-contained: the thing that failed may be the thing that renders pages. */
@@ -185,12 +220,16 @@ export function quoteRoute<L extends string, P extends string>(
       now: deps.now?.() ?? Date.now(),
       log,
     });
+    const scripted = wantsJson(request);
     switch (outcome.kind) {
       // A suspected bot is answered exactly as a person is.
-      case "stored":
-        return seeOther(href(request, outcome.lead.placeSlug, outcome.locale, THANKS));
+      case "stored": {
+        const location = href(request, outcome.lead.placeSlug, outcome.locale, thanksSuffix(channelOf(outcome.lead)));
+        return scripted ? json(200, { ok: true, location }) : seeOther(location);
+      }
       case "invalid":
-        return seeOther(href(request, outcome.slug, outcome.locale, outcome.slug ? "#quote" : ""));
+        if (scripted) return json(422, { ok: false, field: outcome.field });
+        return seeOther(href(request, outcome.slug, outcome.locale, refused(form, outcome.field, outcome.channel)));
       case "failed":
         return unavailable(outcome.slug, outcome.locale);
     }

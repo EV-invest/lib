@@ -139,8 +139,9 @@ async function smoke() {
     // but never without the consent, which the row keeps word for word.
     const said = "J’accepte d’être rappelé·e à ce numéro au sujet de ma demande.";
     const callback = (fields) => new URLSearchParams({ location: "paris", locale: "fr", form_id: "quote", t: String(Date.now() - 10_000), hp_ref: "", channel: "callback", ...fields });
-    await expect("a callback without consent goes back to the form", "/quote", { method: "POST", body: callback({ mobile: "07 00 00 00 01" }) }, 303, r => r.headers.get("location") === "/fr#quote");
-    await expect("a callback posts without JavaScript", "/quote", { method: "POST", body: callback({ mobile: "07 12 34 56 78", consent: said }) }, 303, r => r.headers.get("location") === "/fr/thanks");
+    // Back to the callback, naming what is missing — never silently to the card.
+    await expect("a callback without consent goes back to the callback, naming the consent", "/quote", { method: "POST", body: callback({ mobile: "07 00 00 00 01" }) }, 303, r => r.headers.get("location") === "/fr?lead_error=consent#quote-callback");
+    await expect("a callback posts without JavaScript, its thanks told so", "/quote", { method: "POST", body: callback({ mobile: "07 12 34 56 78", consent: said }) }, 303, r => r.headers.get("location") === "/fr/thanks?channel=callback");
     const again = new DatabaseSync(join(dir, "data/leads.db"), { readOnly: true });
     const called = again.prepare("SELECT zip, channel, consent_at, consent_text FROM leads WHERE mobile = ?").get("+33712345678");
     const refused = again.prepare("SELECT COUNT(*) AS n FROM leads WHERE mobile = ?").get("+33700000001");
