@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@evinvest/uikit";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { resolveChannels, type CaptureChannel } from "../core/channels";
 import type { LeadWire } from "../core/lead";
 import { fillText, openingText } from "../core/lead-capture-format";
@@ -226,7 +226,7 @@ export function LeadCapture(props: LeadCaptureProps) {
     return (
       <div ref={root} {...rootProps}>
         <div ref={doneRef} role="status" tabIndex={-1} className={cn("flex flex-col gap-4 outline-none", c?.done)}>
-          {done}
+          <Fragment key="done">{done}</Fragment>
           {sent.channel === "form" && flow !== "quote" && (
             <LeadCapturePriced sent={sent} booking={typeof props.booking === "function" ? props.booking(sent) : props.booking} locale={locale} text={flowText} classNames={c} />
           )}
@@ -237,12 +237,20 @@ export function LeadCapture(props: LeadCaptureProps) {
 
   return (
     <div ref={root} {...rootProps}>
-      {props.head ?? (
-        <div className={cn("flex flex-col gap-1", c?.head)}>
-          <p className={cn("font-display text-2xl font-bold text-ink", c?.title)}>{text.title}</p>
-          <p className={cn("text-ink-soft", c?.lede)}>{text.lede}</p>
-        </div>
-      )}
+      {/*
+        A brand's slot, built in a server component, can reach this client
+        island as a lazy reference React resolves only here, unseen by the JSX
+        that placed it: bare among siblings it is a list child with no key, and
+        React dev warns. Each slot sits alone in a keyed fragment instead.
+      */}
+      <Fragment key="head">
+        {props.head ?? (
+          <div className={cn("flex flex-col gap-1", c?.head)}>
+            <p className={cn("font-display text-2xl font-bold text-ink", c?.title)}>{text.title}</p>
+            <p className={cn("text-ink-soft", c?.lede)}>{text.lede}</p>
+          </div>
+        )}
+      </Fragment>
       {lead !== "form" && channel(lead, true)}
       <QuoteFormShell
         id={`${id}-form`}
@@ -308,12 +316,12 @@ export function LeadCapture(props: LeadCaptureProps) {
               classNames={c}
             />
           )}
-          {props.extras}
+          <Fragment key="extras">{props.extras}</Fragment>
           <FormMessage id={formMessageId(id, "form")} error={above} className={c?.error} />
           <FailureMessage failure={failure?.channel === "form" ? failure.failure : null} text={text} onRetry={retry} className={c?.error} />
           <div className={cn("flex flex-col gap-3", c?.trust)}>
             <SubmitButton busy={busy === "form"} label={flow === "quote" ? text.submit : flowText.bookSubmit} sending={text.sending} className={c?.submit} />
-            {props.trust}
+            <Fragment key="trust">{props.trust}</Fragment>
           </div>
           {opening && lead !== "callback" && <p className={cn("text-sm text-ink-soft", c?.opening)}>{opening}</p>}
           <p className={cn("text-sm text-ink-soft", c?.privacy)}>{text.privacy}</p>
