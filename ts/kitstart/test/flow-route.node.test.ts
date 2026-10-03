@@ -237,3 +237,45 @@ describe("the quote route, when the price changed under the form", () => {
     expect((await stored(sid(44)))?.price?.cents).toBe(9900);
   });
 });
+
+// The page gave up on a post the server was still working on, and the visitor
+// retried it: the same submission id, which must make one lead whichever of
+// the two reaches the store first.
+describe("the quote route, a retry racing the post it repeats", () => {
+  /** A price list whose first read waits for `release`: the first post, still in flight. */
+  function slowFirst() {
+    let release = () => {};
+    const gate = new Promise<void>(done => (release = done));
+    let reads = 0;
+    const pricing: PricingSource = { model: async () => (reads++ === 0 ? gate.then(() => BAKED) : BAKED) };
+    return { pricing, release };
+  }
+
+  it("answers the retry with the stored row when the first post was stored first", async () => {
+    const { route, store, bodies } = harness();
+    const first = await (await route(post({ ...ESTIMATE, submission_id: sid(50) }))).json();
+    const retry = await (await route(post({ ...ESTIMATE, submission_id: sid(50) }))).json();
+    expect(retry).toEqual(first);
+    expect(await store.count()).toBe(1);
+    expect(bodies).toHaveLength(1);
+  });
+
+  it("answers the first post with the retry's row when the retry was stored first", async () => {
+    const { pricing, release } = slowFirst();
+    const { route, store, bodies, log } = harness({ pricing });
+    const insert = vi.spyOn(store, "insert");
+    const hung = route(post({ ...ESTIMATE, submission_id: sid(51) }));
+    // Let the first post look the id up (nothing yet) and stop at the price list.
+    await new Promise(done => setImmediate(done));
+    const retry = await (await route(post({ ...ESTIMATE, submission_id: sid(51) }))).json();
+    release();
+    const first = await (await hung).json();
+    expect(first).toEqual(retry);
+    expect(retry).toMatchObject({ ok: true, lead: leadRef(1, sid(51)) });
+    // Both reached the insert: the unique index, not the lookup, kept the second row out.
+    expect(insert).toHaveBeenCalledTimes(2);
+    expect(await store.count()).toBe(1);
+    expect(bodies).toHaveLength(1);
+    expect(log.error).not.toHaveBeenCalled();
+  });
+});
