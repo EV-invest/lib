@@ -335,6 +335,25 @@ describe("the rate limit", () => {
     for (const bad of ["20", "0/60", "x/y", "5/0"]) expect(() => parseServerEnv({ brand: { id: "x" } }, { ...base, LEAD_RATE_LIMIT: bad }), bad).toThrow(/LEAD_RATE_LIMIT/);
   });
 
+  it("never costs the lead when the webhook cannot be built", async () => {
+    const store = openSqliteLeadStore(":memory:");
+    const log = { warn: vi.fn(), error: vi.fn() };
+    const res = await quoteRoute(site, {
+      env: () => ({ leadsDb: { kind: "sqlite", path: ":memory:" }, posthogKey: null, posthogHost: "x", trustedProxy: null }),
+      notifier: () => ({ notify: async () => undefined }),
+      webhook: () => {
+        throw new Error("LEAD_WEBHOOK_URL: the webhook outbox needs the sqlite lead store");
+      },
+      unavailable: () => ({ title: "", heading: "", body: "", callLabel: "" }),
+      store: () => store,
+      defer: () => undefined,
+      log,
+    })(new Request("https://aquafix.top/quote", { method: "POST", body: new URLSearchParams({ location: "royat", locale: "fr", job: "other", zip: "63130", mobile: "0612345678", t: "1" }), headers: { host: "royat.aquafix.top", "content-type": "application/x-www-form-urlencoded" } }));
+    expect(res.status).toBe(303);
+    expect(await store.count()).toBe(1);
+    expect(log.error).toHaveBeenCalled();
+  });
+
   it("is said loudly outside production when it holds a lead back", async () => {
     const log = { warn: vi.fn(), error: vi.fn() };
     const route = (production: boolean) =>
