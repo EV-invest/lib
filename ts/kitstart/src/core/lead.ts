@@ -11,6 +11,7 @@
  */
 
 import { normalizePhone, phoneProblem } from "./phone";
+import type { LeadFlows } from "./pricing/flow";
 
 /** Why a submission was kept but not acted on. `null` is a clean lead. */
 export type SpamVerdict = "honeypot" | "too-fast" | "rate-limited";
@@ -81,6 +82,13 @@ export interface LeadSchema<S extends string> {
    * number as typed.
    */
   mobileFormat?: "typed" | "e164";
+  /**
+   * How each need is sold (`quote` | `estimate` | `fixed`); a need left out
+   * is a `quote`. The form and the server read the same map, and a need runs
+   * its flow only when the price list prices it that way (`flowOf`) — so a
+   * flow the brand has not switched on is never run by a posted field.
+   */
+  flows?: LeadFlows;
 }
 
 /**
