@@ -308,10 +308,17 @@ describe("kitstart-outbox", () => {
     const print = (line: string) => void out.push(line);
     expect(runOutboxCli(["status"], { LEADS_DB_URL: `sqlite://${path}` }, print)).toBe(0);
     expect(out.join("\n")).toMatch(/dead\s+2/);
-    expect(runOutboxCli(["requeue"], { LEADS_DB_PATH: path }, print)).toBe(0);
+    // On the outbox's clock, so the tick below finds them due.
+    expect(runOutboxCli(["requeue"], { LEADS_DB_PATH: path }, print, clock.t)).toBe(0);
     expect(out.at(-1)).toMatch(/requeued 2/);
     expect(o.rows().map(r => r.state)).toEqual(["pending", "pending"]);
     expect(runOutboxCli(["requeue"], {}, print)).toBe(2);
+    // With the receiver named, only its rows: another target's would sit in pending, never sent.
+    expect(await o.tick()).toEqual({ delivered: 0, retried: 0, dead: 2 });
+    expect(runOutboxCli(["requeue"], { LEADS_DB_PATH: path, LEAD_WEBHOOK_URL: "https://elsewhere.example/ingest" }, print)).toBe(0);
+    expect(out.at(-1)).toMatch(/requeued 0 .*elsewhere\.example/);
+    expect(runOutboxCli(["requeue"], { LEADS_DB_PATH: path, LEAD_WEBHOOK_URL: TARGET.url }, print)).toBe(0);
+    expect(out.at(-1)).toMatch(/requeued 2/);
     expect(runOutboxCli(["nonsense"], { LEADS_DB_PATH: path }, print)).toBe(2);
     expect(runOutboxCli(["status", "--db", `${path}.typo`], {}, print)).toBe(2);
   });
@@ -411,7 +418,7 @@ describe("the quote route with a webhook", () => {
 
   // LEAD-FORMS-REVIEW-2026-10-03 #9: a rate-limited lead was thanked and never seen.
   describe("and the panel's suspect marker", () => {
-    function wired(panelSuspect: boolean | undefined) {
+    function wired(panelSuspect: boolean | undefined, production = true) {
       const bodies: unknown[] = [];
       const hook = leadWebhook(site, { leadsDb: { kind: "sqlite", path: ":memory:" }, leadWebhook: { url: TARGET.url, keyId: "k", secret: "s" } }, {
         signing: SIGNING,
@@ -423,8 +430,9 @@ describe("the quote route with a webhook", () => {
       if (!hook) throw new Error("expected the webhook on");
       opened.push(hook.outbox);
       const notify = vi.fn(async (_lead: Lead, _id: number) => undefined);
+      const log = { warn: vi.fn(), error: vi.fn() };
       const route = quoteRoute(site, {
-        env: () => ({ leadsDb: { kind: "sqlite", path: ":memory:" }, posthogKey: null, posthogHost: "https://eu.i.posthog.com", trustedProxy: null }),
+        env: () => ({ leadsDb: { kind: "sqlite", path: ":memory:" }, posthogKey: null, posthogHost: "https://eu.i.posthog.com", trustedProxy: null, production }),
         notifier: () => ({ notify }),
         webhook: () => hook,
         unavailable: () => ({ title: "", heading: "", body: "", callLabel: "" }),
@@ -432,9 +440,9 @@ describe("the quote route with a webhook", () => {
         limiter: new RateLimiter(1, 60_000),
         defer: task => void task(),
         now: () => NOW,
-        log: { warn: vi.fn(), error: vi.fn() },
+        log,
       });
-      return { bodies, route, notify };
+      return { bodies, route, notify, log };
     }
 
     it("names a rate-limited or too-fast lead, and never the honeypot", () => {
@@ -464,6 +472,15 @@ describe("the quote route with a webhook", () => {
       ]);
       // Mail as before: the too-fast lead only.
       expect(notify.mock.calls.map(c => c[1])).toEqual([1]);
+    });
+
+    it("on, does not tell a developer the queued rate-limited lead went nowhere", async () => {
+      const { route, log } = wired(true, false);
+      await route(post());
+      await route(post());
+      const said = JSON.stringify(log.warn.mock.calls);
+      expect(said).toContain("rate-limited");
+      expect(said).not.toContain("no webhook");
     });
   });
 });

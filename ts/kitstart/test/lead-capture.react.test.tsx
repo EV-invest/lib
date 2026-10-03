@@ -611,6 +611,45 @@ describe("LeadCapture's in-card success", () => {
     expect(posted("quote-callback-form")["submission_id"]).toBe("");
   });
 
+  it("mints a new id for a lead changed after a failure, for the next lead, and never takes one the browser restored", async () => {
+    const fetch = vi.fn(async (): Promise<Response> => Promise.reject(new TypeError("Failed to fetch")));
+    vi.stubGlobal("fetch", fetch);
+    const assign = vi.spyOn(navigation, "assign").mockImplementation(() => {});
+    render(capture());
+    // What Firefox puts back in a hidden field on Back.
+    (form().elements.namedItem("submission_id") as HTMLInputElement).value = "restored-0000-0000-0000";
+    const sid = (n: number) => Object.fromEntries((fetch.mock.calls[n] as unknown as [string, RequestInit])[1].body as URLSearchParams)["submission_id"];
+    await send();
+    await act(async () => Promise.resolve());
+    expect(sid(0)).not.toBe("restored-0000-0000-0000");
+    // The visitor fixes the number before retrying: another lead, which must not be answered with the first.
+    fireEvent.change(input("mobile"), { target: { value: "07 12 34 56 78" } });
+    await act(async () => {
+      fireEvent.submit(form());
+      await Promise.resolve();
+    });
+    await act(async () => Promise.resolve());
+    expect(sid(1)).not.toBe(sid(0));
+    fetch.mockImplementation(async () => json(200, { ok: true, location: "/fr/paris/thanks" }));
+    await act(async () => {
+      fireEvent.submit(form());
+      await Promise.resolve();
+    });
+    await act(async () => Promise.resolve());
+    expect(sid(2)).toBe(sid(1));
+    assign.mockRestore();
+  });
+
+  it("takes an answer cut off mid-body as no answer, not as one to submit for real", async () => {
+    const cut = { ok: true, status: 200, redirected: false, url: "", headers: new Headers({ "content-type": "application/json" }), json: () => Promise.reject(new TypeError("terminated")) };
+    vi.stubGlobal("fetch", vi.fn(async () => cut));
+    render(capture({ done: "Merci" }));
+    await send();
+    for (let i = 0; i < 3; i++) await act(async () => Promise.resolve());
+    expect(submit).not.toHaveBeenCalled();
+    expect(within(form()).getByRole("alert")).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.networkError);
+  });
+
   it("goes to the thanks page without a `done`", async () => {
     const assign = vi.spyOn(navigation, "assign").mockImplementation(() => {});
     vi.stubGlobal("fetch", vi.fn(async () => json(200, { ok: true, location: "/fr/paris/thanks?channel=callback" })));

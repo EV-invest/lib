@@ -289,9 +289,10 @@ it is the plain POST to `/quote` it always was.
   does not draw (a brand's `extras`) shows its error above the submit and is
   marked itself.
 - **Sending.** The script's post (asking `/quote` for JSON) carries a
-  `submission_id` it mints once per lead; the store keeps one row per id, so
-  a resend after a lost answer is answered as the first was and never makes
-  a second lead. While it runs the form's submit is disabled, `aria-busy` and
+  `submission_id` it mints once per lead — a new one as soon as anything
+  posted changes, and never one the browser restored; the store keeps one row
+  per id, so a resend after a lost answer is answered as the first was and
+  never makes a second lead. While it runs the form's submit is disabled, `aria-busy` and
   says `sending`. No answer — no network, or none in 15 s
   (`SUBMIT_TIMEOUT_MS`) — is said in place with a retry that sends the same
   lead; the page is never left for the browser's error page.
@@ -479,9 +480,9 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavai
   errors naming the setting to check — a rotated key, a moved receiver. Any
   other status, 3xx included, is final. A final row stays as `dead` with its
   `last_error`, `onDead({ id, ref, attempts, error })` is told (an alert), and
-  `requeueDead()` — or `kitstart-outbox requeue` on the leads file, with
-  `kitstart-outbox status` to count rows — puts the dead rows back, due now,
-  their horizon fresh.
+  `requeueDead()` — or `kitstart-outbox requeue` on the leads file (the rows
+  of `--target`, else `LEAD_WEBHOOK_URL`), with `kitstart-outbox status` to
+  count rows — puts the dead rows back, due now, their horizon fresh.
 - **PII stays in the body.** Logs name the row, the attempt and the status;
   the receiver's own words (which may echo a field) go to the row's
   `last_error`, never to the log.
