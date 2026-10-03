@@ -35,7 +35,8 @@ export interface UnavailableCopy {
 }
 
 export interface QuoteRouteDeps<L extends string> {
-  env: () => Pick<ServerEnv, "leadsDb" | "posthogKey" | "posthogHost" | "trustedProxy">;
+  /** `production` and `leadRateLimit` may be left out (a test's env): production's limit, no development warnings. */
+  env: () => Pick<ServerEnv, "leadsDb" | "posthogKey" | "posthogHost" | "trustedProxy"> & Partial<Pick<ServerEnv, "production" | "leadRateLimit">>;
   /** Built once (and at boot, by the brand) so a missing sender fails startup, not a lead. */
   notifier: () => LeadNotifier;
   /**
@@ -49,6 +50,7 @@ export interface QuoteRouteDeps<L extends string> {
   unavailable: (locale: L, place: Place<L> | null) => UnavailableCopy;
   /** Opened on first use (`next build` imports the route); defaults to `LEADS_DB_URL`'s. */
   store?: () => LeadStore;
+  /** Defaults to `env().leadRateLimit`, built on the first lead. */
   limiter?: RateLimiter;
   /**
    * The card's id a refused lead is sent back to, when the form did not post
@@ -128,7 +130,7 @@ export function quoteRoute<L extends string, P extends string>(
   if (!CARD_ID.test(anchor)) throw new Error(`quoteRoute: the anchor must be a slug ([a-z0-9-]), got ${JSON.stringify(anchor)}`);
   const accept = createAcceptLead(site);
   const routing = createRouting(site);
-  const limiter = deps.limiter ?? new RateLimiter(5, 10 * 60_000);
+  let limiter = deps.limiter;
   const defer = deps.defer ?? after;
   const log = deps.log ?? console;
   let store: LeadStore | undefined;
@@ -200,6 +202,7 @@ export function quoteRoute<L extends string, P extends string>(
     const outcome = await accept(form, clientKey(request.headers, env.trustedProxy ?? DEV_TRUST), {
       insert: lead => leadStore().insert(lead),
       findSubmission: async submissionId => (await leadStore().findSubmission?.(submissionId)) ?? null,
+      sendSuspect: leadWebhook()?.panelSuspect ?? false,
       defer,
       notify: (lead, id) => {
         notifier ??= deps.notifier();
@@ -222,10 +225,19 @@ export function quoteRoute<L extends string, P extends string>(
           channel: channelOf(lead),
           ...tags,
         }),
-      limiter,
+      limiter: (limiter ??= new RateLimiter(env.leadRateLimit?.limit ?? 5, env.leadRateLimit?.windowMs ?? 600_000)),
       now: deps.now?.() ?? Date.now(),
       log,
     });
+    if (outcome.kind === "stored" && env.production === false && (outcome.lead.spamVerdict === "rate-limited" || outcome.lead.spamVerdict === "honeypot")) {
+      // A local stack posts every test lead from one address: say it, loudly.
+      log.warn(
+        `\n!!! quote (development): lead ${outcome.id} stored as ${outcome.lead.spamVerdict} and NOT sent on — no mail, no webhook.\n` +
+          (outcome.lead.spamVerdict === "rate-limited"
+            ? `!!! The visitor saw the thanks page. Raise LEAD_RATE_LIMIT (<count>/<seconds>, now ${env.leadRateLimit?.limit ?? 5}/${(env.leadRateLimit?.windowMs ?? 600_000) / 1000}) for a local stack.\n`
+            : "!!! The visitor saw the thanks page. The hidden trap field was filled — a browser's autofill, or a test filling every field.\n"),
+      );
+    }
     const scripted = wantsJson(request);
     switch (outcome.kind) {
       // A suspected bot is answered exactly as a person is.
