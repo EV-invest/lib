@@ -64,7 +64,8 @@ your Tailwind v4 entrypoint — this is the load-bearing part of the kit:
 | ink | `ink` `ink-mid` `ink-soft` — hierarchy, loudest first |
 | lines | `border` `input` `ring` |
 | roles | `brand` `primary` `secondary` `positive` `accent-trace` `accent-debug` `accent-info` `accent-warn` `accent-error`, each with `on-*` where it gets filled; `primary-ink` — the primary role as ink on a surface (`#128377` fill under a white `on-primary`, `#2a9d8f` ink) |
-| scalars | `radius` `control-radius` `control-py` `display-scale` `band-py` `page-max` `page-px` `shadow-*` `font-*` |
+| scalars | `radius` `control-radius` `control-py` `display-scale` `band-py` `page-max` `page-px` `shell-rail-w` `shell-tab-bar-h` `shadow-*` `font-*` |
+| motion | `ev-ease-out` `ev-ease-in-out` `ev-dur-fast` `ev-dur-base` `ev-dur-slow` `ev-rise` `ev-stagger` `ev-stagger-section` |
 | charts | `chart-1` … `chart-5` |
 
 Custom properties inherit, so a scope class on a `<section>` re-themes its
@@ -310,6 +311,133 @@ and so does the fill, on every palette and polarity `test/tokens.test.ts`
 measures. Controls that sit on the surface (`outline`, `ghost`, inputs) keep
 the `ring` border plus its halo.
 
+## App shell
+
+The frame a signed-in app sits in — a rail beside the page on a wide screen, a
+tab bar under it on a phone, one page inset and title scale, and the motion
+between screens. It knows nothing about routes, roles or data: the nav is a
+list you build, visibility is a list you filter, and the router comes in as two
+props. TS-only (see [Limitations](#limitations)).
+
+```tsx
+// app/(app)/layout.tsx — the layout stays a Server Component; the nav is a client leaf
+import { AppShell } from "@evinvest/uikit";
+import { Nav, Tabs } from "./nav";
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <AppShell rail={<Nav />} tabBar={<Tabs />} banner={<Banners />}>
+      {children}
+    </AppShell>
+  );
+}
+```
+
+```tsx
+// app/(app)/nav.tsx
+"use client";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { ShellNav, BottomTabBar, type NavGroup, type NavItem } from "@evinvest/uikit";
+
+const GROUPS: NavGroup[] = [
+  { id: "main", label: "Your account", items: [
+    { id: "home", href: "/", label: "Home", icon: Home },
+    { id: "invest", href: "/invest", label: "Invest", icon: LineChart, match: "exact" },
+  ] },
+];
+const FOOTER: NavGroup[] = [
+  { id: "me", items: [{ id: "inbox", href: "/notifications", label: "Notifications", icon: Bell, badge: unread }] },
+];
+
+export function Nav() {
+  const router = useRouter();
+  return (
+    <ShellNav
+      groups={GROUPS}
+      footerGroups={FOOTER}
+      pathname={usePathname()}
+      linkComponent={Link}
+      onItemIntent={(item) => router.prefetch(item.href)}
+      header={<Logo />}
+      labels={{ primary: t("nav.main"), footer: t("nav.account"), badge: (n) => t("nav.unread", { n }) }}
+    />
+  );
+}
+```
+
+- **`AppShell`** — slots `rail`, `tabBar`, `banner`, `children`; `breakpoint`
+  (`"md"` | `"lg"`, default `lg`) is where the tab bar gives way to the rail.
+  Fills `100dvh` less `--ev-shell-offset`; the rail sticks under that offset; the
+  column reserves `--shell-tab-bar-h` plus the bottom safe area for the bar.
+  `mainProps` reaches the `<main>`. Layout only — no `"use client"`.
+- **`NavItem`** — `{ id, href, label, icon?, badge?, trailing?, external?,
+  target?, match?, also?, disabled? }`, shared by the rail and the tab bar.
+  `match` is `"prefix"` (default, on a segment boundary; `/` is exact),
+  `"exact"`, or `(path) => boolean`; `also` lists more paths the item claims
+  (the one tab standing in for Profile, Notifications and Settings). When
+  several items claim a path, **one** wins — an exact hit, else the longest
+  prefix, else the first — so overlapping items never light two rows.
+  `resolveActiveNavItem` / `isNavItemActive` are exported for your own chrome.
+  `badge: number` draws a `NavBadge`; any other node is drawn as given.
+  `trailing` may be a function of `{ active, pending }`. `external` renders a
+  plain `<a>` that is never current.
+- **`ShellNav`** — `groups` + `footerGroups` (pinned to the bottom), `header` /
+  `footer` slots, `pathname` + `linkComponent`, `onItemIntent(item)` (hover /
+  focus — prefetch there), `onNavigate(item)`, `renderItem(item, state)` to
+  replace a row's content (the link, `aria-current` and the marker stay the
+  kit's), `labels` `{ primary, footer, badge(n) }`. A plain left click marks
+  the row at once (`data-pending`) and the pathname catches up; a modified or
+  middle click does not. One marker per group slides between rows on a CSS
+  `transform` transition — it is placed by measurement, so until hydration the
+  marked row carries the fill itself.
+- **`BottomTabBar`** — `items` (five fit a phone), the same router props,
+  callbacks and optimistic mark, `labels` `{ nav, badge(n) }`. One rule slides by
+  whole tab widths and fades on a route no tab claims; a numeric `badge` sits
+  on the icon's corner.
+- **`NavBadge`** `{ count, max = 99, label(n), variant: "pill" | "corner",
+  active }` shows `99+` and speaks the real count; **`NavDot`** `{ tone, label?,
+  corner? }` is a presence dot.
+- **`MobileAppBar`** `{ title, back?: { href } | { onClick }, right?,
+  linkComponent?, hideFrom = "lg", labels: { back } }` — sticky under
+  `--ev-shell-offset`; with `back` the title centres.
+- **`PageFrame`** `{ title?, description?, eyebrow?, actions?, appBar?,
+  width: "full" | "content", breakpoint }`, with **`PageHeading`** and
+  **`SectionLabel`** (`tone: "muted" | "accent"`). With an `appBar` the heading
+  is the wide screen's only. Server-safe.
+- **`SectionNav`** `{ groups: { id, label?, description?, items }[], value,
+  onValueChange?, linkComponent?, labels: { nav } }` — a page's own section
+  rail (settings panes); items are buttons, or links when they have an `href`.
+- **`ResourceError`** `{ message, variant: "inline" (onRetry?, retrying?) |
+  "alert" (title?), labels: { retry } }` and **`SystemBanner`** `{ tone: "warn" |
+  "info", title?, icon?, onDismiss?, labels: { dismiss } }` — presentation
+  only; what failed and whether a dismissal sticks are yours.
+- **`Settled`** `{ loading, skeleton, children }` — the skeleton → content
+  handover: the content fades and rises in after a skeleton was shown, and cuts
+  in when the data was there from the start.
+
+Every string the kit renders or speaks is a `labels` entry with an English
+default.
+
+### Motion without a motion library
+
+The shell's motion is CSS in `tokens.css` (from `motion.css`), keyed on data
+attributes, so a Server Component gets it and no client JS runs for it. Every
+rule has a `prefers-reduced-motion` form (fades stay, travel goes).
+
+| attribute | what moves |
+|---|---|
+| `data-enter="rise"` | the element fades in and rises `--ev-rise` once; `--enter-delay` postpones it |
+| `data-enter="stagger"` | each direct child does the same, `--enter-step` (default `--ev-stagger`) apart; override a child's slot with `--enter-index` |
+| `[data-slot="settled"][data-state="revealed"]` | `Settled`'s handover |
+| `[data-slot="skeleton"]` | every `Skeleton` fades in before it pulses (`animate-none` turns both off) |
+
+The timing is tokens on every theme root, for your own transitions too
+(`ease-(--ev-ease-out) duration-(--ev-dur-base)`): `--ev-ease-out`,
+`--ev-ease-in-out`, `--ev-dur-fast` / `-base` / `-slow` (180 / 280 / 400ms),
+`--ev-rise` (8px), `--ev-stagger` (35ms), `--ev-stagger-section` (50ms). The
+shell's geometry is `--shell-rail-w` (248px) and `--shell-tab-bar-h` (64px).
+
 ## Usage
 
 ```tsx
@@ -356,7 +484,7 @@ element across the two ports.
 | overlay placement | inline `position:fixed` + `data-side` | `Portal` + `useFloating` |
 | dismiss / focus trap | full-screen backdrop / native order | `useDismissableLayer` / `useFocusScope` |
 
-### Component inventory (all 63 bricks)
+### Component inventory (all 73 bricks)
 
 - **Tier A — static (23):** badge, button, button-group, card, input, textarea,
   label, field, separator, skeleton, spinner, kbd, table, container, alert,
@@ -375,6 +503,10 @@ element across the two ports.
   / `Forbidden` / `ServerError` presets (404 / 403 / 500). The kit ships no
   artwork: `Logo` masks whatever `--brand-mark` / `--brand-aspect` the consumer
   declares beside the palette, and the status pages use it for their mark.
+- **App shell — TS-only (10):** app-shell, shell-nav, bottom-tab-bar,
+  nav-badge (`NavBadge` / `NavDot`), mobile-app-bar, page-frame (`PageFrame` /
+  `PageHeading` / `SectionLabel`), section-nav, resource-error, system-banner,
+  settled — see [App shell](#app-shell).
 - **Features — composed screens (1):** terminal — a trading terminal over an
   investment product's shares (`Terminal` grid placing each `TerminalPane` by
   `TerminalArea`; `TerminalTicker` / `TickerStat`; `OrderBook` with
@@ -472,8 +604,19 @@ measuring needs host-only `web-sys`). Known gaps:
   lock-up are the caller's, and each column renders only when it has content.
   The lock-up is composed from `mark` + `brand` (display family) + `tagline`,
   or passed whole as `lockup`. Brand-coloured text reads `primary-ink`.
-- **TS-only for now:** `NativeSelect`, the `Field` id hand-off and
-  `SelectValue` labels.
+- **TS-only for now:** `NativeSelect`, the `Field` id hand-off,
+  `SelectValue` labels, and the whole [app shell](#app-shell) (`AppShell`,
+  `ShellNav`, `BottomTabBar`, `NavBadge` / `NavDot`, `MobileAppBar`, `PageFrame` /
+  `PageHeading` / `SectionLabel`, `SectionNav`, `ResourceError`, `SystemBanner`,
+  `Settled`) — no Dioxus twin. Its CSS (the entrances, the markers, the motion
+  and shell tokens) ships in the shared sheet, so a Rust app can use the
+  `data-enter` contract today.
+- **app shell:** `ShellNav`'s marker is measured (one forced layout read per
+  navigation); the tab bar's rule is arithmetic and assumes equal tabs. A
+  `data-enter` nested inside another still entering composes both rises (the
+  cabinet's motion-library version flattens the inner one); the kit leaves
+  nesting to the caller. `linkComponent` is typed loosely (`ElementType`), as
+  on `Footer`, so a router with typed hrefs does not fight it.
 - **brand chrome (header / footer / status pages):** TS routes links through an
   optional `linkComponent` (e.g. `next/link`) for soft navigation; Rust renders
   plain `<a>` (a full document load). The Dioxus header drives its scroll state,
