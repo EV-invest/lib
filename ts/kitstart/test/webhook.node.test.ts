@@ -9,12 +9,15 @@ import {
   leadWebhook,
   openWebhookOutbox,
   panelChannel,
+  WEBHOOK_HORIZON_MS,
+  WEBHOOK_MAX_DELAY_MS,
   parseServerEnv,
   signatureHeaders,
   signWebhook,
   type WebhookOutbox,
   type WebhookTarget,
 } from "../src/server/index";
+import { runOutboxCli } from "../src/cli/outbox";
 import { fixtureSite } from "./support/fixtures";
 
 const SIGNING = { prefix: "sa-ingest/v1.", headers: { keyId: "x-sa-key-id", timestamp: "x-sa-timestamp", signature: "x-sa-signature" } };
@@ -146,18 +149,78 @@ describe("the webhook outbox", () => {
     expect(o.rows()[0]?.nextAttemptAt).toBe(120_000);
   });
 
-  it("does not retry a 4xx other than 408/429, nor follow a redirect", async () => {
+  it("does not retry a 4xx other than 401/403/404/408/429, nor follow a redirect", async () => {
     const clock = { t: 0 };
     const log = quiet();
-    const { fetch, seen } = receiver(new Response('{"error":"invalid key or signature"}', { status: 401 }), new Response(null, { status: 302, headers: { location: "https://elsewhere" } }));
+    const { fetch, seen } = receiver(new Response('{"error":"unknown property suspect"}', { status: 400 }), new Response(null, { status: 302, headers: { location: "https://elsewhere" } }));
     const o = outbox(":memory:", fetch, clock, { log });
     o.enqueue("{}");
     o.enqueue("{}");
     expect(await o.tick()).toEqual({ delivered: 0, retried: 0, dead: 2 });
     expect(seen).toHaveLength(2);
-    expect(o.rows().map(r => r.lastError)).toEqual(['HTTP 401: {"error":"invalid key or signature"}', "HTTP 302"]);
+    expect(o.rows().map(r => r.lastError)).toEqual(['HTTP 400: {"error":"unknown property suspect"}', "HTTP 302"]);
     // The receiver's words stay in the row, not in the log.
-    expect(logged(log)).not.toContain("invalid key");
+    expect(logged(log)).not.toContain("unknown property");
+  });
+
+  // LEAD-FORMS-REVIEW-2026-10-03 #10: a rotated key made every lead dead at once, for good.
+  it("retries 401, 403 and 404 — a rotated key, a moved receiver — and says so as an error", async () => {
+    const clock = { t: 0 };
+    const log = quiet();
+    const { fetch } = receiver(
+      new Response('{"error":"invalid key or signature"}', { status: 401 }),
+      new Response(null, { status: 403 }),
+      new Response(null, { status: 404 }),
+      new Response(null, { status: 200 }),
+    );
+    const o = outbox(":memory:", fetch, clock, { log });
+    o.enqueue("{}");
+    for (let i = 0; i < 3; i++) {
+      expect(await o.tick()).toEqual({ delivered: 0, retried: 1, dead: 0 });
+      clock.t = o.rows()[0]?.nextAttemptAt ?? 0;
+    }
+    expect(await o.tick()).toEqual({ delivered: 1, retried: 0, dead: 0 });
+    expect(log.error.mock.calls.map(c => String(c[0]))).toEqual([
+      expect.stringMatching(/HTTP 401.*key/),
+      expect.stringMatching(/HTTP 403.*key/),
+      expect.stringMatching(/HTTP 404/),
+    ]);
+    expect(logged(log)).not.toContain("invalid key or signature");
+  });
+
+  // LEAD-FORMS-REVIEW-2026-10-03 #10: twelve tries were 2.4 hours — less than a panel's bad night.
+  it("keeps trying for the horizon, 48 hours by default, an hour apart at most — then gives up and says so", async () => {
+    const clock = { t: 0 };
+    const dead = vi.fn();
+    const o = outbox(":memory:", receiver(new Response(null, { status: 503 })).fetch, clock, { onDead: dead });
+    o.enqueue("{}", "lead:9");
+    let attempts = 0;
+    for (;;) {
+      const report = await o.tick();
+      attempts += 1;
+      if (report.dead === 1) break;
+      const next = o.rows()[0]?.nextAttemptAt ?? 0;
+      expect(next - clock.t).toBeLessThanOrEqual(WEBHOOK_MAX_DELAY_MS);
+      clock.t = next;
+    }
+    expect(clock.t).toBeGreaterThanOrEqual(WEBHOOK_HORIZON_MS);
+    expect(clock.t).toBeLessThan(WEBHOOK_HORIZON_MS + WEBHOOK_MAX_DELAY_MS);
+    expect(attempts).toBeGreaterThan(40);
+    expect(dead).toHaveBeenCalledWith({ id: 1, ref: "lead:9", attempts, error: "HTTP 503" });
+  });
+
+  it("puts dead rows back in the queue, fresh, and sends them", async () => {
+    const clock = { t: 0 };
+    const { fetch } = receiver(new Response(null, { status: 400 }), new Response(null, { status: 200 }));
+    const o = outbox(":memory:", fetch, clock);
+    o.enqueue("{}");
+    await o.tick();
+    expect(o.rows()).toMatchObject([{ state: "dead", attempts: 1 }]);
+    clock.t = 5_000;
+    expect(o.requeueDead()).toBe(1);
+    expect(o.rows()).toMatchObject([{ state: "pending", attempts: 0, nextAttemptAt: 5_000 }]);
+    expect(await o.tick()).toEqual({ delivered: 1, retried: 0, dead: 0 });
+    expect(o.requeueDead()).toBe(0);
   });
 
   it("takes a 207 as delivered and does not retry a rejected item; the reason stays out of the log", async () => {
@@ -230,6 +293,27 @@ describe("the webhook outbox", () => {
     await o.tick();
     expect(logged(log)).not.toContain(PII.mobile);
     expect(logged(log)).not.toContain("Secrète");
+  });
+});
+
+describe("kitstart-outbox", () => {
+  it("requeues the dead rows of the leads file LEADS_DB_URL names, and counts by state", async () => {
+    const path = file();
+    const clock = { t: 0 };
+    const o = outbox(path, receiver(new Response(null, { status: 400 })).fetch, clock);
+    o.enqueue("{}");
+    o.enqueue("{}");
+    await o.tick();
+    const out: string[] = [];
+    const print = (line: string) => void out.push(line);
+    expect(runOutboxCli(["status"], { LEADS_DB_URL: `sqlite://${path}` }, print)).toBe(0);
+    expect(out.join("\n")).toMatch(/dead\s+2/);
+    expect(runOutboxCli(["requeue"], { LEADS_DB_PATH: path }, print)).toBe(0);
+    expect(out.at(-1)).toMatch(/requeued 2/);
+    expect(o.rows().map(r => r.state)).toEqual(["pending", "pending"]);
+    expect(runOutboxCli(["requeue"], {}, print)).toBe(2);
+    expect(runOutboxCli(["nonsense"], { LEADS_DB_PATH: path }, print)).toBe(2);
+    expect(runOutboxCli(["status", "--db", `${path}.typo`], {}, print)).toBe(2);
   });
 });
 
