@@ -10,3 +10,4 @@ export { healthRoute, robotsRoute, sitemapRoute } from "./routes";
 export { ogRoute, type OgCard, type OgFont, type OgOptions } from "./og";
 export { ogPalette, type OgColours } from "./og-palette";
 export { quoteRoute, type QuoteRouteDeps, type UnavailableCopy } from "./quote-route";
+export { bookingRoute, type BookingRouteDeps } from "./booking-route";

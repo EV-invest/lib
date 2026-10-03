@@ -81,10 +81,11 @@ export function parseGoneHeader(value: string | null): { locale?: string; locati
 
 /**
  * The routes every landing has outside `[locale]`, which pass untouched: the
- * form target, the OG card, the probe, the sitemap and robots. Anything else
- * without a language but `/_next/…` and the site's `publicFiles` is `gone`.
+ * form target and its booking request (`bookingRoute`), the OG card, the
+ * probe, the sitemap and robots. Anything else without a language but
+ * `/_next/…` and the site's `publicFiles` is `gone`.
  */
-export const NON_PAGE_ROUTES: readonly string[] = ["/quote", "/og", "/health", "/sitemap.xml", "/robots.txt"];
+export const NON_PAGE_ROUTES: readonly string[] = ["/quote", "/quote/booking", "/og", "/health", "/sitemap.xml", "/robots.txt"];
 
 /** @deprecated The same list as {@link NON_PAGE_ROUTES}, under its old name. */
 export const PASS_PATHS: readonly string[] = NON_PAGE_ROUTES;
