@@ -41,7 +41,7 @@ export const FR = {
   coverageTitle: "Où nous intervenons",
   brandPage: { title: "Brand", description: "Le ménage à prix fixe.", open: "Ouvrir" },
   contactLabel: "Nous contacter",
-  subjects: { standard: "Ménage courant", deep: "Grand ménage", other: "Autre" },
+  subjects: { standard: "Ménage courant", deep: "Grand ménage", other: "Autre", recurring: "Ménage régulier" },
   leadCapture: { ...LEAD_CAPTURE_TEXT.fr, needLabel: "Prestation" },
   faqs: [{ q: "Le prix peut-il changer ?", a: "Non : le prix annoncé est celui que vous payez." }],
 } satisfies Text;

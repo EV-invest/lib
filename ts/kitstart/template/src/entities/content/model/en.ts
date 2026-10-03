@@ -41,7 +41,7 @@ export const EN = {
   coverageTitle: "Where we work",
   brandPage: { title: "Brand", description: "Cleaning at a fixed price.", open: "Open" },
   contactLabel: "Contact us",
-  subjects: { standard: "Regular cleaning", deep: "Deep cleaning", other: "Other" },
+  subjects: { standard: "Regular cleaning", deep: "Deep cleaning", other: "Other", recurring: "Recurring cleaning" },
   leadCapture: { ...LEAD_CAPTURE_TEXT.en, needLabel: "Service" },
   faqs: [{ q: "Can the price change?", a: "No: the price quoted is the price you pay." }],
 } satisfies Text;

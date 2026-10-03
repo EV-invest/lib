@@ -2,6 +2,7 @@ import { cardFact, defineSite, SERVICE_AREA_GATE, type OwnerTodo } from "@evinve
 import { i18n } from "./i18n";
 import { LEAD } from "./lead";
 import { PLACES } from "./places";
+import { PRICING } from "./pricing";
 
 /**
  * The brand as the machinery sees it — routing, the lead funnel, schema.org,
@@ -29,6 +30,7 @@ export const site = defineSite({
   places: PLACES,
   publication: SERVICE_AREA_GATE,
   lead: LEAD,
+  pricing: PRICING,
 });
 
 export type PageKey = (typeof site.pageKeys)[number];
@@ -36,4 +38,5 @@ export type PageKey = (typeof site.pageKeys)[number];
 export const OWNER_TODO: readonly OwnerTodo[] = [
   { field: "site.brand.legalName", why: "raison sociale as registered", blocksLaunch: true },
   { field: "assets/card.toml phone", why: "the public number", blocksLaunch: false },
+  { field: "shared/config/pricing.ts", why: "placeholder prices until the panel serves the real ones", blocksLaunch: false },
 ];
