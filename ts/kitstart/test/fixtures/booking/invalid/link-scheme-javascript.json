@@ -1,0 +1,4 @@
+{
+  "provider": "link",
+  "url": "javascript:alert(1)"
+}
