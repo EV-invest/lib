@@ -2,7 +2,7 @@ import { after } from "next/server.js";
 import { createAcceptLead, EXPERIMENT_FIELD, VARIANT_FIELD } from "../core/accept";
 import { analyticsSink, EVENTS, experimentProps } from "../core/analytics";
 import { RateLimiter } from "../core/antispam";
-import { CARD_FIELD, CARD_ID, channelOf, LEAD_ERROR_PARAM, type LeadChannel, type LeadStore } from "../core/lead";
+import { CARD_FIELD, CARD_ID, channelOf, LEAD_CARD_PARAM, LEAD_ERROR_PARAM, type LeadChannel, type LeadStore } from "../core/lead";
 import type { Place } from "../core/place/types";
 import { createPlaceView } from "../core/place/view";
 import { createRouting } from "../core/routing";
@@ -186,7 +186,10 @@ export function quoteRoute<L extends string, P extends string>(
     if (channel === "form" && typeof subject === "string" && site.lead.subjects.includes(subject as P)) query.set("need", subject);
     const posted = form.get(CARD_FIELD);
     const card = typeof posted === "string" && CARD_ID.test(posted) ? posted : anchor;
-    return `?${query}#${card}${channel === "callback" ? "-callback" : ""}`;
+    const target = `${card}${channel === "callback" ? "-callback" : ""}`;
+    // The fragment never reaches the server: the query names the card too.
+    query.set(LEAD_CARD_PARAM, target);
+    return `?${query}#${target}`;
   }
 
   /** Self-contained: the thing that failed may be the thing that renders pages. */

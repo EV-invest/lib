@@ -109,7 +109,37 @@ describe("LeadCapture without a script", () => {
     // Nothing to say, or a value that is not a field name: nothing drawn.
     expect(leadErrorOf({})).toBeNull();
     expect(leadErrorOf({ lead_error: "<b>" })).toBeNull();
-    expect(leadErrorOf({ lead_error: ["phone", "x"] })).toEqual({ channel: "form", field: "phone" });
+    expect(leadErrorOf({ lead_error: ["phone", "x"] })).toEqual({ channel: "form", field: "phone", card: null });
+    expect(leadErrorOf({ lead_error: "phone", lead_card: "x\"><b>" })).toEqual({ channel: "form", field: "phone", card: null });
+  });
+
+  // Code review of lib#183: the query names no card, so two cards on a page
+  // both drew the refusal. The route now names it (`lead_card`).
+  it("draws a refusal only in the card the query names, at the form or the callback it names", () => {
+    const fr = LEAD_CAPTURE_TEXT.fr;
+    const two = (query: Record<string, string>) => {
+      const initialError = leadErrorOf(query);
+      document.body.innerHTML = renderToString(
+        <>
+          {capture({ initialError })}
+          {capture({ id: "devis", initialError })}
+        </>,
+      );
+    };
+    const phoneGroup = (formId: string) => input("mobile", formId).closest("[role=group]");
+    two({ lead_error: "phone", lead_card: "devis" });
+    expect(phoneGroup("devis-form")).toHaveTextContent(fr.phoneInvalid);
+    expect(phoneGroup("quote-form")).not.toHaveTextContent(fr.phoneInvalid);
+    expect(phoneGroup("devis-callback-form")).not.toHaveTextContent(fr.phoneInvalid);
+    // A callback's phone: under the callback's field, not the form's.
+    two({ lead_error: "phone", lead_card: "quote-callback" });
+    expect(phoneGroup("quote-callback-form")).toHaveTextContent(fr.phoneInvalid);
+    expect(document.getElementById("quote-callback")).toHaveAttribute("open");
+    expect(phoneGroup("quote-form")).not.toHaveTextContent(fr.phoneInvalid);
+    expect(phoneGroup("devis-callback-form")).not.toHaveTextContent(fr.phoneInvalid);
+    // A URL from before the card was named: a page's one card draws it, as before.
+    document.body.innerHTML = renderToString(capture({ initialError: leadErrorOf({ lead_error: "phone" }) }));
+    expect(phoneGroup("quote-form")).toHaveTextContent(fr.phoneInvalid);
   });
 
   it("does not ask a need the page already knows", () => {

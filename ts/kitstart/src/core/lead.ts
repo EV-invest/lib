@@ -133,18 +133,49 @@ export interface LeadError {
 export const LEAD_ERROR_FIELD = /^[a-z][a-z0-9_]{0,31}$/;
 
 /**
+ * The query naming where a refusal lands — the anchor the 303 points at,
+ * `<card>` or `<card>-callback` — because the fragment never reaches the
+ * server, and a page may draw more than one card.
+ */
+export const LEAD_CARD_PARAM = "lead_card";
+
+const LEAD_CARD = /^[a-z0-9-]{1,80}$/;
+
+/** A refusal as a page reads it from its query: the card it is for, when the URL names one. */
+export interface PageLeadError extends LeadError {
+  card: string | null;
+}
+
+const first = (raw: string | readonly string[] | undefined) => (typeof raw === "string" ? raw : raw?.[0]);
+
+/**
  * The refusal a 303 brought the visitor back with, read from a page's
  * `searchParams` on the server — `LeadCapture`'s `initialError`, so the card
  * says why without a script. Only a page that reads its query can: one built
- * for ISR does not, and there the card's script says it. The query cannot
- * tell the callback from the form (that is the URL's fragment, never sent to
- * the server): the consent is the callback's, every other field the form's.
+ * for ISR does not, and there the card's script says it. `card` is the anchor
+ * the route named (`lead_card`), which each card matches against its own id;
+ * a URL from before it was named leaves it `null`, and then the consent is
+ * the callback's and every other field the form's.
  */
-export function leadErrorOf(searchParams: Readonly<Record<string, string | readonly string[] | undefined>>): LeadError | null {
-  const raw = searchParams[LEAD_ERROR_PARAM];
-  const field = typeof raw === "string" ? raw : raw?.[0];
+export function leadErrorOf(searchParams: Readonly<Record<string, string | readonly string[] | undefined>>): PageLeadError | null {
+  const field = first(searchParams[LEAD_ERROR_PARAM]);
   if (field === undefined || !LEAD_ERROR_FIELD.test(field)) return null;
-  return { channel: field === "consent" ? "callback" : "form", field };
+  const card = first(searchParams[LEAD_CARD_PARAM]);
+  return { channel: field === "consent" ? "callback" : "form", field, card: card !== undefined && LEAD_CARD.test(card) ? card : null };
+}
+
+/**
+ * The refusal card `id` draws: one whose `card` is this card's form or its
+ * callback, there; one naming no card (an older URL), as it reads; one for
+ * another card, none.
+ */
+export function leadErrorFor(error: LeadError | PageLeadError | null, id: string): LeadError | null {
+  if (!error) return null;
+  const card = "card" in error ? error.card : null;
+  if (card === null) return { channel: error.channel, field: error.field };
+  if (card === id) return { channel: "form", field: error.field };
+  if (card === `${id}-callback`) return { channel: "callback", field: error.field };
+  return null;
 }
 
 /**
