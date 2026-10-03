@@ -1,0 +1,123 @@
+[
+  {
+    "name": "manual opens nothing",
+    "config": {
+      "provider": "manual"
+    },
+    "prefill": {
+      "leadRef": "lead-42-0a1b2c3d",
+      "name": "Jean",
+      "phone": "06 12 34 56 78"
+    },
+    "href": null
+  },
+  {
+    "name": "link: ref in the query, no personal data",
+    "config": {
+      "provider": "link",
+      "url": "https://book.example.fr/vifnet"
+    },
+    "prefill": {
+      "leadRef": "lead-42-0a1b2c3d",
+      "name": "Jean",
+      "phone": "06 12 34 56 78"
+    },
+    "href": "https://book.example.fr/vifnet?ref=lead-42-0a1b2c3d"
+  },
+  {
+    "name": "link: the query kept as it was, ref appended",
+    "config": {
+      "provider": "link",
+      "url": "https://book.example.fr/slots?team=paris&lang=fr"
+    },
+    "prefill": {
+      "leadRef": "lead-42-0a1b2c3d"
+    },
+    "href": "https://book.example.fr/slots?team=paris&lang=fr&ref=lead-42-0a1b2c3d"
+  },
+  {
+    "name": "link: a ref already there is replaced",
+    "config": {
+      "provider": "link",
+      "url": "https://book.example.fr/slots?ref=old&lang=fr"
+    },
+    "prefill": {
+      "leadRef": "lead-42-0a1b2c3d"
+    },
+    "href": "https://book.example.fr/slots?lang=fr&ref=lead-42-0a1b2c3d"
+  },
+  {
+    "name": "link: a bare host gets a path",
+    "config": {
+      "provider": "link",
+      "url": "https://book.example.fr"
+    },
+    "prefill": {
+      "leadRef": "lead-42-0a1b2c3d"
+    },
+    "href": "https://book.example.fr/?ref=lead-42-0a1b2c3d"
+  },
+  {
+    "name": "cal_com: name, E.164 phone and metadata[ref]",
+    "config": {
+      "provider": "cal_com",
+      "url": "https://cal.com/vifnet/menage"
+    },
+    "prefill": {
+      "leadRef": "lead-42-0a1b2c3d",
+      "name": "Jean Dupont",
+      "phone": "06 12 34 56 78"
+    },
+    "href": "https://cal.com/vifnet/menage?name=Jean%20Dupont&attendeePhoneNumber=%2B33612345678&metadata[ref]=lead-42-0a1b2c3d"
+  },
+  {
+    "name": "cal_com: no name, no phone",
+    "config": {
+      "provider": "cal_com",
+      "url": "https://cal.com/vifnet/menage"
+    },
+    "prefill": {
+      "leadRef": "lead-42-0a1b2c3d",
+      "name": null,
+      "phone": null
+    },
+    "href": "https://cal.com/vifnet/menage?metadata[ref]=lead-42-0a1b2c3d"
+  },
+  {
+    "name": "cal_com: a number that does not read is left out",
+    "config": {
+      "provider": "cal_com",
+      "url": "https://cal.com/vifnet/menage"
+    },
+    "prefill": {
+      "leadRef": "lead-42-0a1b2c3d",
+      "name": "  ",
+      "phone": "12"
+    },
+    "href": "https://cal.com/vifnet/menage?metadata[ref]=lead-42-0a1b2c3d"
+  },
+  {
+    "name": "cal_com: the event's own query kept, prefill appended",
+    "config": {
+      "provider": "cal_com",
+      "url": "https://cal.evinvest.ltd/vifnet/menage?layout=month_view"
+    },
+    "prefill": {
+      "leadRef": "lead-42-0a1b2c3d",
+      "name": "Zoé & Co"
+    },
+    "href": "https://cal.evinvest.ltd/vifnet/menage?layout=month_view&name=Zo%C3%A9%20%26%20Co&metadata[ref]=lead-42-0a1b2c3d"
+  },
+  {
+    "name": "cal_com: prefill keys already there are replaced",
+    "config": {
+      "provider": "cal_com",
+      "url": "https://cal.com/vifnet/menage?name=x&metadata%5Bref%5D=y"
+    },
+    "prefill": {
+      "leadRef": "lead-42-0a1b2c3d",
+      "name": "Jean"
+    },
+    "href": "https://cal.com/vifnet/menage?name=Jean&metadata[ref]=lead-42-0a1b2c3d"
+  }
+]
