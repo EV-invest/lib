@@ -47,9 +47,22 @@ describe("LeadCapture's slots", () => {
         needs={[{ value: "leak", label: "Fuite" }]}
         need="leak"
         text={LEAD_CAPTURE_TEXT.fr}
-        head={fromServer(<h2>Devis</h2>)}
+        // Shaped as aquafix's QuoteForm (LEAD-FORMS-RETEST-2026-10-03 N3):
+        // a heading block, and a fragment of lines with a conditional one.
+        head={fromServer(
+          <div>
+            <p>Devis</p>
+            <p>Gratuit</p>
+          </div>,
+        )}
         extras={fromServer(<input name="rooms" aria-label="Pièces" />)}
-        trust={fromServer(<p>4,9 sur Google</p>)}
+        trust={fromServer(
+          <>
+            {false && <p>Prix indicatif</p>}
+            <p>4,9 sur Google</p>
+            <div />
+          </>,
+        )}
         done={fromServer(<p>Merci</p>)}
       />,
     );
