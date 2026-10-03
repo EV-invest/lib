@@ -2,7 +2,8 @@ import { Button, buttonVariants, cn } from "@evinvest/uikit";
 import { EXPERIMENT_FIELD, VARIANT_FIELD } from "../core/accept";
 import { channelHref, type CaptureChannel } from "../core/channels";
 import { CHANNEL_FIELD } from "../core/lead";
-import type { LeadCaptureText } from "../core/lead-capture-text";
+import { fillText } from "../core/lead-capture-format";
+import type { LeadCaptureFlowText, LeadCaptureText } from "../core/lead-capture-text";
 import type { FormEventHandler } from "react";
 import { ConsentField, FormMessage, PhoneField, type FieldPart } from "./LeadCaptureFields";
 import { FailureMessage, SubmitButton } from "./LeadCaptureSubmit";
@@ -14,7 +15,7 @@ import { QuoteFormShell } from "./QuoteFormShell";
  * `channel` and `primary` dress every way out, the callback's summary
  * included; the `callback*` parts are the callback's own, after them.
  */
-export type ChannelPart = "channel" | "primary" | "callback" | "callbackSummary" | "callbackForm" | "callbackLede" | "callbackSubmit" | "consent";
+export type ChannelPart = "channel" | "primary" | "callback" | "callbackSummary" | "callbackForm" | "callbackLede" | "callbackSubmit" | "consent" | "photos";
 
 /**
  * A whole-pixel line under a brand's own type size: tailwind-merge drops a
@@ -147,5 +148,31 @@ export function CallbackForm(props: {
         <SubmitButton busy={props.busy} label={text.callbackSubmit} sending={text.sending} className={c?.callbackSubmit} />
       </QuoteFormShell>
     </details>
+  );
+}
+
+/**
+ * A `quote` need priced from photos (a deep clean, after-works): the photos
+ * go by WhatsApp, with the need already said — only when the place has
+ * WhatsApp; the callback stays where it is.
+ */
+export function PhotosAsk(props: {
+  whatsapp: string | null;
+  needLabel: string;
+  text: Pick<LeadCaptureFlowText, "photosTitle" | "photosLede" | "photosCta" | "photosMessage">;
+  experiment: Experiment | undefined;
+  className?: string | undefined;
+}) {
+  const { whatsapp, text, experiment } = props;
+  const href = whatsapp ? channelHref("whatsapp", { phone: null, whatsapp }, fillText(text.photosMessage, { need: props.needLabel })) : null;
+  if (!href) return null;
+  return (
+    <div className={cn("flex flex-col gap-2 rounded-[var(--control-radius)] border border-border p-4", props.className)}>
+      <p className="font-medium text-ink">{text.photosTitle}</p>
+      <p className="text-sm text-ink-soft">{text.photosLede}</p>
+      <Button href={href} variant="outline" size="touch" className="w-full" data-experiment={experiment?.name} data-variant={experiment?.variant}>
+        {text.photosCta}
+      </Button>
+    </div>
   );
 }
