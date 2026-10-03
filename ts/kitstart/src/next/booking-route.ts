@@ -116,6 +116,8 @@ export function bookingRoute(deps: BookingRouteDeps): (request: Request) => Prom
     }
     // Sent by the outbox's own timer, like a lead's retry: the visitor waits for nothing.
     const queued = webhook?.requestBooking?.(booking) ?? { kind: "off" };
+    // The lead stays in the leads file for a person; the panel never heard of it.
+    if (queued.kind === "unqueued") log.warn(`booking: lead ${found.id} asked for a ${booking.provider} slot but was never sent to the panel; not queued`);
     return json(200, { ok: true, queued: queued.kind === "queued" });
   };
 }

@@ -118,7 +118,7 @@ export interface BookingWebhookContext {
 export type BuildBookingBody = (request: BookingRequest, ctx: BookingWebhookContext) => unknown;
 
 /** Why `requestBooking` queued nothing. */
-export type BookingQueued = { kind: "queued"; row: number } | { kind: "off" } | { kind: "duplicate" };
+export type BookingQueued = { kind: "queued"; row: number } | { kind: "off" } | { kind: "duplicate" } | { kind: "unqueued" };
 
 export interface LeadWebhook {
   /** Builds, serialises and queues the lead's body; returns the outbox row. */
@@ -136,10 +136,11 @@ export interface LeadWebhook {
   /** Whether `requestBooking` queues anything (`LeadWebhookOptions.panelBooking`). */
   readonly panelBooking?: boolean;
   /**
-   * Queues `booking.requested@1` after the lead's `lead.created`, through the
-   * same outbox — once per lead: a second request for the lead is a
-   * `duplicate`, whatever it asks. `off` without `panelBooking` or a
-   * `buildBookingBody`.
+   * Queues `booking.requested@1` behind the lead's `lead.created`, through
+   * the same outbox: not sent until that row is delivered, and a `409` / `425`
+   * for it retried. Once per lead: a second request is a `duplicate`,
+   * whatever it asks. `unqueued` when the lead's own row was never queued (a
+   * suspect held back); `off` without `panelBooking` or a `buildBookingBody`.
    */
   requestBooking?(request: BookingRequest): BookingQueued;
   readonly outbox: WebhookOutbox;
@@ -198,10 +199,14 @@ export function leadWebhook(
     panelBooking,
     requestBooking(request) {
       if (!panelBooking || !buildBookingBody) return { kind: "off" };
+      // The lead's own row, as `enqueue` refs it: the booking follows it, and
+      // a lead never queued (held back as suspect) is never booked to the panel.
+      const lead = `lead:${/^lead-(\d+)-/.exec(request.leadRef)?.[1] ?? ""}`;
+      if (!outbox.hasRef(lead)) return { kind: "unqueued" };
       const ctx: BookingWebhookContext = { brandId: site.brand.id, at: new Date(now()), idempotencyKey: randomUUID() };
       const body = JSON.stringify(buildBookingBody(request, ctx));
       if (typeof body !== "string") throw new Error("buildBookingBody returned nothing JSON can carry");
-      const row = outbox.enqueueOnce(body, `booking:${request.leadRef}`);
+      const row = outbox.enqueueOnce(body, `booking:${request.leadRef}`, lead);
       return row === null ? { kind: "duplicate" } : { kind: "queued", row };
     },
     enqueue(lead, id, meta) {
