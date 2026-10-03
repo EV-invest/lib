@@ -6,10 +6,14 @@ import { resolveChannels, type CaptureChannel } from "../core/channels";
 import { leadErrorFor, type LeadError, type LeadWire, type PageLeadError } from "../core/lead";
 import { fillText, openingText } from "../core/lead-capture-format";
 import { flowTextOf, type LeadCaptureText } from "../core/lead-capture-text";
+import { bookingOf } from "../core/booking/model";
 import { servedLocalities, storefrontOf, type Place } from "../core/place/types";
 import { flowOf, type LeadFlows } from "../core/pricing/flow";
 import type { PricingModel } from "../core/pricing/model";
 import type { FormSelectOption } from "./FormSelect";
+import type { BookingAdapters } from "./booking-adapters";
+import { LeadBooking } from "./LeadBooking";
+import type { BookingPart } from "./LeadBookingManual";
 import { LeadCapturePriced, type PricedPart } from "./LeadCapturePriced";
 import { CallbackForm, ChannelLink, ExperimentFields, PhotosAsk, type ChannelPart, type Experiment } from "./LeadCaptureChannels";
 import { EstimateInputs, PriceBox, useEstimate, type EstimatePart } from "./LeadCaptureEstimate";
@@ -25,7 +29,7 @@ import { useLeadSubmit, type LeadSent } from "./use-lead-submit";
 
 export type LeadCapturePart =
   | "root" | "head" | "title" | "lede" | "form" | "contact" | "submit" | "trust" | "privacy" | "opening" | "others" | "done"
-  | "needs" | "need" | "summary" | FieldPart | ChannelPart | EstimatePart | PricedPart;
+  | "needs" | "need" | "summary" | FieldPart | ChannelPart | EstimatePart | PricedPart | BookingPart;
 
 export interface LeadCaptureProps {
   /** Its hours order the channels; its service area suggests the commune. */
@@ -58,11 +62,18 @@ export interface LeadCaptureProps {
    */
   photos?: readonly string[] | undefined;
   /**
-   * After a priced lead, in place of "we call you to set the slot": a
-   * booking provider's widget, when the brand has one. None ships with the
-   * kit yet.
+   * After a priced lead: how the slot is set. By default the place's own
+   * booking (`place.booking`, `manual` when it has none) through its
+   * provider's adapter — `LeadBooking`. A node here replaces it whole.
    */
   booking?: ReactNode | ((sent: LeadSent) => ReactNode);
+  /**
+   * The built-in booking adapters with the brand's over them (a `calendly`
+   * later) — from a client component only: a server one cannot pass functions.
+   */
+  bookingAdapters?: Partial<BookingAdapters> | undefined;
+  /** `cal_com` as Cal.com's modal, its script loaded on the click, instead of a new tab. */
+  calComEmbed?: boolean | undefined;
   /** The need the page already knows; `?need=` and `[data-need]` triggers set it too. */
   need?: string | undefined;
   /** `single` (one screen) or `qualify-first` (the need, then the contact) — an experiment's switch. */
@@ -237,7 +248,21 @@ export function LeadCapture(props: LeadCaptureProps) {
         <div ref={doneRef} role="status" tabIndex={-1} className={cn("flex flex-col gap-4 outline-none", c?.done)}>
           <Fragment key="done">{done}</Fragment>
           {sent.channel === "form" && flow !== "quote" && (
-            <LeadCapturePriced sent={sent} booking={typeof props.booking === "function" ? props.booking(sent) : props.booking} locale={locale} text={flowText} classNames={c} />
+            <LeadCapturePriced
+              sent={sent}
+              booking={
+                props.booking === undefined ? (
+                  <LeadBooking booking={bookingOf(place)} sent={sent} locale={locale} text={flowText} adapters={props.bookingAdapters} calComEmbed={props.calComEmbed} formId={formId} classNames={c} />
+                ) : typeof props.booking === "function" ? (
+                  props.booking(sent)
+                ) : (
+                  props.booking
+                )
+              }
+              locale={locale}
+              text={flowText}
+              classNames={c}
+            />
           )}
         </div>
       </div>

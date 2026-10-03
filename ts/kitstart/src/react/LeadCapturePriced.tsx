@@ -9,9 +9,8 @@ export type PricedPart = "priced" | "pricedPrice" | "pricedNote";
 
 /**
  * After a priced lead (`estimate`, `fixed`): the price the server took it at,
- * then how the slot is set — by a call, until a booking provider is chosen;
- * a brand's `booking` (its own scheduling widget, say) stands in for that
- * promise. The lead is stored before any of this, so an abandoned booking is
+ * then how the slot is set — the place's booking (`LeadBooking`), or the
+ * brand's own `booking`; with neither, the promise of a call. The lead is stored before any of this, so an abandoned booking is
  * still a lead to call.
  */
 export function LeadCapturePriced(props: { sent: LeadSent; booking: ReactNode; locale: string; text: LeadCaptureFlowText; classNames?: PartClassNames<PricedPart> | undefined }) {

@@ -204,6 +204,14 @@ describe("LeadCapture's priced success", () => {
     expect(status).not.toHaveTextContent("Nous vous rappelons pour fixer le créneau.");
   });
 
+  it("offers the place's Cal.com booking, prefilled with the lead, loading nothing of Cal.com's", async () => {
+    render(capture({ need: "windows", place: { ...place, booking: { provider: "cal_com", url: "https://cal.com/brand/vitres" } } }));
+    await send({ ...taken, cents: 8900 });
+    const link = screen.getByRole("link", { name: "Choisir un créneau" });
+    expect(link.getAttribute("href")).toMatch(/^https:\/\/cal\.com\/brand\/vitres\?name=Ana&attendeePhoneNumber=%2B33612345678&metadata\[ref\]=lead-12-0a1b2c3d$/);
+    expect(document.querySelectorAll("iframe, script")).toHaveLength(0);
+  });
+
   it("still goes to the thanks page for a quote need", async () => {
     const assign = vi.spyOn(navigation, "assign").mockImplementation(() => {});
     render(capture({ need: "deep" }));
