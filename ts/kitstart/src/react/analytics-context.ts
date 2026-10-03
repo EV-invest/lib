@@ -13,6 +13,15 @@ export const AnalyticsSinkContext = createContext<AnalyticsSink | null>(null);
 
 export const useAnalyticsSink = (): AnalyticsSink | null => useContext(AnalyticsSinkContext);
 
+/**
+ * The `distinct_id` the boundary's sink sends, for a lead to carry to the
+ * panel. `null` outside a boundary or with no key: no event names it, so a
+ * lead has nothing to join.
+ */
+export const AnalyticsIdContext = createContext<string | null>(null);
+
+export const useAnalyticsId = (): string | null => useContext(AnalyticsIdContext);
+
 /** `data-experiment` / `data-variant` on an element or its ancestors, for an intent's event. */
 export function experimentOf(el: Element | null): ReturnType<typeof experimentProps> {
   const host = el?.closest("[data-experiment]");

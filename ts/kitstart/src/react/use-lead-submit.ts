@@ -1,8 +1,10 @@
 "use client";
 
 import { useRef, useState, type FormEvent, type FormEventHandler } from "react";
+import { ANALYTICS_ID_FIELD } from "../core/accept";
 import { CHANNEL_FIELD, SUBMISSION_FIELD, type LeadChannel } from "../core/lead";
 import { THANKS } from "../core/routing";
+import { useAnalyticsId } from "./analytics-context";
 
 /** What the visitor just sent, for a brand's in-card success ("we call 06 … back"). */
 export interface LeadSent {
@@ -144,6 +146,7 @@ export function useLeadSubmit(done: boolean | ((channel: LeadChannel) => boolean
   const [failure, setFailure] = useState<LeadSubmit["failure"]>(null);
   const pending = useRef(false);
   const last = useRef<HTMLFormElement | null>(null);
+  const analyticsId = useAnalyticsId();
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -155,6 +158,9 @@ export function useLeadSubmit(done: boolean | ((channel: LeadChannel) => boolean
     const data = new FormData(form);
     const body = new URLSearchParams();
     for (const [key, value] of data) if (typeof value === "string") body.append(key, value);
+    // Not a field of the form: the submission id stamps what the visitor
+    // posted, and a plain post (no script) has no analytics to name anyway.
+    if (analyticsId) body.set(ANALYTICS_ID_FIELD, analyticsId);
     const read = (field: string | undefined) => {
       const value = field === undefined ? null : data.get(field);
       return typeof value === "string" ? value.trim() : "";
