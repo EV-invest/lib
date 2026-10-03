@@ -1,0 +1,1412 @@
+[
+  {
+    "name": "cleaning: inner suburbs, 2 bedrooms, 40-70 m², every 2 weeks — 8415 rounds down to the euro",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-01",
+      "roundToCents": 100,
+      "minimumCents": 4900,
+      "inputs": [
+        {
+          "id": "zone",
+          "kind": "multiply",
+          "labels": {"fr":"Zone","en":"Area"},
+          "options": [
+            {"id":"centre","labels":{"fr":"Centre","en":"Centre"},"multiplyBp":10000},
+            {"id":"proche","labels":{"fr":"Proche banlieue","en":"Inner suburbs"},"multiplyBp":11000},
+            {"id":"loin","labels":{"fr":"Grande banlieue","en":"Outer suburbs"},"multiplyBp":12500}
+          ]
+        },
+        {
+          "id": "bedrooms",
+          "kind": "add",
+          "labels": {"fr":"Chambres","en":"Bedrooms"},
+          "options": [
+            {"id":"studio","labels":{"fr":"Studio","en":"Studio"},"addCents":0},
+            {"id":"t2","labels":{"fr":"1 chambre","en":"1 bedroom"},"addCents":1500},
+            {"id":"t3","labels":{"fr":"2 chambres","en":"2 bedrooms"},"addCents":3000},
+            {"id":"t4","labels":{"fr":"3 chambres","en":"3 bedrooms"},"addCents":4500},
+            {"id":"t5","labels":{"fr":"4 chambres et plus","en":"4 bedrooms or more"},"addCents":6000}
+          ]
+        },
+        {
+          "id": "surface",
+          "kind": "add",
+          "labels": {"fr":"Surface","en":"Floor area"},
+          "options": [
+            {"id":"s40","labels":{"fr":"Moins de 40 m²","en":"Under 40 m²"},"addCents":0},
+            {"id":"s70","labels":{"fr":"40 à 70 m²","en":"40 to 70 m²"},"addCents":1000},
+            {"id":"s100","labels":{"fr":"70 à 100 m²","en":"70 to 100 m²"},"addCents":2500},
+            {"id":"s100p","labels":{"fr":"Plus de 100 m²","en":"Over 100 m²"},"addCents":4500}
+          ]
+        },
+        {
+          "id": "frequency",
+          "kind": "discount",
+          "labels": {"fr":"Fréquence","en":"How often"},
+          "options": [
+            {"id":"weekly","labels":{"fr":"Chaque semaine","en":"Every week"},"discountBp":1500},
+            {"id":"biweekly","labels":{"fr":"Toutes les 2 semaines","en":"Every 2 weeks"},"discountBp":1000},
+            {"id":"monthly","labels":{"fr":"Chaque mois","en":"Every month"},"discountBp":500},
+            {"id":"once","labels":{"fr":"Une fois","en":"Once"},"discountBp":0}
+          ]
+        }
+      ],
+      "needs": {
+        "standard": {"kind":"estimate","baseCents":4500,"inputs":["zone","bedrooms","surface","frequency"]},
+        "windows": {"kind":"fixed","cents":8900}
+      }
+    },
+    "need": "standard",
+    "inputs": {"zone":"proche","bedrooms":"t3","surface":"s70","frequency":"biweekly"},
+    "cents": 8400
+  },
+  {
+    "name": "cleaning: the cheapest answers fall under the minimum",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-01",
+      "roundToCents": 100,
+      "minimumCents": 4900,
+      "inputs": [
+        {
+          "id": "zone",
+          "kind": "multiply",
+          "labels": {"fr":"Zone","en":"Area"},
+          "options": [
+            {"id":"centre","labels":{"fr":"Centre","en":"Centre"},"multiplyBp":10000},
+            {"id":"proche","labels":{"fr":"Proche banlieue","en":"Inner suburbs"},"multiplyBp":11000},
+            {"id":"loin","labels":{"fr":"Grande banlieue","en":"Outer suburbs"},"multiplyBp":12500}
+          ]
+        },
+        {
+          "id": "bedrooms",
+          "kind": "add",
+          "labels": {"fr":"Chambres","en":"Bedrooms"},
+          "options": [
+            {"id":"studio","labels":{"fr":"Studio","en":"Studio"},"addCents":0},
+            {"id":"t2","labels":{"fr":"1 chambre","en":"1 bedroom"},"addCents":1500},
+            {"id":"t3","labels":{"fr":"2 chambres","en":"2 bedrooms"},"addCents":3000},
+            {"id":"t4","labels":{"fr":"3 chambres","en":"3 bedrooms"},"addCents":4500},
+            {"id":"t5","labels":{"fr":"4 chambres et plus","en":"4 bedrooms or more"},"addCents":6000}
+          ]
+        },
+        {
+          "id": "surface",
+          "kind": "add",
+          "labels": {"fr":"Surface","en":"Floor area"},
+          "options": [
+            {"id":"s40","labels":{"fr":"Moins de 40 m²","en":"Under 40 m²"},"addCents":0},
+            {"id":"s70","labels":{"fr":"40 à 70 m²","en":"40 to 70 m²"},"addCents":1000},
+            {"id":"s100","labels":{"fr":"70 à 100 m²","en":"70 to 100 m²"},"addCents":2500},
+            {"id":"s100p","labels":{"fr":"Plus de 100 m²","en":"Over 100 m²"},"addCents":4500}
+          ]
+        },
+        {
+          "id": "frequency",
+          "kind": "discount",
+          "labels": {"fr":"Fréquence","en":"How often"},
+          "options": [
+            {"id":"weekly","labels":{"fr":"Chaque semaine","en":"Every week"},"discountBp":1500},
+            {"id":"biweekly","labels":{"fr":"Toutes les 2 semaines","en":"Every 2 weeks"},"discountBp":1000},
+            {"id":"monthly","labels":{"fr":"Chaque mois","en":"Every month"},"discountBp":500},
+            {"id":"once","labels":{"fr":"Une fois","en":"Once"},"discountBp":0}
+          ]
+        }
+      ],
+      "needs": {
+        "standard": {"kind":"estimate","baseCents":4500,"inputs":["zone","bedrooms","surface","frequency"]},
+        "windows": {"kind":"fixed","cents":8900}
+      }
+    },
+    "need": "standard",
+    "inputs": {"zone":"centre","bedrooms":"studio","surface":"s40","frequency":"weekly"},
+    "cents": 4900
+  },
+  {
+    "name": "cleaning: the dearest answers, 18750 rounds half up to 18800",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-01",
+      "roundToCents": 100,
+      "minimumCents": 4900,
+      "inputs": [
+        {
+          "id": "zone",
+          "kind": "multiply",
+          "labels": {"fr":"Zone","en":"Area"},
+          "options": [
+            {"id":"centre","labels":{"fr":"Centre","en":"Centre"},"multiplyBp":10000},
+            {"id":"proche","labels":{"fr":"Proche banlieue","en":"Inner suburbs"},"multiplyBp":11000},
+            {"id":"loin","labels":{"fr":"Grande banlieue","en":"Outer suburbs"},"multiplyBp":12500}
+          ]
+        },
+        {
+          "id": "bedrooms",
+          "kind": "add",
+          "labels": {"fr":"Chambres","en":"Bedrooms"},
+          "options": [
+            {"id":"studio","labels":{"fr":"Studio","en":"Studio"},"addCents":0},
+            {"id":"t2","labels":{"fr":"1 chambre","en":"1 bedroom"},"addCents":1500},
+            {"id":"t3","labels":{"fr":"2 chambres","en":"2 bedrooms"},"addCents":3000},
+            {"id":"t4","labels":{"fr":"3 chambres","en":"3 bedrooms"},"addCents":4500},
+            {"id":"t5","labels":{"fr":"4 chambres et plus","en":"4 bedrooms or more"},"addCents":6000}
+          ]
+        },
+        {
+          "id": "surface",
+          "kind": "add",
+          "labels": {"fr":"Surface","en":"Floor area"},
+          "options": [
+            {"id":"s40","labels":{"fr":"Moins de 40 m²","en":"Under 40 m²"},"addCents":0},
+            {"id":"s70","labels":{"fr":"40 à 70 m²","en":"40 to 70 m²"},"addCents":1000},
+            {"id":"s100","labels":{"fr":"70 à 100 m²","en":"70 to 100 m²"},"addCents":2500},
+            {"id":"s100p","labels":{"fr":"Plus de 100 m²","en":"Over 100 m²"},"addCents":4500}
+          ]
+        },
+        {
+          "id": "frequency",
+          "kind": "discount",
+          "labels": {"fr":"Fréquence","en":"How often"},
+          "options": [
+            {"id":"weekly","labels":{"fr":"Chaque semaine","en":"Every week"},"discountBp":1500},
+            {"id":"biweekly","labels":{"fr":"Toutes les 2 semaines","en":"Every 2 weeks"},"discountBp":1000},
+            {"id":"monthly","labels":{"fr":"Chaque mois","en":"Every month"},"discountBp":500},
+            {"id":"once","labels":{"fr":"Une fois","en":"Once"},"discountBp":0}
+          ]
+        }
+      ],
+      "needs": {
+        "standard": {"kind":"estimate","baseCents":4500,"inputs":["zone","bedrooms","surface","frequency"]},
+        "windows": {"kind":"fixed","cents":8900}
+      }
+    },
+    "need": "standard",
+    "inputs": {"zone":"loin","bedrooms":"t5","surface":"s100p","frequency":"once"},
+    "cents": 18800
+  },
+  {
+    "name": "cleaning: a fixed need is its price",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-01",
+      "roundToCents": 100,
+      "minimumCents": 4900,
+      "inputs": [
+        {
+          "id": "zone",
+          "kind": "multiply",
+          "labels": {"fr":"Zone","en":"Area"},
+          "options": [
+            {"id":"centre","labels":{"fr":"Centre","en":"Centre"},"multiplyBp":10000},
+            {"id":"proche","labels":{"fr":"Proche banlieue","en":"Inner suburbs"},"multiplyBp":11000},
+            {"id":"loin","labels":{"fr":"Grande banlieue","en":"Outer suburbs"},"multiplyBp":12500}
+          ]
+        },
+        {
+          "id": "bedrooms",
+          "kind": "add",
+          "labels": {"fr":"Chambres","en":"Bedrooms"},
+          "options": [
+            {"id":"studio","labels":{"fr":"Studio","en":"Studio"},"addCents":0},
+            {"id":"t2","labels":{"fr":"1 chambre","en":"1 bedroom"},"addCents":1500},
+            {"id":"t3","labels":{"fr":"2 chambres","en":"2 bedrooms"},"addCents":3000},
+            {"id":"t4","labels":{"fr":"3 chambres","en":"3 bedrooms"},"addCents":4500},
+            {"id":"t5","labels":{"fr":"4 chambres et plus","en":"4 bedrooms or more"},"addCents":6000}
+          ]
+        },
+        {
+          "id": "surface",
+          "kind": "add",
+          "labels": {"fr":"Surface","en":"Floor area"},
+          "options": [
+            {"id":"s40","labels":{"fr":"Moins de 40 m²","en":"Under 40 m²"},"addCents":0},
+            {"id":"s70","labels":{"fr":"40 à 70 m²","en":"40 to 70 m²"},"addCents":1000},
+            {"id":"s100","labels":{"fr":"70 à 100 m²","en":"70 to 100 m²"},"addCents":2500},
+            {"id":"s100p","labels":{"fr":"Plus de 100 m²","en":"Over 100 m²"},"addCents":4500}
+          ]
+        },
+        {
+          "id": "frequency",
+          "kind": "discount",
+          "labels": {"fr":"Fréquence","en":"How often"},
+          "options": [
+            {"id":"weekly","labels":{"fr":"Chaque semaine","en":"Every week"},"discountBp":1500},
+            {"id":"biweekly","labels":{"fr":"Toutes les 2 semaines","en":"Every 2 weeks"},"discountBp":1000},
+            {"id":"monthly","labels":{"fr":"Chaque mois","en":"Every month"},"discountBp":500},
+            {"id":"once","labels":{"fr":"Une fois","en":"Once"},"discountBp":0}
+          ]
+        }
+      ],
+      "needs": {
+        "standard": {"kind":"estimate","baseCents":4500,"inputs":["zone","bedrooms","surface","frequency"]},
+        "windows": {"kind":"fixed","cents":8900}
+      }
+    },
+    "need": "windows",
+    "inputs": {},
+    "cents": 8900
+  },
+  {
+    "name": "cleaning: an answer the need does not ask is ignored",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-01",
+      "roundToCents": 100,
+      "minimumCents": 4900,
+      "inputs": [
+        {
+          "id": "zone",
+          "kind": "multiply",
+          "labels": {"fr":"Zone","en":"Area"},
+          "options": [
+            {"id":"centre","labels":{"fr":"Centre","en":"Centre"},"multiplyBp":10000},
+            {"id":"proche","labels":{"fr":"Proche banlieue","en":"Inner suburbs"},"multiplyBp":11000},
+            {"id":"loin","labels":{"fr":"Grande banlieue","en":"Outer suburbs"},"multiplyBp":12500}
+          ]
+        },
+        {
+          "id": "bedrooms",
+          "kind": "add",
+          "labels": {"fr":"Chambres","en":"Bedrooms"},
+          "options": [
+            {"id":"studio","labels":{"fr":"Studio","en":"Studio"},"addCents":0},
+            {"id":"t2","labels":{"fr":"1 chambre","en":"1 bedroom"},"addCents":1500},
+            {"id":"t3","labels":{"fr":"2 chambres","en":"2 bedrooms"},"addCents":3000},
+            {"id":"t4","labels":{"fr":"3 chambres","en":"3 bedrooms"},"addCents":4500},
+            {"id":"t5","labels":{"fr":"4 chambres et plus","en":"4 bedrooms or more"},"addCents":6000}
+          ]
+        },
+        {
+          "id": "surface",
+          "kind": "add",
+          "labels": {"fr":"Surface","en":"Floor area"},
+          "options": [
+            {"id":"s40","labels":{"fr":"Moins de 40 m²","en":"Under 40 m²"},"addCents":0},
+            {"id":"s70","labels":{"fr":"40 à 70 m²","en":"40 to 70 m²"},"addCents":1000},
+            {"id":"s100","labels":{"fr":"70 à 100 m²","en":"70 to 100 m²"},"addCents":2500},
+            {"id":"s100p","labels":{"fr":"Plus de 100 m²","en":"Over 100 m²"},"addCents":4500}
+          ]
+        },
+        {
+          "id": "frequency",
+          "kind": "discount",
+          "labels": {"fr":"Fréquence","en":"How often"},
+          "options": [
+            {"id":"weekly","labels":{"fr":"Chaque semaine","en":"Every week"},"discountBp":1500},
+            {"id":"biweekly","labels":{"fr":"Toutes les 2 semaines","en":"Every 2 weeks"},"discountBp":1000},
+            {"id":"monthly","labels":{"fr":"Chaque mois","en":"Every month"},"discountBp":500},
+            {"id":"once","labels":{"fr":"Une fois","en":"Once"},"discountBp":0}
+          ]
+        }
+      ],
+      "needs": {
+        "standard": {"kind":"estimate","baseCents":4500,"inputs":["zone","bedrooms","surface","frequency"]},
+        "windows": {"kind":"fixed","cents":8900}
+      }
+    },
+    "need": "standard",
+    "inputs": {"zone":"centre","bedrooms":"t2","surface":"s40","frequency":"once","pets":"cat"},
+    "cents": 6000
+  },
+  {
+    "name": "cleaning: a missing answer prices nothing",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-01",
+      "roundToCents": 100,
+      "minimumCents": 4900,
+      "inputs": [
+        {
+          "id": "zone",
+          "kind": "multiply",
+          "labels": {"fr":"Zone","en":"Area"},
+          "options": [
+            {"id":"centre","labels":{"fr":"Centre","en":"Centre"},"multiplyBp":10000},
+            {"id":"proche","labels":{"fr":"Proche banlieue","en":"Inner suburbs"},"multiplyBp":11000},
+            {"id":"loin","labels":{"fr":"Grande banlieue","en":"Outer suburbs"},"multiplyBp":12500}
+          ]
+        },
+        {
+          "id": "bedrooms",
+          "kind": "add",
+          "labels": {"fr":"Chambres","en":"Bedrooms"},
+          "options": [
+            {"id":"studio","labels":{"fr":"Studio","en":"Studio"},"addCents":0},
+            {"id":"t2","labels":{"fr":"1 chambre","en":"1 bedroom"},"addCents":1500},
+            {"id":"t3","labels":{"fr":"2 chambres","en":"2 bedrooms"},"addCents":3000},
+            {"id":"t4","labels":{"fr":"3 chambres","en":"3 bedrooms"},"addCents":4500},
+            {"id":"t5","labels":{"fr":"4 chambres et plus","en":"4 bedrooms or more"},"addCents":6000}
+          ]
+        },
+        {
+          "id": "surface",
+          "kind": "add",
+          "labels": {"fr":"Surface","en":"Floor area"},
+          "options": [
+            {"id":"s40","labels":{"fr":"Moins de 40 m²","en":"Under 40 m²"},"addCents":0},
+            {"id":"s70","labels":{"fr":"40 à 70 m²","en":"40 to 70 m²"},"addCents":1000},
+            {"id":"s100","labels":{"fr":"70 à 100 m²","en":"70 to 100 m²"},"addCents":2500},
+            {"id":"s100p","labels":{"fr":"Plus de 100 m²","en":"Over 100 m²"},"addCents":4500}
+          ]
+        },
+        {
+          "id": "frequency",
+          "kind": "discount",
+          "labels": {"fr":"Fréquence","en":"How often"},
+          "options": [
+            {"id":"weekly","labels":{"fr":"Chaque semaine","en":"Every week"},"discountBp":1500},
+            {"id":"biweekly","labels":{"fr":"Toutes les 2 semaines","en":"Every 2 weeks"},"discountBp":1000},
+            {"id":"monthly","labels":{"fr":"Chaque mois","en":"Every month"},"discountBp":500},
+            {"id":"once","labels":{"fr":"Une fois","en":"Once"},"discountBp":0}
+          ]
+        }
+      ],
+      "needs": {
+        "standard": {"kind":"estimate","baseCents":4500,"inputs":["zone","bedrooms","surface","frequency"]},
+        "windows": {"kind":"fixed","cents":8900}
+      }
+    },
+    "need": "standard",
+    "inputs": {"zone":"centre","bedrooms":"t2","surface":"s40"},
+    "cents": null
+  },
+  {
+    "name": "cleaning: an unknown option prices nothing",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-01",
+      "roundToCents": 100,
+      "minimumCents": 4900,
+      "inputs": [
+        {
+          "id": "zone",
+          "kind": "multiply",
+          "labels": {"fr":"Zone","en":"Area"},
+          "options": [
+            {"id":"centre","labels":{"fr":"Centre","en":"Centre"},"multiplyBp":10000},
+            {"id":"proche","labels":{"fr":"Proche banlieue","en":"Inner suburbs"},"multiplyBp":11000},
+            {"id":"loin","labels":{"fr":"Grande banlieue","en":"Outer suburbs"},"multiplyBp":12500}
+          ]
+        },
+        {
+          "id": "bedrooms",
+          "kind": "add",
+          "labels": {"fr":"Chambres","en":"Bedrooms"},
+          "options": [
+            {"id":"studio","labels":{"fr":"Studio","en":"Studio"},"addCents":0},
+            {"id":"t2","labels":{"fr":"1 chambre","en":"1 bedroom"},"addCents":1500},
+            {"id":"t3","labels":{"fr":"2 chambres","en":"2 bedrooms"},"addCents":3000},
+            {"id":"t4","labels":{"fr":"3 chambres","en":"3 bedrooms"},"addCents":4500},
+            {"id":"t5","labels":{"fr":"4 chambres et plus","en":"4 bedrooms or more"},"addCents":6000}
+          ]
+        },
+        {
+          "id": "surface",
+          "kind": "add",
+          "labels": {"fr":"Surface","en":"Floor area"},
+          "options": [
+            {"id":"s40","labels":{"fr":"Moins de 40 m²","en":"Under 40 m²"},"addCents":0},
+            {"id":"s70","labels":{"fr":"40 à 70 m²","en":"40 to 70 m²"},"addCents":1000},
+            {"id":"s100","labels":{"fr":"70 à 100 m²","en":"70 to 100 m²"},"addCents":2500},
+            {"id":"s100p","labels":{"fr":"Plus de 100 m²","en":"Over 100 m²"},"addCents":4500}
+          ]
+        },
+        {
+          "id": "frequency",
+          "kind": "discount",
+          "labels": {"fr":"Fréquence","en":"How often"},
+          "options": [
+            {"id":"weekly","labels":{"fr":"Chaque semaine","en":"Every week"},"discountBp":1500},
+            {"id":"biweekly","labels":{"fr":"Toutes les 2 semaines","en":"Every 2 weeks"},"discountBp":1000},
+            {"id":"monthly","labels":{"fr":"Chaque mois","en":"Every month"},"discountBp":500},
+            {"id":"once","labels":{"fr":"Une fois","en":"Once"},"discountBp":0}
+          ]
+        }
+      ],
+      "needs": {
+        "standard": {"kind":"estimate","baseCents":4500,"inputs":["zone","bedrooms","surface","frequency"]},
+        "windows": {"kind":"fixed","cents":8900}
+      }
+    },
+    "need": "standard",
+    "inputs": {"zone":"mars","bedrooms":"t2","surface":"s40","frequency":"once"},
+    "cents": null
+  },
+  {
+    "name": "cleaning: a need the model does not price",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-01",
+      "roundToCents": 100,
+      "minimumCents": 4900,
+      "inputs": [
+        {
+          "id": "zone",
+          "kind": "multiply",
+          "labels": {"fr":"Zone","en":"Area"},
+          "options": [
+            {"id":"centre","labels":{"fr":"Centre","en":"Centre"},"multiplyBp":10000},
+            {"id":"proche","labels":{"fr":"Proche banlieue","en":"Inner suburbs"},"multiplyBp":11000},
+            {"id":"loin","labels":{"fr":"Grande banlieue","en":"Outer suburbs"},"multiplyBp":12500}
+          ]
+        },
+        {
+          "id": "bedrooms",
+          "kind": "add",
+          "labels": {"fr":"Chambres","en":"Bedrooms"},
+          "options": [
+            {"id":"studio","labels":{"fr":"Studio","en":"Studio"},"addCents":0},
+            {"id":"t2","labels":{"fr":"1 chambre","en":"1 bedroom"},"addCents":1500},
+            {"id":"t3","labels":{"fr":"2 chambres","en":"2 bedrooms"},"addCents":3000},
+            {"id":"t4","labels":{"fr":"3 chambres","en":"3 bedrooms"},"addCents":4500},
+            {"id":"t5","labels":{"fr":"4 chambres et plus","en":"4 bedrooms or more"},"addCents":6000}
+          ]
+        },
+        {
+          "id": "surface",
+          "kind": "add",
+          "labels": {"fr":"Surface","en":"Floor area"},
+          "options": [
+            {"id":"s40","labels":{"fr":"Moins de 40 m²","en":"Under 40 m²"},"addCents":0},
+            {"id":"s70","labels":{"fr":"40 à 70 m²","en":"40 to 70 m²"},"addCents":1000},
+            {"id":"s100","labels":{"fr":"70 à 100 m²","en":"70 to 100 m²"},"addCents":2500},
+            {"id":"s100p","labels":{"fr":"Plus de 100 m²","en":"Over 100 m²"},"addCents":4500}
+          ]
+        },
+        {
+          "id": "frequency",
+          "kind": "discount",
+          "labels": {"fr":"Fréquence","en":"How often"},
+          "options": [
+            {"id":"weekly","labels":{"fr":"Chaque semaine","en":"Every week"},"discountBp":1500},
+            {"id":"biweekly","labels":{"fr":"Toutes les 2 semaines","en":"Every 2 weeks"},"discountBp":1000},
+            {"id":"monthly","labels":{"fr":"Chaque mois","en":"Every month"},"discountBp":500},
+            {"id":"once","labels":{"fr":"Une fois","en":"Once"},"discountBp":0}
+          ]
+        }
+      ],
+      "needs": {
+        "standard": {"kind":"estimate","baseCents":4500,"inputs":["zone","bedrooms","surface","frequency"]},
+        "windows": {"kind":"fixed","cents":8900}
+      }
+    },
+    "need": "deep",
+    "inputs": {},
+    "cents": null
+  },
+  {
+    "name": "halves: 102 × 1.5 is exact",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 1,
+      "minimumCents": 0,
+      "inputs": [
+        {
+          "id": "a",
+          "kind": "add",
+          "labels": {"en":"a"},
+          "options": [{"id":"zero","labels":{"en":"zero"},"addCents":0},{"id":"one","labels":{"en":"one"},"addCents":1}]
+        },
+        {
+          "id": "m",
+          "kind": "multiply",
+          "labels": {"en":"m"},
+          "options": [
+            {"id":"half","labels":{"en":"half"},"multiplyBp":15000},
+            {"id":"x105","labels":{"en":"x105"},"multiplyBp":10500},
+            {"id":"one","labels":{"en":"one"},"multiplyBp":10000},
+            {"id":"zero","labels":{"en":"zero"},"multiplyBp":0}
+          ]
+        },
+        {
+          "id": "q",
+          "kind": "multiply",
+          "labels": {"en":"q"},
+          "options": [{"id":"x11","labels":{"en":"x11"},"multiplyBp":11000}]
+        },
+        {
+          "id": "d",
+          "kind": "discount",
+          "labels": {"en":"d"},
+          "options": [
+            {"id":"none","labels":{"en":"none"},"discountBp":0},
+            {"id":"ten","labels":{"en":"ten"},"discountBp":1000},
+            {"id":"third","labels":{"en":"third"},"discountBp":3333},
+            {"id":"all","labels":{"en":"all"},"discountBp":10000}
+          ]
+        }
+      ],
+      "needs": {
+        "n": {"kind":"estimate","baseCents":101,"inputs":["a","m","d"]},
+        "k": {"kind":"estimate","baseCents":105,"inputs":["d"]},
+        "mq": {"kind":"estimate","baseCents":103,"inputs":["m","q"]},
+        "qm": {"kind":"estimate","baseCents":103,"inputs":["q","m"]},
+        "late_add": {"kind":"estimate","baseCents":100,"inputs":["m","a"]}
+      }
+    },
+    "need": "n",
+    "inputs": {"a":"one","m":"half","d":"none"},
+    "cents": 153
+  },
+  {
+    "name": "halves: 101 × 1.5 = 151.5 rounds half up",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 1,
+      "minimumCents": 0,
+      "inputs": [
+        {
+          "id": "a",
+          "kind": "add",
+          "labels": {"en":"a"},
+          "options": [{"id":"zero","labels":{"en":"zero"},"addCents":0},{"id":"one","labels":{"en":"one"},"addCents":1}]
+        },
+        {
+          "id": "m",
+          "kind": "multiply",
+          "labels": {"en":"m"},
+          "options": [
+            {"id":"half","labels":{"en":"half"},"multiplyBp":15000},
+            {"id":"x105","labels":{"en":"x105"},"multiplyBp":10500},
+            {"id":"one","labels":{"en":"one"},"multiplyBp":10000},
+            {"id":"zero","labels":{"en":"zero"},"multiplyBp":0}
+          ]
+        },
+        {
+          "id": "q",
+          "kind": "multiply",
+          "labels": {"en":"q"},
+          "options": [{"id":"x11","labels":{"en":"x11"},"multiplyBp":11000}]
+        },
+        {
+          "id": "d",
+          "kind": "discount",
+          "labels": {"en":"d"},
+          "options": [
+            {"id":"none","labels":{"en":"none"},"discountBp":0},
+            {"id":"ten","labels":{"en":"ten"},"discountBp":1000},
+            {"id":"third","labels":{"en":"third"},"discountBp":3333},
+            {"id":"all","labels":{"en":"all"},"discountBp":10000}
+          ]
+        }
+      ],
+      "needs": {
+        "n": {"kind":"estimate","baseCents":101,"inputs":["a","m","d"]},
+        "k": {"kind":"estimate","baseCents":105,"inputs":["d"]},
+        "mq": {"kind":"estimate","baseCents":103,"inputs":["m","q"]},
+        "qm": {"kind":"estimate","baseCents":103,"inputs":["q","m"]},
+        "late_add": {"kind":"estimate","baseCents":100,"inputs":["m","a"]}
+      }
+    },
+    "need": "n",
+    "inputs": {"a":"zero","m":"half","d":"none"},
+    "cents": 152
+  },
+  {
+    "name": "halves: 102 × 1.05 = 107.1 → 107, less 10 % = 96.3 → 96",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 1,
+      "minimumCents": 0,
+      "inputs": [
+        {
+          "id": "a",
+          "kind": "add",
+          "labels": {"en":"a"},
+          "options": [{"id":"zero","labels":{"en":"zero"},"addCents":0},{"id":"one","labels":{"en":"one"},"addCents":1}]
+        },
+        {
+          "id": "m",
+          "kind": "multiply",
+          "labels": {"en":"m"},
+          "options": [
+            {"id":"half","labels":{"en":"half"},"multiplyBp":15000},
+            {"id":"x105","labels":{"en":"x105"},"multiplyBp":10500},
+            {"id":"one","labels":{"en":"one"},"multiplyBp":10000},
+            {"id":"zero","labels":{"en":"zero"},"multiplyBp":0}
+          ]
+        },
+        {
+          "id": "q",
+          "kind": "multiply",
+          "labels": {"en":"q"},
+          "options": [{"id":"x11","labels":{"en":"x11"},"multiplyBp":11000}]
+        },
+        {
+          "id": "d",
+          "kind": "discount",
+          "labels": {"en":"d"},
+          "options": [
+            {"id":"none","labels":{"en":"none"},"discountBp":0},
+            {"id":"ten","labels":{"en":"ten"},"discountBp":1000},
+            {"id":"third","labels":{"en":"third"},"discountBp":3333},
+            {"id":"all","labels":{"en":"all"},"discountBp":10000}
+          ]
+        }
+      ],
+      "needs": {
+        "n": {"kind":"estimate","baseCents":101,"inputs":["a","m","d"]},
+        "k": {"kind":"estimate","baseCents":105,"inputs":["d"]},
+        "mq": {"kind":"estimate","baseCents":103,"inputs":["m","q"]},
+        "qm": {"kind":"estimate","baseCents":103,"inputs":["q","m"]},
+        "late_add": {"kind":"estimate","baseCents":100,"inputs":["m","a"]}
+      }
+    },
+    "need": "n",
+    "inputs": {"a":"one","m":"x105","d":"ten"},
+    "cents": 96
+  },
+  {
+    "name": "halves: 152 less 10 % = 136.8 → 137",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 1,
+      "minimumCents": 0,
+      "inputs": [
+        {
+          "id": "a",
+          "kind": "add",
+          "labels": {"en":"a"},
+          "options": [{"id":"zero","labels":{"en":"zero"},"addCents":0},{"id":"one","labels":{"en":"one"},"addCents":1}]
+        },
+        {
+          "id": "m",
+          "kind": "multiply",
+          "labels": {"en":"m"},
+          "options": [
+            {"id":"half","labels":{"en":"half"},"multiplyBp":15000},
+            {"id":"x105","labels":{"en":"x105"},"multiplyBp":10500},
+            {"id":"one","labels":{"en":"one"},"multiplyBp":10000},
+            {"id":"zero","labels":{"en":"zero"},"multiplyBp":0}
+          ]
+        },
+        {
+          "id": "q",
+          "kind": "multiply",
+          "labels": {"en":"q"},
+          "options": [{"id":"x11","labels":{"en":"x11"},"multiplyBp":11000}]
+        },
+        {
+          "id": "d",
+          "kind": "discount",
+          "labels": {"en":"d"},
+          "options": [
+            {"id":"none","labels":{"en":"none"},"discountBp":0},
+            {"id":"ten","labels":{"en":"ten"},"discountBp":1000},
+            {"id":"third","labels":{"en":"third"},"discountBp":3333},
+            {"id":"all","labels":{"en":"all"},"discountBp":10000}
+          ]
+        }
+      ],
+      "needs": {
+        "n": {"kind":"estimate","baseCents":101,"inputs":["a","m","d"]},
+        "k": {"kind":"estimate","baseCents":105,"inputs":["d"]},
+        "mq": {"kind":"estimate","baseCents":103,"inputs":["m","q"]},
+        "qm": {"kind":"estimate","baseCents":103,"inputs":["q","m"]},
+        "late_add": {"kind":"estimate","baseCents":100,"inputs":["m","a"]}
+      }
+    },
+    "need": "n",
+    "inputs": {"a":"zero","m":"half","d":"ten"},
+    "cents": 137
+  },
+  {
+    "name": "halves: 105 less 10 % = 94.5 rounds half up",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 1,
+      "minimumCents": 0,
+      "inputs": [
+        {
+          "id": "a",
+          "kind": "add",
+          "labels": {"en":"a"},
+          "options": [{"id":"zero","labels":{"en":"zero"},"addCents":0},{"id":"one","labels":{"en":"one"},"addCents":1}]
+        },
+        {
+          "id": "m",
+          "kind": "multiply",
+          "labels": {"en":"m"},
+          "options": [
+            {"id":"half","labels":{"en":"half"},"multiplyBp":15000},
+            {"id":"x105","labels":{"en":"x105"},"multiplyBp":10500},
+            {"id":"one","labels":{"en":"one"},"multiplyBp":10000},
+            {"id":"zero","labels":{"en":"zero"},"multiplyBp":0}
+          ]
+        },
+        {
+          "id": "q",
+          "kind": "multiply",
+          "labels": {"en":"q"},
+          "options": [{"id":"x11","labels":{"en":"x11"},"multiplyBp":11000}]
+        },
+        {
+          "id": "d",
+          "kind": "discount",
+          "labels": {"en":"d"},
+          "options": [
+            {"id":"none","labels":{"en":"none"},"discountBp":0},
+            {"id":"ten","labels":{"en":"ten"},"discountBp":1000},
+            {"id":"third","labels":{"en":"third"},"discountBp":3333},
+            {"id":"all","labels":{"en":"all"},"discountBp":10000}
+          ]
+        }
+      ],
+      "needs": {
+        "n": {"kind":"estimate","baseCents":101,"inputs":["a","m","d"]},
+        "k": {"kind":"estimate","baseCents":105,"inputs":["d"]},
+        "mq": {"kind":"estimate","baseCents":103,"inputs":["m","q"]},
+        "qm": {"kind":"estimate","baseCents":103,"inputs":["q","m"]},
+        "late_add": {"kind":"estimate","baseCents":100,"inputs":["m","a"]}
+      }
+    },
+    "need": "k",
+    "inputs": {"d":"ten"},
+    "cents": 95
+  },
+  {
+    "name": "halves: 105 less 33.33 % = 70.0035 → 70",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 1,
+      "minimumCents": 0,
+      "inputs": [
+        {
+          "id": "a",
+          "kind": "add",
+          "labels": {"en":"a"},
+          "options": [{"id":"zero","labels":{"en":"zero"},"addCents":0},{"id":"one","labels":{"en":"one"},"addCents":1}]
+        },
+        {
+          "id": "m",
+          "kind": "multiply",
+          "labels": {"en":"m"},
+          "options": [
+            {"id":"half","labels":{"en":"half"},"multiplyBp":15000},
+            {"id":"x105","labels":{"en":"x105"},"multiplyBp":10500},
+            {"id":"one","labels":{"en":"one"},"multiplyBp":10000},
+            {"id":"zero","labels":{"en":"zero"},"multiplyBp":0}
+          ]
+        },
+        {
+          "id": "q",
+          "kind": "multiply",
+          "labels": {"en":"q"},
+          "options": [{"id":"x11","labels":{"en":"x11"},"multiplyBp":11000}]
+        },
+        {
+          "id": "d",
+          "kind": "discount",
+          "labels": {"en":"d"},
+          "options": [
+            {"id":"none","labels":{"en":"none"},"discountBp":0},
+            {"id":"ten","labels":{"en":"ten"},"discountBp":1000},
+            {"id":"third","labels":{"en":"third"},"discountBp":3333},
+            {"id":"all","labels":{"en":"all"},"discountBp":10000}
+          ]
+        }
+      ],
+      "needs": {
+        "n": {"kind":"estimate","baseCents":101,"inputs":["a","m","d"]},
+        "k": {"kind":"estimate","baseCents":105,"inputs":["d"]},
+        "mq": {"kind":"estimate","baseCents":103,"inputs":["m","q"]},
+        "qm": {"kind":"estimate","baseCents":103,"inputs":["q","m"]},
+        "late_add": {"kind":"estimate","baseCents":100,"inputs":["m","a"]}
+      }
+    },
+    "need": "k",
+    "inputs": {"d":"third"},
+    "cents": 70
+  },
+  {
+    "name": "halves: a 100 % discount is free",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 1,
+      "minimumCents": 0,
+      "inputs": [
+        {
+          "id": "a",
+          "kind": "add",
+          "labels": {"en":"a"},
+          "options": [{"id":"zero","labels":{"en":"zero"},"addCents":0},{"id":"one","labels":{"en":"one"},"addCents":1}]
+        },
+        {
+          "id": "m",
+          "kind": "multiply",
+          "labels": {"en":"m"},
+          "options": [
+            {"id":"half","labels":{"en":"half"},"multiplyBp":15000},
+            {"id":"x105","labels":{"en":"x105"},"multiplyBp":10500},
+            {"id":"one","labels":{"en":"one"},"multiplyBp":10000},
+            {"id":"zero","labels":{"en":"zero"},"multiplyBp":0}
+          ]
+        },
+        {
+          "id": "q",
+          "kind": "multiply",
+          "labels": {"en":"q"},
+          "options": [{"id":"x11","labels":{"en":"x11"},"multiplyBp":11000}]
+        },
+        {
+          "id": "d",
+          "kind": "discount",
+          "labels": {"en":"d"},
+          "options": [
+            {"id":"none","labels":{"en":"none"},"discountBp":0},
+            {"id":"ten","labels":{"en":"ten"},"discountBp":1000},
+            {"id":"third","labels":{"en":"third"},"discountBp":3333},
+            {"id":"all","labels":{"en":"all"},"discountBp":10000}
+          ]
+        }
+      ],
+      "needs": {
+        "n": {"kind":"estimate","baseCents":101,"inputs":["a","m","d"]},
+        "k": {"kind":"estimate","baseCents":105,"inputs":["d"]},
+        "mq": {"kind":"estimate","baseCents":103,"inputs":["m","q"]},
+        "qm": {"kind":"estimate","baseCents":103,"inputs":["q","m"]},
+        "late_add": {"kind":"estimate","baseCents":100,"inputs":["m","a"]}
+      }
+    },
+    "need": "k",
+    "inputs": {"d":"all"},
+    "cents": 0
+  },
+  {
+    "name": "halves: × 0 is free",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 1,
+      "minimumCents": 0,
+      "inputs": [
+        {
+          "id": "a",
+          "kind": "add",
+          "labels": {"en":"a"},
+          "options": [{"id":"zero","labels":{"en":"zero"},"addCents":0},{"id":"one","labels":{"en":"one"},"addCents":1}]
+        },
+        {
+          "id": "m",
+          "kind": "multiply",
+          "labels": {"en":"m"},
+          "options": [
+            {"id":"half","labels":{"en":"half"},"multiplyBp":15000},
+            {"id":"x105","labels":{"en":"x105"},"multiplyBp":10500},
+            {"id":"one","labels":{"en":"one"},"multiplyBp":10000},
+            {"id":"zero","labels":{"en":"zero"},"multiplyBp":0}
+          ]
+        },
+        {
+          "id": "q",
+          "kind": "multiply",
+          "labels": {"en":"q"},
+          "options": [{"id":"x11","labels":{"en":"x11"},"multiplyBp":11000}]
+        },
+        {
+          "id": "d",
+          "kind": "discount",
+          "labels": {"en":"d"},
+          "options": [
+            {"id":"none","labels":{"en":"none"},"discountBp":0},
+            {"id":"ten","labels":{"en":"ten"},"discountBp":1000},
+            {"id":"third","labels":{"en":"third"},"discountBp":3333},
+            {"id":"all","labels":{"en":"all"},"discountBp":10000}
+          ]
+        }
+      ],
+      "needs": {
+        "n": {"kind":"estimate","baseCents":101,"inputs":["a","m","d"]},
+        "k": {"kind":"estimate","baseCents":105,"inputs":["d"]},
+        "mq": {"kind":"estimate","baseCents":103,"inputs":["m","q"]},
+        "qm": {"kind":"estimate","baseCents":103,"inputs":["q","m"]},
+        "late_add": {"kind":"estimate","baseCents":100,"inputs":["m","a"]}
+      }
+    },
+    "need": "n",
+    "inputs": {"a":"one","m":"zero","d":"none"},
+    "cents": 0
+  },
+  {
+    "name": "halves: multipliers apply in the need's order — 103 × 1.5 → 155 × 1.1 → 171",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 1,
+      "minimumCents": 0,
+      "inputs": [
+        {
+          "id": "a",
+          "kind": "add",
+          "labels": {"en":"a"},
+          "options": [{"id":"zero","labels":{"en":"zero"},"addCents":0},{"id":"one","labels":{"en":"one"},"addCents":1}]
+        },
+        {
+          "id": "m",
+          "kind": "multiply",
+          "labels": {"en":"m"},
+          "options": [
+            {"id":"half","labels":{"en":"half"},"multiplyBp":15000},
+            {"id":"x105","labels":{"en":"x105"},"multiplyBp":10500},
+            {"id":"one","labels":{"en":"one"},"multiplyBp":10000},
+            {"id":"zero","labels":{"en":"zero"},"multiplyBp":0}
+          ]
+        },
+        {
+          "id": "q",
+          "kind": "multiply",
+          "labels": {"en":"q"},
+          "options": [{"id":"x11","labels":{"en":"x11"},"multiplyBp":11000}]
+        },
+        {
+          "id": "d",
+          "kind": "discount",
+          "labels": {"en":"d"},
+          "options": [
+            {"id":"none","labels":{"en":"none"},"discountBp":0},
+            {"id":"ten","labels":{"en":"ten"},"discountBp":1000},
+            {"id":"third","labels":{"en":"third"},"discountBp":3333},
+            {"id":"all","labels":{"en":"all"},"discountBp":10000}
+          ]
+        }
+      ],
+      "needs": {
+        "n": {"kind":"estimate","baseCents":101,"inputs":["a","m","d"]},
+        "k": {"kind":"estimate","baseCents":105,"inputs":["d"]},
+        "mq": {"kind":"estimate","baseCents":103,"inputs":["m","q"]},
+        "qm": {"kind":"estimate","baseCents":103,"inputs":["q","m"]},
+        "late_add": {"kind":"estimate","baseCents":100,"inputs":["m","a"]}
+      }
+    },
+    "need": "mq",
+    "inputs": {"m":"half","q":"x11"},
+    "cents": 171
+  },
+  {
+    "name": "halves: the other order — 103 × 1.1 → 113 × 1.5 → 170",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 1,
+      "minimumCents": 0,
+      "inputs": [
+        {
+          "id": "a",
+          "kind": "add",
+          "labels": {"en":"a"},
+          "options": [{"id":"zero","labels":{"en":"zero"},"addCents":0},{"id":"one","labels":{"en":"one"},"addCents":1}]
+        },
+        {
+          "id": "m",
+          "kind": "multiply",
+          "labels": {"en":"m"},
+          "options": [
+            {"id":"half","labels":{"en":"half"},"multiplyBp":15000},
+            {"id":"x105","labels":{"en":"x105"},"multiplyBp":10500},
+            {"id":"one","labels":{"en":"one"},"multiplyBp":10000},
+            {"id":"zero","labels":{"en":"zero"},"multiplyBp":0}
+          ]
+        },
+        {
+          "id": "q",
+          "kind": "multiply",
+          "labels": {"en":"q"},
+          "options": [{"id":"x11","labels":{"en":"x11"},"multiplyBp":11000}]
+        },
+        {
+          "id": "d",
+          "kind": "discount",
+          "labels": {"en":"d"},
+          "options": [
+            {"id":"none","labels":{"en":"none"},"discountBp":0},
+            {"id":"ten","labels":{"en":"ten"},"discountBp":1000},
+            {"id":"third","labels":{"en":"third"},"discountBp":3333},
+            {"id":"all","labels":{"en":"all"},"discountBp":10000}
+          ]
+        }
+      ],
+      "needs": {
+        "n": {"kind":"estimate","baseCents":101,"inputs":["a","m","d"]},
+        "k": {"kind":"estimate","baseCents":105,"inputs":["d"]},
+        "mq": {"kind":"estimate","baseCents":103,"inputs":["m","q"]},
+        "qm": {"kind":"estimate","baseCents":103,"inputs":["q","m"]},
+        "late_add": {"kind":"estimate","baseCents":100,"inputs":["m","a"]}
+      }
+    },
+    "need": "qm",
+    "inputs": {"m":"half","q":"x11"},
+    "cents": 170
+  },
+  {
+    "name": "halves: an add listed after a multiply still adds first — 101 × 1.5",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 1,
+      "minimumCents": 0,
+      "inputs": [
+        {
+          "id": "a",
+          "kind": "add",
+          "labels": {"en":"a"},
+          "options": [{"id":"zero","labels":{"en":"zero"},"addCents":0},{"id":"one","labels":{"en":"one"},"addCents":1}]
+        },
+        {
+          "id": "m",
+          "kind": "multiply",
+          "labels": {"en":"m"},
+          "options": [
+            {"id":"half","labels":{"en":"half"},"multiplyBp":15000},
+            {"id":"x105","labels":{"en":"x105"},"multiplyBp":10500},
+            {"id":"one","labels":{"en":"one"},"multiplyBp":10000},
+            {"id":"zero","labels":{"en":"zero"},"multiplyBp":0}
+          ]
+        },
+        {
+          "id": "q",
+          "kind": "multiply",
+          "labels": {"en":"q"},
+          "options": [{"id":"x11","labels":{"en":"x11"},"multiplyBp":11000}]
+        },
+        {
+          "id": "d",
+          "kind": "discount",
+          "labels": {"en":"d"},
+          "options": [
+            {"id":"none","labels":{"en":"none"},"discountBp":0},
+            {"id":"ten","labels":{"en":"ten"},"discountBp":1000},
+            {"id":"third","labels":{"en":"third"},"discountBp":3333},
+            {"id":"all","labels":{"en":"all"},"discountBp":10000}
+          ]
+        }
+      ],
+      "needs": {
+        "n": {"kind":"estimate","baseCents":101,"inputs":["a","m","d"]},
+        "k": {"kind":"estimate","baseCents":105,"inputs":["d"]},
+        "mq": {"kind":"estimate","baseCents":103,"inputs":["m","q"]},
+        "qm": {"kind":"estimate","baseCents":103,"inputs":["q","m"]},
+        "late_add": {"kind":"estimate","baseCents":100,"inputs":["m","a"]}
+      }
+    },
+    "need": "late_add",
+    "inputs": {"m":"half","a":"one"},
+    "cents": 152
+  },
+  {
+    "name": "steps: 2250 is a half step, up to 2500, raised to the minimum",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 500,
+      "minimumCents": 3000,
+      "inputs": [
+        {
+          "id": "a",
+          "kind": "add",
+          "labels": {"en":"a"},
+          "options": [
+            {"id":"s","labels":{"en":"s"},"addCents":0},
+            {"id":"m","labels":{"en":"m"},"addCents":1000},
+            {"id":"l","labels":{"en":"l"},"addCents":1249}
+          ]
+        },
+        {
+          "id": "f",
+          "kind": "discount",
+          "labels": {"en":"f"},
+          "options": [{"id":"w","labels":{"en":"w"},"discountBp":1000},{"id":"o","labels":{"en":"o"},"discountBp":0}]
+        }
+      ],
+      "needs": {"x":{"kind":"estimate","baseCents":2250,"inputs":["a","f"]}}
+    },
+    "need": "x",
+    "inputs": {"a":"s","f":"o"},
+    "cents": 3000
+  },
+  {
+    "name": "steps: 3499 rounds up to 3500",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 500,
+      "minimumCents": 3000,
+      "inputs": [
+        {
+          "id": "a",
+          "kind": "add",
+          "labels": {"en":"a"},
+          "options": [
+            {"id":"s","labels":{"en":"s"},"addCents":0},
+            {"id":"m","labels":{"en":"m"},"addCents":1000},
+            {"id":"l","labels":{"en":"l"},"addCents":1249}
+          ]
+        },
+        {
+          "id": "f",
+          "kind": "discount",
+          "labels": {"en":"f"},
+          "options": [{"id":"w","labels":{"en":"w"},"discountBp":1000},{"id":"o","labels":{"en":"o"},"discountBp":0}]
+        }
+      ],
+      "needs": {"x":{"kind":"estimate","baseCents":2250,"inputs":["a","f"]}}
+    },
+    "need": "x",
+    "inputs": {"a":"l","f":"o"},
+    "cents": 3500
+  },
+  {
+    "name": "steps: 3250 is a half step, up to 3500",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 500,
+      "minimumCents": 3000,
+      "inputs": [
+        {
+          "id": "a",
+          "kind": "add",
+          "labels": {"en":"a"},
+          "options": [
+            {"id":"s","labels":{"en":"s"},"addCents":0},
+            {"id":"m","labels":{"en":"m"},"addCents":1000},
+            {"id":"l","labels":{"en":"l"},"addCents":1249}
+          ]
+        },
+        {
+          "id": "f",
+          "kind": "discount",
+          "labels": {"en":"f"},
+          "options": [{"id":"w","labels":{"en":"w"},"discountBp":1000},{"id":"o","labels":{"en":"o"},"discountBp":0}]
+        }
+      ],
+      "needs": {"x":{"kind":"estimate","baseCents":2250,"inputs":["a","f"]}}
+    },
+    "need": "x",
+    "inputs": {"a":"m","f":"o"},
+    "cents": 3500
+  },
+  {
+    "name": "steps: 3499 less 10 % = 3149.1 → 3149, down to 3000",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 500,
+      "minimumCents": 3000,
+      "inputs": [
+        {
+          "id": "a",
+          "kind": "add",
+          "labels": {"en":"a"},
+          "options": [
+            {"id":"s","labels":{"en":"s"},"addCents":0},
+            {"id":"m","labels":{"en":"m"},"addCents":1000},
+            {"id":"l","labels":{"en":"l"},"addCents":1249}
+          ]
+        },
+        {
+          "id": "f",
+          "kind": "discount",
+          "labels": {"en":"f"},
+          "options": [{"id":"w","labels":{"en":"w"},"discountBp":1000},{"id":"o","labels":{"en":"o"},"discountBp":0}]
+        }
+      ],
+      "needs": {"x":{"kind":"estimate","baseCents":2250,"inputs":["a","f"]}}
+    },
+    "need": "x",
+    "inputs": {"a":"l","f":"w"},
+    "cents": 3000
+  },
+  {
+    "name": "steps: 2250 less 10 % = 2025, down to 2000, raised to the minimum",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 500,
+      "minimumCents": 3000,
+      "inputs": [
+        {
+          "id": "a",
+          "kind": "add",
+          "labels": {"en":"a"},
+          "options": [
+            {"id":"s","labels":{"en":"s"},"addCents":0},
+            {"id":"m","labels":{"en":"m"},"addCents":1000},
+            {"id":"l","labels":{"en":"l"},"addCents":1249}
+          ]
+        },
+        {
+          "id": "f",
+          "kind": "discount",
+          "labels": {"en":"f"},
+          "options": [{"id":"w","labels":{"en":"w"},"discountBp":1000},{"id":"o","labels":{"en":"o"},"discountBp":0}]
+        }
+      ],
+      "needs": {"x":{"kind":"estimate","baseCents":2250,"inputs":["a","f"]}}
+    },
+    "need": "x",
+    "inputs": {"a":"s","f":"w"},
+    "cents": 3000
+  },
+  {
+    "name": "odd step: 7 rounds down to 5",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 5,
+      "minimumCents": 0,
+      "inputs": [
+        {
+          "id": "a",
+          "kind": "add",
+          "labels": {"en":"a"},
+          "options": [
+            {"id":"two","labels":{"en":"two"},"addCents":2},
+            {"id":"three","labels":{"en":"three"},"addCents":3}
+          ]
+        }
+      ],
+      "needs": {"y":{"kind":"estimate","baseCents":5,"inputs":["a"]}}
+    },
+    "need": "y",
+    "inputs": {"a":"two"},
+    "cents": 5
+  },
+  {
+    "name": "odd step: 8 rounds up to 10",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 5,
+      "minimumCents": 0,
+      "inputs": [
+        {
+          "id": "a",
+          "kind": "add",
+          "labels": {"en":"a"},
+          "options": [
+            {"id":"two","labels":{"en":"two"},"addCents":2},
+            {"id":"three","labels":{"en":"three"},"addCents":3}
+          ]
+        }
+      ],
+      "needs": {"y":{"kind":"estimate","baseCents":5,"inputs":["a"]}}
+    },
+    "need": "y",
+    "inputs": {"a":"three"},
+    "cents": 10
+  },
+  {
+    "name": "fixed: neither rounded nor raised to the minimum",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2028-02-29",
+      "roundToCents": 500,
+      "minimumCents": 99999,
+      "inputs": [],
+      "needs": {"unblock":{"kind":"fixed","cents":12345},"free-visit":{"kind":"fixed","cents":0}}
+    },
+    "need": "unblock",
+    "inputs": {},
+    "cents": 12345
+  },
+  {
+    "name": "fixed: a free job",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2028-02-29",
+      "roundToCents": 500,
+      "minimumCents": 99999,
+      "inputs": [],
+      "needs": {"unblock":{"kind":"fixed","cents":12345},"free-visit":{"kind":"fixed","cents":0}}
+    },
+    "need": "free-visit",
+    "inputs": {},
+    "cents": 0
+  },
+  {
+    "name": "an estimate with no inputs is its base",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 1,
+      "minimumCents": 0,
+      "inputs": [
+        {
+          "id": "unused",
+          "kind": "discount",
+          "labels": {"fr-FR":"Inutilisé"},
+          "options": [{"id":"all","labels":{"fr-FR":"Tout"},"discountBp":10000}]
+        }
+      ],
+      "needs": {"flat":{"kind":"estimate","baseCents":7000,"inputs":[]}}
+    },
+    "need": "flat",
+    "inputs": {},
+    "cents": 7000
+  },
+  {
+    "name": "at the cap: the dearest combination is exactly the cap",
+    "model": {
+      "format": 1,
+      "currency": "EUR",
+      "validFrom": "2026-10-03",
+      "roundToCents": 100000000,
+      "minimumCents": 100000000,
+      "inputs": [
+        {
+          "id": "big",
+          "kind": "add",
+          "labels": {"en":"Big"},
+          "options": [{"id":"max","labels":{"en":"Max"},"addCents":50000000}]
+        },
+        {
+          "id": "times",
+          "kind": "multiply",
+          "labels": {"en":"Times"},
+          "options": [{"id":"two","labels":{"en":"×2"},"multiplyBp":20000}]
+        }
+      ],
+      "needs": {"huge":{"kind":"estimate","baseCents":0,"inputs":["big","times"]}}
+    },
+    "need": "huge",
+    "inputs": {"big":"max","times":"two"},
+    "cents": 100000000
+  }
+]
