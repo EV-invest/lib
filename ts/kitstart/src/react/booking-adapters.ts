@@ -1,5 +1,5 @@
+import { isPageProvider, type BookingChoice, type OpenBookingConfig } from "../core/booking/model";
 import { bookingHref } from "../core/booking/url";
-import type { OpenBookingConfig } from "../core/booking/model";
 
 /** What a provider may say about the slot it booked; all optional, never shown as is. */
 export interface BookedSlot {
@@ -9,9 +9,9 @@ export interface BookedSlot {
 
 /** What the page hands an adapter when the visitor asks for a slot. */
 export interface BookingContext {
-  /** The booking the card offers — the place's (`bookingOf`), or the brand's resolved one (`bookingForVariant`). */
+  /** The booking the card offers (`bookingOf(place, variant)`). */
   config: OpenBookingConfig;
-  /** The lead's public reference — the panel's lead id, and the join key every provider carries back. */
+  /** The lead's public reference — the panel's lead id, and the join key a provider carries back. */
   leadRef: string;
   name?: string | null | undefined;
   phone?: string | null | undefined;
@@ -22,56 +22,63 @@ export interface BookingContext {
 
 /**
  * How a provider opens its booking — one adapter per provider, picked by the
- * config's `provider`; a new one (`calendly`, `google_calendar`) is one more
- * entry a brand registers (`bookingAdapters`), and `LeadCapture` is not
- * touched. `href` renders a plain link — opened by the browser, so no popup
- * blocker and nothing fetched before the click; `open` runs on the click
- * instead (an embed that loads its script then). Neither may touch the
- * network before the click.
+ * config's `provider`; a brand registers its own (`bookingAdapters`) and
+ * `LeadCapture` is not touched. `href` renders a plain link — opened by the
+ * browser in a new tab, so no popup blocker and nothing fetched before the
+ * click; `open` runs on the click instead (an embed that loads its script
+ * then). Neither may touch the network before the click. `prefillsPhone`:
+ * the provider's form gets the visitor's number, so the card need not ask
+ * them to type it again.
  */
 export interface BookingAdapter<P extends string = string> {
   provider: P;
   href?: (ctx: BookingContext) => string | null;
   open?: (ctx: BookingContext) => void | Promise<void>;
+  prefillsPhone?: (ctx: BookingContext) => boolean;
 }
+
+/** The built-in choice a context carries, or `null` when it is not one. */
+function choiceOf(config: OpenBookingConfig): BookingChoice | null {
+  if (config.provider === "manual") return { provider: "manual" };
+  return isPageProvider(config.provider) && config.url ? { provider: config.provider, url: config.url } : null;
+}
+
+const hrefOf = (ctx: BookingContext): string | null => {
+  const choice = choiceOf(ctx.config);
+  return choice && bookingHref(choice, { leadRef: ctx.leadRef, name: ctx.name, phone: ctx.phone });
+};
 
 /** `manual`: no page to open — the card promises the call and offers a preference. */
 export const manualAdapter: BookingAdapter<"manual"> = { provider: "manual" };
 
-/** `link`: the page with `ref=<leadRef>`, in a new tab. */
-export const linkAdapter: BookingAdapter<"link"> = {
-  provider: "link",
-  href: ctx => (ctx.config.provider === "link" && ctx.config.url ? bookingHref({ provider: "link", url: ctx.config.url }, { leadRef: ctx.leadRef }) : null),
-};
+/** `link`: the page with `ref=<leadRef>`. */
+export const linkAdapter: BookingAdapter<"link"> = { provider: "link", href: hrefOf };
 
-/** The built-in `cal_com` config, or `null` for any other. */
-const calCom = (config: OpenBookingConfig): { provider: "cal_com"; url: string } | null =>
-  config.provider === "cal_com" && config.url ? { provider: "cal_com", url: config.url } : null;
+/** `google_calendar`: the schedule as is — it takes no parameter, so the visitor types the same number there. */
+export const googleCalendarAdapter: BookingAdapter<"google_calendar"> = { provider: "google_calendar", href: hrefOf };
 
-/** `cal_com`: the event page with the name, phone and `metadata[ref]` prefilled, in a new tab. */
-export const calComAdapter: BookingAdapter<"cal_com"> = {
-  provider: "cal_com",
-  href: ctx => {
-    const config = calCom(ctx.config);
-    return config && bookingHref(config, { leadRef: ctx.leadRef, name: ctx.name, phone: ctx.phone });
-  },
-};
+/** `cal_com`: the event with the name, the phone and `metadata[ref]`. */
+export const calComAdapter: BookingAdapter<"cal_com"> = { provider: "cal_com", href: hrefOf, prefillsPhone: () => true };
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
 
+function addScript(src: string): void {
+  const el = document.createElement("script");
+  el.src = src;
+  el.async = true;
+  document.head.appendChild(el);
+}
+
 type CalApi = ((...args: unknown[]) => void) & { q?: unknown[][]; loaded?: boolean; ns?: Record<string, unknown> };
-type CalWindow = Window & { Cal?: CalApi };
+type EmbedWindow = Window & { Cal?: CalApi };
 
 /** Cal.com's own queue stub, as its embed snippet installs it; the script is added on the first call. */
-function calQueue(w: CalWindow, script: string): CalApi {
+function calQueue(w: EmbedWindow, script: string): CalApi {
   if (w.Cal) return w.Cal;
   const cal: CalApi = (...args: unknown[]) => {
     if (!cal.loaded) {
       cal.ns = {};
-      const el = w.document.createElement("script");
-      el.src = script;
-      el.async = true;
-      w.document.head.appendChild(el);
+      addScript(script);
       cal.loaded = true;
     }
     (cal.q ??= []).push(args);
@@ -87,22 +94,19 @@ export function calComEmbedOrigin(url: string): string {
 }
 
 /**
- * `cal_com` as Cal.com's modal on the page, opt-in: its script loads only on
- * the click (no third-party request on page view), and its
- * `bookingSuccessful` event is `onBooked` — the one way the page learns a
- * slot was taken. `LeadCapture`'s `calComEmbed` turns it on.
+ * `cal_com` as Cal.com's modal on the page: its script loads only on the
+ * click, and its `bookingSuccessful` is `onBooked`. Opt-in (`bookingEmbed`),
+ * and only once the visitor accepted the provider's cookies.
  */
 export const calComEmbedAdapter: BookingAdapter<"cal_com"> = {
   provider: "cal_com",
+  prefillsPhone: () => true,
   open: ctx => {
-    const config = calCom(ctx.config);
-    if (!config) return;
-    const origin = calComEmbedOrigin(config.url);
-    const cal = calQueue(window, `${origin}/embed/embed.js`);
-    const href = bookingHref(config, { leadRef: ctx.leadRef, name: ctx.name, phone: ctx.phone });
+    const href = hrefOf(ctx);
     if (href === null) return;
     const u = new URL(href);
-    const prefill = Object.fromEntries(u.searchParams);
+    const origin = calComEmbedOrigin(href);
+    const cal = calQueue(window, `${origin}/embed/embed.js`);
     let done = false;
     const booked = (e: unknown) => {
       if (done) return;
@@ -116,14 +120,22 @@ export const calComEmbedAdapter: BookingAdapter<"cal_com"> = {
     cal("init", { origin });
     cal("on", { action: "bookingSuccessful", callback: booked });
     cal("on", { action: "bookingSuccessfulV2", callback: booked });
-    cal("modal", { calLink: u.pathname.slice(1), config: prefill });
+    cal("modal", { calLink: u.pathname.slice(1), config: Object.fromEntries(u.searchParams) });
   },
 };
 
 /** Adapters by provider: the built-ins, and whatever a brand registers. */
 export type BookingAdapters = Readonly<Record<string, BookingAdapter>>;
 
-export const BOOKING_ADAPTERS: BookingAdapters = { manual: manualAdapter, link: linkAdapter, cal_com: calComAdapter };
+export const BOOKING_ADAPTERS: BookingAdapters = {
+  manual: manualAdapter,
+  link: linkAdapter,
+  google_calendar: googleCalendarAdapter,
+  cal_com: calComAdapter,
+};
+
+/** The embeds `bookingEmbed` turns on. */
+export const BOOKING_EMBEDS: BookingAdapters = { cal_com: calComEmbedAdapter };
 
 /** The built-ins with a brand's own over them, by provider. */
 export function bookingAdapters(over: BookingAdapters = {}): BookingAdapters {

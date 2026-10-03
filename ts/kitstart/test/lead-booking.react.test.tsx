@@ -10,12 +10,12 @@ const text = flowTextOf(LEAD_CAPTURE_TEXT.fr, "fr");
 const SENT: LeadSent = { channel: "form", phone: "06 12 34 56 78", name: "Jean Dupont", lead: "lead-7-0a1b2c3d", submission: "0b6c3f9e-1d2a-4c5b-8e7f-9a0b1c2d3e4f", cents: 8400 };
 const NOW = new Date(2026, 9, 4, 10).getTime();
 
-function stand(booking: OpenBookingConfig, over: { sent?: LeadSent; calComEmbed?: boolean; adapters?: BookingAdapters } = {}) {
+function stand(booking: OpenBookingConfig, over: { sent?: LeadSent; embed?: boolean; adapters?: BookingAdapters } = {}) {
   const events: { event: string; props: Record<string, unknown> }[] = [];
   const sink: AnalyticsSink = { capture: (event, props) => void events.push({ event, props: { ...props } }) };
   const fetch = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => Response.json({ ok: true, queued: true }));
   vi.stubGlobal("fetch", fetch);
-  const ui: ReactElement = <LeadBooking booking={booking} sent={over.sent ?? SENT} locale="fr" text={text} now={NOW} calComEmbed={over.calComEmbed} adapters={over.adapters} />;
+  const ui: ReactElement = <LeadBooking booking={booking} sent={over.sent ?? SENT} locale="fr" text={text} now={NOW} embed={over.embed} adapters={over.adapters} />;
   render(<AnalyticsSinkContext.Provider value={sink}>{ui}</AnalyticsSinkContext.Provider>);
   const posted = () => fetch.mock.calls.map(([url, init]) => ({ url: String(url), body: JSON.parse(String(init?.body)) as unknown }));
   return { events, fetch, posted };
@@ -40,6 +40,15 @@ describe("LeadBooking: link and cal_com", () => {
     expect(events).toEqual([{ event: "lead_booking_open", props: { provider: "link", form_id: "quote" } }]);
   });
 
+  it("opens a Google schedule as is, and asks for the same phone there", () => {
+    const { posted } = stand({ provider: "google_calendar", url: "https://calendar.app.google/AbC123xyz" });
+    const link = screen.getByRole("link", { name: text.bookCta });
+    expect(link).toHaveAttribute("href", "https://calendar.app.google/AbC123xyz");
+    expect(screen.getByText(text.bookPhoneHint)).toBeInTheDocument();
+    fireEvent.click(link);
+    expect(posted()).toEqual([{ url: "/quote/booking", body: { submission: SENT.submission, lead_ref: SENT.lead, provider: "google_calendar" } }]);
+  });
+
   it("prefills Cal.com with the name, the phone and metadata[ref]", () => {
     stand({ provider: "cal_com", url: "https://cal.com/vifnet/menage" });
     expect(screen.getByRole("link", { name: text.bookCta })).toHaveAttribute(
@@ -47,10 +56,11 @@ describe("LeadBooking: link and cal_com", () => {
       "https://cal.com/vifnet/menage?name=Jean%20Dupont&attendeePhoneNumber=%2B33612345678&metadata[ref]=lead-7-0a1b2c3d",
     );
     expect(document.querySelector("script")).toBeNull();
+    expect(screen.queryByText(text.bookPhoneHint)).toBeNull();
   });
 
   it("loads Cal.com's embed only on the click, and reports the booking it announces", async () => {
-    const { events } = stand({ provider: "cal_com", url: "https://cal.com/vifnet/menage" }, { calComEmbed: true });
+    const { events } = stand({ provider: "cal_com", url: "https://cal.com/vifnet/menage" }, { embed: true });
     expect(document.querySelector("script")).toBeNull();
     expect((window as { Cal?: unknown }).Cal).toBeUndefined();
     fireEvent.click(screen.getByRole("button", { name: text.bookCta }));
@@ -72,19 +82,19 @@ describe("LeadBooking: link and cal_com", () => {
 });
 
 describe("LeadBooking: a provider the brand registers", () => {
-  const calendly = { provider: "calendly", url: "https://calendly.com/brand/menage" };
+  const acme = { provider: "acme", url: "https://book.acme.example/brand" };
 
   it("opens through the brand's adapter, and reports its provider", () => {
-    const adapters: BookingAdapters = { calendly: { provider: "calendly", href: ctx => `${ctx.config.url}?utm_content=${ctx.leadRef}` } };
-    const { events } = stand(calendly, { adapters });
+    const adapters: BookingAdapters = { acme: { provider: "acme", href: ctx => `${ctx.config.url}?ref=${ctx.leadRef}` } };
+    const { events } = stand(acme, { adapters });
     const link = screen.getByRole("link", { name: text.bookCta });
-    expect(link).toHaveAttribute("href", "https://calendly.com/brand/menage?utm_content=lead-7-0a1b2c3d");
+    expect(link).toHaveAttribute("href", "https://book.acme.example/brand?ref=lead-7-0a1b2c3d");
     fireEvent.click(link);
-    expect(events).toEqual([{ event: "lead_booking_open", props: { provider: "calendly", form_id: "quote" } }]);
+    expect(events).toEqual([{ event: "lead_booking_open", props: { provider: "acme", form_id: "quote" } }]);
   });
 
   it("promises the call when no adapter knows the provider", () => {
-    const { fetch } = stand(calendly);
+    const { fetch } = stand(acme);
     expect(screen.getByText(text.slotCallback)).toBeInTheDocument();
     expect(screen.queryByRole("link")).toBeNull();
     expect(fetch).not.toHaveBeenCalled();

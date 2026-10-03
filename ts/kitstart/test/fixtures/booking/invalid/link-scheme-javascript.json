@@ -1,4 +1,8 @@
 {
-  "provider": "link",
-  "url": "javascript:alert(1)"
+  "default": "link",
+  "providers": {
+    "link": {
+      "url": "javascript:alert(1)"
+    }
+  }
 }

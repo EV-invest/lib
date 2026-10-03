@@ -1,4 +1,8 @@
 {
-  "provider": "link",
-  "url": "https://book.example.fr"
+  "default": "link",
+  "providers": {
+    "link": {
+      "url": "https://book.example.fr"
+    }
+  }
 }

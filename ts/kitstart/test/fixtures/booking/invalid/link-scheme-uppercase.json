@@ -1,4 +1,8 @@
 {
-  "provider": "link",
-  "url": "HTTPS://book.example.fr/vifnet"
+  "default": "link",
+  "providers": {
+    "link": {
+      "url": "HTTPS://book.example.fr/vifnet"
+    }
+  }
 }

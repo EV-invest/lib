@@ -107,6 +107,8 @@ export interface LeadCaptureFlowText {
   priceChangedGeneric: string;
   /** Opens the place's booking page (`link`, `cal_com`). */
   bookCta: string;
+  /** Under it, for a provider the number cannot be handed to (Google): type the same one there. */
+  bookPhoneHint: string;
   /** Under it: the call still comes if the visitor books nothing. */
   bookNote: string;
   /** Once the provider says the slot is booked. */
@@ -142,6 +144,7 @@ const FR_FLOW: LeadCaptureFlowText = {
   priceChanged: "Le prix a changé : {price} au lieu de {shown}. Confirmez pour envoyer votre demande à ce prix.",
   priceChangedGeneric: "Le prix a changé depuis l’affichage de la page. Vérifiez le nouveau prix et confirmez.",
   bookCta: "Choisir un créneau",
+  bookPhoneHint: "Indiquez le même numéro de téléphone en réservant : il relie le créneau à votre demande.",
   bookNote: "Sinon, nous vous rappelons pour fixer le créneau.",
   booked: "Créneau réservé. Merci !",
   preferTitle: "Une préférence pour le créneau ? (facultatif)",
@@ -171,6 +174,7 @@ const EN_FLOW: LeadCaptureFlowText = {
   priceChanged: "The price has changed: {price} instead of {shown}. Confirm to send your request at this price.",
   priceChangedGeneric: "The price has changed since the page was shown. Check the new price and confirm.",
   bookCta: "Pick a slot",
+  bookPhoneHint: "Enter the same phone number when you book: it links the slot to your request.",
   bookNote: "Otherwise we will call you to set the slot.",
   booked: "Slot booked. Thank you!",
   preferTitle: "A preferred slot? (optional)",

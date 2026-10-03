@@ -1,4 +1,8 @@
 {
-  "provider": "link",
-  "url": "https://book.example.fr/vifnet"
+  "default": "link",
+  "providers": {
+    "link": {
+      "url": "https://book.example.fr/vifnet"
+    }
+  }
 }

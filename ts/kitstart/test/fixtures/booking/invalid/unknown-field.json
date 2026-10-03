@@ -1,5 +1,5 @@
 {
-  "provider": "link",
-  "url": "https://book.example.fr/vifnet",
-  "label": "Book"
+  "default": "manual",
+  "providers": {},
+  "embed": true
 }

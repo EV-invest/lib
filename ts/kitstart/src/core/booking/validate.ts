@@ -3,11 +3,13 @@ import {
   DEFAULT_CAL_COM_HOSTS,
   isBookingProvider,
   isLeadRef,
+  isPageProvider,
   isPreferredPart,
   type BookingConfig,
   type BookingRequest,
   type BookingRequestedProperties,
   type BookingRules,
+  type PageProvider,
 } from "./model";
 
 /** A booking config that does not validate, with every reason found. */
@@ -79,28 +81,68 @@ function calComProblems(path: string, url: URL, rawPath: string, rules: BookingR
   return out;
 }
 
+/** A non-empty path: a page on the host, not the host's home. */
+const hasPath = (rawPath: string): boolean => rawPath !== "" && rawPath !== "/";
+
+const GOOGLE_SHORT = "calendar.app.google";
+const GOOGLE_LONG = "calendar.google.com";
+const GOOGLE_PATH = "/calendar/appointments/";
+
+/** The provider's own rule over the URL rule every provider shares. */
+function providerProblems(path: string, provider: PageProvider, url: URL, rawPath: string, rules: BookingRules): string[] {
+  switch (provider) {
+    case "link":
+      return [];
+    case "google_calendar":
+      if (url.hostname === GOOGLE_SHORT) return hasPath(rawPath) ? [] : [`${path}: the path must name a schedule`];
+      if (url.hostname === GOOGLE_LONG) return rawPath.startsWith(GOOGLE_PATH) && rawPath.length > GOOGLE_PATH.length ? [] : [`${path}: the path must be ${GOOGLE_PATH}…`];
+      return [`${path}: the host must be ${GOOGLE_SHORT} or ${GOOGLE_LONG}`];
+    case "cal_com":
+      return calComProblems(path, url, rawPath, rules);
+  }
+}
+
 function check(value: unknown, rules: BookingRules): { problems: string[]; config: BookingConfig | null } {
   if (!isObject(value)) return { problems: ["booking: an object"], config: null };
-  const provider = value.provider;
-  if (!isBookingProvider(provider)) return { problems: [`booking.provider: one of manual, link, cal_com`], config: null };
-  if (provider === "manual") {
-    const problems = unknownKeys("booking", value, ["provider"]);
-    return problems.length > 0 ? { problems, config: null } : { problems: [], config: { provider } };
-  }
-  const problems = unknownKeys("booking", value, ["provider", "url"]);
-  if (!Object.hasOwn(value, "url")) problems.push("booking.url: missing");
+  const problems = unknownKeys("booking", value, ["default", "providers"]);
+  const providers: Partial<Record<PageProvider, { url: string }>> = {};
+  if (!isObject(value.providers)) problems.push("booking.providers: an object by provider");
   else {
-    const parsed = urlProblems("booking.url", value.url);
-    problems.push(...parsed.problems);
-    if (parsed.url && provider === "cal_com") problems.push(...calComProblems("booking.url", parsed.url, parsed.rawPath, rules));
+    for (const [name, page] of Object.entries(value.providers)) {
+      const path = `booking.providers.${name}`;
+      if (name === "manual") {
+        problems.push(`${path}: manual has no page — it is always available`);
+        continue;
+      }
+      if (!isPageProvider(name)) {
+        problems.push(`${path}: not a provider (link, google_calendar, cal_com)`);
+        continue;
+      }
+      if (!isObject(page)) {
+        problems.push(`${path}: an object, { url }`);
+        continue;
+      }
+      problems.push(...unknownKeys(path, page, ["url"]));
+      if (!Object.hasOwn(page, "url")) {
+        problems.push(`${path}.url: missing`);
+        continue;
+      }
+      const parsed = urlProblems(`${path}.url`, page.url);
+      problems.push(...parsed.problems);
+      if (parsed.url) problems.push(...providerProblems(`${path}.url`, name, parsed.url, parsed.rawPath, rules));
+      if (typeof page.url === "string") providers[name] = { url: page.url };
+    }
   }
-  if (problems.length > 0 || typeof value.url !== "string") return { problems, config: null };
-  return { problems: [], config: { provider, url: value.url } };
+  const fallback = value.default;
+  if (!isBookingProvider(fallback)) problems.push("booking.default: one of manual, link, google_calendar, cal_com");
+  else if (fallback !== "manual" && !Object.hasOwn(providers, fallback)) problems.push(`booking.default: "${fallback}" is not one of the providers`);
+  if (problems.length > 0 || !isBookingProvider(fallback)) return { problems, config: null };
+  return { problems: [], config: { default: fallback, providers } };
 }
 
 /**
  * Every reason `value` is not a place's booking, or none. Unknown fields are
- * refused, not ignored — `manual` carries no `url` — so the site and the
+ * refused, not ignored — `manual` has no page entry — so the site and the
  * panel never disagree on what a config says.
  */
 export function bookingConfigProblems(value: unknown, rules: BookingRules = {}): string[] {
@@ -135,7 +177,7 @@ function checkRequest(value: unknown): { problems: string[]; request: BookingReq
   const problems = unknownKeys("booking.requested", value, ["lead_ref", "provider", "preferred_date", "preferred_part"]);
   const { lead_ref: leadRef, provider, preferred_date: date, preferred_part: part } = value;
   if (!isLeadRef(leadRef)) problems.push("booking.requested.lead_ref: lead-<row>-<8 hex>");
-  if (!isBookingProvider(provider)) problems.push("booking.requested.provider: one of manual, link, cal_com");
+  if (!isBookingProvider(provider)) problems.push("booking.requested.provider: one of manual, link, google_calendar, cal_com");
   if (date !== undefined && !isDay(date)) problems.push("booking.requested.preferred_date: a date, YYYY-MM-DD");
   if (part !== undefined && !isPreferredPart(part)) problems.push("booking.requested.preferred_part: morning, afternoon or evening");
   if ((date !== undefined || part !== undefined) && provider !== "manual") problems.push("booking.requested: a preference only with manual");

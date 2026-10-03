@@ -1,3 +1,4 @@
 {
-  "provider": "manual"
+  "default": "manual",
+  "providers": {}
 }

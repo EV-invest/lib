@@ -1,0 +1,8 @@
+{
+  "default": "manual",
+  "providers": {
+    "google_calendar": {
+      "url": "https://calendar.app.google/AbC123xyz"
+    }
+  }
+}

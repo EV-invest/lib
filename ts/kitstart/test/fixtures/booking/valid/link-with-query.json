@@ -1,4 +1,8 @@
 {
-  "provider": "link",
-  "url": "https://book.example.fr/slots?team=paris&lang=fr"
+  "default": "link",
+  "providers": {
+    "link": {
+      "url": "https://book.example.fr/slots?team=paris&lang=fr"
+    }
+  }
 }

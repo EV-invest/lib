@@ -7,7 +7,7 @@ import { resolveChannels, type CaptureChannel } from "../core/channels";
 import { leadErrorFor, type LeadError, type LeadWire, type PageLeadError } from "../core/lead";
 import { fillText, openingText } from "../core/lead-capture-format";
 import { flowTextOf, type LeadCaptureText } from "../core/lead-capture-text";
-import { bookingOf, type OpenBookingConfig } from "../core/booking/model";
+import { bookingOf } from "../core/booking/model";
 import { servedLocalities, storefrontOf, type Place } from "../core/place/types";
 import { flowOf, type LeadFlows } from "../core/pricing/flow";
 import type { PricingModel } from "../core/pricing/model";
@@ -64,24 +64,25 @@ export interface LeadCaptureProps {
    */
   photos?: readonly string[] | undefined;
   /**
-   * After a priced lead: how the slot is set. By default `bookingConfig`,
-   * else the place's own booking (`place.booking`, `manual` when it has
-   * none), through its provider's adapter — `LeadBooking`. A node here
-   * replaces it whole.
+   * After a priced lead: how the slot is set. By default the place's booking
+   * (`place.booking`, `manual` when it has none) for `bookingVariant`,
+   * through its provider's adapter — `LeadBooking`. A node here replaces it
+   * whole.
    */
   booking?: ReactNode | ((sent: LeadSent) => ReactNode);
   /**
-   * The built-in booking adapters with the brand's over them (a `calendly`
-   * later) — from a client component only: a server one cannot pass functions.
+   * The built-in booking adapters with the brand's own over them, by
+   * provider — from a client component only: a server one cannot pass functions.
    */
   bookingAdapters?: BookingAdapters | undefined;
   /**
-   * The booking to offer, when the brand resolves it rather than the place —
-   * an experiment's arm (`bookingForVariant`). Default `bookingOf(place)`.
+   * The variant of the `booking_provider` experiment (`BOOKING_EXPERIMENT`):
+   * the provider this visitor is offered, when the place has it; else the
+   * place's default (`bookingOf`).
    */
-  bookingConfig?: OpenBookingConfig | undefined;
-  /** `cal_com` as Cal.com's modal, its script loaded on the click, instead of a new tab. */
-  calComEmbed?: boolean | undefined;
+  bookingVariant?: string | null | undefined;
+  /** The providers' embeds instead of a new tab — only once the visitor accepted their cookies. */
+  bookingEmbed?: boolean | undefined;
   /** The need the page already knows; `?need=` and `[data-need]` triggers set it too. */
   need?: string | undefined;
   /** `single` (one screen) or `qualify-first` (the need, then the contact) — an experiment's switch. */
@@ -267,7 +268,7 @@ export function LeadCapture(props: LeadCaptureProps) {
               sent={sent}
               booking={
                 props.booking === undefined ? (
-                  <LeadBooking booking={props.bookingConfig ?? bookingOf(place)} sent={sent} locale={locale} text={flowText} adapters={props.bookingAdapters} calComEmbed={props.calComEmbed} formId={formId} classNames={c} />
+                  <LeadBooking booking={bookingOf(place, props.bookingVariant)} sent={sent} locale={locale} text={flowText} adapters={props.bookingAdapters} embed={props.bookingEmbed} formId={formId} classNames={c} />
                 ) : typeof props.booking === "function" ? (
                   props.booking(sent)
                 ) : (

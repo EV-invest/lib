@@ -1,0 +1,88 @@
+[
+  {
+    "name": "no booking: a call",
+    "booking": null,
+    "variant": null,
+    "choice": {
+      "provider": "manual"
+    }
+  },
+  {
+    "name": "the default when no variant",
+    "booking": {
+      "default": "google_calendar",
+      "providers": {
+        "google_calendar": {
+          "url": "https://calendar.app.google/AbC123xyz"
+        }
+      }
+    },
+    "variant": null,
+    "choice": {
+      "provider": "google_calendar",
+      "url": "https://calendar.app.google/AbC123xyz"
+    }
+  },
+  {
+    "name": "the variant names manual: a call, whatever the default",
+    "booking": {
+      "default": "google_calendar",
+      "providers": {
+        "google_calendar": {
+          "url": "https://calendar.app.google/AbC123xyz"
+        }
+      }
+    },
+    "variant": "manual",
+    "choice": {
+      "provider": "manual"
+    }
+  },
+  {
+    "name": "the variant names a configured provider",
+    "booking": {
+      "default": "manual",
+      "providers": {
+        "google_calendar": {
+          "url": "https://calendar.app.google/AbC123xyz"
+        }
+      }
+    },
+    "variant": "google_calendar",
+    "choice": {
+      "provider": "google_calendar",
+      "url": "https://calendar.app.google/AbC123xyz"
+    }
+  },
+  {
+    "name": "the variant names a provider the place lacks: the default",
+    "booking": {
+      "default": "manual",
+      "providers": {
+        "link": {
+          "url": "https://book.example.fr/vifnet"
+        }
+      }
+    },
+    "variant": "google_calendar",
+    "choice": {
+      "provider": "manual"
+    }
+  },
+  {
+    "name": "the variant is not a provider: the default",
+    "booking": {
+      "default": "link",
+      "providers": {
+        "link": {
+          "url": "https://book.example.fr/vifnet"
+        }
+      }
+    },
+    "variant": "control",
+    "choice": {
+      "provider": "link",
+      "url": "https://book.example.fr/vifnet"
+    }
+  }
+]
