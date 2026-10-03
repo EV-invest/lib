@@ -1435,7 +1435,7 @@ dependencies = [
 
 [[package]]
 name = "ev_lib_classes"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "strum",
  "tailwind_fuse",
