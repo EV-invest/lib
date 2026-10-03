@@ -22,7 +22,7 @@ export type Outcome<L extends string> =
   /** `duplicate`: a resend of a submission already stored — answered as the first was, nothing sent again. */
   | { kind: "stored"; id: number; lead: Lead; locale: L; formId: string; duplicate?: true }
   /** `field` names what to fix (`phone`, `consent`, … or `form`); `why` is for the log. */
-  | { kind: "invalid"; why: string; field: string; channel: LeadChannel; locale: L; slug: string | null }
+  | { kind: "invalid"; why: string; field: string; channel: LeadChannel; formId: string; locale: L; slug: string | null }
   | { kind: "failed"; locale: L; slug: string | null };
 
 export interface AcceptDeps {
@@ -92,16 +92,16 @@ async function accept<L extends string, P extends string>(
   const rawLocale = field(form, LOCALE_FIELD);
   const locale = site.i18n.isLocale(rawLocale) ? rawLocale : site.i18n.defaultLocale;
 
+  // It reaches analytics as a property; anything but a short slug is dropped.
+  const posted = field(form, FORM_ID_FIELD);
+  const formId = posted !== null && FORM_ID.test(posted) ? posted : "quote";
+
   const candidate = readCandidate(site.lead, form, slug);
   const rejection = validateCandidate(site.lead, candidate);
   if (rejection) {
     deps.log.warn(`quote: rejected a submission for ${slug ?? "no point"} at ${rejection.field}: missing ${rejection.why}`);
-    return { kind: "invalid", why: rejection.why, field: rejection.field, channel: channelOf(candidate), locale, slug };
+    return { kind: "invalid", why: rejection.why, field: rejection.field, channel: channelOf(candidate), formId, locale, slug };
   }
-
-  // It reaches analytics as a property; anything but a short slug is dropped.
-  const posted = field(form, FORM_ID_FIELD);
-  const formId = posted !== null && FORM_ID.test(posted) ? posted : "quote";
 
   // A resend of a stored submission (its answer was lost) is that lead: no
   // second row, no second mail, the limit not spent again.

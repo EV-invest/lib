@@ -9,6 +9,7 @@ export const FIELD_ATTR = "data-lead-field";
 
 export interface LeadEvents {
   step(step: LeadStep): void;
+  /** A hint under a field (`blocking: false`); the browser's refusal is counted by itself (`blocking: true`). */
   fieldError(field: LeadField): void;
   /** The script's post got no answer: `network` or `timeout`, and which form. */
   submitError(reason: "network" | "timeout", channel: "form" | "callback"): void;
@@ -50,7 +51,7 @@ export function useLeadEvents(root: RefObject<HTMLElement | null>, tags: { formI
     // `invalid` does not bubble: listened to on the way down.
     const invalid = (event: Event) => {
       const field = event.target instanceof Element ? event.target.getAttribute(FIELD_ATTR) : null;
-      if (field) sink.capture(EVENTS.fieldError, { ...props, field });
+      if (field) sink.capture(EVENTS.fieldError, { ...props, field, blocking: true });
     };
     el.addEventListener("focusin", focus);
     el.addEventListener("invalid", invalid, true);
@@ -64,7 +65,7 @@ export function useLeadEvents(root: RefObject<HTMLElement | null>, tags: { formI
   return useMemo(
     () => ({
       step: step => sink?.capture(EVENTS.formStep, { ...props, step }),
-      fieldError: field => sink?.capture(EVENTS.fieldError, { ...props, field }),
+      fieldError: field => sink?.capture(EVENTS.fieldError, { ...props, field, blocking: false }),
       submitError: (reason, channel) => sink?.capture(EVENTS.submitError, { ...props, reason, channel }),
     }),
     [sink, props],
