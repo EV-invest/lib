@@ -164,3 +164,42 @@ describe("leadRef", () => {
     expect(leadRef(42, sid(1))).not.toBe(leadRef(42, sid(2)));
   });
 });
+
+// Live retest 2026-10-04: a stale form showed 77 €, the panel changed the
+// tariff, and the lead was taken at 86 € without a word. The price a consumer
+// is shown must be the price recorded: the form posts what it showed, and a
+// difference is a refusal with the fresh price, never a silent change.
+describe("the quote route, when the price changed under the form", () => {
+  const live: PricingSource = { model: async () => LIVE };
+
+  it("takes the lead when the shown price is the server's", async () => {
+    const { route, stored } = harness();
+    const res = await route(post({ ...ESTIMATE, shown_cents: "8400", submission_id: sid(40) }));
+    expect(await res.json()).toMatchObject({ ok: true, cents: 8400 });
+    expect((await stored(sid(40)))?.price?.cents).toBe(8400);
+  });
+
+  it("refuses a lead shown at another price, answering the fresh one, and stores nothing", async () => {
+    const { route, stored } = harness({ pricing: live });
+    const res = await route(post({ ...ESTIMATE, shown_cents: "8400", submission_id: sid(41) }));
+    expect(res.status).toBe(422);
+    expect(await res.json()).toEqual({ ok: false, field: "price_changed", reason: "price_changed", cents: 9900 });
+    expect(await stored(sid(41))).toBeUndefined();
+    const again = await route(post({ ...ESTIMATE, shown_cents: "9900", submission_id: sid(42) }));
+    expect(await again.json()).toMatchObject({ ok: true, cents: 9900 });
+  });
+
+  it("sends a form without a script back to its card, the price to look at again", async () => {
+    const { route } = harness({ pricing: live });
+    const res = await route(post({ job: "standard", ...ESTIMATE, shown_cents: "8400", submission_id: sid(43) }, false));
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toMatch(/[?&]lead_error=price_changed(&|$|#)/);
+  });
+
+  it("takes the lead as before when the page posts no shown price (a page cached before the field)", async () => {
+    const { route, stored } = harness({ pricing: live });
+    const res = await route(post({ ...ESTIMATE, submission_id: sid(44) }));
+    expect(await res.json()).toMatchObject({ ok: true, cents: 9900 });
+    expect((await stored(sid(44)))?.price?.cents).toBe(9900);
+  });
+});

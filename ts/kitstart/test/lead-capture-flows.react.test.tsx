@@ -184,8 +184,9 @@ describe("LeadCapture's priced success", () => {
     const fetch = await send();
     const body = Object.fromEntries((fetch.mock.calls[0] as unknown as [string, RequestInit])[1].body as URLSearchParams);
     expect(body).toMatchObject({ job: "standard", estimate_zone: "proche", estimate_bedrooms: "t3", estimate_surface: "s70", estimate_frequency: "biweekly" });
-    // The price is the server's to set: nothing the visitor could tamper with is posted.
-    expect(Object.keys(body).filter(k => /cents|price|amount/.test(k))).toEqual([]);
+    // The price is the server's to set: only what the page showed is posted, for the server to compare.
+    expect(Object.keys(body).filter(k => /cents|price|amount/.test(k))).toEqual(["shown_cents"]);
+    expect(body.shown_cents).toBe("8400");
     const status = screen.getByRole("status");
     expect(status).toHaveTextContent(/Demande enregistrée au prix de 84\s€\./);
     expect(status).toHaveTextContent("Nous vous rappelons pour fixer le créneau.");
@@ -210,6 +211,24 @@ describe("LeadCapture's priced success", () => {
     const link = screen.getByRole("link", { name: "Choisir un créneau" });
     expect(link.getAttribute("href")).toMatch(/^https:\/\/cal\.com\/brand\/vitres\?name=Ana&attendeePhoneNumber=%2B33612345678&metadata\[ref\]=lead-12-0a1b2c3d$/);
     expect(document.querySelectorAll("iframe, script")).toHaveLength(0);
+  });
+
+  // Live retest 2026-10-04: shown 77 €, recorded 86 € without a word.
+  it("says the price changed, shows the fresh one, and takes the lead on a confirm at that price", async () => {
+    const { events, wrap } = recorder();
+    render(wrap(capture()));
+    answerAll();
+    const refused = await send({ ok: false, field: "price_changed", reason: "price_changed", cents: 9900 });
+    const first = Object.fromEntries((refused.mock.calls[0] as unknown as [string, RequestInit])[1].body as URLSearchParams);
+    expect(first.shown_cents).toBe("8400");
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(form()).toHaveTextContent(/Le prix a changé : 99\s€ au lieu de 84\s€\./);
+    expect(total()).toBe("9900");
+    const confirmed = await send({ ...taken, cents: 9900 });
+    const second = Object.fromEntries((confirmed.mock.calls[0] as unknown as [string, RequestInit])[1].body as URLSearchParams);
+    expect(second.shown_cents).toBe("9900");
+    expect(screen.getByRole("status")).toHaveTextContent(/99\s€/);
+    expect(JSON.stringify(events)).not.toMatch(/9900|8400/);
   });
 
   it("still goes to the thanks page for a quote need", async () => {
