@@ -13,8 +13,8 @@ stays in the brand.
 
 | Import | Runtime | What |
 |---|---|---|
-| `@evinvest/kitstart` | anywhere (edge, client, server) | `defineSite`, places, routing (`createRouting`), the lead schema and funnel (`createAcceptLead`), antispam, JSON-LD / sitemap / robots builders, analytics events, the copy contract |
-| `@evinvest/kitstart/server` | Node, `server-only` | `createServerEnv`, `createPlaceSource`, the lead store (`openLeadStore` by `LEADS_DB_URL`: `sqlite:` today, `postgres://` a stub that refuses at boot), `checkLeadStore`, `leadNotifier`, `leadWebhook` (signed, outboxed), `sendMail`, `clientKey` |
+| `@evinvest/kitstart` | anywhere (edge, client, server) | `defineSite`, places, routing (`createRouting`), the lead schema and funnel (`createAcceptLead`), the price list (`PricingModel`, `priceOf`, `flowOf`), antispam, JSON-LD / sitemap / robots builders, analytics events, the copy contract |
+| `@evinvest/kitstart/server` | Node, `server-only` | `createServerEnv`, `createPlaceSource`, `createPricingSource`, the lead store (`openLeadStore` by `LEADS_DB_URL`: `sqlite:` today, `postgres://` a stub that refuses at boot), `checkLeadStore`, `leadNotifier`, `leadWebhook` (signed, outboxed), `sendMail`, `clientKey` |
 | `@evinvest/kitstart/proxy` | edge | `createProxy(site)`, `PROXY_MATCHER` |
 | `@evinvest/kitstart/next` | Next server (routes, RSC) | `quoteRoute`, `sitemapRoute`, `robotsRoute`, `ogRoute`, `healthRoute`, `createPlaceLoader`, `loadLocale`, `placeMetadata` / `brandMetadata` / `statusMetadata`, `metadataBase` |
 | `@evinvest/kitstart/next/config` | `next.config.ts`, `vitest.config.ts` | `withLanding`, `buildEnv` and the `assets/` readers |
@@ -231,8 +231,10 @@ it is the plain POST to `/quote` it always was.
 | `labels` | `visible` (default) · `hidden`: every field's label `sr-only` — still the field's accessible name — for a design that draws placeholders |
 | `callbackOpen` | whether the callback starts open; by default only when it leads (the place is closed). `#<id>-callback` opens it either way |
 | `done` | the card after a lead is taken — a node, or `(sent: LeadSent) => node` (`{ channel, phone, name }`), shown in place. Without it, a lead taken goes to the thanks page the route names. Either way a script posts the form itself (asking `/quote` for JSON), so a refusal keeps what was typed; an answer that is not the route's, or no network, submits the form for real; without a script nothing changes (303) |
+| `flows`, `pricing`, `photos` | how each need is sold (`site.lead.flows`), the page's price list (`createPricingSource(site).model()`), and the `quote` needs priced from photos — see [Form variants](#form-variants-quote-estimate-fixed) |
+| `booking` | after a priced lead, in place of "we call you to set the slot": a node or `(sent) => node` — a booking provider's widget, when the brand has one (none ships with the kit) |
 | `head`, `trust` | the brand's heading instead of the title; a slot beside the submit |
-| `className` · `classNames` | the root · its parts: `root`, `head`, `title`, `lede`, `form`, `contact`, `field`, `label`, `control` (every input, the need's select in both states, the callback's phone), `hint`, `error` (a refusal: under the field, or above the submit), `chips`, `chip`, `needs`, `need`, `summary`, `submit`, `trust`, `privacy`, `opening`, `others`, `channel`, `primary`, `callback`, `callbackSummary`, `callbackForm`, `callbackLede`, `callbackSubmit`, `consent`, `done` |
+| `className` · `classNames` | the root · its parts: `root`, `head`, `title`, `lede`, `form`, `contact`, `field`, `label`, `control` (every input, the need's select in both states, the callback's phone), `hint`, `error` (a refusal: under the field, or above the submit), `chips`, `chip`, `needs`, `need`, `summary`, `submit`, `trust`, `privacy`, `opening`, `others`, `channel`, `primary`, `callback`, `callbackSummary`, `callbackForm`, `callbackLede`, `callbackSubmit`, `consent`, `done`, and for the flows `estimate`, `estimateInput`, `estimateLegend`, `estimateOption`, `price`, `priceTotal`, `breakdown`, `priceNote`, `photos`, `priced`, `pricedPrice`, `pricedNote` |
 
 - **Taps.** A need the page knows is not asked again, and a place serving one
   commune fills it: focus the phone, type, send — two taps. `qualify-first`
@@ -311,6 +313,80 @@ it is the plain POST to `/quote` it always was.
   (157,287 → 166,361 B against its 158,000 B target: +5.3 %, a warning
   within the 20 % tolerance); the refusals and the shared phone rule are
   2.0 KB of it, sending (the id, the busy state, the retry) 0.6 KB.
+
+### Form variants: quote, estimate, fixed
+
+A need is sold one of three ways, chosen per need — one brand can mix them:
+
+- `quote` — the price is uncertain; the lead asks for one. The form as it was.
+- `estimate` — the price follows from a few enum answers (zone, bedrooms,
+  surface band, frequency), shown live as the visitor taps; then the slot.
+- `fixed` — one price for a well-defined job, shown as is; then the slot.
+
+```ts
+// shared/config/lead.ts — the form and the route read the same map
+export const LEAD: LeadSchema<Subject> = { …, flows: { standard: "estimate", deep: "quote" } };
+// shared/config/site.ts — the baked price list
+export const site = defineSite({ …, lead: LEAD, pricing: PRICING });
+// shared/config/env.ts — the live one, from the place source's base URL
+export const pricing = createPricingSource(site, { baseUrl: () => serverEnv().locationsApiUrl });
+// app/quote/route.ts
+export const POST = quoteRoute(site, { env: serverEnv, notifier, pricing, unavailable });
+// the page: <LeadCapture … flows={LEAD.flows} pricing={await pricing.model()} photos={["deep"]} />
+```
+
+- **The price list** (`PricingModel`) is JSON: `format` 1, `currency` `EUR`
+  (TTC), `validFrom`, `roundToCents`, `minimumCents`, `inputs` (`add` in
+  cents, `multiply` and `discount` in basis points, labels per locale) and
+  `needs` (`{ kind: "estimate", baseCents, inputs }` or `{ kind: "fixed",
+  cents }`). `priceOf(model, need, answers) → { cents, breakdown } | null`
+  is integer cents throughout, rounding half up at every product, then to
+  `roundToCents`, then the minimum. The rules and the shared fixtures the
+  panel holds its own port to are in
+  [`test/fixtures/pricing/`](./test/fixtures/pricing/README.md).
+  `defineSite` refuses a baked model that does not validate or lacks a label
+  in one of the site's locales.
+- **The live list** (`createPricingSource`): `GET <base>/pricing`, TTL
+  600 s, 3 s timeout; an unreachable source, a non-200, a body that is not
+  JSON or a model that does not validate (for every locale of the site) all
+  serve the baked model, logged — whole or not at all, never half a model.
+  `{}` is "nothing set": the baked model, quietly.
+- **A need runs its flow only when the list prices it so** (`flowOf`): an
+  `estimate` the model cannot price — no model, a remote model without the
+  need — is a `quote`. So a flow the brand has not switched on is never run
+  by a posted field.
+- **The form.** An estimate's questions are a tile per answer (touch-sized
+  radios posted as `estimate_<input>`), required once the script runs; the
+  price box (`aria-live`) shows the total and the lines that made it, or
+  what is missing — never "from". A fixed need shows its price. Either
+  submits as `bookSubmit` ("Réserver"). Without a script the answers still
+  post and the server prices them; the live price needs the script.
+- **The server prices the lead itself.** `/quote` reads the posted answers
+  for the need's inputs only and runs the same `priceOf`; a posted amount is
+  never read. The lead is stored with `flow`, `price.cents`,
+  `price.validFrom` and an estimate's `price.inputs` (schema 7: `flow`,
+  `quoted_cents`, `pricing_valid_from`, `estimate_inputs`). An estimate
+  whose answers do not price (a stale page, a forged answer) is kept as a
+  `quote` — never refused. A callback has no flow.
+- **After a priced lead** the card stays: the script's answer carries the
+  server's `cents` and the lead's reference (`lead`, `leadRef`:
+  `lead-<row>-<8 hex>`), and the card confirms the price (`sentPrice`) and
+  promises a call to set the slot (`slotCallback`) — or shows the brand's
+  `booking`. The lead is stored first, so an abandoned booking is still a
+  lead to call. A `quote` need, and any callback, behave as before.
+- **Photos.** A `quote` need listed in `photos` offers "Envoyez des photos"
+  — a WhatsApp link with the need in the message — when the place has
+  WhatsApp; the callback stays where it is.
+- **Words.** `LEAD_CAPTURE_TEXT` carries them (`priceTitle`, `pricePending`,
+  `priceNote`, `priceBase`, `priceRounding`, `priceMinimum`, `bookSubmit`,
+  `sentPrice`, `slotCallback`, `photos*`); optional in `LeadCaptureText`, so
+  a brand's own text from before them falls back to the kit's in the page's
+  language (`flowTextOf`).
+- **Events.** `lead_estimate_shown {need, cents_bucket}` once per need and
+  price band (`centsBucket`: `"7500-10000"`), never the price.
+- **Weight.** About 3.9 KB gz of first-load JS on the template's place page
+  (166,459 → 170,375 B against its 158,000 B target: +7.8 %, within the 20 %
+  tolerance).
 
 Tailwind v4 does not scan `node_modules`; the brand's `globals.css` names the
 package:
@@ -399,7 +475,9 @@ chooses per visitor answer `Cache-Control: private, no-store`.
   `LEAD_SCHEMA_VERSION` on open. SQLite keeps the Rust server's columns
   (`job`, `zip`, `mobile`) and recognises every earlier table in place.
   Schema 6 adds `submission_id` under a unique index (where present): one
-  row per script submission, read back by `findSubmission`.
+  row per script submission, read back by `findSubmission`. Schema 7 adds
+  the flow and the price a lead was taken at (`flow`, `quoted_cents`,
+  `pricing_valid_from`, `estimate_inputs`), all nullable.
 - **Mail is checked at boot.** With `SMTP_URL` set, `leadNotifier` throws when
   it is built if the URL is malformed (the error never repeats it), there is
   no sender (`LEAD_NOTIFY_FROM`, or `leads@<domain>`) or no recipient
@@ -465,6 +543,15 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavai
   suspect, for the body's `suspect` property. Off by default, and to stay off
   until the panel's `lead.created` accepts the property: it refuses an
   unknown one, and the outbox would park the lead. Off, nothing changes.
+- **The sale: `panelFlow`, off.** With `leadWebhook(…, { panelFlow: true })`
+  `ctx.flow` says how the need was sold (`panelFlowOf(lead)`), and
+  `panelFlowProperties(ctx.flow)` writes it as `lead.created`'s properties:
+  `flow`; `quoted_cents` and `pricing_valid_from` together, for `estimate`
+  and `fixed` only; `estimate_inputs` (input → answer, slugs, at most 12)
+  for an `estimate` that asked anything. Off by default, and to stay off
+  until the panel accepts them — it refuses unknown properties, and the
+  outbox would park the lead. `ctx.leadRef` is the lead's reference the page
+  was answered with, whatever the switch.
 - **The rate limit** is `LEAD_RATE_LIMIT` (`<count>/<seconds>`): 5 per 10
   minutes per address in production, 100 outside it, where every request of
   a local stack shares one address. Outside production a lead held back as
