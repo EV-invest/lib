@@ -1,16 +1,10 @@
 "use client";
 
 import { useEffect, useState, type RefObject } from "react";
-import { LEAD_ERROR_PARAM, type LeadChannel } from "../core/lead";
+import { LEAD_CARD_PARAM, LEAD_ERROR_FIELD, LEAD_ERROR_PARAM, type LeadChannel, type LeadError } from "../core/lead";
 import type { LeadCaptureText } from "../core/lead-capture-text";
 
-/** A refusal the server sent back: which of the card's forms, and the field it is about. */
-export interface LeadError {
-  channel: LeadChannel;
-  field: string;
-}
-
-const FIELD = /^[a-z][a-z0-9_]{0,31}$/;
+export type { LeadError };
 
 /** The fields `LeadCapture` draws itself, which show a refusal under themselves. */
 export const OWN_FIELDS: Readonly<Record<LeadChannel, readonly string[]>> = { form: ["phone", "locality", "name"], callback: ["phone", "consent"] };
@@ -41,8 +35,9 @@ function controlOf(form: HTMLFormElement, field: string): HTMLElement | null {
  * `aria-invalid` and pointed at the message above the submit. Fixing that
  * control clears it.
  */
-export function useLeadError(root: RefObject<HTMLElement | null>, id: string): [LeadError | null, (error: LeadError | null) => void] {
-  const [error, setError] = useState<LeadError | null>(null);
+export function useLeadError(root: RefObject<HTMLElement | null>, id: string, initial: LeadError | null = null): [LeadError | null, (error: LeadError | null) => void] {
+  // Drawn on the server too when the page read it from its query (`leadErrorOf`).
+  const [error, setError] = useState<LeadError | null>(initial);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -50,8 +45,9 @@ export function useLeadError(root: RefObject<HTMLElement | null>, id: string): [
     const channel = url.hash === `#${id}` ? "form" : url.hash === `#${id}-callback` ? "callback" : null;
     if (field === null || channel === null) return;
     url.searchParams.delete(LEAD_ERROR_PARAM);
+    url.searchParams.delete(LEAD_CARD_PARAM);
     window.history.replaceState(window.history.state, "", url);
-    if (FIELD.test(field)) setError({ channel, field });
+    if (LEAD_ERROR_FIELD.test(field)) setError({ channel, field });
   }, [id]);
 
   useEffect(() => {

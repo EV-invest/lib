@@ -233,7 +233,8 @@ it is the plain POST to `/quote` it always was.
 | `done` | the card after a lead is taken — a node, or `(sent: LeadSent) => node` (`{ channel, phone, name }`), shown in place. Without it, a lead taken goes to the thanks page the route names. Either way a script posts the form itself (asking `/quote` for JSON), so a refusal keeps what was typed; an answer that is not the route's, or no network, submits the form for real; without a script nothing changes (303) |
 | `flows`, `pricing`, `photos` | how each need is sold (`site.lead.flows`), the page's price list (`createPricingSource(site).model()`), and the `quote` needs priced from photos — see [Form variants](#form-variants-quote-estimate-fixed) |
 | `booking` | after a priced lead, in place of "we call you to set the slot": a node or `(sent) => node` — a booking provider's widget, when the brand has one (none ships with the kit) |
-| `head`, `trust` | the brand's heading instead of the title; a slot beside the submit |
+| `initialError` | `leadErrorOf(searchParams)` on a page that reads its query: the refusal a 303 brought back, drawn on the server by the card it names (`lead_card`) so the card says why without a script (see *Refusals*) |
+| `head`, `trust` | the brand's heading instead of the title; a slot beside the submit. Like `extras`, `done` and `booking`, any node, built on the server or not, and never asked for a `key`: each slot sits alone in a keyed fragment |
 | `className` · `classNames` | the root · its parts: `root`, `head`, `title`, `lede`, `form`, `contact`, `field`, `label`, `control` (every input, the need's select in both states, the callback's phone), `hint`, `error` (a refusal: under the field, or above the submit), `chips`, `chip`, `needs`, `need`, `summary`, `submit`, `trust`, `privacy`, `opening`, `others`, `channel`, `primary`, `callback`, `callbackSummary`, `callbackForm`, `callbackLede`, `callbackSubmit`, `consent`, `done`, and for the flows `estimate`, `estimateInput`, `estimateLegend`, `estimateOption`, `price`, `priceTotal`, `breakdown`, `priceNote`, `photos`, `priced`, `pricedPrice`, `pricedNote` |
 
 - **Taps.** A need the page knows is not asked again, and a place serving one
@@ -273,21 +274,37 @@ it is the plain POST to `/quote` it always was.
   brand's type size cannot leave it on a half pixel.
 - **Phone.** `type="tel"`, required, never masked, held to one rule on both
   sides (`phoneProblem`, `validateLead`): a French number is ten digits from
-  `0[1-9]` (or `+33` and nine), any other a `+` and 8 to 15 digits; full-width
+  `0[1-9]` (or `+33` and nine), any other a `+` and 8 to 15 digits — and for
+  the plans visitors most often dial from, that plan's national length after
+  the code: `+1` ten, `+44` nine or ten, `+34` and `+41` nine, `+32` eight or
+  nine, `+49` 7 to 13, `+39` 6 to 11 (so `+12345678` is no number); full-width
   digits read as digits; a run of one digit is no number. One that fails gets
-  a hint when the field is left (`aria-live`, read out) and blocks the submit
+  a hint when the field is left (`aria-live`, read out; when a tap left it,
+  only once the tap is over, so nothing moves under the finger) and blocks the submit
   in the page's words — the browser's bubble would speak its own language. With
   `lead.mobileFormat: "e164"` a number it can read is stored as
   `+33612345678` (`normalizePhone`); the default keeps it as typed, which is
   what a brand's tests and tooling look rows up by.
+- **Field messages.** Under each field, a live region (`aria-live`) always
+  in the DOM, so a message appearing in it is read out. Empty, it is out of
+  the field's flex flow (`empty:absolute`, never `hidden`): it takes no gap,
+  so a brand's `classNames.field` may set any gap with no override for it.
 - **Refusals are never silent.** Every required field blocks with the page's
   words and is marked `aria-invalid` once refused. What the server still
   refuses (a brand's own rule, a stale page) comes back to the card: the
   script's post gets a `422 { field }` and the form, as typed, shows the error
   at that field (`role="alert"`, focused); the plain post gets a 303 to
-  `?lead_error=<field>&need=<need>#<id>` (`#<id>-callback` for a callback,
+  `?lead_error=<field>&need=<need>&lead_card=<id>#<id>` (`#<id>-callback` for a callback,
   opened), which the card reads once the script runs and then drops from the
-  URL. Only slugs ride in that URL — never a phone or a name. A field the card
+  URL. Only slugs ride in that URL — never a phone or a name. Without a
+  script that text is the page's to draw: a page that reads its query passes
+  `initialError={leadErrorOf(await searchParams)}` and the server renders it
+  in the card the 303 named (`lead_card=<id>` or `<id>-callback`, beside the
+  fragment the server never sees): only that card draws it, at its form or
+  its callback (opened). A URL from before `lead_card` is drawn by every card
+  as it reads — the consent at the callback, anything else at the form. A page built for ISR
+  reads no query, so without a script it lands on the card with the field
+  marked by nothing — the limit of a cached page. A field the card
   does not draw (a brand's `extras`) shows its error above the submit and is
   marked itself.
 - **Sending.** The script's post (asking `/quote` for JSON) carries a
@@ -484,6 +501,13 @@ chooses per visitor answer `Cache-Control: private, no-store`.
   (`LEAD_NOTIFY_TO`, or the brand's email). Both are bare addresses
   (`leads@brand.fr`), not `Name <…>`. Off loopback, a server without TLS gets
   nothing; past `MAIL_PER_MINUTE` a minute the lead is stored and only logged.
+- **The mail names the need.** `lead.subject` is the id the form posted
+  (`hot_water`); `leadNotifier(site, env, { needLabel })` names it instead —
+  `needLabel(need)` answers the label in the mail's language (the business's,
+  not the visitor's), `undefined` for a need it does not know, which the mail
+  prints as the id. The default mail uses it, `defaultLeadMail(brand, lead, id,
+  { needLabel })` too, and a brand's `format` gets it as its third argument:
+  `(lead, id, { need }) => LeadMail`.
 - **The rate limit knows whose address it counts.** `TRUSTED_PROXY` is
   `cloudflare` (only `CF-Connecting-IP`) or `xff:<n>` (the n-th
   `X-Forwarded-For` hop from the right); production refuses to boot without it.

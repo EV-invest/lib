@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LEAD_CAPTURE_TEXT, type OpeningHours, type Place } from "../src/index";
+import { LEAD_CAPTURE_TEXT, leadErrorOf, type OpeningHours, type Place } from "../src/index";
 import { AnalyticsSinkContext } from "../src/react/analytics-context";
 import { LeadCapture, type LeadCaptureProps } from "../src/react/index";
 import { navigation, SUBMIT_TIMEOUT_MS } from "../src/react/use-lead-submit";
@@ -90,6 +90,56 @@ describe("LeadCapture without a script", () => {
     expect(f.querySelector("select[name=job]")).not.toBeNull();
     expect(f.querySelector("input[name=mobile]")).toHaveAttribute("type", "tel");
     expect(f.querySelector("input[name=mobile]")).toBeRequired();
+  });
+
+  // LEAD-FORMS-RETEST-2026-10-03 N2: without a script the 303 landed on the
+  // card with no word of why. A page that reads its query hands the refusal
+  // down (`leadErrorOf(searchParams)`), and the server draws it.
+  it("draws a refusal the page hands down, at its field, with no script", () => {
+    const fr = LEAD_CAPTURE_TEXT.fr;
+    document.body.innerHTML = renderToString(capture({ initialError: leadErrorOf({ lead_error: "phone" }) }));
+    expect(input("mobile")).toHaveAttribute("aria-invalid", "true");
+    expect(input("mobile").closest("[role=group]")).toHaveTextContent(fr.phoneInvalid);
+    document.body.innerHTML = renderToString(capture({ initialError: leadErrorOf({ lead_error: "consent" }) }));
+    const callback = document.getElementById("quote-callback");
+    expect(callback).toHaveAttribute("open");
+    expect(callback).toHaveTextContent(fr.consentRequired);
+    document.body.innerHTML = renderToString(capture({ initialError: leadErrorOf({ lead_error: "bedrooms" }) }));
+    expect(form()).toHaveTextContent(fr.fieldInvalid);
+    // Nothing to say, or a value that is not a field name: nothing drawn.
+    expect(leadErrorOf({})).toBeNull();
+    expect(leadErrorOf({ lead_error: "<b>" })).toBeNull();
+    expect(leadErrorOf({ lead_error: ["phone", "x"] })).toEqual({ channel: "form", field: "phone", card: null });
+    expect(leadErrorOf({ lead_error: "phone", lead_card: "x\"><b>" })).toEqual({ channel: "form", field: "phone", card: null });
+  });
+
+  // Code review of lib#183: the query names no card, so two cards on a page
+  // both drew the refusal. The route now names it (`lead_card`).
+  it("draws a refusal only in the card the query names, at the form or the callback it names", () => {
+    const fr = LEAD_CAPTURE_TEXT.fr;
+    const two = (query: Record<string, string>) => {
+      const initialError = leadErrorOf(query);
+      document.body.innerHTML = renderToString(
+        <>
+          {capture({ initialError })}
+          {capture({ id: "devis", initialError })}
+        </>,
+      );
+    };
+    const phoneGroup = (formId: string) => input("mobile", formId).closest("[role=group]");
+    two({ lead_error: "phone", lead_card: "devis" });
+    expect(phoneGroup("devis-form")).toHaveTextContent(fr.phoneInvalid);
+    expect(phoneGroup("quote-form")).not.toHaveTextContent(fr.phoneInvalid);
+    expect(phoneGroup("devis-callback-form")).not.toHaveTextContent(fr.phoneInvalid);
+    // A callback's phone: under the callback's field, not the form's.
+    two({ lead_error: "phone", lead_card: "quote-callback" });
+    expect(phoneGroup("quote-callback-form")).toHaveTextContent(fr.phoneInvalid);
+    expect(document.getElementById("quote-callback")).toHaveAttribute("open");
+    expect(phoneGroup("quote-form")).not.toHaveTextContent(fr.phoneInvalid);
+    expect(phoneGroup("devis-callback-form")).not.toHaveTextContent(fr.phoneInvalid);
+    // A URL from before the card was named: a page's one card draws it, as before.
+    document.body.innerHTML = renderToString(capture({ initialError: leadErrorOf({ lead_error: "phone" }) }));
+    expect(phoneGroup("quote-form")).toHaveTextContent(fr.phoneInvalid);
   });
 
   it("does not ask a need the page already knows", () => {
@@ -220,6 +270,103 @@ describe("LeadCapture with a script", () => {
     fireEvent.change(phone, { target: { value: "06 12 34 56 78" } });
     expect(live).toBeEmptyDOMElement();
     expect(phone).not.toHaveAttribute("aria-invalid");
+  });
+
+  // LEAD-FORMS-RETEST-2026-10-03 N1: the hint drawn on the blur a tap on the
+  // consent causes pushed the box down between press and release, and the
+  // tap missed it. Any control, not only the submit.
+  describe("the phone hint a press elsewhere causes", () => {
+    const setup = () => {
+      render(capture());
+      const phone = input("mobile", "quote-callback-form");
+      const consent = form("quote-callback-form").querySelector<HTMLInputElement>("input[type=checkbox]");
+      const submit = form("quote-callback-form").querySelector<HTMLButtonElement>("[type=submit]");
+      const live = phone.closest("[role=group]")?.querySelector("[aria-live=polite]");
+      if (!consent || !submit || !live) throw new Error("no callback controls");
+      fireEvent.change(phone, { target: { value: "12 34 56 7" } });
+      return { phone, consent, submit, live };
+    };
+    const settle = () => act(() => new Promise(resolve => setTimeout(resolve, 0)));
+    const hint = LEAD_CAPTURE_TEXT.fr.phoneHint;
+
+    it("waits for the click with a mouse: down, blur, up, click", async () => {
+      const { phone, consent, live } = setup();
+      fireEvent.pointerDown(consent, { pointerType: "mouse" });
+      fireEvent.mouseDown(consent);
+      fireEvent.blur(phone);
+      fireEvent.pointerUp(consent, { pointerType: "mouse" });
+      expect(live).toBeEmptyDOMElement();
+      fireEvent.click(consent);
+      expect(consent.checked).toBe(true);
+      await settle();
+      expect(live).toHaveTextContent(hint);
+    });
+
+    // LEAD-FORMS-RETEST-2026-10-03 N1, on a phone: the touch's own order puts
+    // the release before the blur, so the press must outlive the release.
+    it("waits for the click on touch, where the release comes before the blur", async () => {
+      const { phone, consent, live } = setup();
+      fireEvent.pointerDown(consent, { pointerType: "touch" });
+      fireEvent.pointerUp(consent, { pointerType: "touch" });
+      fireEvent.mouseDown(consent);
+      fireEvent.blur(phone);
+      expect(live).toBeEmptyDOMElement();
+      fireEvent.click(consent);
+      expect(consent.checked).toBe(true);
+      await settle();
+      expect(live).toHaveTextContent(hint);
+    });
+
+    it("draws no hint for a touch on the submit: the submit's own check speaks", async () => {
+      const { phone, submit, live } = setup();
+      fireEvent.pointerDown(submit, { pointerType: "touch" });
+      fireEvent.pointerUp(submit, { pointerType: "touch" });
+      fireEvent.mouseDown(submit);
+      fireEvent.blur(phone);
+      expect(live).toBeEmptyDOMElement();
+      fireEvent.click(submit);
+      await settle();
+      expect(live).not.toHaveTextContent(hint);
+    });
+
+    it("ends the wait on a press that turns into a scroll", async () => {
+      const { phone, consent, live } = setup();
+      fireEvent.pointerDown(consent, { pointerType: "touch" });
+      fireEvent.blur(phone);
+      expect(live).toBeEmptyDOMElement();
+      fireEvent.pointerCancel(consent, { pointerType: "touch" });
+      await settle();
+      expect(live).toHaveTextContent(hint);
+    });
+
+    it("shows it at once on a keyboard blur, even after a finished tap that left no field", () => {
+      const { phone, live } = setup();
+      fireEvent.pointerDown(document.body, { pointerType: "touch" });
+      fireEvent.pointerUp(document.body, { pointerType: "touch" });
+      fireEvent.click(document.body);
+      fireEvent.keyDown(phone, { key: "Tab" });
+      fireEvent.blur(phone);
+      expect(live).toHaveTextContent(hint);
+    });
+  });
+
+  // An empty message once gave back the field's gap with `-mt-2`, tuned to
+  // the kit's `gap-2`: under a brand's other gap every field moved.
+  it("keeps each field's empty message out of the layout, whatever the field's gap, and still read out", () => {
+    render(capture({ name: { field: "name", required: true }, classNames: { field: "gap-1.5" } }));
+    const zip = input("zip");
+    const regions = [...form().querySelectorAll("[aria-live=polite]")].filter(el => el.closest("[role=group]"));
+    expect(regions.length).toBeGreaterThanOrEqual(3);
+    for (const region of regions) {
+      expect(region).toBeEmptyDOMElement();
+      // Out of the flex flow while empty, so no gap is added for it — and
+      // never `hidden`: a region not rendered is not listened to.
+      expect(region.className.split(" ")).toContain("empty:absolute");
+      expect(region.className).not.toMatch(/(^|\s)(hidden|empty:hidden|empty:-?m[tby]?-)/);
+    }
+    const live = zip.closest("[role=group]")?.querySelector("[aria-live=polite]");
+    act(() => void form().checkValidity());
+    expect(live).toHaveTextContent(LEAD_CAPTURE_TEXT.fr.required);
   });
 
   // LEAD-FORMS-REVIEW-2026-10-03 #1, #6, #14: the hint never blocked, the

@@ -41,7 +41,7 @@ export interface LeadCaptureText extends Partial<LeadCaptureFlowText> {
   formInvalid: string;
   /** On the submit while the script posts the form. */
   sending: string;
-  /** The post never reached the server: nothing was sent, the form is as typed. */
+  /** The post got no answer — the lead may be stored already: a retry cannot make a second one. */
   networkError: string;
   /** No answer in time: it may have arrived — a retry cannot make a second lead. */
   timeoutError: string;
@@ -158,7 +158,7 @@ const FR: LeadCaptureText = {
   fieldInvalid: "Vérifiez ce champ.",
   formInvalid: "Votre demande n’a pas pu être envoyée. Vérifiez le formulaire.",
   sending: "Envoi…",
-  networkError: "Pas de connexion : votre demande n’est pas partie. Vérifiez le réseau et réessayez.",
+  networkError: "Pas de réponse du serveur. Vérifiez votre connexion et réessayez : votre demande ne sera pas envoyée deux fois.",
   timeoutError: "Le serveur ne répond pas. Réessayez : votre demande ne sera pas envoyée deux fois.",
   retry: "Réessayer",
   nameLabel: "Nom",
@@ -198,7 +198,7 @@ const EN: LeadCaptureText = {
   fieldInvalid: "Check this field.",
   formInvalid: "Your request could not be sent. Check the form.",
   sending: "Sending…",
-  networkError: "No connection: your request was not sent. Check the network and try again.",
+  networkError: "No answer from the server. Check your connection and try again: your request will not be sent twice.",
   timeoutError: "The server is not answering. Try again: your request will not be sent twice.",
   retry: "Try again",
   nameLabel: "Name",

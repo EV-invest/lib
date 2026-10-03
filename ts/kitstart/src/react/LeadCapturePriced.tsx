@@ -1,5 +1,5 @@
 import { cn } from "@evinvest/uikit";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { fillText, formatCents } from "../core/lead-capture-format";
 import type { LeadCaptureFlowText } from "../core/lead-capture-text";
 import type { LeadSent } from "./use-lead-submit";
@@ -19,7 +19,8 @@ export function LeadCapturePriced(props: { sent: LeadSent; booking: ReactNode; l
   return (
     <div className={cn("flex flex-col gap-3", c?.priced)}>
       {sent.cents !== undefined && <p className={cn("font-medium text-ink", c?.pricedPrice)}>{fillText(text.sentPrice, { price: formatCents(sent.cents, locale) })}</p>}
-      {props.booking ?? <p className={cn("text-ink", c?.pricedNote)}>{text.slotCallback}</p>}
+      {/* Keyed alone, as `LeadCapture`'s slots are: a brand's widget may arrive from the server unkeyed. */}
+      <Fragment key="booking">{props.booking ?? <p className={cn("text-ink", c?.pricedNote)}>{text.slotCallback}</p>}</Fragment>
     </div>
   );
 }
