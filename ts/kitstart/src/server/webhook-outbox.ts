@@ -77,6 +77,12 @@ export interface TickReport {
 export interface WebhookOutbox {
   /** Queues a body; synchronous and local, so it can sit before the response. */
   enqueue(body: string, ref?: string | null): number;
+  /**
+   * Queues a body unless a row with the same `ref` was ever queued, in one
+   * statement — two pods racing on one ref queue it once. Answers the new
+   * row, or `null` when the ref was there.
+   */
+  enqueueOnce?(body: string, ref: string): number | null;
   /** One pass over the rows that are due; concurrent calls share the running one. */
   tick(): Promise<TickReport>;
   /** Ticks every `intervalMs` until `stop`; a second call is a no-op. */
@@ -113,6 +119,7 @@ CREATE TABLE IF NOT EXISTS webhook_outbox (
   done_at         INTEGER
 );
 CREATE INDEX IF NOT EXISTS webhook_outbox_due ON webhook_outbox (state, target, next_attempt_at);
+CREATE INDEX IF NOT EXISTS webhook_outbox_ref ON webhook_outbox (ref);
 `;
 
 /** How much of a receiver's answer a row keeps. */
@@ -229,7 +236,7 @@ async function judge(response: Response, rowId: number, log: Pick<Console, "warn
  * rows stay, are counted at open, and are not sent to a receiver that never
  * agreed to take them.
  */
-export function openWebhookOutbox(path: string, target: WebhookTarget, options: WebhookOutboxOptions = {}): WebhookOutbox {
+export function openWebhookOutbox(path: string, target: WebhookTarget, options: WebhookOutboxOptions = {}): WebhookOutbox & Required<Pick<WebhookOutbox, "enqueueOnce">> {
   const horizon = options.horizonMs ?? WEBHOOK_HORIZON_MS;
   const maxAttempts = options.maxAttempts ?? Number.POSITIVE_INFINITY;
   const baseDelay = options.baseDelayMs ?? 5_000;
@@ -253,6 +260,9 @@ export function openWebhookOutbox(path: string, target: WebhookTarget, options: 
   }
 
   const insert = db.prepare("INSERT INTO webhook_outbox (target, ref, body, created_at, next_attempt_at) VALUES (?, ?, ?, ?, ?) RETURNING id");
+  const insertOnce = db.prepare(
+    "INSERT INTO webhook_outbox (target, ref, body, created_at, next_attempt_at) SELECT ?, ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM webhook_outbox WHERE ref = ?) RETURNING id",
+  );
   const due = db.prepare(
     "SELECT id, ref, body, attempts, created_at FROM webhook_outbox WHERE state = 'pending' AND target = ? AND next_attempt_at <= ? ORDER BY next_attempt_at, id LIMIT ?",
   );
@@ -346,6 +356,11 @@ export function openWebhookOutbox(path: string, target: WebhookTarget, options: 
     enqueue(body, ref = null) {
       const t = now();
       return int(insert.get(target.url, ref, body, t, t), "id");
+    },
+    enqueueOnce(body, ref) {
+      const t = now();
+      const row = insertOnce.get(target.url, ref, body, t, t, ref);
+      return row === undefined ? null : int(row, "id");
     },
     tick,
     start(intervalMs = WEBHOOK_TICK_MS) {
