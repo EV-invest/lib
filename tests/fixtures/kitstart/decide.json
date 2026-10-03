@@ -120,6 +120,20 @@
       }
     },
     {
+      "name": "passes /quote/confirm",
+      "site": "aquafix",
+      "request": {
+        "host": "aquafix.top",
+        "pathname": "/quote/confirm",
+        "query": "job=standard",
+        "acceptLanguage": null,
+        "cookieLang": null
+      },
+      "decision": {
+        "kind": "pass"
+      }
+    },
+    {
       "name": "passes /sitemap.xml",
       "site": "aquafix",
       "request": {
