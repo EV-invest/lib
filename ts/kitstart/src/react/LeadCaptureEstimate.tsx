@@ -10,7 +10,7 @@ import { priceOf } from "../core/pricing/price";
 import { labelOf } from "../core/pricing/validate";
 import type { PartClassNames } from "./parts";
 
-export type EstimatePart = "estimate" | "estimateInput" | "estimateLegend" | "estimateOption" | "price" | "priceTotal" | "breakdown" | "priceNote";
+export type EstimatePart = "estimate" | "estimateInput" | "estimateLegend" | "estimateGrid" | "estimateOption" | "price" | "priceTotal" | "breakdown" | "priceNote";
 
 /**
  * The live price of the need on screen: its answers, as the visitor taps
@@ -54,7 +54,8 @@ export function EstimateInputs(props: {
       {inputs.map(input => (
         <fieldset key={input.id} className={cn("flex flex-col gap-2", c?.estimateInput)}>
           <legend className={cn("mb-2 text-sm font-medium text-ink", c?.estimateLegend)}>{labelOf(input.labels, locale)}</legend>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {/* The column count is the brand's (`estimateGrid`): a denser grid makes a shorter card, and the tile keeps its touch height in any. */}
+          <div className={cn("grid grid-cols-2 gap-2 sm:grid-cols-3", c?.estimateGrid)}>
             {input.options.map(option => (
               <label key={option.id} className="relative block cursor-pointer">
                 <input

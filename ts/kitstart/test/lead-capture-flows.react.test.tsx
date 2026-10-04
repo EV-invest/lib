@@ -96,6 +96,30 @@ describe("LeadCapture's flows, without a script", () => {
     expect(f.querySelector("[name*=cents], [name*=price]")).toBeNull();
   });
 
+  describe("the answers' grid", () => {
+    const grids = () => [...form().querySelectorAll("fieldset")].map(set => set.querySelector("input[type=radio]")?.closest("label")?.parentElement);
+    const tiles = () => [...form().querySelectorAll("input[name^=estimate_]")].map(input => input.nextElementSibling);
+
+    it("is two columns, three from sm, without the brand's estimateGrid", () => {
+      document.body.innerHTML = renderToString(capture());
+      expect(grids()).toHaveLength(4);
+      for (const grid of grids()) expect(grid?.className.split(" ")).toEqual(expect.arrayContaining(["grid", "gap-2", "grid-cols-2", "sm:grid-cols-3"]));
+    });
+
+    it("takes the brand's column count from estimateGrid, the tiles still touch-sized", () => {
+      document.body.innerHTML = renderToString(capture({ classNames: { estimateGrid: "grid-cols-3 sm:grid-cols-4" } }));
+      for (const grid of grids()) {
+        const classes = grid?.className.split(" ") ?? [];
+        expect(classes).toEqual(expect.arrayContaining(["grid", "gap-2", "grid-cols-3", "sm:grid-cols-4"]));
+        expect(classes).not.toContain("grid-cols-2");
+        expect(classes).not.toContain("sm:grid-cols-3");
+      }
+      // 44 px on a phone: the tile's own minimum, whatever the columns.
+      expect(tiles().length).toBeGreaterThan(0);
+      for (const tile of tiles()) expect(tile?.className.split(" ")).toContain("min-h-11");
+    });
+  });
+
   it("shows a fixed need's price as is", () => {
     document.body.innerHTML = renderToString(capture({ need: "windows" }));
     expect(total()).toBe("8900");
