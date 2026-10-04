@@ -131,6 +131,10 @@ Rust crate and its TypeScript mirror at once.
   script posts it; `quoteRoute` passes it, checked against
   `[A-Za-z0-9._:-]{1,128}`, to the webhook as `ctx.analyticsId` for the
   brand's `lead.created` body. Optional both ways: an older page posts none.
+- **`classNames.estimateGrid` on `LeadCapture`** (`@evinvest/kitstart/react`):
+  the grid of an estimate input's answer tiles, so a brand sets its own column
+  count (`"grid-cols-3 sm:grid-cols-4"` for a shorter card). Without it the
+  grid stays two columns, three from `sm`; the tile keeps its 44 px minimum.
 - **`i18n::t!`** (Rust): `$key` and `$en` are `literal` fragments, so the
   compiler is the literal-ness gate the TypeScript extractor has to enforce by
   hand. Natively each site also registers its pair with `i18n::catalogue()`, so

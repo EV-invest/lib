@@ -236,7 +236,7 @@ it is the plain POST to `/quote` it always was.
 | `bookingVariant` · `bookingEmbed` · `bookingAdapters` | the `booking_provider` variant that picks the place's provider · the providers' embeds (after cookie consent) rather than a new tab · the brand's adapters over the built-ins (from a client component) — see [Booking](#booking-manual-link-google_calendar-cal_com) |
 | `initialError` | `leadErrorOf(searchParams)` on a page that reads its query: the refusal a 303 brought back, drawn on the server by the card it names (`lead_card`) so the card says why without a script (see *Refusals*) |
 | `head`, `trust` | the brand's heading instead of the title; a slot beside the submit. Like `extras`, `done` and `booking`, any node, built on the server or not, and never asked for a `key`: each slot sits alone in a keyed fragment |
-| `className` · `classNames` | the root · its parts: `root`, `head`, `title`, `lede`, `form`, `contact`, `field`, `label`, `control` (every input, the need's select in both states, the callback's phone), `hint`, `error` (a refusal: under the field, or above the submit), `chips`, `chip`, `needs`, `need`, `summary`, `submit`, `trust`, `privacy`, `opening`, `others`, `channel`, `primary`, `callback`, `callbackSummary`, `callbackForm`, `callbackLede`, `callbackSubmit`, `consent`, `done`, and for the flows `estimate`, `estimateInput`, `estimateLegend`, `estimateOption`, `price`, `priceTotal`, `breakdown`, `priceNote`, `photos`, `priced`, `pricedPrice`, `pricedNote`, and for the booking `booking`, `bookingCta`, `bookingNote`, `prefer`, `preferOption`, `preferSubmit` |
+| `className` · `classNames` | the root · its parts: `root`, `head`, `title`, `lede`, `form`, `contact`, `field`, `label`, `control` (every input, the need's select in both states, the callback's phone), `hint`, `error` (a refusal: under the field, or above the submit), `chips`, `chip`, `needs`, `need`, `summary`, `submit`, `trust`, `privacy`, `opening`, `others`, `channel`, `primary`, `callback`, `callbackSummary`, `callbackForm`, `callbackLede`, `callbackSubmit`, `consent`, `done`, and for the flows `estimate`, `estimateInput`, `estimateLegend`, `estimateGrid` (an input's answers: 2 columns, 3 from `sm`), `estimateOption` (an answer's tile), `price`, `priceTotal`, `breakdown`, `priceNote`, `photos`, `priced`, `pricedPrice`, `pricedNote`, and for the booking `booking`, `bookingCta`, `bookingNote`, `prefer`, `preferOption`, `preferSubmit` |
 
 - **Taps.** A need the page knows is not asked again, and a place serving one
   commune fills it: focus the phone, type, send — two taps. `qualify-first`
@@ -377,7 +377,11 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, pricing, unavai
   need — is a `quote`. So a flow the brand has not switched on is never run
   by a posted field.
 - **The form.** An estimate's questions are a tile per answer (touch-sized
-  radios posted as `estimate_<input>`), required once the script runs; the
+  radios posted as `estimate_<input>`), required once the script runs —
+  two columns, three from `sm`; a brand sets its own count with
+  `classNames={{ estimateGrid: "grid-cols-3 sm:grid-cols-4" }}` (a denser
+  grid, a shorter card), and a tile keeps its 44 px touch height in any
+  (`estimateOption` styles the tile itself); the
   price box (`aria-live`) shows the total and the lines that made it, or
   what is missing — never "from". A fixed need shows its price. Either
   submits as `bookSubmit` ("Réserver"). Without a script the answers still
