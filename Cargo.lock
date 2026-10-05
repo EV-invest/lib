@@ -1448,6 +1448,7 @@ version = "0.9.0"
 dependencies = [
  "ev_lib",
  "ev_lib_classes",
+ "serde_json",
  "strum",
  "tailwind_fuse",
 ]

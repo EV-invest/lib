@@ -1,3 +1,5 @@
+import { DEFAULT_HOST } from "./generated/host";
+
 /**
  * PostHog Cloud region. A project lives in exactly one; events sent to the
  * other region's host are rejected, so the choice is part of the project's
@@ -15,7 +17,7 @@ export type PostHogTarget =
 
 /** Ingestion host per PostHog Cloud region. */
 export const POSTHOG_HOSTS: Readonly<Record<PostHogRegion, string>> = {
-  us: "https://us.i.posthog.com",
+  us: DEFAULT_HOST,
   eu: "https://eu.i.posthog.com",
 };
 
@@ -27,7 +29,7 @@ export const POSTHOG_HOSTS: Readonly<Record<PostHogRegion, string>> = {
  * (cookieless mode, {@link createBeaconSink}) require an explicit target
  * instead of inheriting this.
  */
-export const LEGACY_DEFAULT_HOST = POSTHOG_HOSTS.us;
+export const LEGACY_DEFAULT_HOST = DEFAULT_HOST;
 
 /**
  * Resolves an optional host/region pair to an ingestion host: `host` wins,

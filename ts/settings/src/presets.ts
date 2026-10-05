@@ -6,6 +6,7 @@
  * ready-made structs (`settings::presets`).
  */
 
+import { DEFAULT_PROFILE, PRESET_VARS } from './generated/contract';
 import { optional, str, withDefault, type Validator } from './validators';
 
 export const presets = {
@@ -35,7 +36,7 @@ export const presets = {
    * would break consumers that add a stage.
    */
   appEnv: (): { APP_ENV: Validator<string> } => ({
-    APP_ENV: withDefault(str(), 'development'),
+    APP_ENV: withDefault(str(), DEFAULT_PROFILE),
   }),
 
   /** The `client`-block variant of {@link presets.posthog} for Next.js bundles. */
@@ -53,6 +54,9 @@ export const presets = {
     NEXT_PUBLIC_APP_ENV: Validator<string>;
   } => ({
     NEXT_PUBLIC_SENTRY_DSN: optional(str()),
-    NEXT_PUBLIC_APP_ENV: withDefault(str(), 'development'),
+    NEXT_PUBLIC_APP_ENV: withDefault(str(), DEFAULT_PROFILE),
   }),
-} as const;
+} as const satisfies {
+  // A server group reads every name its Rust preset reads (`settings::presets`).
+  [K in keyof typeof PRESET_VARS]: () => Record<(typeof PRESET_VARS)[K][number], Validator<unknown>>;
+} & Record<string, () => Record<string, Validator<unknown>>>;

@@ -22,6 +22,9 @@ pub enum Ts {
 	/// `export const NAME = <literal>;`, an array or object `as const`. Built from
 	/// the Rust value through serde, so its keys and words are the wire's.
 	Value { name: &'static str, value: Value },
+	/// `export const NAME = ["a", …] as const;` and
+	/// `export type TY = (typeof NAME)[number];`: a closed set of words.
+	Union { name: &'static str, ty: &'static str, items: Vec<&'static str> },
 	/// `export const NAME = { "key": "value", … } as const;` and
 	/// `export type TY = keyof typeof NAME;`
 	Table {
@@ -94,6 +97,10 @@ impl Ts {
 			}
 			Ts::Value { name, value: v @ Value::Array(_) } => writeln!(out, "export const {name} = {} as const;", literal(v)).unwrap(),
 			Ts::Value { name, value } => writeln!(out, "export const {name} = {};", literal(value)).unwrap(),
+			Ts::Union { name, ty, items } => {
+				writeln!(out, "export const {name} = {:?} as const;", items).unwrap();
+				writeln!(out, "export type {ty} = (typeof {name})[number];").unwrap();
+			}
 			Ts::Table { name, ty, entries } => {
 				writeln!(out, "export const {name} = {{").unwrap();
 				for (key, class) in entries {

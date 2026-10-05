@@ -6,10 +6,7 @@
 
 use wasm_bindgen::JsCast;
 
-use crate::experiments::config::{Experiment, cookie_name, plan_assignment, resolve_variant};
-
-/// Sticky cookie lifetime: 30 days, matching the TS proxy's `max-age`.
-const COOKIE_MAX_AGE_SECS: u32 = 60 * 60 * 24 * 30;
+use crate::experiments::config::{COOKIE_MAX_AGE_SECS, Experiment, cookie_name, plan_assignment, resolve_variant};
 
 /// Reads a cookie value by name from `document.cookie`, or `None` when absent.
 pub fn read_cookie(name: &str) -> Option<String> {

@@ -197,6 +197,8 @@ commits the output and re-runs it from a `generated` pre-commit hook.
 - **Values** — the variants of an enum, a role/permission table — go through
   serde (`Ts::Value`), so their words are the wire's and the logic that computes
   them (`Role::may`) stays in Rust; TS gets the table, not a second predicate.
+- **Closed word sets** — `Ts::Union` emits the array and its type together,
+  from the Rust words (`as_str`), so a TS parser's `oneOf` and the type agree.
 
 ## Cross-language parity
 

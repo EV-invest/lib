@@ -108,6 +108,11 @@ impl Experiment {
 	}
 }
 
+/// What a variant's cookie name starts with, [`cookie_name`].
+pub const COOKIE_PREFIX: &str = "ab_";
+/// How long a variant's cookie keeps a visitor in it: 30 days.
+pub const COOKIE_MAX_AGE_SECS: u32 = 60 * 60 * 24 * 30;
+
 /// The cookie name a variant is stored under: `ab_<key>` (mirrors the TS
 /// `cookieName`).
 ///
@@ -117,7 +122,7 @@ impl Experiment {
 /// assert_eq!(cookie_name("hero"), "ab_hero");
 /// ```
 pub fn cookie_name(key: &str) -> String {
-	format!("ab_{key}")
+	format!("{COOKIE_PREFIX}{key}")
 }
 
 /// Picks a variant by weighted random draw, mirroring the TS `pickVariant`:

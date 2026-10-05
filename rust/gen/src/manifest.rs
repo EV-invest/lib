@@ -71,7 +71,13 @@ pub fn manifest() -> Vec<(&'static str, Vec<Ts>)> {
 /// `ts/{package}/src/generated/{module}.ts`. Not class tables — these are the
 /// same data the Rust libraries own, which the TS ports used to re-type by hand.
 pub fn shared() -> Vec<(&'static str, &'static str, Vec<Ts>)> {
-	vec![("i18n", "locales", locales()), ("types", "e164", e164())]
+	vec![
+		("i18n", "locales", locales()),
+		("types", "e164", e164()),
+		("experiments", "contract", experiments()),
+		("settings", "contract", settings()),
+		("analytics", "host", analytics()),
+	]
 }
 fn band() -> Vec<Ts> {
 	vec![
@@ -1603,4 +1609,64 @@ fn e164() -> Vec<Ts> {
 			value: PhoneNumber::MAX_DIGITS.into(),
 		},
 	]
+}
+
+fn experiments() -> Vec<Ts> {
+	use ev_lib::experiments::{COOKIE_MAX_AGE_SECS, COOKIE_PREFIX, FNV_OFFSET_BASIS, FNV_PRIME};
+	vec![
+		Ts::Value {
+			name: "FNV_OFFSET_BASIS",
+			value: FNV_OFFSET_BASIS.into(),
+		},
+		Ts::Value {
+			name: "FNV_PRIME",
+			value: FNV_PRIME.into(),
+		},
+		// The TS port lets a caller override it; this is the default.
+		Ts::Const {
+			name: "DEFAULT_COOKIE_PREFIX",
+			value: COOKIE_PREFIX,
+		},
+		Ts::Value {
+			name: "COOKIE_MAX_AGE",
+			value: COOKIE_MAX_AGE_SECS.into(),
+		},
+	]
+}
+
+fn settings() -> Vec<Ts> {
+	use ev_lib::settings::{
+		DEFAULT_PROFILE, EX_CONFIG, PROFILE_VAR,
+		presets::{AppEnv, Posthog, Sentry},
+	};
+	vec![
+		Ts::Const {
+			name: "PROFILE_VAR",
+			value: PROFILE_VAR,
+		},
+		Ts::Const {
+			name: "DEFAULT_PROFILE",
+			value: DEFAULT_PROFILE,
+		},
+		Ts::Value {
+			name: "EX_CONFIG",
+			value: EX_CONFIG.into(),
+		},
+		// Keyed by the TS `presets` member each group backs.
+		Ts::Value {
+			name: "PRESET_VARS",
+			value: serde_json::json!({
+				"posthog": Posthog::var_names(),
+				"sentry": Sentry::var_names(),
+				"appEnv": AppEnv::var_names(),
+			}),
+		},
+	]
+}
+
+fn analytics() -> Vec<Ts> {
+	vec![Ts::Const {
+		name: "DEFAULT_HOST",
+		value: ev_lib::analytics::DEFAULT_HOST,
+	}]
 }

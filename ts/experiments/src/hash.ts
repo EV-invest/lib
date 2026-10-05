@@ -13,8 +13,8 @@
  * Not a cryptographic hash: it is for stable bucketing only.
  */
 
-const FNV_OFFSET_BASIS = 0x811c9dc5;
-const FNV_PRIME = 0x01000193;
+import { FNV_OFFSET_BASIS, FNV_PRIME } from './generated/contract';
+
 const TWO_POW_32 = 0x1_0000_0000;
 
 /**

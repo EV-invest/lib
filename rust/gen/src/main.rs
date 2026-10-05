@@ -135,7 +135,7 @@ fn collect_classes(ts: &Ts, out: &mut BTreeSet<String>) {
 			out.insert(value.to_string());
 		}
 		Ts::Table { entries, .. } => out.extend(entries.iter().map(|(_, class)| class.clone())),
-		Ts::Value { .. } | Ts::Types(_) => {}
+		Ts::Value { .. } | Ts::Union { .. } | Ts::Types(_) => {}
 	}
 }
 

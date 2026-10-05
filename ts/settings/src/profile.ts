@@ -3,18 +3,9 @@
  * `ev_lib::settings::PROFILE_VAR` / `DEFAULT_PROFILE`.
  */
 
-/**
- * The variable that names the deployment profile. Org-canonical (the same
- * `APP_ENV` the Rust presets read), so "are we in production" is answered in
- * one place across both stacks.
- */
-export const PROFILE_VAR = 'APP_ENV';
+import { DEFAULT_PROFILE, PROFILE_VAR } from './generated/contract';
 
-/**
- * Assumed when {@link PROFILE_VAR} is unset — an unconfigured environment is a
- * developer's laptop, not production.
- */
-export const DEFAULT_PROFILE = 'development';
+export { DEFAULT_PROFILE, PROFILE_VAR } from './generated/contract';
 
 /**
  * Resolve the active profile from an explicit override, else the environment
