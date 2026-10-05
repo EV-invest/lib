@@ -22,6 +22,13 @@ Rust crate and its TypeScript mirror at once.
 
 ## [Unreleased]
 
+### Added
+
+- **`ts_gen`** (`ev_lib` 0.24.1): the TS generator `ev_lib_gen` runs on, opened
+  to downstream repos — `Ts::types::<T>()` (via `ts-rs`), `Ts::Value` (via
+  serde), `Ts::write`. `Ts::Array`/`Ts::Scalar` folded into `Ts::Value`; the
+  lib's generated files are unchanged byte for byte.
+
 ### Fixed
 
 - **`Calendar` weekday headers stay on one line in `vi` and `he`**

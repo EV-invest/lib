@@ -2,10 +2,11 @@
 //! the class values themselves live only in `ev_lib_classes`. Generic enum tables
 //! use [`table`]; the few key-quirk tables are hand-built `Ts::Table` recipes.
 
+use ev_lib::ts_gen::Ts;
 use ev_lib_classes::*;
 use strum::IntoEnumIterator;
 
-use crate::{Ts, table};
+use crate::table;
 
 pub fn manifest() -> Vec<(&'static str, Vec<Ts>)> {
 	vec![
@@ -1568,9 +1569,9 @@ fn terminal() -> Vec<Ts> {
 fn locales() -> Vec<Ts> {
 	use ev_lib::i18n::{DEFAULT_LOCALE, LOCALES};
 	vec![
-		Ts::Array {
+		Ts::Value {
 			name: "LOCALES",
-			items: LOCALES.iter().map(|l| l.code().to_string()).collect(),
+			value: LOCALES.iter().map(|l| l.code()).collect(),
 		},
 		// `Locale` derives off this one, so the labels table is what carries the
 		// union — a locale nobody can name in a switcher does not exist.
@@ -1589,17 +1590,17 @@ fn locales() -> Vec<Ts> {
 fn e164() -> Vec<Ts> {
 	use ev_lib::types::{COUNTRY_CODES, PhoneNumber};
 	vec![
-		Ts::Array {
+		Ts::Value {
 			name: "COUNTRY_CODES",
-			items: COUNTRY_CODES.iter().map(|c| c.to_string()).collect(),
+			value: COUNTRY_CODES.iter().copied().collect(),
 		},
-		Ts::Scalar {
+		Ts::Value {
 			name: "MIN_DIGITS",
-			value: PhoneNumber::MIN_DIGITS.to_string(),
+			value: PhoneNumber::MIN_DIGITS.into(),
 		},
-		Ts::Scalar {
+		Ts::Value {
 			name: "MAX_DIGITS",
-			value: PhoneNumber::MAX_DIGITS.to_string(),
+			value: PhoneNumber::MAX_DIGITS.into(),
 		},
 	]
 }

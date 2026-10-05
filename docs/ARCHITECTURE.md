@@ -182,6 +182,22 @@ apps stay sops-unaware and the library never links a decryption stack. The
 workflow is documented in
 [`rust/src/settings/GUIDE.md`](../rust/src/settings/GUIDE.md#secrets-the-sops-boundary).
 
+## Generated TypeScript — `ts_gen`
+
+`ev_lib::ts_gen` is the machinery `ev_lib_gen` writes this repo's TS with, opened
+to every repo: a downstream mirror of a Rust type or value is generated from the
+Rust, never re-typed. A repo keeps one `gen` binary that lists its modules as
+`Ts` exports, exposes it as `nix run .#gen` (the header every module carries),
+commits the output and re-runs it from a `generated` pre-commit hook.
+
+- **Types** go through `ts-rs`: `#[derive(TS)]` beside `Serialize`, and
+  `Ts::types::<T>()` declares `T` and every type it names, as serde writes them.
+  `ts-rs` keeps `u64`/`i64` as `bigint` (see Cross-language parity): a wire type
+  that wants `number` says so with `#[ts(type = "number")]`.
+- **Values** — the variants of an enum, a role/permission table — go through
+  serde (`Ts::Value`), so their words are the wire's and the logic that computes
+  them (`Role::may`) stays in Rust; TS gets the table, not a second predicate.
+
 ## Cross-language parity
 
 The TS packages are not line-by-line translations; they preserve the _semantics_
