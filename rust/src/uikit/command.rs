@@ -45,6 +45,7 @@ pub fn CommandDialog(open: Option<bool>, #[props(default)] default_open: bool, o
 		}
 		div {
 			role: "dialog",
+			"aria-modal": "true",
 			class: COMMAND_DIALOG_CONTENT,
 			"data-slot": "command-dialog",
 			onkeydown: move |e| {
@@ -390,5 +391,21 @@ mod tests {
 		}
 		let html = render(opened);
 		assert!(html.contains("role=\"dialog\""), "{html}");
+	}
+
+	#[test]
+	fn open_dialog_is_modal() {
+		fn app() -> Element {
+			rsx! {
+				CommandDialog { default_open: true,
+					CommandInput { placeholder: "Search".to_string() }
+				}
+			}
+		}
+		let html = render(app);
+		let at = html.find("data-slot=\"command-dialog\"").expect("dialog rendered");
+		let tag = &html[html[..at].rfind('<').expect("opening tag")..at];
+		assert!(tag.contains("role=\"dialog\""), "{tag}");
+		assert!(tag.contains("aria-modal=\"true\""), "{tag}");
 	}
 }

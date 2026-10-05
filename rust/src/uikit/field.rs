@@ -4,7 +4,7 @@ use crate::{
 	cn,
 	uikit::{
 		FIELD_BASE, FIELD_CONTENT, FIELD_DESCRIPTION, FIELD_ERROR, FIELD_GROUP, FIELD_LABEL, FIELD_LEGEND, FIELD_SEPARATOR, FIELD_SEPARATOR_CONTENT, FIELD_SEPARATOR_LINE, FIELD_SET,
-		FIELD_TITLE, FieldOrientation, label::Label,
+		FIELD_TITLE, FieldOrientation, label::Label, primitives::has_content,
 	},
 };
 
@@ -86,16 +86,24 @@ pub fn FieldDescription(#[props(default)] class: String, children: Element) -> E
 	}
 }
 
+/// A rule with optional centred copy ("or"). Without children the content span
+/// is omitted: its opaque `bg-background` pill would otherwise notch the line.
 #[component]
 pub fn FieldSeparator(#[props(default)] class: String, children: Element) -> Element {
 	let cls = cn!(FIELD_SEPARATOR, class);
+	let content = has_content(&children);
 	rsx! {
-		div { class: cls, "data-slot": "field-separator", "data-content": "true",
+		div {
+			class: cls,
+			"data-slot": "field-separator",
+			"data-content": if content { "true" } else { "false" },
 			div { role: "separator", class: FIELD_SEPARATOR_LINE }
-			span {
-				class: FIELD_SEPARATOR_CONTENT,
-				"data-slot": "field-separator-content",
-				{children}
+			if content {
+				span {
+					class: FIELD_SEPARATOR_CONTENT,
+					"data-slot": "field-separator-content",
+					{children}
+				}
 			}
 		}
 	}
@@ -184,6 +192,18 @@ mod tests {
 		let html = render(app);
 		assert!(html.contains("data-slot=\"field-separator\""), "{html}");
 		assert!(html.contains("data-slot=\"field-separator-content\""), "{html}");
+		assert!(html.contains("data-content=\"true\""), "{html}");
 		assert!(html.contains("or"), "{html}");
+	}
+
+	#[test]
+	fn separator_without_children_is_a_plain_rule() {
+		fn app() -> Element {
+			rsx! { FieldSeparator {} }
+		}
+		let html = render(app);
+		assert!(html.contains("data-content=\"false\""), "{html}");
+		assert!(html.contains("role=\"separator\""), "{html}");
+		assert!(!html.contains("field-separator-content"), "an empty pill would notch the line: {html}");
 	}
 }

@@ -38,6 +38,18 @@ Rust crate and its TypeScript mirror at once.
 
 ### Fixed
 
+- **`ev_lib::uikit` a11y and markup parity with the TS port** (`ev_lib`,
+  #45 #46 #50 #51 #52). `FormMessage` renders nothing without children (an
+  empty string included), so a valid field no longer carries an empty `<p>`
+  and a spurious grid gap. `FieldSeparator` sets `data-content` from its
+  children and omits the content span when it has none, so a bare divider is
+  no longer notched. `Slider`'s `aria_label` now names the `role="slider"`
+  thumb instead of the role-less root. `PaginationLink` takes an optional
+  `aria_label` (additive, not breaking); `PaginationPrevious`/`PaginationNext`
+  pass "Go to previous page"/"Go to next page", so they stay named below `sm`
+  where the visible text is hidden. `CommandDialog` and `DrawerContent` set
+  `aria-modal="true"` like `Dialog`/`AlertDialog`/`Sheet`.
+
 - **`Calendar` weekday headers stay on one line in `vi` and `he`**
   (`@evinvest/uikit`, #122). CLDR spells the Vietnamese short weekday as two
   words ("Thứ 2"), which wrapped inside the fixed 36px column and grew the
