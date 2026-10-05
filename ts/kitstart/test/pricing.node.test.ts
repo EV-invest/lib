@@ -13,6 +13,9 @@ import {
   pricingProblems,
   pricingProblemsFor,
   readEstimateInputs,
+  answeredUnknown,
+  PRICING_LIMITS,
+  ESTIMATE_UNKNOWN,
   roundTo,
   type PricingInputs,
   type PricingModel,
@@ -165,6 +168,16 @@ describe("readEstimateInputs", () => {
     ]);
     expect(readEstimateInputs(cleaning(), "standard", f => posted.get(f) ?? null)).toEqual({ zone: "centre", bedrooms: "t2" });
     expect(readEstimateInputs(cleaning(), "windows", f => posted.get(f) ?? null)).toEqual({});
+  });
+});
+
+describe("answeredUnknown", () => {
+  it("is an answer \"I don't know\" to one of the need's own questions, never a slug a model could price", () => {
+    expect(PRICING_LIMITS.slug.test(ESTIMATE_UNKNOWN)).toBe(false);
+    const posted = new Map([[estimateField("surface"), ` ${ESTIMATE_UNKNOWN} `]]);
+    expect(answeredUnknown(cleaning(), "standard", f => posted.get(f) ?? null)).toBe(true);
+    expect(answeredUnknown(cleaning(), "windows", f => posted.get(f) ?? null)).toBe(false);
+    expect(answeredUnknown(cleaning(), "standard", () => "t2")).toBe(false);
   });
 });
 

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { defineSite, leadRef, parsePricingModel, type Lead, type PricingModel } from "../src/index";
+import { defineSite, ESTIMATE_UNKNOWN, leadRef, parsePricingModel, type Lead, type PricingModel } from "../src/index";
 import { confirmRoute, quoteRoute } from "../src/next/index";
 import { leadWebhook, openSqliteLeadStore, panelFlowOf, panelFlowProperties, type LeadWebhookContext, type PricingSource, type WebhookOutbox } from "../src/server/index";
 import { fixtureSite } from "./support/fixtures";
@@ -87,6 +87,19 @@ describe("the quote route, pricing a lead", () => {
     await route(post({ ...ESTIMATE, estimate_zone: "mars", submission_id: sid(4) }));
     expect((await stored(sid(4)))?.flow).toBe("quote");
     expect(log.warn).toHaveBeenCalledWith(expect.stringContaining("did not price"));
+  });
+
+  it("takes an estimate answered \"I don't know\" as a quote, on purpose: no price, no warning, never refused", async () => {
+    const { route, stored, log } = harness();
+    const res = await route(post({ ...ESTIMATE, estimate_bedrooms: ESTIMATE_UNKNOWN, shown_cents: "8400", submission_id: sid(21) }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).not.toHaveProperty("cents");
+    expect(await stored(sid(21))).toMatchObject({ flow: "quote" });
+    expect((await stored(sid(21)))?.price).toBeUndefined();
+    expect(log.warn).not.toHaveBeenCalled();
+    // Only the need's own questions: an unknown answer to another need's is no answer at all.
+    await route(post({ job: "windows", estimate_bedrooms: ESTIMATE_UNKNOWN, submission_id: sid(22) }));
+    expect(await stored(sid(22))).toMatchObject({ flow: "fixed", price: { cents: 8900 } });
   });
 
   it("is a quote for a need the brand sells by quote, or does not list, and no flow at all for a callback", async () => {
