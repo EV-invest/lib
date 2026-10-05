@@ -24,6 +24,22 @@ Rust crate and its TypeScript mirror at once.
 
 ### Added
 
+- **`LeadCapture` one question a screen, and the compact form**
+  (`@evinvest/kitstart/react`). `layout="steps"` — the intro question, the
+  need, each estimate question, the postcode, the phone last; a thin bar,
+  "Retour", answered screens as chips; `lead_form_step` per screen; the same
+  screen on the server and after hydration, every screen posted, a noscript
+  style for the form without a script. `intro` (an answer posted as a brand's
+  extra, `channel: "callback"` cutting the form to the phone and its consent),
+  `localityStep`, `needDisplay` (`tiles` · `cards` with the brand's icons),
+  `questions` (`display: "cards"` with each answer's total, `badges`,
+  `shortLabels` (and `needs[].shortLabel`) for phones, `step` to share a
+  screen with a `next` button, `unknown` → "Je ne sais pas" (`unknownSpan`), a quote on the form and on the server via
+  `ESTIMATE_UNKNOWN`/`answeredUnknown`), `price="compact"` with `taxCredit`,
+  `afterPhone`, `channelsDisplay="row"` with `channelIcons`, `focusNext`, and
+  `?postcode=` prefilling the postcode. Opt-in: every existing prop renders as
+  in 0.13; `qualify-first` is unchanged. No lead schema change (`urgency` and
+  the like are a brand's `extras`).
 - **`ts_gen`** (`ev_lib` 0.24.1): the TS generator `ev_lib_gen` runs on, opened
   to downstream repos — `Ts::types::<T>()` (via `ts-rs`), `Ts::Value` (via
   serde), `Ts::write`. `Ts::Array`/`Ts::Scalar` folded into `Ts::Value`; the

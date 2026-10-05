@@ -208,8 +208,8 @@ it is the plain POST to `/quote` it always was.
   wire={LEAD.wire}
   needs={LEAD.subjects.map(s => ({ value: s, label: t.subjects[s] }))}
   text={{ ...LEAD_CAPTURE_TEXT[view.locale], submit: "…" }}
-  layout={arm === "b" ? "qualify-first" : "single"}
-  experiment={{ name: "lead_layout", variant: arm }}
+  layout={arm === "b" ? "steps" : "single"}
+  experiment={{ name: "lead_form", variant: arm }}
 />
 ```
 
@@ -217,9 +217,16 @@ it is the plain POST to `/quote` it always was.
 |---|---|
 | `place`, `contact` | the hours order the channels, the service area suggests the commune; `contact` is `contactOf(site, place)` — a `null` number is a channel not offered |
 | `locale`, `renderedAt` | the page's language; the render stamp (time trap, and "now" until the script runs) |
-| `wire`, `needs` | `site.lead.wire`; the subjects with their labels |
-| `need` | the need the page already knows — also set by `?need=` and by a tap on any `[data-need="…"]` element |
-| `layout` | `single` (default) · `qualify-first`: a tile per need, then the contact step |
+| `wire`, `needs` | `site.lead.wire`; the subjects with their labels, an `icon` each (any node, the brand's — the kit ships none) for `needDisplay="cards"`, and an optional `shortLabel` drawn on tiles under `sm` |
+| `need` | the need the page already knows — also set by `?need=` and by a tap on any `[data-need="…"]` element. `?postcode=` fills the postcode the same way |
+| `layout` | `single` (default) · `steps`: one question per screen — see [One question per screen](#one-question-per-screen-layoutsteps) · `qualify-first`: a tile per need, then the contact step (the two screens `steps` grew from, kept as they were) |
+| `needDisplay` | how the need is asked: `select` (default on `single`) · `tiles` (default otherwise) · `cards`, a grid with each need's `icon` |
+| `intro`, `localityStep` | `steps` only: a question before the need, posted as a brand's extra, whose answer may turn the form into a callback · the postcode on its own screen (`own`, default) or on the phone's (`with-phone`) |
+| `focusNext` | on one screen: after a choice the focus moves to the next empty field, and Enter in a field moves to the next empty one before it submits. Off by default; always so in `steps` |
+| `questions` | by estimate input id: `{ display?: "tiles" \| "cards", unknown?: true, unknownSpan?: 2, badges?: { [option]: text }, shortLabels?: { [option]: text }, step?: number, next?: string }` — see [The compact form](#the-compact-form) and [steps](#one-question-per-screen-layoutsteps) |
+| `price`, `taxCredit` | `box` (default) · `compact`: the price on one line, what is left after a tax credit of `taxCredit` (a ratio, `0.5`), the breakdown behind "Détail" |
+| `afterPhone` | a node right under the phone field: one line of reassurance |
+| `channelsDisplay`, `channelIcons` | the other ways out: `stack` (default, under `otherChannels`) · `row`, one row of compact buttons named by `otherChannels` · the brand's icon per channel (`phone`, `whatsapp`, `sms`, `callback`) |
 | `locality` | `required` (default) · `optional` |
 | `name` | `{ field, required? }`: a name field posted as the brand's extra; off by default |
 | `extras` | the brand's own fields, after the phone |
@@ -236,7 +243,7 @@ it is the plain POST to `/quote` it always was.
 | `bookingVariant` · `bookingEmbed` · `bookingAdapters` | the `booking_provider` variant that picks the place's provider · the providers' embeds (after cookie consent) rather than a new tab · the brand's adapters over the built-ins (from a client component) — see [Booking](#booking-manual-link-google_calendar-cal_com) |
 | `initialError` | `leadErrorOf(searchParams)` on a page that reads its query: the refusal a 303 brought back, drawn on the server by the card it names (`lead_card`) so the card says why without a script (see *Refusals*) |
 | `head`, `trust` | the brand's heading instead of the title; a slot beside the submit. Like `extras`, `done` and `booking`, any node, built on the server or not, and never asked for a `key`: each slot sits alone in a keyed fragment |
-| `className` · `classNames` | the root · its parts: `root`, `head`, `title`, `lede`, `form`, `contact`, `field`, `label`, `control` (every input, the need's select in both states, the callback's phone), `hint`, `error` (a refusal: under the field, or above the submit), `chips`, `chip`, `needs`, `need`, `summary`, `submit`, `trust`, `privacy`, `opening`, `others`, `channel`, `primary`, `callback`, `callbackSummary`, `callbackForm`, `callbackLede`, `callbackSubmit`, `consent`, `done`, and for the flows `estimate`, `estimateInput`, `estimateLegend`, `estimateGrid` (an input's answers: 2 columns, 3 from `sm`), `estimateOption` (an answer's tile), `price`, `priceTotal`, `breakdown`, `priceNote`, `photos`, `priced`, `pricedPrice`, `pricedNote`, and for the booking `booking`, `bookingCta`, `bookingNote`, `prefer`, `preferOption`, `preferSubmit` |
+| `className` · `classNames` | the root · its parts: `root`, `head`, `title`, `lede`, `form`, `contact`, `field`, `label`, `control` (every input, the need's select in both states, the callback's phone), `hint`, `error` (a refusal: under the field, or above the submit), `chips`, `chip`, `needs`, `need`, `summary`, `icon` (a need's or an intro answer's icon), `submit`, `trust`, `privacy` (not drawn when `text.privacy` is `""`), `opening`, `others`, `channel`, `channelIcon`, `primary`, `callback`, `callbackSummary`, `callbackForm`, `callbackLede`, `callbackSubmit`, `consent`, `done`, for `steps` `progress`, `stepBack`, `step` (each screen), `answers`, `answer` (the chips of the screens answered), `stepNext`, `intro`, `introOption`, and for the flows `estimate`, `estimateInput`, `estimateLegend`, `estimateGrid` (an input's answers: 2 columns, 3 from `sm`), `estimateOption` (an answer's tile), `estimateUnknown` (the "I don't know" tile, after `estimateOption`), `badge`, `optionPrice` (a card's total), `price`, `priceTotal`, `breakdown`, `priceNote`, `priceLine`, `priceTaxCredit`, `priceDetail` (`price="compact"`), `photos`, `priced`, `pricedPrice`, `pricedNote`, and for the booking `booking`, `bookingCta`, `bookingNote`, `prefer`, `preferOption`, `preferSubmit` |
 
 - **Taps.** A need the page knows is not asked again, and a place serving one
   commune fills it: focus the phone, type, send — two taps. `qualify-first`
@@ -325,7 +332,8 @@ it is the plain POST to `/quote` it always was.
   refused it, `false` the phone hint showed — the field's role, never its
   value), `lead_form_submit_error {reason, channel}` (`network` /
   `timeout`), `lead_form_step {step}`
-  (`contact` / `need`), each with `form_id`, `layout`, `experiment`,
+  (`contact` / `need` in `qualify-first`; in `steps` each screen moved to —
+  `intro`, `need`, `estimate_<input>`, `locality`, `phone`), each with `form_id`, `layout`, `experiment`,
   `variant`; `contact_intent_click {channel}` for `phone`, `whatsapp`, `sms`,
   `callback`, with the experiment; and on the server `lead_form_submit
   {form_id, channel}` and `lead_form_reject {form_id, channel, field,
@@ -334,6 +342,104 @@ it is the plain POST to `/quote` it always was.
   (157,287 → 166,361 B against its 158,000 B target: +5.3 %, a warning
   within the 20 % tolerance); the refusals and the shared phone rule are
   2.0 KB of it, sending (the id, the busy state, the retry) 0.6 KB.
+
+### One question per screen: `layout="steps"`
+
+```tsx
+<LeadCapture … layout="steps" needDisplay="cards" price="compact" taxCredit={0.5}
+  questions={{ surface: { unknown: true }, frequency: { display: "cards", badges: { biweekly: "Le plus avantageux" } } }}
+  intro={{ label: "C’est pour quand ?", field: "urgency", options: [
+    { value: "today", label: "Urgent — aujourd’hui", channel: "callback" },
+    { value: "week", label: "Cette semaine" },
+  ] }}
+  afterPhone={<p>Votre numéro reste entre nous — rappel sous 15 min.</p>} channelsDisplay="row" />
+```
+
+- **Screens.** The intro question when there is one; the need; each of the
+  estimate's questions; the postcode (`localityStep="own"`, the default, or
+  with the phone, `with-phone`); the phone, always last, with the price, the
+  name and the brand's extras and the submit. A tap answers and moves on
+  (from the keyboard the tiles are a radio group: arrows choose, Enter or
+  Space answers); the postcode moves on with "Continuer" or Enter. The
+  focus goes to the new screen's field — inside the tap when that is a typed
+  field, so iOS opens the keyboard.
+- **Over the screens** a thin bar (`progress`; the screen is read out as
+  `stepProgress`, "Étape 2/4", never drawn), "Retour" (`stepBack`), and the
+  screens answered as chips (`answers`, `answer`), each a tap back to its
+  screen with "Modifier" (`needChange`). The total counts the most screens
+  an answer to come could add (the longest estimate while the need is
+  open), so the bar only moves forward as the visitor answers; until the
+  intro is answered — its branches differ in length — no total is said
+  (`stepProgressOpen`, "Étape 1").
+- **Questions sharing a screen** (`questions: { bedrooms: { step: 1, next:
+  "Voir les prix" }, surface: { step: 1 } }`): questions with the same `step`
+  number are one screen. It moves on by itself once all are answered; until
+  then the focus goes to the next question, and the button (`next` of the
+  first, else `stepNext`) says which one is missing.
+- **Never asked twice.** A need the page knows (`need`, `?need=`, a
+  `[data-need]` card) and a postcode it knows (`?postcode=`, a place serving
+  one commune) are answered screens: a chip, not a question.
+- **The intro** (`intro: { label, field, options }`) is posted under `field`
+  — declare it in `site.lead.extras` (`{ name: "urgency", max: 16 }`) and it
+  is stored and mailed with the lead like any extra. An answer with
+  `channel: "callback"` cuts the form to the phone and the callback's
+  consent, posted as a callback lead (`channel=callback`, `callbackSubmit`);
+  the folded callback is then not offered a second time.
+- **A refusal** opens the screen of the field it is about (the phone's for
+  anything the form cannot place).
+- **Without a script** every screen is in the form, hidden but posted; a
+  `<noscript>` style shows them all at once and hides the bar, the back link,
+  the chips and "Continuer": the form posts as one, as `qualify-first` does.
+  The server draws the same screen the script starts on — no shift at
+  hydration.
+
+### The compact form
+
+Pieces any layout takes, for a card that fits a phone's screen:
+
+- **The price on one line** (`price="compact"`): `priceLine` ("Votre prix :
+  {price}" — a brand may write "≈ {price}"), then, with `taxCredit` (a ratio
+  of the price a tax credit gives back, `0.5` for the French *crédit
+  d'impôt*), what is left to pay (`priceTaxCredit`, `data-credit-cents`),
+  and the breakdown and `priceNote` behind a `<details>` ("Détail",
+  `priceDetail`). Read out as it changes, the line only.
+- **A question as cards** (`questions: { frequency: { display: "cards" } }`):
+  one answer a line, each with the total it would make given the other
+  answers (once they are given), and an optional `badges` tag per option.
+- **Short labels on a phone** (`needs[].shortLabel`, `questions[id].shortLabels`):
+  under `sm` the tile draws the short one; the radio stays named by the
+  whole label (`aria-label`, with the badge and the price).
+- **Badges are the brand's words** (`badges`): the kit marks nothing as
+  popular or cheapest by itself.
+- **"Je ne sais pas"** (`questions: { surface: { unknown: true, unknownSpan: 2 } }`) adds the
+  answer `estimateUnknown` to that question, posted as `ESTIMATE_UNKNOWN`
+  (`?` — never a slug, so never an option a model prices). The questions
+  after it are not asked, the price goes, and the lead is a `quote`: the
+  submit says `submit`, a quote need's photos ask shows, and the server
+  stores it as a quote too (`answeredUnknown`), without the warning a stale
+  answer logs.
+- **Need cards** (`needDisplay="cards"`): a grid of cards with each need's
+  `icon`; `tiles` a list without. Required either way: nothing is chosen
+  for the visitor, unlike the select's first need.
+- **One line under the phone** (`afterPhone`) — and `text.privacy: ""` drops
+  the kit's privacy line, so the reassurance is said once.
+- **The other channels in a row** (`channelsDisplay="row"`): one row of
+  compact buttons (call, WhatsApp, text, "Rappelez-moi" — its form on a line
+  of its own once open), named by `otherChannels` as a group, each with the
+  brand's `channelIcons`; a channel the place lacks is not drawn. Hiding the
+  row where a sticky call bar already offers the same (`classNames.others`)
+  is the brand's.
+- **`focusNext`** on one screen: after the need's select, a tile, or an
+  estimate's answer, the focus moves to the next empty field; Enter in a
+  typed field moves to the next empty one, and submits from the last.
+- **Words.** `estimateUnknown`, `priceLine`, `priceTaxCredit`, `priceDetail`,
+  `stepProgress`, `stepProgressOpen`, `stepBack`, `stepNext` are in `LEAD_CAPTURE_TEXT` and
+  optional in `LeadCaptureText`, falling back to the kit's in the page's
+  language (`flowTextOf`) — a brand's text from 0.13 still type-checks.
+- **Weight.** The steps, the tiles, the compact price and the focus ride
+  with `LeadCapture` whichever layout a page uses: about 9 KB gz of
+  first-load JS on the template's place page (170,375 → 179,430 B against
+  its 158,000 B target: +13.6 %, a warning within the 20 % tolerance).
 
 ### Form variants: quote, estimate, fixed
 
