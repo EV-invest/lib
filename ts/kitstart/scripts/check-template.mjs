@@ -16,12 +16,13 @@
 //   old version numbers; the range checks are skipped (loudly) and npm is
 //   told to ignore peers. Never the mode for a release.
 // --e2e: then the template's own Playwright suites for the lead form
-//   (`tests/e2e/quote-form.spec.ts`, `flows.spec.ts`) against the standalone
+//   (`tests/e2e/quote-form.spec.ts`, `flows.spec.ts`, `steps.spec.ts`) against the standalone
 //   build, its live source a stand-in panel (`mock-panel.mjs`) — the form
 //   posting without JavaScript and the kit's list with it, the estimate priced
 //   and re-priced by the server (a changed price confirmed, never recorded
 //   silently), its success offering the place's booking — Cal.com loaded on
-//   the click only, or a call with a preference. The runner is this
+//   the click only, or a call with a preference — and the prices page's form
+//   one question a screen. The runner is this
 //   package's `@playwright/test`, linked into `tests/e2e` as a brand's flake
 //   links its own; its browser must be installed (`npx playwright install
 //   chromium`). The section screenshots stay a brand's: their baselines are
@@ -169,7 +170,7 @@ async function quoteFormE2e() {
   run("npx", ["tsc", "--noEmit", "-p", "tests/e2e"]);
   const port = await freePort();
   const mock = await freePort();
-  run("node", [join(kitstart, "node_modules/@playwright/test/cli.js"), "test", "quote-form.spec.ts", "flows.spec.ts", "--reporter=line"], e2eDir, { E2E_PORT: String(port), E2E_MOCK_PORT: String(mock) });
+  run("node", [join(kitstart, "node_modules/@playwright/test/cli.js"), "test", "quote-form.spec.ts", "flows.spec.ts", "steps.spec.ts", "--reporter=line"], e2eDir, { E2E_PORT: String(port), E2E_MOCK_PORT: String(mock) });
 }
 
 try {
