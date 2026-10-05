@@ -1,5 +1,5 @@
 import { cn } from "@evinvest/uikit";
-import type { FormEventHandler, ReactNode } from "react";
+import type { FormEventHandler, KeyboardEventHandler, ReactNode } from "react";
 import { FORM_ID_FIELD, LOCALE_FIELD, LOCATION_FIELD } from "../core/accept";
 import { HONEYPOT_FIELD, RENDERED_AT_FIELD } from "../core/antispam";
 import { CARD_FIELD, SUBMISSION_FIELD } from "../core/lead";
@@ -32,6 +32,10 @@ export interface QuoteFormShellProps {
   className?: string;
   /** A script's own submit (an in-place success); the 303 stays the path without one. */
   onSubmit?: FormEventHandler<HTMLFormElement> | undefined;
+  /** A key in any field — `LeadCapture`'s Enter that moves to the next field. */
+  onKeyDown?: KeyboardEventHandler<HTMLFormElement> | undefined;
+  /** Bare `data-*` attributes on the form, for a stylesheet of the caller's. */
+  data?: Readonly<Record<`data-${string}`, string>> | undefined;
   children: ReactNode;
 }
 
@@ -39,9 +43,9 @@ export interface QuoteFormShellProps {
 export const PHONE_INPUT_PROPS = { type: "tel", inputMode: "tel", autoComplete: "tel" } as const;
 
 export function QuoteFormShell(props: QuoteFormShellProps) {
-  const { placeSlug, locale, renderedAt, honeypotLabel, formId = "quote", card, action = "/quote", id = "quote", className, onSubmit, children } = props;
+  const { placeSlug, locale, renderedAt, honeypotLabel, formId = "quote", card, action = "/quote", id = "quote", className, onSubmit, onKeyDown, children } = props;
   return (
-    <form id={id} method="post" action={action} onSubmit={onSubmit} className={cn("relative flex w-full flex-col gap-5", className)}>
+    <form id={id} method="post" action={action} onSubmit={onSubmit} onKeyDown={onKeyDown} {...props.data} className={cn("relative flex w-full flex-col gap-5", className)}>
       {placeSlug && <input type="hidden" name={LOCATION_FIELD} value={placeSlug} />}
       <input type="hidden" name={LOCALE_FIELD} value={locale} />
       <input type="hidden" name={FORM_ID_FIELD} value={formId} />
