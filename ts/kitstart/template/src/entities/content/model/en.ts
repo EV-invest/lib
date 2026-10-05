@@ -43,5 +43,12 @@ export const EN = {
   contactLabel: "Contact us",
   subjects: { standard: "Regular cleaning", deep: "Deep cleaning", other: "Other", recurring: "Recurring cleaning" },
   leadCapture: { ...LEAD_CAPTURE_TEXT.en, needLabel: "Service" },
+  estimateForm: {
+    title: "Your price in four questions",
+    lede: "One question at a time, the price at the end.",
+    when: { label: "When do you need it?", today: "Urgent — today", week: "This week", compare: "Just comparing" },
+    afterPhone: "Your number stays with us — a call back within 15 min.",
+    badge: "Best value",
+  },
   faqs: [{ q: "Can the price change?", a: "No: the price quoted is the price you pay." }],
 } satisfies Text;

@@ -32,6 +32,14 @@ export interface Text extends CoreText<PageKey, Facts> {
   subjects: Record<Subject, string>;
   /** The lead form's words: the kit's, with the brand's overrides spread over them. */
   leadCapture: LeadCaptureText;
+  /** The prices page's estimate, one question a screen: its heading, the intro question, the line under the phone. */
+  estimateForm: {
+    title: string;
+    lede: string;
+    when: { label: string; today: string; week: string; compare: string };
+    afterPhone: string;
+    badge: string;
+  };
   faqs: readonly { q: string; a: string }[];
 }
 

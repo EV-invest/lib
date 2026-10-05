@@ -22,7 +22,11 @@ export const PHOTO_NEEDS: readonly Subject[] = ["deep"];
 export const LEAD: LeadSchema<Subject> = {
   subjects: SUBJECTS,
   wire: { subject: "subject", locality: "locality", mobile: "mobile" },
-  extras: [{ name: "surface_m2", max: 6 }],
+  // `urgency`: the prices page's intro question (`today` | `week` | `compare`), kept with the lead.
+  extras: [
+    { name: "surface_m2", max: 6 },
+    { name: "urgency", max: 16 },
+  ],
   // One shape for the mail, the webhook and a dialler: `+33612345678`.
   mobileFormat: "e164",
   validate: validateLead,

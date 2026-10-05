@@ -43,5 +43,12 @@ export const FR = {
   contactLabel: "Nous contacter",
   subjects: { standard: "Ménage courant", deep: "Grand ménage", other: "Autre", recurring: "Ménage régulier" },
   leadCapture: { ...LEAD_CAPTURE_TEXT.fr, needLabel: "Prestation" },
+  estimateForm: {
+    title: "Votre prix en quatre questions",
+    lede: "Une question à la fois, le prix à la fin.",
+    when: { label: "C’est pour quand ?", today: "Urgent — aujourd’hui", week: "Cette semaine", compare: "Je compare" },
+    afterPhone: "Votre numéro reste entre nous — rappel sous 15 min.",
+    badge: "Le plus avantageux",
+  },
   faqs: [{ q: "Le prix peut-il changer ?", a: "Non : le prix annoncé est celui que vous payez." }],
 } satisfies Text;
