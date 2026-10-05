@@ -17,7 +17,11 @@
  * `./react`. It deliberately does **not** import `@evinvest/analytics`.
  */
 
+import { DEFAULT_COOKIE_PREFIX } from './generated/contract';
 import { hashRng } from './hash';
+
+/** The default cookie-name prefix, `ab_` (the Rust `cookie_name` contract). */
+export { DEFAULT_COOKIE_PREFIX } from './generated/contract';
 
 export { fnv1a32, hashRng, hashToUnit } from './hash';
 export {
@@ -109,9 +113,6 @@ export type Variant<
 export function cookieName(key: string, prefix: string = DEFAULT_COOKIE_PREFIX): string {
   return `${prefix}${key}`;
 }
-
-/** The default cookie-name prefix, `ab_` (the Rust `cookie_name` contract). */
-export const DEFAULT_COOKIE_PREFIX = 'ab_';
 
 /**
  * Cookie parameters shared by `./next` (`abProxy`, `getVariant`) and `./react`

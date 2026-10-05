@@ -17,8 +17,8 @@
 
 use super::{Experiment, pick_variant};
 
-const FNV_OFFSET_BASIS: u32 = 0x811c_9dc5;
-const FNV_PRIME: u32 = 0x0100_0193;
+pub const FNV_OFFSET_BASIS: u32 = 0x811c_9dc5;
+pub const FNV_PRIME: u32 = 0x0100_0193;
 /// `2^32` — divides a `u32` hash into `[0, 1)`; exactly representable in `f64`.
 const U32_RANGE: f64 = 4_294_967_296.0;
 

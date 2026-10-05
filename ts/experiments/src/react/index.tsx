@@ -26,10 +26,9 @@ import {
   type ExperimentKey,
   type Variant,
 } from '../index';
+import { COOKIE_MAX_AGE } from '../generated/contract';
 
 export type { AbCookieOptions, CaptureFn } from '../index';
-
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days, matches `./next`'s abProxy
 
 /**
  * Selects a React node by variant — {@link select} specialised to `ReactNode`.

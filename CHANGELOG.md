@@ -22,6 +22,20 @@ Rust crate and its TypeScript mirror at once.
 
 ## [Unreleased]
 
+### Added
+
+- **`ts_gen`** (`ev_lib` 0.24.1): the TS generator `ev_lib_gen` runs on, opened
+  to downstream repos — `Ts::types::<T>()` (via `ts-rs`), `Ts::Value` (via
+  serde), `Ts::write`. `Ts::Array`/`Ts::Scalar` folded into `Ts::Value`; the
+  lib's generated files are unchanged byte for byte.
+- **TS contract constants generated from Rust** (`@evinvest/experiments`,
+  `@evinvest/settings`, `@evinvest/analytics`): the FNV-1a seeds, the cookie
+  prefix and max-age, `PROFILE_VAR`/`DEFAULT_PROFILE`/`EX_CONFIG`, and PostHog's
+  US host come from `ev_lib` via `nix run .#gen`; the `settings` presets are
+  type-checked against the Rust presets' variable names. Exports unchanged.
+  New Rust consts: `experiments::{FNV_OFFSET_BASIS, FNV_PRIME, COOKIE_PREFIX,
+  COOKIE_MAX_AGE_SECS}`; `ts_gen::Ts::Union`.
+
 ### Fixed
 
 - **`Calendar` weekday headers stay on one line in `vi` and `he`**

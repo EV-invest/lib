@@ -23,10 +23,9 @@ import {
   type ExperimentKey,
   type Variant,
 } from '../index';
+import { COOKIE_MAX_AGE } from '../generated/contract';
 
 export type { AbCookieOptions } from '../index';
-
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
 /** Options for {@link getVariant}. Omitted = the plain cookie read. */
 export type GetVariantOptions = {

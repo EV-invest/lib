@@ -4,14 +4,9 @@
  */
 
 import { SettingsError } from './error';
+import { EX_CONFIG } from './generated/contract';
 
-/**
- * `EX_CONFIG` from `sysexits.h`: the process died because its configuration is
- * wrong, not because a dependency blipped. Restarting it unchanged cannot help
- * — which is exactly what an operator (and a CrashLoopBackOff triage) needs to
- * know.
- */
-export const EX_CONFIG = 78;
+export { EX_CONFIG } from './generated/contract';
 
 /**
  * Run a settings load; on {@link SettingsError} print every problem and exit

@@ -47,6 +47,9 @@
 //!   which is what turns `t!` sites into that catalogue. Reads the same
 //!   `messages/<locale>/*.json` as the TypeScript half, so a catalogue is
 //!   portable between them. See [`i18n`].
+//! - **`ts_gen`** — TypeScript emitted from Rust types (through `ts-rs`) and
+//!   values (through serde), for a repo's own `gen` step. Build-time only. See
+//!   [`ts_gen`].
 //! - **`kitstart`** — the pure core of a small-business landing (mirrors the core
 //!   of `@evinvest/kitstart`): the place model, the publication gate, request
 //!   routing, schema.org JSON-LD, `<head>` metadata, sitemap and robots, the
@@ -89,6 +92,9 @@ pub mod kitstart;
 
 #[cfg(feature = "settings")]
 pub mod settings;
+
+#[cfg(feature = "ts_gen")]
+pub mod ts_gen;
 
 #[cfg(feature = "types")]
 pub mod types;
