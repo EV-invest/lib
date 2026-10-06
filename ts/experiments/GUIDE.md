@@ -32,7 +32,9 @@ export const experiments = {
 There are no weights to declare: every variant gets an equal share (`team` is a
 third each). A split chosen at the declaration point is a guess; re-weighting is
 an operator's call, made without a deploy through overrides (below) — the only
-way weights reach a pick. `satisfies ExperimentConfig` rejects a `weights` key.
+way weights reach a pick. `satisfies ExperimentConfig` rejects a `weights` key,
+and one that slips in without it is ignored by `pickVariant` and dropped by
+`applyOverrides`.
 
 ## 2. Assign variants in a Next proxy
 
