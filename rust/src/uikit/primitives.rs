@@ -21,6 +21,7 @@ use dioxus::{
 	prelude::*,
 };
 
+type DismissFn = Rc<dyn Fn(DismissReason)>;
 /// Which edge of its anchor an overlay is placed against. Rendered as a
 /// `data-side` attribute so CSS positions and animates the overlay; the kit
 /// does not measure the viewport (the TS `useFloating` does).
@@ -224,15 +225,6 @@ pub fn use_roving_item(roving: RovingFocus, key: String) -> usize {
 	});
 	id
 }
-static NEXT_ROVING_ITEM_ID: AtomicUsize = AtomicUsize::new(0);
-
-struct RovingItem {
-	key: String,
-	/// Set on mount, so it stays `None` under SSR and on non-web renderers —
-	/// only [`RovingFocus::focus`] needs it, never the rendered markup.
-	el: Option<Rc<MountedData>>,
-}
-
 /// What dismissed a [`DismissableLayer`] — for a caller that treats keys and
 /// pointers apart (a Select hands focus back to its trigger after Escape, never
 /// after a click elsewhere). The mirror of the TS `DismissEvent`.
@@ -241,15 +233,6 @@ pub enum DismissReason {
 	Escape,
 	Outside,
 }
-
-type DismissFn = Rc<dyn Fn(DismissReason)>;
-
-/// The open layers of one `VirtualDom`, oldest first. Lives in the root scope,
-/// so every overlay in the tree shares it without a provider of the caller's.
-/// Not a signal: it is read only from event handlers, never to render.
-#[derive(Clone, Default)]
-struct LayerStack(Rc<RefCell<Vec<(usize, DismissFn)>>>);
-
 /// One overlay's place on the layer stack — the Rust side of the TS
 /// `useDismissableLayer`.
 ///
@@ -337,6 +320,21 @@ pub fn use_dismissable_layer(open: bool, on_dismiss: impl Fn(DismissReason) + 's
 	});
 	DismissableLayer { id, stack }
 }
+static NEXT_ROVING_ITEM_ID: AtomicUsize = AtomicUsize::new(0);
+
+struct RovingItem {
+	key: String,
+	/// Set on mount, so it stays `None` under SSR and on non-web renderers —
+	/// only [`RovingFocus::focus`] needs it, never the rendered markup.
+	el: Option<Rc<MountedData>>,
+}
+
+/// The open layers of one `VirtualDom`, oldest first. Lives in the root scope,
+/// so every overlay in the tree shares it without a provider of the caller's.
+/// Not a signal: it is read only from event handlers, never to render.
+#[derive(Clone, Default)]
+struct LayerStack(Rc<RefCell<Vec<(usize, DismissFn)>>>);
+
 static NEXT_LAYER_ID: AtomicUsize = AtomicUsize::new(0);
 
 /// Puts `items` into document order by their mounted elements — the order the

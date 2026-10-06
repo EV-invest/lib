@@ -5,6 +5,10 @@
 
 use std::collections::BTreeMap;
 
+/// What a variant's cookie name starts with, [`cookie_name`].
+pub const COOKIE_PREFIX: &str = "ab_";
+/// How long a variant's cookie keeps a visitor in it: 30 days.
+pub const COOKIE_MAX_AGE_SECS: u32 = 60 * 60 * 24 * 30;
 /// One experiment: an ordered set of `variants`, each drawn with an equal share.
 ///
 /// `variants[0]` is the control — [`resolve_variant`] falls back to it when a
@@ -88,11 +92,6 @@ impl Experiment {
 		}
 	}
 }
-
-/// What a variant's cookie name starts with, [`cookie_name`].
-pub const COOKIE_PREFIX: &str = "ab_";
-/// How long a variant's cookie keeps a visitor in it: 30 days.
-pub const COOKIE_MAX_AGE_SECS: u32 = 60 * 60 * 24 * 30;
 
 /// The cookie name a variant is stored under: `ab_<key>` (mirrors the TS
 /// `cookieName`).

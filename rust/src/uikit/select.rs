@@ -17,6 +17,8 @@ use crate::{
 
 // dep-light: inline positioning + backdrop; no portal/floating/drag — see README Limitations
 
+/// Keys typed within this long of each other build one type-ahead query.
+const TYPEAHEAD_MS: f64 = 500.0;
 #[component]
 pub fn Select(
 	value: Option<String>,
@@ -505,9 +507,6 @@ fn focus(el: Rc<MountedData>) {
 		let _ = el.set_focus(true).await;
 	});
 }
-
-/// Keys typed within this long of each other build one type-ahead query.
-const TYPEAHEAD_MS: f64 = 500.0;
 
 #[derive(Default)]
 struct Typeahead {

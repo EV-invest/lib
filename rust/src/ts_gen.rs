@@ -98,7 +98,7 @@ impl Ts {
 			Ts::Value { name, value: v @ Value::Array(_) } => writeln!(out, "export const {name} = {} as const;", literal(v)).unwrap(),
 			Ts::Value { name, value } => writeln!(out, "export const {name} = {};", literal(value)).unwrap(),
 			Ts::Union { name, ty, items } => {
-				writeln!(out, "export const {name} = {:?} as const;", items).unwrap();
+				writeln!(out, "export const {name} = {items:?} as const;").unwrap();
 				writeln!(out, "export type {ty} = (typeof {name})[number];").unwrap();
 			}
 			Ts::Table { name, ty, entries } => {
