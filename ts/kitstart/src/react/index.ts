@@ -37,7 +37,10 @@ export {
 } from "./booking-adapters";
 export { BOOKING_ACTION } from "./use-booking";
 export type { LeadSent } from "./use-lead-submit";
-export type { LeadCaptureLayout } from "./LeadCaptureNeed";
+export type { LeadCaptureLayout, LeadNeedDisplay, LeadNeedOption } from "./LeadCaptureNeed";
+export type { EstimateQuestion, EstimateQuestions } from "./LeadCaptureEstimate";
+export type { LeadIntro, LeadIntroOption } from "./lead-steps";
+export type { ChannelIconKey } from "./LeadCaptureChannels";
 export { MapFacade, type MapFacadePart, type MapFacadeProps } from "./MapFacade";
 export { PlaceDirectory, type PlaceDirectoryPart, type PlaceDirectoryProps } from "./PlaceDirectory";
 export { PHONE_INPUT_PROPS, QuoteFormShell, type QuoteFormShellProps } from "./QuoteFormShell";

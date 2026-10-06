@@ -83,7 +83,11 @@ export interface LeadCaptureText extends Partial<LeadCaptureFlowText> {
   honeypotLabel: string;
 }
 
-/** What the `estimate` and `fixed` flows, the photos ask and the booking print. */
+/**
+ * What the `estimate` and `fixed` flows, the photos ask and the booking
+ * print — and every word added since (the compact price, the steps): optional
+ * in `LeadCaptureText`, so a brand's text from before them still type-checks.
+ */
 export interface LeadCaptureFlowText {
   /** Heads the live price. */
   priceTitle: string;
@@ -131,6 +135,22 @@ export interface LeadCaptureFlowText {
   photosCta: string;
   /** The WhatsApp message, `{need}` the need's label. */
   photosMessage: string;
+  /** The answer an estimate's question may offer (`EstimateQuestion.unknown`): the lead becomes a quote. */
+  estimateUnknown: string;
+  /** `price="compact"`: the one line, `{price}` the total. */
+  priceLine: string;
+  /** `price="compact"` with a `taxCredit`: after the line, `{price}` what is left to pay. */
+  priceTaxCredit: string;
+  /** `price="compact"`: opens how the price was reached. */
+  priceDetail: string;
+  /** `layout="steps"`: the screen read out, `{n}` of `{total}` — never drawn, the bar is. */
+  stepProgress: string;
+  /** The same before the intro is answered, when how many screens follow is not known yet: `{n}` only. */
+  stepProgressOpen: string;
+  /** `layout="steps"`: back one screen. */
+  stepBack: string;
+  /** `layout="steps"`: on to the next screen, from a field that is typed (the postcode). */
+  stepNext: string;
 }
 
 const FR_FLOW: LeadCaptureFlowText = {
@@ -162,6 +182,14 @@ const FR_FLOW: LeadCaptureFlowText = {
   photosLede: "Pour ce besoin, quelques photos nous permettent de vous donner un prix juste.",
   photosCta: "Envoyer des photos sur WhatsApp",
   photosMessage: "Bonjour, voici des photos pour : {need}.",
+  estimateUnknown: "Je ne sais pas",
+  priceLine: "Votre prix : {price}",
+  priceTaxCredit: "{price} après crédit d’impôt",
+  priceDetail: "Détail",
+  stepProgress: "Étape {n}/{total}",
+  stepProgressOpen: "Étape {n}",
+  stepBack: "Retour",
+  stepNext: "Continuer",
 };
 
 const EN_FLOW: LeadCaptureFlowText = {
@@ -193,6 +221,14 @@ const EN_FLOW: LeadCaptureFlowText = {
   photosLede: "For this job, a few photos let us give you a fair price.",
   photosCta: "Send photos on WhatsApp",
   photosMessage: "Hello, here are photos for: {need}.",
+  estimateUnknown: "I don’t know",
+  priceLine: "Your price: {price}",
+  priceTaxCredit: "{price} after tax credit",
+  priceDetail: "Details",
+  stepProgress: "Step {n} of {total}",
+  stepProgressOpen: "Step {n}",
+  stepBack: "Back",
+  stepNext: "Continue",
 };
 
 const FR: LeadCaptureText = {

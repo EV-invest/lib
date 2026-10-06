@@ -92,3 +92,20 @@ export function useOpenOnHash(id: string): void {
     return () => window.removeEventListener("hashchange", open);
   }, [id]);
 }
+
+/** What `?postcode=` may carry into the form: a short postcode, letters for the few countries that use them, never more. */
+const POSTCODE_PARAM = /^[0-9A-Za-z][0-9A-Za-z -]{1,9}$/;
+
+/**
+ * The postcode the page already knows: `?postcode=` once the script runs (a
+ * cached page cannot read the query) — the link from an ad or a card that
+ * asked it already. Anything that does not read as a postcode is ignored.
+ */
+export function usePostcode(): string | undefined {
+  const [postcode, setPostcode] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const value = new URLSearchParams(window.location.search).get("postcode")?.trim();
+    if (value && POSTCODE_PARAM.test(value)) setPostcode(value);
+  }, []);
+  return postcode;
+}

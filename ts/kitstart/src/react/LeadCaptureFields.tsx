@@ -59,6 +59,8 @@ export function LocalityField(props: {
   /** The server's refusal of this field, in the page's words. */
   error: string | null;
   hydrated: boolean;
+  /** The postcode the page already knows (`?postcode=`), over the one the place fills in. */
+  preset?: string | undefined;
   classNames?: PartClassNames<FieldPart> | undefined;
 }) {
   const { name, label, servedLabel, served, optional, hydrated, classNames: c } = props;
@@ -82,7 +84,7 @@ export function LocalityField(props: {
         placeholder={props.placeholder}
         enterKeyHint="next"
         required={props.required}
-        defaultValue={served.length === 1 ? served[0] : undefined}
+        defaultValue={props.preset ?? (served.length === 1 ? served[0] : undefined)}
         data-lead-field="locality"
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? messageId : undefined}

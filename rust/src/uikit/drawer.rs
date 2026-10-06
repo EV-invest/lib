@@ -109,6 +109,7 @@ pub fn DrawerContent(#[props(default)] class: String, children: Element) -> Elem
 		}
 		div {
 			role: "dialog",
+			"aria-modal": "true",
 			class: cls,
 			"data-slot": "drawer-content",
 			"data-state": state,
@@ -215,6 +216,22 @@ mod tests {
 		assert!(html.contains("role=\"dialog\""), "{html}");
 		assert!(html.contains("data-vaul-drawer-direction=\"right\""), "{html}");
 		assert!(html.contains("Title"), "{html}");
+	}
+
+	#[test]
+	fn open_content_is_modal() {
+		fn app() -> Element {
+			rsx! {
+				Drawer { default_open: true,
+					DrawerContent { "body" }
+				}
+			}
+		}
+		let html = render(app);
+		let at = html.find("data-slot=\"drawer-content\"").expect("content rendered");
+		let tag = &html[html[..at].rfind('<').expect("opening tag")..at];
+		assert!(tag.contains("role=\"dialog\""), "{tag}");
+		assert!(tag.contains("aria-modal=\"true\""), "{tag}");
 	}
 
 	#[test]

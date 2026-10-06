@@ -56,6 +56,12 @@ test fixture's dark side does. EV does not pin it: a palette that sits on
 `:root` alone would be overridden by the derived rule inside every `.light`
 / `.dark` subtree, so EV's value is the formula's.
 
+**Label polarity is deliberately split.** White on a fill marks the one call to
+action, so it belongs to `primary` alone; `destructive`, `positive` and the five
+accents keep the dark `on-*` label. A Primary and a Destructive button side by
+side in a dialog footer read as two polarities on purpose — do not "fix" it by
+whitening the semantic fills.
+
 **What is the fill and what is the ink.** `bg-primary`, `text-on-primary`, the
 checked state of a Checkbox and a Switch, a selected Calendar day, a Toggle
 that is on and the `Primary` band are the fill. A link, an eyebrow, a checked Field outline, the

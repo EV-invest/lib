@@ -276,6 +276,7 @@ data-chart=\
 data-collapsible
 data-collapsible=\
 data-content
+data-content=\
 data-disabled
 data-disabled=\
 data-front

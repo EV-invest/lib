@@ -16,4 +16,4 @@ export {
 } from "./model";
 export { CENTS_BUCKETS, centsBucket, mulBp, priceOf, roundTo } from "./price";
 export { labelOf, parsePricingModel, PricingModelError, pricingProblems, pricingProblemsFor } from "./validate";
-export { ESTIMATE_FIELD_PREFIX, estimateField, flowOf, LEAD_FLOWS, readEstimateInputs, type LeadFlow, type LeadFlows } from "./flow";
+export { answeredUnknown, ESTIMATE_FIELD_PREFIX, ESTIMATE_UNKNOWN, estimateField, flowOf, LEAD_FLOWS, readEstimateInputs, type LeadFlow, type LeadFlows } from "./flow";
