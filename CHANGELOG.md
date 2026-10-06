@@ -24,6 +24,18 @@ Rust crate and its TypeScript mirror at once.
 
 ### Added
 
+- **`AbSwitcher`, the QA menu for A/B variants** (`@evinvest/kitstart/react`).
+  A chip in a corner (`data-ab-switcher`, placed by `className`) whose panel
+  lists each experiment's variants, the current one pressed; a tap is the
+  brand's own force parameter (`?ab_<key>=<value>`), no new server path.
+  "Reset" drops the `ab_<key>` assignments and the force parameters and keeps
+  the QA cookie; "Leave test" drops it too; minimize and hide last until the
+  next load. About 190 B gz of first load: after hydration it imports the
+  panel only outside production or for a visit with the QA cookie, so a
+  visitor never fetches it and the page stays static. The decisions are core
+  functions (`abSwitcherVisible`, `abVariantUrl`, `abReset`, `abAssignments`,
+  `cookieValue`). The template mounts it with a demo `lead_form` experiment
+  and an e2e of its own.
 - **`LeadCapture` one question a screen, and the compact form**
   (`@evinvest/kitstart/react`). `layout="steps"` — the intro question, the
   need, each estimate question, the postcode, the phone last; a thin bar,
