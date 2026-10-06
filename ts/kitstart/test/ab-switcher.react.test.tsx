@@ -114,6 +114,20 @@ describe("AbSwitcherPanel", () => {
     expect(within(form).getByRole("button", { name: "Compact" })).toHaveFocus();
   });
 
+  it("shows a test the proxy lists in <qaCookie>_off as not running, though its assignment cookie stays", async () => {
+    document.cookie = "ab_lead_form=b; path=/";
+    document.cookie = "ab_hero=a; path=/";
+    document.cookie = "ab__qa_off=lead_form; path=/";
+    const { AbSwitcherPanel } = await import("../src/react/AbSwitcherPanel");
+    render(<AbSwitcherPanel experiments={experiments} qaCookie="ab__qa" />);
+    expect(chip()).toHaveTextContent("A/B–a");
+    fireEvent.click(chip());
+    const form = screen.getByRole("group", { name: "Lead form" });
+    expect(form).toHaveTextContent("not running");
+    expect(within(form).getByRole("button", { name: "Steps" })).toBeDisabled();
+    expect(within(screen.getByRole("group", { name: "hero" })).getByRole("button", { name: "Photo" })).toBeEnabled();
+  });
+
   it("takes the assignments from current when given, disabling only what it leaves out", async () => {
     document.cookie = "ab_hero=b; path=/";
     const { AbSwitcherPanel } = await import("../src/react/AbSwitcherPanel");
