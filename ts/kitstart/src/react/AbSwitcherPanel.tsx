@@ -61,7 +61,7 @@ export function AbSwitcherPanel({ experiments, qaCookie, current, forceParam = A
       )}
       <Button ref={chip} variant="secondary" size="touch" icon={minimized} aria-label={t.title} aria-expanded={open} className={cn("shadow-md", !minimized && "gap-1.5 px-3")} onClick={() => { if (open) close(false); else { setOpen(true); setMinimized(false); } }}>
         <span className="font-semibold">A/B</span>
-        {!minimized && keys.map(k => <Badge key={k} variant="outline">{assigned[k] ?? "–"}</Badge>)}
+        {!minimized && keys.map(k => <Badge key={k} variant="outline" className="border-current/40 text-current">{assigned[k] ?? "–"}</Badge>)}
       </Button>
     </div>
   );
