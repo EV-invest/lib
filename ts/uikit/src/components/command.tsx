@@ -3,6 +3,7 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
+import { useDismissableLayer } from "../primitives/dismissable-layer";
 import { useFocusScope } from "../primitives/focus-scope";
 import { mergeRefs } from "../primitives/merge-refs";
 import { Portal } from "../primitives/portal";
@@ -262,6 +263,12 @@ export function CommandDialog({
     ...(onOpenChange ? { onChange: onOpenChange } : {}),
   });
   const scopeRef = useFocusScope(isOpen);
+  // Outside clicks stay with the overlay, as in Drawer: it is what "outside" means.
+  const dismissRef = useDismissableLayer({
+    enabled: isOpen,
+    onDismiss: () => setOpen(false),
+    pointerOutside: false,
+  });
   if (!isOpen) return null;
   return (
     <Portal>
@@ -274,10 +281,7 @@ export function CommandDialog({
         role="dialog"
         aria-modal="true"
         data-slot="command-dialog"
-        ref={scopeRef}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") setOpen(false);
-        }}
+        ref={mergeRefs(scopeRef, dismissRef)}
         className={cn(COMMAND_DIALOG_CONTENT, className)}
       >
         <Command className={COMMAND_DIALOG_COMMAND} shouldFilter={shouldFilter}>

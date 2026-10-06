@@ -291,8 +291,8 @@ export function SelectContent({
         onKeyDown={(e) => {
           if (onListKey(e)) return;
           if (e.key === "Escape") {
-            // The list's Escape is the list's: a Drawer or Dialog around it
-            // hears the key through React's tree, portal or not.
+            // The list's Escape is the list's: a consumer's `onKeyDown` around
+            // it hears the key through React's tree, portal or not.
             e.stopPropagation();
             close(true);
           } else if (e.key === "Tab") {
