@@ -513,10 +513,10 @@ fn d_toggle() -> Element {
 
 fn d_toggle_group() -> Element {
 	rsx! {
-		ToggleGroup { variant: ToggleVariant::Outline,
-			ToggleGroupItem { default_pressed: true, "Left" }
-			ToggleGroupItem { "Center" }
-			ToggleGroupItem { "Right" }
+		ToggleGroup { variant: ToggleVariant::Outline, default_value: vec!["left".to_string()],
+			ToggleGroupItem { value: "left", "Left" }
+			ToggleGroupItem { value: "center", "Center" }
+			ToggleGroupItem { value: "right", "Right" }
 		}
 	}
 }
