@@ -468,6 +468,52 @@ cn("p-4", "p-2"); // "p-2" — tailwind-merge resolves the conflict, rightmost w
 `cn` (clsx + tailwind-merge) is the mirror of the Rust `cn!` macro
 (`tailwind_fuse::tw_merge!`). A caller's `className`, passed last, beats the base.
 
+### Tables
+
+```tsx
+import { Table, TableBody, TableCard, TableCell, TableHead, TableHeader, TableRow } from "@evinvest/uikit";
+
+<TableCard>
+  <Table variant="card" density="compact">
+    <TableHeader>
+      <TableRow>
+        <TableHead>Key</TableHead>
+        <TableHead align="end">Amount</TableHead>
+      </TableRow>
+    </TableHeader>
+    <TableBody>
+      <TableRow>
+        <TableCell>sk_live_7f3a</TableCell>
+        <TableCell align="end">1,250.00</TableCell>
+      </TableRow>
+    </TableBody>
+  </Table>
+</TableCard>
+```
+
+- `variant="card"` — uppercase `text-xs tracking-wide text-ink-soft` head,
+  `px-5 py-3` cells, no hover on the head row. Meant to sit edge to edge in a
+  `TableCard`, the paddingless card surface.
+- `density="compact"` — shorter head and rows; combines with either variant.
+- `align="start" | "end"` on `TableHead` / `TableCell` — `end` right-aligns
+  with tabular numerals for figures. It replaces the obsolete HTML `align`
+  attribute on those two.
+- `Table` sets no context: `variant` and `density` are inherited `--table-*`
+  custom properties the heads and cells read. `Table` stays a Server
+  Component, and a cell's own `className` (`px-0`, `text-center`) still wins.
+- **`ListRows` / `ListRow` (TS-only)** — a table's phone form: label/value rows
+  split by hairlines, so the trailing columns are not scrolled off-screen.
+  `variant="card"` pads the rows for a `TableCard`; `ListRowLabel` /
+  `ListRowValue` compose a row by hand.
+
+```tsx
+<TableCard className="sm:hidden">
+  <ListRows variant="card">
+    <ListRow label="sk_live_7f3a" description="api · aquafix" value="2026-09-30" />
+  </ListRows>
+</TableCard>
+```
+
 ## Rust ↔ TS parity
 
 The Rust crate is the source of truth; this package preserves its _semantics_
@@ -605,7 +651,7 @@ measuring needs host-only `web-sys`). Known gaps:
   The lock-up is composed from `mark` + `brand` (display family) + `tagline`,
   or passed whole as `lockup`. Brand-coloured text reads `primary-ink`.
 - **TS-only for now:** `NativeSelect`, the `Field` id hand-off,
-  `SelectValue` labels, and the whole [app shell](#app-shell) (`AppShell`,
+  `SelectValue` labels, `ListRows` / `ListRow` (a table's phone form), and the whole [app shell](#app-shell) (`AppShell`,
   `ShellNav`, `BottomTabBar`, `NavBadge` / `NavDot`, `MobileAppBar`, `PageFrame` /
   `PageHeading` / `SectionLabel`, `SectionNav`, `ResourceError`, `SystemBanner`,
   `Settled`) — no Dioxus twin. Its CSS (the entrances, the markers, the motion

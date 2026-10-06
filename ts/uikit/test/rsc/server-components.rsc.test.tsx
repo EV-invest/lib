@@ -8,6 +8,7 @@ import { BreadcrumbLink } from "../../src/components/breadcrumb";
 import { Button } from "../../src/components/button";
 import { ButtonGroupText } from "../../src/components/button-group";
 import { Item } from "../../src/components/item";
+import { Table, TableBody, TableCard, TableCell, TableRow } from "../../src/components/table";
 
 // Runs under the `react-server` condition (see vitest.workspace.ts), the way
 // a Next Server Component renders: these modules carry no "use client", so
@@ -53,5 +54,27 @@ describe("server components with asChild render in a React Server Component", ()
   it("still fails loudly for a ref the caller really passed — that one needs a client component", async () => {
     const { errors } = await flight(<Button asChild ref={() => undefined}>{link}</Button>);
     expect(errors.join()).toMatch(/[Rr]efs? cannot be used|Functions cannot be passed/);
+  });
+});
+
+describe("tables render in a React Server Component", () => {
+  // `variant`/`density` travel as CSS custom properties, not context, so the
+  // whole card table stays on the server.
+  it("a card, compact table with an end-aligned cell", async () => {
+    const { payload, errors } = await flight(
+      <TableCard>
+        <Table variant="card" density="compact">
+          <TableBody>
+            <TableRow>
+              <TableCell align="end">1.00</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </TableCard>,
+    );
+    expect(errors).toEqual([]);
+    expect(payload).toContain('"data-variant":"card"');
+    expect(payload).toContain('"data-density":"compact"');
+    expect(payload).toContain("tabular-nums");
   });
 });
