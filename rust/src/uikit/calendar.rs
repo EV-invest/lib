@@ -75,6 +75,12 @@ impl CalendarDate {
 	/// near midnight a native host can be a day off its wall clock. Bare `wasm32`
 	/// without `wasm` has no clock (`SystemTime::now` panics there) and yields
 	/// `None`.
+	///
+	/// Server-rendered and hydrated: the server's UTC date and the browser's
+	/// local one differ near midnight (and across a month boundary), so the
+	/// opened month and `data-today` would not match on hydration — the same as
+	/// the TS `new Date()`. An SSR page passes `default_month` and `today`
+	/// explicitly, computed once.
 	pub fn today() -> Option<Self> {
 		#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
 		{
