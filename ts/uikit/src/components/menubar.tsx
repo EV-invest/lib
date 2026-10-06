@@ -5,7 +5,7 @@ import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
 import { Portal } from "../primitives/portal";
 import { useFloating } from "../primitives/use-floating";
-import { useDismissableLayer } from "../primitives/dismissable-layer";
+import { DismissableLayerScope, useDismissableLayer } from "../primitives/dismissable-layer";
 import { usePresence } from "../primitives/presence";
 import { useRovingFocus } from "../primitives/use-roving-focus";
 import { mergeRefs } from "../primitives/merge-refs";
@@ -148,7 +148,7 @@ export function MenubarContent({
         onKeyDown={onKeyDown}
         {...props}
       >
-        {children}
+        <DismissableLayerScope layer={dismissRef}>{children}</DismissableLayerScope>
       </div>
     </Portal>
   );

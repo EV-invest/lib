@@ -3,7 +3,7 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
-import { useDismissableLayer } from "../primitives/dismissable-layer";
+import { DismissableLayerScope, useDismissableLayer } from "../primitives/dismissable-layer";
 import { type InitialFocus, useFocusScope } from "../primitives/focus-scope";
 import { usePresence } from "../primitives/presence";
 import { mergeRefs } from "../primitives/merge-refs";
@@ -133,6 +133,7 @@ export function DialogContent({
     enabled: open,
     onDismiss: () => setOpen(false),
     exclude: [triggerRef],
+    modal: true,
   });
   React.useEffect(() => {
     if (!open) return;
@@ -155,7 +156,7 @@ export function DialogContent({
         className={cn(DIALOG_CONTENT, className)}
         {...(props as Record<string, unknown>)}
       >
-        {children}
+        <DismissableLayerScope layer={dismissRef}>{children}</DismissableLayerScope>
         {showCloseButton && (
           <button
             type="button"

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
-import { useDismissableLayer } from "../primitives/dismissable-layer";
+import { DismissableLayerScope, useDismissableLayer } from "../primitives/dismissable-layer";
 import { useFocusScope } from "../primitives/focus-scope";
 import { mergeRefs } from "../primitives/merge-refs";
 import { Portal } from "../primitives/portal";
@@ -385,14 +385,15 @@ export function DrawerContent({ className, children, ...props }: React.Component
     onClose: () => setOpen(false),
   });
 
-  // On the stack for Escape and so the layers below take a press in the panel
-  // as inside. Outside clicks stay with the scrim: it covers everything but
-  // the layers above, so a press on a toast or a nested Dialog's backdrop is
-  // not a click away from the Drawer.
+  // On the stack for Escape, and modal so the layers below ignore every press
+  // while it is open — its scrim included. Outside clicks stay with the scrim:
+  // it covers everything but the layers above, so a press on a toast or a
+  // nested Dialog's backdrop is not a click away from the Drawer.
   const dismissRef = useDismissableLayer({
     enabled: open,
     onDismiss: () => setOpen(false),
     pointerOutside: false,
+    modal: true,
   });
 
   if (!present) return null;
@@ -437,7 +438,7 @@ export function DrawerContent({ className, children, ...props }: React.Component
           data-slot="drawer-body"
           className={DRAWER_BODY}
         >
-          {children}
+          <DismissableLayerScope layer={dismissRef}>{children}</DismissableLayerScope>
         </div>
       </div>
     </Portal>

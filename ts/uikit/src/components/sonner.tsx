@@ -439,6 +439,9 @@ export function Toaster({
   return (
     <ol
       data-slot="toaster"
+      // LAYER_IGNORE_ATTR: a toast floats over every overlay without being
+      // part of one, and a press on it is no click away from the Dialog below.
+      data-dismissable-layer-ignore=""
       data-position={position}
       data-y-position={yPosition}
       data-stack=""

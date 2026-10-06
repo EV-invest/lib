@@ -3,7 +3,7 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
-import { useDismissableLayer } from "../primitives/dismissable-layer";
+import { DismissableLayerScope, useDismissableLayer } from "../primitives/dismissable-layer";
 import { usePresence } from "../primitives/presence";
 import { useRovingFocus } from "../primitives/use-roving-focus";
 import { mergeRefs } from "../primitives/merge-refs";
@@ -134,7 +134,7 @@ export function ContextMenuContent({ className, children, ...props }: React.Comp
           )}
           {...(props as Record<string, unknown>)}
         >
-          {children}
+          <DismissableLayerScope layer={dismissRef}>{children}</DismissableLayerScope>
         </div>
       </ContextMenuCloseContext.Provider>
     </Portal>

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
-import { useDismissableLayer } from "../primitives/dismissable-layer";
+import { DismissableLayerScope, useDismissableLayer } from "../primitives/dismissable-layer";
 import { useFocusScope } from "../primitives/focus-scope";
 import { mergeRefs } from "../primitives/merge-refs";
 import { Portal } from "../primitives/portal";
@@ -268,6 +268,7 @@ export function CommandDialog({
     enabled: isOpen,
     onDismiss: () => setOpen(false),
     pointerOutside: false,
+    modal: true,
   });
   if (!isOpen) return null;
   return (
@@ -285,7 +286,7 @@ export function CommandDialog({
         className={cn(COMMAND_DIALOG_CONTENT, className)}
       >
         <Command className={COMMAND_DIALOG_COMMAND} shouldFilter={shouldFilter}>
-          {children}
+          <DismissableLayerScope layer={dismissRef}>{children}</DismissableLayerScope>
         </Command>
       </div>
     </Portal>
