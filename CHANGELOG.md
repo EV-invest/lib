@@ -35,6 +35,16 @@ Rust crate and its TypeScript mirror at once.
   type-checked against the Rust presets' variable names. Exports unchanged.
   New Rust consts: `experiments::{FNV_OFFSET_BASIS, FNV_PRIME, COOKIE_PREFIX,
   COOKIE_MAX_AGE_SECS}`; `ts_gen::Ts::Union`.
+- **`Command` takes server-driven results** (`@evinvest/uikit`, #107).
+  `shouldFilter={false}` (on `Command` and `CommandDialog`; default `true`, as
+  in cmdk) turns the client filter off: every mounted `CommandItem` renders in
+  the caller's order and `CommandEmpty` counts mounted rows. The kit also gains
+  the keyboard it never had: focus stays in `CommandInput`, which points at the
+  highlighted row through `aria-activedescendant`; ArrowUp/ArrowDown/Home/End
+  move it past disabled rows, Enter fires that row's `onSelect`, hover moves
+  it too. The highlight sits on the first row until the user moves it, so
+  results that land after the keystroke put Enter on the top hit. TS only —
+  the Rust port still filters and has no keyboard.
 
 ### Fixed
 

@@ -43,6 +43,7 @@ import { TerminalDemo } from "./TerminalDemo";
 import { DrawerDemo } from "./DrawerDemo";
 import { BrandsDemo } from "./BrandsDemo";
 import { ShellDemo } from "./ShellDemo";
+import { CommandDemo } from "./CommandDemo";
 
 const POSITIONS: ToastPosition[] = [
   "top-left",
@@ -277,6 +278,10 @@ export default function App() {
                 Drawdowns and exposure, kept legible.
               </TabsContent>
             </Tabs>
+          </Section>
+
+          <Section title="Command" hint="server-driven: rows arrive 600ms after typing; arrows + Enter pick">
+            <CommandDemo />
           </Section>
 
           <Section title="Tooltip">
