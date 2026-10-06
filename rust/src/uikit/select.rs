@@ -10,7 +10,7 @@ use crate::{
 	cn,
 	uikit::{
 		SELECT_CONTENT_BOUNDS, SELECT_ITEM, Size,
-		primitives::{Controllable, DismissReason, text_of, use_controllable, use_dismissable_layer, use_stable_id},
+		primitives::{Controllable, DismissReason, sort_into_document_order, text_of, use_controllable, use_dismissable_layer, use_stable_id},
 		select_trigger_size_class,
 	},
 };
@@ -130,6 +130,13 @@ pub fn SelectContent(#[props(default)] class: String, children: Element) -> Elem
 	// where it would land on the trigger for a moment and fire its blur on the way out.
 	let layer = use_dismissable_layer(open, move |reason| ctx.close(reason == DismissReason::Escape));
 	if !open {
+		// A caller's controlled `open: false` closes the list without
+		// `SelectCtx::close`; an option left active would stop the next open
+		// from landing, and focus would stay on the trigger.
+		let mut active = ctx.active;
+		if active.peek().is_some() {
+			active.set(None);
+		}
 		return rsx! {};
 	}
 	let cls = cn!(
@@ -192,6 +199,10 @@ pub fn SelectItem(
 	let on_focus = {
 		let value = value.clone();
 		move |_| {
+			// A click on a disabled row still focuses it; Enter must not then choose it.
+			if disabled {
+				return;
+			}
 			let mut active = ctx.active;
 			if active.peek().as_deref() != Some(value.as_str()) {
 				active.set(Some(value.clone()));
@@ -285,9 +296,17 @@ impl SelectCtx {
 		}
 	}
 
-	/// The values of the options the keys can reach, in order.
+	/// The options the keys can reach, as `(value, lowercased label)`, in the
+	/// order on screen.
+	fn reachable(&self) -> Vec<(String, String)> {
+		let options = self.options.peek();
+		let mut reachable: Vec<&SelectOption> = options.values().filter(|o| !o.disabled).collect();
+		sort_into_document_order(&mut reachable, |o| o.el.as_ref());
+		reachable.into_iter().map(|o| (o.value.clone(), o.label.to_lowercase())).collect()
+	}
+
 	fn enabled(&self) -> Vec<String> {
-		self.options.peek().values().filter(|o| !o.disabled).map(|o| o.value.clone()).collect()
+		self.reachable().into_iter().map(|(value, _)| value).collect()
 	}
 
 	/// Where opening lands: the chosen option, else the first, as a native
@@ -323,9 +342,13 @@ impl SelectCtx {
 	/// Arrows, Home, End, Enter, Space, Tab and type-ahead on the open list.
 	fn on_list_key(&self, e: &KeyboardEvent) {
 		let key = e.key();
-		let enabled = self.enabled();
+		let (enabled, labels): (Vec<String>, Vec<String>) = self.reachable().into_iter().unzip();
 		let current = self.active.peek().clone().or_else(|| self.landing());
 		let at = current.as_ref().and_then(|c| enabled.iter().position(|v| v == c));
+		// Only an option the keys can reach is chosen — never a disabled one.
+		let chosen = at.map(|at| enabled[at].clone());
+		let now = now_ms();
+		let typing = self.typed.peek().is_typing(now);
 		let last = enabled.len().checked_sub(1);
 		let to = match (&key, last) {
 			(Key::ArrowDown, Some(last)) => Some(at.map_or(0, |at| if at == last { 0 } else { at + 1 })),
@@ -334,14 +357,15 @@ impl SelectCtx {
 			(Key::End, Some(last)) => Some(last),
 			(Key::Enter, _) => {
 				e.prevent_default();
-				if let Some(value) = current {
+				if let Some(value) = chosen {
 					self.choose(value);
 				}
 				return;
 			}
-			(Key::Character(c), _) if c == " " => {
+			// Mid-query a space is part of the name ("united s"), as in Radix.
+			(Key::Character(c), _) if c == " " && !typing => {
 				e.prevent_default();
-				if let Some(value) = current {
+				if let Some(value) = chosen {
 					self.choose(value);
 				}
 				return;
@@ -360,15 +384,8 @@ impl SelectCtx {
 					return;
 				}
 				e.prevent_default();
-				let labels: Vec<String> = {
-					let options = self.options.peek();
-					enabled
-						.iter()
-						.map(|v| options.values().find(|o| o.value == *v).map(|o| o.label.to_lowercase()).unwrap_or_default())
-						.collect()
-				};
 				let mut typed = self.typed;
-				let query = typed.write().push(ch, now_ms());
+				let query = typed.write().push(ch, now);
 				typeahead_match(&labels, at, &query)
 			}
 			_ => return,
@@ -430,6 +447,11 @@ struct Typeahead {
 	at: Option<f64>,
 }
 impl Typeahead {
+	/// Whether a query is under way: something typed, within the window.
+	fn is_typing(&self, now: Option<f64>) -> bool {
+		!self.text.is_empty() && matches!((now, self.at), (Some(now), Some(at)) if now - at <= TYPEAHEAD_MS)
+	}
+
 	/// Adds `ch` to the query, starting a new one after a pause — or on every
 	/// key where there is no clock, which still leaves a repeated letter cycling.
 	fn push(&mut self, ch: char, now: Option<f64>) -> String {
@@ -483,7 +505,7 @@ mod tests {
 	use super::*;
 	use crate::uikit::{
 		Dialog, DialogContent,
-		test_util::{render, render_after_click, render_after_keydown, render_after_keys},
+		test_util::{Step, render, render_after_click, render_after_keydown, render_after_keys, render_after_steps},
 	};
 
 	#[test]
@@ -788,5 +810,79 @@ mod tests {
 		assert_eq!(typeahead_match(&labels, Some(2), "b"), Some(1), "wraps past the end");
 		assert_eq!(typeahead_match(&labels, Some(1), "ba"), Some(1), "a word stays while it matches");
 		assert_eq!(typeahead_match(&labels, Some(0), "z"), None);
+	}
+
+	#[test]
+	fn a_focused_disabled_option_is_not_chosen_by_enter() {
+		fn app() -> Element {
+			rsx! {
+				Select { default_open: true,
+					SelectTrigger {
+						SelectValue { placeholder: "Pick".to_string() }
+					}
+					SelectContent {
+						SelectItem { value: "apple", "Apple" }
+						SelectItem { value: "banana", disabled: true, "Banana" }
+					}
+				}
+			}
+		}
+		// A click on a disabled row still focuses it; the sweep focuses it last.
+		let html = render_after_steps(app, &[Step::Focus, Step::Key(Key::Enter)]);
+		assert_eq!(shown(&html), "apple", "{html}");
+		let html = render_after_steps(app, &[Step::Focus, Step::Key(ch(" "))]);
+		assert_eq!(shown(&html), "apple", "{html}");
+	}
+
+	#[test]
+	fn closing_from_outside_lets_the_next_open_land_again() {
+		fn app() -> Element {
+			let mut open = use_signal(|| false);
+			rsx! {
+				// Stands in for the caller closing the list through its own state.
+				div {
+					onkeydown: move |e| {
+						if e.key() == Key::F2 {
+							open.set(false);
+						}
+					},
+				}
+				Select { open: open(), on_open_change: move |v| open.set(v),
+					SelectTrigger {
+						SelectValue { placeholder: "Pick".to_string() }
+					}
+					SelectContent {
+						SelectItem { value: "apple", "Apple" }
+						SelectItem { value: "banana", "Banana" }
+					}
+				}
+			}
+		}
+		let steps = [Step::Key(Key::ArrowDown), Step::Focus, Step::Key(Key::F2), Step::Key(Key::ArrowDown), Step::Key(Key::Enter)];
+		let html = render_after_steps(app, &steps);
+		assert_eq!(shown(&html), "apple", "the reopened list lands on the first option, not the stale one: {html}");
+	}
+
+	#[test]
+	fn space_inside_a_typeahead_query_is_part_of_it() {
+		fn app() -> Element {
+			rsx! {
+				Select {
+					SelectTrigger {
+						SelectValue { placeholder: "Pick".to_string() }
+					}
+					SelectContent {
+						SelectItem { value: "apple", "Apple" }
+						SelectItem { value: "uk", "United Kingdom" }
+						SelectItem { value: "us", "United States" }
+					}
+				}
+			}
+		}
+		let mut keys = vec![Key::ArrowDown];
+		keys.extend("united s".chars().map(|c| ch(&c.to_string())));
+		keys.push(Key::Enter);
+		let html = render_after_keys(app, &keys);
+		assert_eq!(shown(&html), "us", "{html}");
 	}
 }

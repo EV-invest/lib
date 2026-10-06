@@ -339,6 +339,57 @@ pub fn use_dismissable_layer(open: bool, on_dismiss: impl Fn(DismissReason) + 's
 }
 static NEXT_LAYER_ID: AtomicUsize = AtomicUsize::new(0);
 
+/// Puts `items` into document order by their mounted elements — the order the
+/// user sees, which a keyed re-sort or a row inserted above the others makes
+/// differ from the order the items first registered in.
+///
+/// Only the web renderer can compare two elements' places; elsewhere (SSR,
+/// desktop) and while any item has not mounted yet, the order is left as is.
+pub(crate) fn sort_into_document_order<T>(items: &mut [T], el: impl Fn(&T) -> Option<&Rc<MountedData>>) {
+	sort_by_position(items, |a, b| match (el(a), el(b)) {
+		(Some(a), Some(b)) => document_precedes(a, b),
+		_ => None,
+	});
+}
+
+/// A stable insertion sort that gives up — leaving `items` untouched — the
+/// first time `precedes` cannot place a pair. Insertion, not `sort_by`: the
+/// comparison comes from the DOM, and a detached node must not be able to
+/// break the total order `sort_by` may panic without.
+fn sort_by_position<T>(items: &mut [T], precedes: impl Fn(&T, &T) -> Option<bool>) {
+	for i in 0..items.len() {
+		for j in i + 1..items.len() {
+			if precedes(&items[i], &items[j]).is_none() {
+				return;
+			}
+		}
+	}
+	for i in 1..items.len() {
+		let mut j = i;
+		while j > 0 && precedes(&items[j], &items[j - 1]) == Some(true) {
+			items.swap(j, j - 1);
+			j -= 1;
+		}
+	}
+}
+
+/// Whether `a` comes before `b` in the document; `None` where the renderer
+/// cannot tell.
+#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+fn document_precedes(a: &MountedData, b: &MountedData) -> Option<bool> {
+	use web_sys::Node;
+	let (a, b) = (a.downcast::<web_sys::Element>()?, b.downcast::<web_sys::Element>()?);
+	let position = a.compare_document_position(b);
+	if position & Node::DOCUMENT_POSITION_DISCONNECTED != 0 {
+		return None;
+	}
+	Some(position & Node::DOCUMENT_POSITION_FOLLOWING != 0)
+}
+#[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
+fn document_precedes(_: &MountedData, _: &MountedData) -> Option<bool> {
+	None
+}
+
 /// The text `children` would render, as far as it can be read off the vnode —
 /// the Rust side of the DOM's `textContent` for a type-ahead or a label. A
 /// child component's text is invisible (knowing it would mean rendering it),
@@ -457,6 +508,33 @@ mod tests {
 		let html = render_after_click(popover_in_dialog);
 		assert!(!html.contains("data-slot=\"popover-content\""), "{html}");
 		assert!(html.contains("role=\"dialog\""), "the dialog's scrim hands the click to the popover: {html}");
+	}
+
+	/// `(registration id, place on screen)`; the sort sees only the place.
+	fn by_place(items: &mut [(usize, Option<usize>)]) {
+		sort_by_position(items, |a, b| Some(a.1? < b.1?));
+	}
+
+	#[test]
+	fn a_keyed_resort_walks_in_document_order() {
+		// Registered Apple (0), Apricot (1); re-sorted to Apricot above Apple.
+		let mut items = [(0, Some(1)), (1, Some(0))];
+		by_place(&mut items);
+		assert_eq!(items.map(|i| i.0), [1, 0]);
+	}
+
+	#[test]
+	fn a_row_inserted_above_the_mounted_ones_comes_first() {
+		let mut items = [(0, Some(1)), (1, Some(2)), (2, Some(0))];
+		by_place(&mut items);
+		assert_eq!(items.map(|i| i.0), [2, 0, 1]);
+	}
+
+	#[test]
+	fn an_unplaced_item_keeps_registration_order() {
+		let mut items = [(0, Some(1)), (1, None), (2, Some(0))];
+		by_place(&mut items);
+		assert_eq!(items.map(|i| i.0), [0, 1, 2]);
 	}
 
 	#[test]

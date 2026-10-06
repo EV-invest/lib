@@ -91,8 +91,10 @@ Rust crate and its TypeScript mirror at once.
 - **Rust `Select` from the keyboard** (`ev_lib` `uikit`, #161): ArrowDown or
   ArrowUp on the trigger opens the list; opening focuses the chosen option
   (else the first); ArrowUp/ArrowDown/Home/End move between options (wrapping,
-  skipping `disabled` ones), Enter or Space chooses, and letters type ahead (a
-  repeated letter cycles). Escape and a choice close the list and hand focus
+  skipping `disabled` ones; on the web in the order on screen, so a re-sorted
+  or newly inserted option is walked where it shows), Enter or Space chooses
+  (never a disabled option, even a focused one), and letters type ahead (a
+  repeated letter cycles; a space inside a query is part of it). Escape and a choice close the list and hand focus
   back to the trigger; Tab and a click outside close it and leave focus where
   it went. The trigger carries `aria-haspopup="listbox"` and, while open,
   `aria-controls` naming the listbox. `SelectItem` takes `disabled` and

@@ -79,6 +79,35 @@ pub fn render_after_keys(app: fn() -> Element, keys: &[Key]) -> String {
 	dioxus_ssr::render(&dom)
 }
 
+/// One sweep of [`render_after_steps`].
+pub enum Step {
+	Key(Key),
+	Focus,
+}
+
+/// Sweeps each step at every mounted element and renders after it — for a
+/// sequence that mixes keys with focus moves.
+pub fn render_after_steps(app: fn() -> Element, steps: &[Step]) -> String {
+	let mut dom = mount(app);
+	for step in steps {
+		match step {
+			Step::Key(key) => sweep(&mut dom, "keydown", || {
+				Box::new(dioxus::html::SerializedKeyboardData::new(
+					key.clone(),
+					Code::Unidentified,
+					Location::Standard,
+					false,
+					Modifiers::empty(),
+					false,
+				))
+			}),
+			Step::Focus => sweep(&mut dom, "focus", || Box::new(dioxus::html::SerializedFocusData::default())),
+		}
+		dom.render_immediate(&mut dioxus::dioxus_core::NoOpMutations);
+	}
+	dioxus_ssr::render(&dom)
+}
+
 /// Fires a `click` at every mounted element, then renders — for asserting what
 /// survives a click when only some of the clicked elements may act on it.
 pub fn render_after_click(app: fn() -> Element) -> String {
