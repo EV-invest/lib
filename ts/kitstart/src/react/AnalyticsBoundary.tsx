@@ -14,16 +14,6 @@ import { newSubmissionId } from "./use-lead-submit";
 const INTENT_ATTR = "data-intent";
 const INTENTS: readonly IntentChannel[] = ["form_open", "booking", "sms", "callback"];
 
-/**
- * Whether the QA cookie is set with a value. Its own copy, not `ab-gate`'s:
- * a module shared with `AbSwitcher` makes Turbopack split it into a chunk of
- * its own, which costs every visitor more than these lines.
- */
-const qaVisit = (name: string) => document.cookie.split(";").some(c => {
-  const eq = c.indexOf("=");
-  return eq > 0 && c.slice(0, eq).trim() === name && c.slice(eq + 1).trim() !== "";
-});
-
 function source(): string {
   const utm = new URLSearchParams(window.location.search).get("utm_source");
   if (utm) return utm.slice(0, 64);
@@ -48,9 +38,10 @@ export interface AnalyticsBoundaryProps {
   placeSlug: string | null;
   /**
    * The cookie the brand's force parameter sets (`AbSwitcher`'s `qaCookie`).
-   * A visit carrying it is a test: its page views and intents say
+   * A visit carrying it is a test: every event through the boundary's sink —
+   * page views, intents, the lead form's funnel and booking — says
    * `forced: true`, so the QA menu's reloads do not count as a place's
-   * traffic. Read in the browser at each event, never on the server.
+   * traffic. Read in the browser at each event (`analyticsSink`).
    */
   qaCookie?: string;
   children: ReactNode;
@@ -62,30 +53,26 @@ export function AnalyticsBoundary({ target, placeSlug, qaCookie, children }: Ana
   // One visitor for the boundary's life, in memory only: a sink rebuilt for
   // another place keeps it, and a lead posted from the page can name it.
   const [distinctId] = useState(newSubmissionId);
-  const sink = useMemo(() => analyticsSink({ key, host, brandId }, placeSlug, distinctId), [key, host, brandId, placeSlug, distinctId]);
+  const sink = useMemo(() => analyticsSink({ key, host, brandId }, placeSlug, distinctId, qaCookie), [key, host, brandId, placeSlug, distinctId, qaCookie]);
   const pathname = usePathname();
-  // Spread into an event: `{}` without the cookie, so a brand that never
-  // passes `qaCookie` sends exactly what it sent before.
-  const forced = () => (qaCookie && qaVisit(qaCookie) ? { forced: true } : {});
 
   useEffect(() => {
     if (!countsAsPageView(pathname)) return;
     sink.capture(EVENTS.pageView, {
       source: source(),
       device: window.matchMedia("(max-width: 767px)").matches ? "mobile" : "desktop",
-      ...forced(),
     });
-  }, [sink, pathname, qaCookie]);
+  }, [sink, pathname]);
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
       const el = event.target instanceof Element ? event.target.closest(`[${INTENT_ATTR}]`) : null;
       const channel = el?.getAttribute(INTENT_ATTR);
-      if (channel && INTENTS.some(i => i === channel)) sink.capture(EVENTS.intent, { channel, ...experimentOf(el), ...forced() }, { transport: "beacon" });
+      if (channel && INTENTS.some(i => i === channel)) sink.capture(EVENTS.intent, { channel, ...experimentOf(el) }, { transport: "beacon" });
     };
     document.addEventListener("click", onClick, { capture: true });
     return () => document.removeEventListener("click", onClick, { capture: true });
-  }, [sink, qaCookie]);
+  }, [sink]);
 
   // A link inside an experiment's island (`LeadCapture`) carries the
   // assignment on itself, which is what the tracker reads.
@@ -94,7 +81,7 @@ export function AnalyticsBoundary({ target, placeSlug, qaCookie, children }: Ana
       <AnalyticsSinkContext.Provider value={sink}>
         <ContactLinkTracker
           channels={["phone", "whatsapp"]}
-          onContact={({ channel, data }) => sink.capture(EVENTS.intent, { channel, ...experimentProps(data["experiment"], data["variant"]), ...forced() }, { transport: "beacon" })}
+          onContact={({ channel, data }) => sink.capture(EVENTS.intent, { channel, ...experimentProps(data["experiment"], data["variant"]) }, { transport: "beacon" })}
         >
           {children}
         </ContactLinkTracker>

@@ -233,6 +233,7 @@ export {
   EVENTS,
   EXPERIMENT_SLUG,
   experimentProps,
+  qaVisit,
   type AnalyticsTarget,
   type IntentChannel,
   type LeadField,
