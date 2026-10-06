@@ -6,16 +6,18 @@
 //! Overlays therefore render inline with `position: fixed`, a full-screen
 //! backdrop for outside-dismiss, CSS-only placement via [`Side`], and the
 //! browser's native focus order. See the README "Limitations". The primitives
-//! that port cleanly — controlled/uncontrolled state, roving focus — live here.
+//! that port cleanly — controlled/uncontrolled state, roving focus, the stack
+//! of dismissable layers — live here.
 
 use std::{
+	cell::RefCell,
 	collections::BTreeMap,
 	rc::Rc,
 	sync::atomic::{AtomicUsize, Ordering},
 };
 
 use dioxus::{
-	dioxus_core::{DynamicNode, TemplateNode},
+	dioxus_core::{DynamicNode, TemplateNode, provide_root_context},
 	prelude::*,
 };
 
@@ -231,6 +233,223 @@ struct RovingItem {
 	el: Option<Rc<MountedData>>,
 }
 
+/// What dismissed a [`DismissableLayer`] — for a caller that treats keys and
+/// pointers apart (a Select hands focus back to its trigger after Escape, never
+/// after a click elsewhere). The mirror of the TS `DismissEvent`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DismissReason {
+	Escape,
+	Outside,
+}
+
+type DismissFn = Rc<dyn Fn(DismissReason)>;
+
+/// The open layers of one `VirtualDom`, oldest first. Lives in the root scope,
+/// so every overlay in the tree shares it without a provider of the caller's.
+/// Not a signal: it is read only from event handlers, never to render.
+#[derive(Clone, Default)]
+struct LayerStack(Rc<RefCell<Vec<(usize, DismissFn)>>>);
+
+/// One overlay's place on the layer stack — the Rust side of the TS
+/// `useDismissableLayer`.
+///
+/// Layers stack in the order they opened, and Escape or a click outside only
+/// ever dismisses the topmost one: a Select's list inside a Dialog closes the
+/// list, not the Dialog. The kit renders overlays inline, so a key or a click
+/// meant for the top layer can reach a lower one — the Escape from a field of
+/// the Dialog while its Popover is open, a click on the Dialog's own scrim
+/// below the list. A lower layer that hears one hands it to the top instead of
+/// acting on it itself.
+///
+/// Unlike the TS hook there is no document listener (that needs `web-sys`):
+/// only a key that reaches some open layer's `onkeydown` dismisses anything,
+/// and "outside" is whatever full-screen backdrop the overlay renders.
+#[derive(Clone)]
+pub struct DismissableLayer {
+	id: usize,
+	stack: LayerStack,
+}
+impl DismissableLayer {
+	/// Handles Escape for this layer's `onkeydown`: when this layer is open the
+	/// key is consumed (so no layer below hears it) and the topmost layer is
+	/// dismissed. A closed layer leaves the key alone, for the layer around it.
+	pub fn on_keydown(&self, e: &KeyboardEvent) -> bool {
+		if e.key() != Key::Escape || !self.is_open() {
+			return false;
+		}
+		e.stop_propagation();
+		self.dismiss_top(DismissReason::Escape);
+		true
+	}
+
+	/// A click on this layer's backdrop: dismisses the topmost layer, which is
+	/// this one unless another opened above it.
+	pub fn on_outside(&self) {
+		self.dismiss_top(DismissReason::Outside);
+	}
+
+	/// Whether no layer is open above this one (and this one is open).
+	pub fn is_top(&self) -> bool {
+		self.stack.0.borrow().last().is_some_and(|(id, _)| *id == self.id)
+	}
+
+	fn is_open(&self) -> bool {
+		self.stack.0.borrow().iter().any(|(id, _)| *id == self.id)
+	}
+
+	fn dismiss_top(&self, reason: DismissReason) {
+		// Cloned out so the dismiss callback may render or re-enter the stack
+		// without a live borrow.
+		let top = self.stack.0.borrow().last().map(|(_, f)| f.clone());
+		if let Some(dismiss) = top {
+			dismiss(reason);
+		}
+	}
+}
+
+/// Puts the calling overlay on the layer stack while `open`, calling
+/// `on_dismiss` when it is the top layer and Escape or an outside click
+/// arrives.
+///
+/// The stack follows renders, not handlers: a layer that closes itself stays
+/// on top until it re-renders closed, so the Escape that closed it cannot also
+/// close the layer below on its way up.
+pub fn use_dismissable_layer(open: bool, on_dismiss: impl Fn(DismissReason) + 'static) -> DismissableLayer {
+	let id = use_hook(|| NEXT_LAYER_ID.fetch_add(1, Ordering::Relaxed));
+	let stack = use_hook(|| try_consume_context::<LayerStack>().unwrap_or_else(|| provide_root_context(LayerStack::default())));
+	{
+		let mut layers = stack.0.borrow_mut();
+		let at = layers.iter().position(|(layer, _)| *layer == id);
+		match (open, at) {
+			// The callback is refreshed in place: re-pushing would move a layer
+			// that merely re-rendered above the ones opened after it.
+			(true, Some(at)) => layers[at].1 = Rc::new(on_dismiss),
+			(true, None) => layers.push((id, Rc::new(on_dismiss))),
+			(false, Some(at)) => {
+				layers.remove(at);
+			}
+			(false, None) => {}
+		}
+	}
+	use_drop({
+		let stack = stack.clone();
+		move || stack.0.borrow_mut().retain(|(layer, _)| *layer != id)
+	});
+	DismissableLayer { id, stack }
+}
+static NEXT_LAYER_ID: AtomicUsize = AtomicUsize::new(0);
+
+/// Puts `items` into document order by their mounted elements — the order the
+/// user sees, which a keyed re-sort or a row inserted above the others makes
+/// differ from the order the items first registered in.
+///
+/// Only the web renderer can compare two elements' places; elsewhere (SSR,
+/// desktop) and while any item has not mounted yet, the order is left as is.
+pub(crate) fn sort_into_document_order<T: Clone>(items: &mut [T], el: impl Fn(&T) -> Option<&Rc<MountedData>>) {
+	sort_by_position(
+		items,
+		|item| el(item).is_some_and(|el| is_placed(el)),
+		|a, b| match (el(a), el(b)) {
+			(Some(a), Some(b)) => document_precedes(a, b),
+			_ => false,
+		},
+	);
+}
+
+/// Sorts `items` by `precedes` when every item is `placed`, leaving them as they
+/// are otherwise — O(n) `placed` checks, then O(n) comparisons for a list already
+/// in order and O(n log n) for one that is not. Each comparison is a call into
+/// the DOM, so an n² pass over a long list would stall every key.
+///
+/// A merge sort of our own rather than `sort_by`: `sort_by` may panic on an
+/// order that is not total, and a DOM comparison is one only while every node
+/// is in the document — this one stays a permutation whatever `precedes` says.
+pub(crate) fn sort_by_position<T: Clone>(items: &mut [T], placed: impl Fn(&T) -> bool, precedes: impl Fn(&T, &T) -> bool) {
+	if !items.iter().all(&placed) {
+		return;
+	}
+	if items.windows(2).all(|pair| !precedes(&pair[1], &pair[0])) {
+		return;
+	}
+	merge_sort(items, &precedes);
+}
+
+fn merge_sort<T: Clone>(items: &mut [T], precedes: &impl Fn(&T, &T) -> bool) {
+	if items.len() < 2 {
+		return;
+	}
+	let mid = items.len() / 2;
+	merge_sort(&mut items[..mid], precedes);
+	merge_sort(&mut items[mid..], precedes);
+	let mut merged = Vec::with_capacity(items.len());
+	let (mut i, mut j) = (0, mid);
+	while i < mid && j < items.len() {
+		// Strictly before, so equals keep their order: the sort is stable.
+		if precedes(&items[j], &items[i]) {
+			merged.push(items[j].clone());
+			j += 1;
+		} else {
+			merged.push(items[i].clone());
+			i += 1;
+		}
+	}
+	merged.extend_from_slice(&items[i..mid]);
+	merged.extend_from_slice(&items[j..]);
+	items.clone_from_slice(&merged);
+}
+
+/// Whether the renderer can place `el` in the document: the web renderer, for
+/// an element that is still connected.
+#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+fn is_placed(el: &MountedData) -> bool {
+	el.downcast::<web_sys::Element>().is_some_and(|el| el.is_connected())
+}
+#[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
+fn is_placed(_: &MountedData) -> bool {
+	false
+}
+
+/// Whether `a` comes before `b` in the document. Only asked of placed elements.
+#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+fn document_precedes(a: &MountedData, b: &MountedData) -> bool {
+	match (a.downcast::<web_sys::Element>(), b.downcast::<web_sys::Element>()) {
+		(Some(a), Some(b)) => a.compare_document_position(b) & web_sys::Node::DOCUMENT_POSITION_FOLLOWING != 0,
+		_ => false,
+	}
+}
+#[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
+fn document_precedes(_: &MountedData, _: &MountedData) -> bool {
+	false
+}
+
+/// The text `children` would render, as far as it can be read off the vnode —
+/// the Rust side of the DOM's `textContent` for a type-ahead or a label. A
+/// child component's text is invisible (knowing it would mean rendering it),
+/// so a caller with one should pass the text explicitly.
+pub(crate) fn text_of(children: &Element) -> String {
+	let mut out = String::new();
+	if let Ok(node) = children {
+		vnode_text(node, &mut out);
+	}
+	out
+}
+fn vnode_text(node: &VNode, out: &mut String) {
+	for root in node.template.roots.iter() {
+		template_text(node, root, out);
+	}
+}
+fn template_text(node: &VNode, template: &TemplateNode, out: &mut String) {
+	match template {
+		TemplateNode::Element { children, .. } => children.iter().for_each(|c| template_text(node, c, out)),
+		TemplateNode::Text { text } => out.push_str(text),
+		TemplateNode::Dynamic { id } => match node.dynamic_nodes.get(*id) {
+			Some(DynamicNode::Text(text)) => out.push_str(&text.value),
+			Some(DynamicNode::Fragment(nodes)) => nodes.iter().for_each(|n| vnode_text(n, out)),
+			Some(DynamicNode::Component(_) | DynamicNode::Placeholder(_)) | None => {}
+		},
+	}
+}
+
 /// Whether a `transitionend` is the element's own exit `transform` finishing.
 ///
 /// Every exiting overlay (toast, drawer) stays mounted with
@@ -288,7 +507,117 @@ fn dynamic_has_content(node: &DynamicNode) -> bool {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::uikit::test_util::render;
+	use crate::uikit::{
+		Dialog, DialogContent, Popover, PopoverContent, PopoverTrigger,
+		test_util::{render, render_after_click, render_after_keys},
+	};
+
+	fn popover_in_dialog() -> Element {
+		rsx! {
+			Dialog { default_open: true,
+				DialogContent { show_close_button: false,
+					Popover { default_open: true,
+						PopoverTrigger { "more" }
+						PopoverContent { "panel" }
+					}
+				}
+			}
+		}
+	}
+
+	#[test]
+	fn escape_goes_to_the_top_layer_even_from_a_lower_one() {
+		// The sweep reaches the dialog's own `onkeydown` as well as the popover's.
+		let html = render_after_keys(popover_in_dialog, &[Key::Escape]);
+		assert!(!html.contains("data-slot=\"popover-content\""), "{html}");
+		assert!(html.contains("role=\"dialog\""), "the dialog below stays: {html}");
+		let html = render_after_keys(popover_in_dialog, &[Key::Escape, Key::Escape]);
+		assert!(!html.contains("role=\"dialog\""), "the next Escape is the dialog's: {html}");
+	}
+
+	#[test]
+	fn a_click_on_a_lower_scrim_dismisses_the_top_layer() {
+		let html = render_after_click(popover_in_dialog);
+		assert!(!html.contains("data-slot=\"popover-content\""), "{html}");
+		assert!(html.contains("role=\"dialog\""), "the dialog's scrim hands the click to the popover: {html}");
+	}
+
+	/// `(registration id, place on screen)`; the sort sees only the place.
+	fn by_place(items: &mut [(usize, Option<usize>)]) {
+		sort_by_position(items, |i| i.1.is_some(), |a, b| a.1 < b.1);
+	}
+
+	#[test]
+	fn a_keyed_resort_walks_in_document_order() {
+		// Registered Apple (0), Apricot (1); re-sorted to Apricot above Apple.
+		let mut items = [(0, Some(1)), (1, Some(0))];
+		by_place(&mut items);
+		assert_eq!(items.map(|i| i.0), [1, 0]);
+	}
+
+	#[test]
+	fn a_row_inserted_above_the_mounted_ones_comes_first() {
+		let mut items = [(0, Some(1)), (1, Some(2)), (2, Some(0))];
+		by_place(&mut items);
+		assert_eq!(items.map(|i| i.0), [2, 0, 1]);
+	}
+
+	#[test]
+	fn an_unplaced_item_keeps_registration_order() {
+		let mut items = [(0, Some(1)), (1, None), (2, Some(0))];
+		by_place(&mut items);
+		assert_eq!(items.map(|i| i.0), [0, 1, 2]);
+	}
+
+	#[test]
+	fn the_document_sort_asks_n_log_n_comparisons_not_n_squared() {
+		use std::cell::Cell;
+		let n = 1000;
+		let calls = Cell::new(0_usize);
+		let count = |a: &usize, b: &usize| {
+			calls.set(calls.get() + 1);
+			a < b
+		};
+		let mut in_order: Vec<usize> = (0..n).collect();
+		sort_by_position(&mut in_order, |_| true, count);
+		assert_eq!(calls.get(), n - 1, "a list already in order costs one pass");
+		calls.set(0);
+		// A keyed re-sort that reverses the list: the worst case for the old insertion sort.
+		let mut reversed: Vec<usize> = (0..n).rev().collect();
+		sort_by_position(&mut reversed, |_| true, count);
+		assert_eq!(reversed, (0..n).collect::<Vec<_>>());
+		assert!(calls.get() < 2 * n * 10, "{} comparisons for {n} items", calls.get());
+	}
+
+	#[test]
+	fn the_document_sort_is_stable_and_survives_an_inconsistent_order() {
+		let mut items = [(0, 1), (1, 0), (2, 1), (3, 0)];
+		sort_by_position(&mut items, |_| true, |a, b| a.1 < b.1);
+		assert_eq!(items.map(|i| i.0), [1, 3, 0, 2]);
+		// A comparison that is no order at all still leaves a permutation, never a panic.
+		let mut items: Vec<usize> = (0..50).collect();
+		sort_by_position(&mut items, |_| true, |a, b| (a * 7 + b * 3) % 5 == 0);
+		items.sort_unstable();
+		assert_eq!(items, (0..50).collect::<Vec<_>>());
+	}
+
+	#[test]
+	fn a_closed_layer_leaves_escape_to_the_one_around_it() {
+		fn app() -> Element {
+			rsx! {
+				Dialog { default_open: true,
+					DialogContent { show_close_button: false,
+						Popover {
+							PopoverTrigger { "more" }
+							PopoverContent { "panel" }
+						}
+					}
+				}
+			}
+		}
+		let html = render_after_keys(app, &[Key::Escape]);
+		assert!(!html.contains("role=\"dialog\""), "{html}");
+	}
 
 	#[test]
 	fn has_content_sees_through_empty_children() {
@@ -317,6 +646,14 @@ mod tests {
 		assert!(has_content(&rsx! { {text} }));
 		assert!(has_content(&rsx! { span {} }));
 		assert!(has_content(&rsx! { Child {} }));
+	}
+
+	#[test]
+	fn text_of_reads_static_and_dynamic_text() {
+		let name = String::from("Blue");
+		assert_eq!(text_of(&rsx! { "Apple" }), "Apple");
+		assert_eq!(text_of(&rsx! { span { {name} } " berry" }), "Blue berry");
+		assert_eq!(text_of(&rsx! {}), "");
 	}
 
 	#[test]

@@ -120,7 +120,7 @@ pub use terminal::{
 };
 pub use textarea::Textarea;
 pub use toggle::{Toggle, toggle_classes};
-pub use toggle_group::{ToggleGroup, ToggleGroupItem};
+pub use toggle_group::{ToggleGroup, ToggleGroupItem, ToggleGroupType};
 
 // Tier C — overlay/portal components. Glob-exported (each module's public
 // surface is its components + variant enums). Rust overlays are dep-light:

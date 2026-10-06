@@ -1,4 +1,14 @@
+import { useState } from "react";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
   Button,
   Command,
   CommandEmpty,
@@ -43,7 +53,10 @@ function DialogWithMenu() {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Position</DialogTitle>
-          <DialogDescription>Open the menu, then Escape: the menu goes, the dialog stays.</DialogDescription>
+          <DialogDescription>
+            Open the menu, then Escape: the menu goes, the dialog stays. Raise a toast and click it: the dialog
+            stays.
+          </DialogDescription>
         </DialogHeader>
         <div className="flex flex-wrap gap-2">
           <DropdownMenu>
@@ -114,12 +127,80 @@ function DrawerWithSelect() {
   );
 }
 
+function AlertOverDialog() {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">AlertDialog over Dialog</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Position</DialogTitle>
+          <DialogDescription>
+            Delete, then click the dimmed area around the confirmation: it closes, this dialog stays.
+          </DialogDescription>
+        </DialogHeader>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" className="self-start">
+              Delete
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete the position?</AlertDialogTitle>
+              <AlertDialogDescription>The dialog behind is not touched by a click on this backdrop.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Keep</AlertDialogCancel>
+              <AlertDialogAction>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Both layers mount open in one commit: the Popover must still sit above the Dialog. */
+function OpenedTogether() {
+  // A new key remounts the pair, so `defaultOpen` opens both again on each press.
+  const [round, setRound] = useState(0);
+  return (
+    <>
+      <Button variant="outline" onClick={() => setRound((r) => r + 1)}>
+        defaultOpen parent+child
+      </Button>
+      {round > 0 && (
+        <Dialog key={round} defaultOpen>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Opened together</DialogTitle>
+              <DialogDescription>Escape closes the popover first, the dialog on the next.</DialogDescription>
+            </DialogHeader>
+            <Popover defaultOpen>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="self-start">
+                  Details
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent>Opened in the dialog's own commit.</PopoverContent>
+            </Popover>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
+  );
+}
+
 /** Nested overlays: each Escape and each click away should close one layer, the top one. */
 export function LayersDemo() {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <DialogWithMenu />
       <DrawerWithSelect />
+      <AlertOverDialog />
+      <OpenedTogether />
     </div>
   );
 }

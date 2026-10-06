@@ -621,21 +621,31 @@ measuring needs host-only `web-sys`). Known gaps:
   no viewport-measured floating, native focus order (no trap). TS overlays use a
   real `Portal`, single-flip `useFloating` (absolute in the document, so it
   scrolls with the page natively), `useDismissableLayer`, and `useFocusScope`.
-- **overlay layers (TS):** every TS overlay is on one dismissable-layer stack,
-  in the order the layers opened. Escape closes the layer that was on top when
-  it was pressed — a menu, `Select` or `Popover` inside a `Dialog`, `Sheet` or
-  `Drawer` closes first, the modal on the next Escape — and a press inside a
-  layer above is not "outside" the ones below. `Drawer` and `CommandDialog`
-  are on the stack for Escape but close on a click on their own scrim, not on
-  any outside pointer-down. Toasts are not layers: they never take Escape. Not
-  yet handled (#162, step 2):
-  - a layer opened in the same commit as its parent (`defaultOpen` on both, or
-    one shared `open` state) sits *below* it — Escape closes the parent first;
-  - a modal's backdrop is not part of the modal: a click on the backdrop of an
-    `AlertDialog`, `Sheet` or `Drawer` opened over a `Dialog` closes both, and
-    a click on a toast closes an open `Dialog`;
-  - the stack is per module copy: a micro-frontend bundling its own uikit has
-    its own stack, blind to the host's layers.
+- **overlay layers (TS):** every TS overlay is on one dismissable-layer stack.
+  A layer rendered inside another sits above it, even when both open in the
+  same commit; unrelated layers stack in the order they opened. Escape closes
+  the layer that was on top when it was pressed — a menu, `Select` or
+  `Popover` inside a `Dialog`, `Sheet` or `Drawer` closes first, the modal on
+  the next Escape — and a press inside a layer above is not "outside" the
+  ones below. A modal (`Dialog`, `AlertDialog`, `Sheet`, `Drawer`,
+  `CommandDialog`) bars the layers below from pointer-downs while it is open:
+  a click on its backdrop closes it alone. `Drawer` and `CommandDialog` close
+  on a click on their own scrim, not on any outside pointer-down. Toasts are
+  outside every layer: they never take Escape, and a click on one closes
+  nothing. The stack is shared through `globalThis`, so a micro-frontend
+  bundling its own uikit copy sees the host's layers; parent links are a
+  React context, so across two copies the nested layer's place falls back to
+  opening order. A non-uikit overlay joins through `useDismissableLayer`
+  (`modal`, `pointerOutside`) and `DismissableLayerScope`; mark a floating
+  region that should dismiss nothing with `LAYER_IGNORE_ATTR`.
+- **overlay layers (Rust):** `Select`, `Popover`, `Dialog` and `DropdownMenu`
+  share one dismissable-layer stack per `VirtualDom`
+  (`primitives::use_dismissable_layer`): Escape and a click on a backdrop act
+  on the top layer only, so a `Select` inside a `Dialog` closes first. There is
+  no document listener — an Escape counts only once it reaches an open layer's
+  `onkeydown` — and `AlertDialog`, `Sheet`, `Drawer`, `ContextMenu`, `Menubar`,
+  `NavigationMenu`, `HoverCard`, `Tooltip`, `InfoTip`, `DateTimePicker`,
+  `CommandDialog` and `DropdownMenuSub` are not on the stack yet.
 - **chart:** the recharts plotting engine is not bundled. `ChartContainer` is a
   themed SVG host (emits `--color-*` from its config); `ChartTooltipContent` /
   `ChartLegendContent` are presentational and take explicit items. Draw series

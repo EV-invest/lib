@@ -3,7 +3,7 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
-import { useDismissableLayer } from "../primitives/dismissable-layer";
+import { DismissableLayerScope, useDismissableLayer } from "../primitives/dismissable-layer";
 import { usePresence } from "../primitives/presence";
 import { mergeRefs } from "../primitives/merge-refs";
 import { Slot } from "../primitives/slot";
@@ -162,7 +162,7 @@ export function NavigationMenuContent({ className, children, ...props }: React.C
       )}
       {...props}
     >
-      {children}
+      <DismissableLayerScope layer={dismissRef}>{children}</DismissableLayerScope>
     </div>
   );
 }

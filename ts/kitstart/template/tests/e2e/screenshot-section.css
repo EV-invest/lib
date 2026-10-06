@@ -3,3 +3,9 @@
 #callbar {
   display: none !important;
 }
+
+/* The QA menu (`AbSwitcher`) rides the viewport too, and only a test visit
+ * sees it: never part of a section. */
+[data-ab-switcher] {
+  display: none !important;
+}

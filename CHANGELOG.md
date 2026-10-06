@@ -24,6 +24,28 @@ Rust crate and its TypeScript mirror at once.
 
 ### Added
 
+- **A test visit's analytics say so** (`@evinvest/kitstart/react`):
+  `AnalyticsBoundary` takes an optional `qaCookie` — pass `AbSwitcher`'s. With
+  that cookie set (non-empty), `location_page_view` and both
+  `contact_intent_click` paths carry `forced: true`, so the QA menu's reloads
+  stop counting as a place's traffic; `forced` joins `ALLOWED_PROPS`. Read in
+  the browser per event; without the prop or the cookie the events are
+  unchanged, no `forced` key. About 50 B gz of first load on the template,
+  which passes `ab__qa`.
+
+- **`ToggleGroup` owns its selection** (`ev_lib` `uikit`, #193), as the TS port
+  does: `r#type` (`ToggleGroupType::Single` — the default — or `Multiple`),
+  controlled `value: Vec<String>` / uncontrolled `default_value` and
+  `on_value_change: EventHandler<Vec<String>>`. Both types use a `Vec`; a
+  single group holds at most one entry, and pressing its selected item clears
+  it. `ToggleGroupItem` takes a `value` and reads its pressed state from the
+  group. Source-compatible: an item without a `value` keeps its own
+  `pressed`/`default_pressed`/`on_pressed_change`. Behaviour change: an item's
+  `variant`/`size` are now optional and default to the group's (an explicit
+  one still wins), so items in a `ToggleGroup { variant: Outline }` render
+  outlined where they used to fall back to `Bare`. Migration from hand-driven
+  items: move the selection onto the group and give each item a `value`.
+
 - **Card tables** (`ev_lib` `uikit` and `@evinvest/uikit`, #187): `Table`
   takes `variant` (`TableVariant::Card` — uppercase `text-xs tracking-wide
   text-ink-soft` head, `px-5 py-3` cells, no head-row hover) and `density`
@@ -41,6 +63,18 @@ Rust crate and its TypeScript mirror at once.
   `TableCellProps`, and the TS-only `ListRows`/`ListRow`/`ListRowLabel`/
   `ListRowValue` (a table's phone form; shipped in 0.26.0's `dist/` but not
   reachable from the barrel). The example app mounts a Tables section.
+- **`AbSwitcher`, the QA menu for A/B variants** (`@evinvest/kitstart/react`).
+  A chip in a corner (`data-ab-switcher`, placed by `className`) whose panel
+  lists each experiment's variants, the current one pressed; a tap is the
+  brand's own force parameter (`?ab_<key>=<value>`), no new server path.
+  "Reset" drops the `ab_<key>` assignments and the force parameters and keeps
+  the QA cookie; "Leave test" drops it too; minimize and hide last until the
+  next load. About 190 B gz of first load: after hydration it imports the
+  panel only outside production or for a visit with the QA cookie, so a
+  visitor never fetches it and the page stays static. The decisions are core
+  functions (`abSwitcherVisible`, `abVariantUrl`, `abReset`, `abAssignments`,
+  `cookieValue`). The template mounts it with a demo `lead_form` experiment
+  and an e2e of its own.
 - **`LeadCapture` one question a screen, and the compact form**
   (`@evinvest/kitstart/react`). `layout="steps"` — the intro question, the
   need, each estimate question, the postcode, the phone last; a thin bar,
@@ -101,6 +135,39 @@ Rust crate and its TypeScript mirror at once.
   `aria-disabled`. New `should_filter` on `Command` and `CommandDialog`
   (default `true`): `false` renders every mounted row and `CommandEmpty` counts
   mounted rows, for results the caller filters itself.
+- **Rust `Select` from the keyboard** (`ev_lib` `uikit`, #161): ArrowDown or
+  ArrowUp on the trigger opens the list; opening focuses the chosen option
+  (else the first); ArrowUp/ArrowDown/Home/End move between options (wrapping,
+  skipping `disabled` ones; on the web in the order on screen, so a re-sorted
+  or newly inserted option is walked where it shows), Enter or Space chooses
+  (never a disabled option, even a focused one), and letters type ahead (a
+  repeated letter cycles; a space inside a query is part of it). Escape and a choice close the list and hand focus
+  back to the trigger; Tab and a click outside close it and leave focus where
+  it went. The trigger carries `aria-haspopup="listbox"` and, while open,
+  `aria-controls` naming the listbox. `SelectItem` takes `disabled` and
+  `text_value` (what type-ahead matches; defaults to the text of its children).
+- **Escape and outside clicks reach only the top Rust overlay** (`ev_lib`
+  `uikit`, #161): new `primitives::use_dismissable_layer`, the mirror of the TS
+  dismissable-layer stack. `Select`, `Popover`, `Dialog` and `DropdownMenu` are
+  on it — an Escape or a scrim click inside a `Dialog` closes the `Select` or
+  `Popover` open above it, not the `Dialog`. Other Rust overlays are listed in
+  the uikit README Limitations.
+- **`AbSwitcher` Reset and Leave test reload a page reached by an anchor**
+  (`@evinvest/kitstart`). On `/fr#quote` with no force parameter the reset
+  URL was the page itself, so `location.replace` only scrolled: the cookies
+  were dropped but nothing reloaded, and after Leave test the page kept
+  sending events without the QA mark. `abReset` now drops the hash.
+
+- **Menu arrow keys stay on the real items** (`@evinvest/uikit`, #209).
+  `DropdownMenu` and `ContextMenu` bounded their roving focus by a hardcoded
+  64, so End moved to a non-existent item and ArrowDown past the last item
+  piled up a hidden index that later ArrowUp presses had to walk back. The
+  bound is now the number of mounted, enabled menu items, read at keydown, so
+  End lands on the last item, arrows wrap and disabled items are skipped.
+  `MenubarContent` counted its children (separators and labels included) and
+  never moved focus; it now focuses items the same way. `useRovingFocus`
+  accepts `count` as a getter (`() => number`) read only on keydown, and
+  clamps a stale index when the item set shrinks.
 
 - **Escape and outside clicks reach only the top overlay layer**
   (`@evinvest/uikit`, #162 step 1). `Drawer` and `CommandDialog` join the
@@ -114,6 +181,21 @@ Rust crate and its TypeScript mirror at once.
   first no longer hands the same key to the layer below. A toast takes no
   Escape: it still closes the Dialog under it. `useDismissableLayer` takes
   `pointerOutside: false` for an overlay whose scrim decides outside clicks.
+
+- **Nested overlay layers keep their order and a modal bars the ones below**
+  (`@evinvest/uikit`, #162 step 2). Closes #162. A layer rendered inside
+  another stacks above it through a React context, not by when its effect
+  ran: a `Popover` opened in its `Dialog`'s own commit (`defaultOpen` on both,
+  one shared `open`) takes the first Escape, and a press in it no longer
+  closes the Dialog. `Dialog`, `AlertDialog`, `Sheet`, `Drawer` and
+  `CommandDialog` are modal: while one is open the layers below ignore every
+  pointer-down, so a click on the backdrop of an `AlertDialog`, `Sheet` or
+  `Drawer` over a `Dialog` closes the upper one only. Toasts are outside every
+  layer: a click on one no longer closes a `Dialog` or a `Popover`. The stack
+  lives on `globalThis` (`Symbol.for`), so a micro-frontend with its own uikit
+  copy shares the host's. New exports: `DismissableLayerScope` (wrap a custom
+  overlay's content so layers in it stack above), `LAYER_IGNORE_ATTR`, and
+  `useDismissableLayer`'s `modal` option.
 
 - **`uikit::Slider` drag no longer sticks off the web** (`ev_lib`, #47).
   Without pointer capture (desktop/native renderers) a release outside the

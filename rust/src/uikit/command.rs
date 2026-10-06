@@ -14,7 +14,7 @@ use crate::{
 	uikit::{
 		COMMAND_DIALOG_COMMAND, COMMAND_DIALOG_CONTENT, COMMAND_DIALOG_OVERLAY, COMMAND_EMPTY, COMMAND_GROUP, COMMAND_INPUT, COMMAND_INPUT_WRAPPER, COMMAND_ITEM, COMMAND_LIST, COMMAND_ROOT,
 		COMMAND_SEPARATOR, COMMAND_SHORTCUT,
-		primitives::{Controllable, use_controllable, use_stable_id},
+		primitives::{Controllable, sort_into_document_order, use_controllable, use_stable_id},
 	},
 };
 
@@ -448,14 +448,9 @@ fn query_of(search: &str) -> String {
 /// order on screen.
 fn reachable_rows(items: &BTreeMap<usize, CommandEntry>, els: &BTreeMap<usize, Rc<MountedData>>, query: &str, should_filter: bool) -> Vec<usize> {
 	let mut reachable: Vec<usize> = items.iter().filter(|(_, e)| !e.disabled && matches(query, should_filter, &e.value)).map(|(id, _)| *id).collect();
-	sort_by_position(
-		&mut reachable,
-		|row| els.get(row).is_some_and(|el| is_placed(el)),
-		|a, b| match (els.get(a), els.get(b)) {
-			(Some(a), Some(b)) => document_precedes(a, b),
-			_ => false,
-		},
-	);
+	let mut placed: Vec<(usize, Option<Rc<MountedData>>)> = reachable.iter().map(|id| (*id, els.get(id).cloned())).collect();
+	sort_into_document_order(&mut placed, |(_, el)| el.as_ref());
+	reachable = placed.into_iter().map(|(id, _)| id).collect();
 	reachable
 }
 
@@ -469,75 +464,6 @@ fn highlight_in(reachable: &[usize], moved: Option<&(usize, String)>, query: &st
 	}
 }
 
-// The document-order sort below is the one `primitives::sort_into_document_order`
-// carries on the Select branch (#214); fold this copy into it once both land.
-
-/// Sorts `items` by `precedes` when every item is `placed`, leaving them as they
-/// are otherwise — O(n) `placed` checks, then O(n) comparisons for a list already
-/// in order and O(n log n) for one that is not. Each comparison is a call into
-/// the DOM, so an n² pass over a long list would stall every key.
-///
-/// A merge sort of our own rather than `sort_by`: `sort_by` may panic on an
-/// order that is not total, and a DOM comparison is one only while every node
-/// is in the document — this one stays a permutation whatever `precedes` says.
-fn sort_by_position<T: Clone>(items: &mut [T], placed: impl Fn(&T) -> bool, precedes: impl Fn(&T, &T) -> bool) {
-	if !items.iter().all(&placed) {
-		return;
-	}
-	if items.windows(2).all(|pair| !precedes(&pair[1], &pair[0])) {
-		return;
-	}
-	merge_sort(items, &precedes);
-}
-
-fn merge_sort<T: Clone>(items: &mut [T], precedes: &impl Fn(&T, &T) -> bool) {
-	if items.len() < 2 {
-		return;
-	}
-	let mid = items.len() / 2;
-	merge_sort(&mut items[..mid], precedes);
-	merge_sort(&mut items[mid..], precedes);
-	let mut merged = Vec::with_capacity(items.len());
-	let (mut i, mut j) = (0, mid);
-	while i < mid && j < items.len() {
-		// Strictly before, so equals keep their order: the sort is stable.
-		if precedes(&items[j], &items[i]) {
-			merged.push(items[j].clone());
-			j += 1;
-		} else {
-			merged.push(items[i].clone());
-			i += 1;
-		}
-	}
-	merged.extend_from_slice(&items[i..mid]);
-	merged.extend_from_slice(&items[j..]);
-	items.clone_from_slice(&merged);
-}
-
-/// Whether the renderer can place `el` in the document: the web renderer, for
-/// an element that is still connected.
-#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
-fn is_placed(el: &MountedData) -> bool {
-	el.downcast::<web_sys::Element>().is_some_and(|el| el.is_connected())
-}
-#[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
-fn is_placed(_: &MountedData) -> bool {
-	false
-}
-
-/// Whether `a` comes before `b` in the document. Only asked of placed elements.
-#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
-fn document_precedes(a: &MountedData, b: &MountedData) -> bool {
-	match (a.downcast::<web_sys::Element>(), b.downcast::<web_sys::Element>()) {
-		(Some(a), Some(b)) => a.compare_document_position(b) & web_sys::Node::DOCUMENT_POSITION_FOLLOWING != 0,
-		_ => false,
-	}
-}
-#[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
-fn document_precedes(_: &MountedData, _: &MountedData) -> bool {
-	false
-}
-
 /// With `should_filter` off every row matches: the caller's rows are the results.
 fn matches(query: &str, should_filter: bool, value: &str) -> bool {
 	!should_filter || query.is_empty() || value.to_lowercase().contains(query)
@@ -548,7 +474,10 @@ static NEXT_ITEM_ID: AtomicUsize = AtomicUsize::new(0);
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::uikit::test_util::{render, render_after_keys_on_queued_effects, render_after_settled_keys, render_with_effects};
+	use crate::uikit::{
+		primitives::sort_by_position,
+		test_util::{render, render_after_keys_on_queued_effects, render_after_settled_keys, render_with_effects},
+	};
 
 	#[test]
 	fn renders_all_items_when_empty_search() {
@@ -873,32 +802,6 @@ mod tests {
 	fn on_screen(rows: &mut [(usize, usize)]) -> Vec<usize> {
 		sort_by_position(rows, |_| true, |a, b| a.1 < b.1);
 		rows.iter().map(|r| r.0).collect()
-	}
-
-	#[test]
-	fn the_document_sort_asks_n_log_n_comparisons_not_n_squared() {
-		use std::cell::Cell;
-		let n = 1000;
-		let calls = Cell::new(0_usize);
-		let count = |a: &usize, b: &usize| {
-			calls.set(calls.get() + 1);
-			a < b
-		};
-		let mut in_order: Vec<usize> = (0..n).collect();
-		sort_by_position(&mut in_order, |_| true, count);
-		assert_eq!(calls.get(), n - 1, "rows already in order cost one pass");
-		calls.set(0);
-		let mut reversed: Vec<usize> = (0..n).rev().collect();
-		sort_by_position(&mut reversed, |_| true, count);
-		assert_eq!(reversed, (0..n).collect::<Vec<_>>());
-		assert!(calls.get() < 2 * n * 10, "{} comparisons for {n} rows", calls.get());
-	}
-
-	#[test]
-	fn an_unplaced_row_keeps_registration_order() {
-		let mut rows = [(0, Some(1)), (1, None), (2, Some(0))];
-		sort_by_position(&mut rows, |r| r.1.is_some(), |a, b| a.1 < b.1);
-		assert_eq!(rows.map(|r| r.0), [0, 1, 2]);
 	}
 
 	#[test]

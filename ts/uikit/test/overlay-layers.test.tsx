@@ -1,6 +1,6 @@
 import * as React from "react";
 import { flushSync } from "react-dom";
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, fireEvent, screen, act } from "@testing-library/react";
 import { Dialog, DialogContent, DialogTitle } from "../src/components/dialog";
 import { Drawer, DrawerContent, DrawerTitle } from "../src/components/drawer";
@@ -10,6 +10,8 @@ import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } 
 import { Popover, PopoverContent, PopoverTrigger } from "../src/components/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../src/components/select";
 import { Toaster, toast } from "../src/components/sonner";
+import { AlertDialog, AlertDialogContent, AlertDialogTitle } from "../src/components/alert-dialog";
+import { Sheet, SheetContent, SheetTitle } from "../src/components/sheet";
 
 // Unlike dismissable-layer.test, the keys here start where the user's focus is
 // and travel the whole way: through React's root (where an `onKeyDown` may
@@ -71,8 +73,6 @@ describe("Escape and outside clicks reach only the top overlay layer", () => {
     // closed and popped (flushSync commits and runs effects at once) by the
     // time the Dialog's listener hears the same key.
     function Tree() {
-      // Opened after the Dialog: a layer opened in the Dialog's own commit sits
-      // below it (#162, step 2).
       const [open, setOpen] = React.useState(false);
       return (
         <InDialog>
@@ -283,5 +283,264 @@ describe("Escape and outside clicks reach only the top overlay layer", () => {
       expect(dialog()).toBeNull();
       expect(screen.getByText("Saved")).toBeInTheDocument();
     });
+
+    it("keeps the Dialog on a press on the toast", () => {
+      render(
+        <>
+          <Toaster />
+          <InDialog>
+            <p>Body</p>
+          </InDialog>
+        </>,
+      );
+      act(() => void toast("Saved"));
+      fireEvent.pointerDown(screen.getByText("Saved"));
+      expect(dialog()).toBeInTheDocument();
+    });
+
+    it("keeps a Popover on a press on the toast", () => {
+      render(
+        <>
+          <Toaster />
+          <Popover defaultOpen>
+            <PopoverTrigger>Details</PopoverTrigger>
+            <PopoverContent>Inside the popover</PopoverContent>
+          </Popover>
+        </>,
+      );
+      act(() => void toast("Saved"));
+      fireEvent.pointerDown(screen.getByText("Saved"));
+      expect(screen.getByText("Inside the popover")).toBeInTheDocument();
+    });
+  });
+});
+
+describe("a layer opened in its parent's commit stacks above it", () => {
+  it("gives the first Escape to a Popover opened with its Dialog, the next to the Dialog", () => {
+    render(
+      <InDialog>
+        <Popover defaultOpen>
+          <PopoverTrigger>Details</PopoverTrigger>
+          <PopoverContent>Inside the popover</PopoverContent>
+        </Popover>
+      </InDialog>,
+    );
+    escapeOn(document);
+    expect(screen.queryByText("Inside the popover")).toBeNull();
+    expect(dialog()).toBeInTheDocument();
+    escapeOn(document);
+    expect(dialog()).toBeNull();
+  });
+
+  it("keeps the Dialog on a press inside a Popover opened with it", () => {
+    render(
+      <InDialog>
+        <Popover defaultOpen>
+          <PopoverTrigger>Details</PopoverTrigger>
+          <PopoverContent>Inside the popover</PopoverContent>
+        </Popover>
+      </InDialog>,
+    );
+    fireEvent.pointerDown(screen.getByText("Inside the popover"));
+    expect(screen.getByText("Inside the popover")).toBeInTheDocument();
+    expect(dialog()).toBeInTheDocument();
+  });
+
+  it("orders a Dialog and a Popover that share one open state", () => {
+    function Tree() {
+      const [open, setOpen] = React.useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>
+            Edit
+          </button>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogContent showCloseButton={false}>
+              <DialogTitle>Edit</DialogTitle>
+              <Popover open={open}>
+                <PopoverTrigger>Details</PopoverTrigger>
+                <PopoverContent>Inside the popover</PopoverContent>
+              </Popover>
+            </DialogContent>
+          </Dialog>
+        </>
+      );
+    }
+    const log: string[] = [];
+    render(<Tree />);
+    fireEvent.click(screen.getByText("Edit"));
+    // The Popover is controlled and never closes itself: what matters is
+    // that the Dialog does not take the Escape meant for the layer above it.
+    document.addEventListener("keydown", () => log.push(dialog() ? "dialog open" : "dialog closed"));
+    escapeOn(document);
+    expect(dialog()).toBeInTheDocument();
+    expect(log).toEqual(["dialog open"]);
+  });
+
+  it("orders three layers opened in one commit innermost first", () => {
+    render(
+      <InDialog>
+        <Popover defaultOpen>
+          <PopoverTrigger>Outer</PopoverTrigger>
+          <PopoverContent>
+            <p>Outer body</p>
+            <Popover defaultOpen>
+              <PopoverTrigger>Inner</PopoverTrigger>
+              <PopoverContent>Inner body</PopoverContent>
+            </Popover>
+          </PopoverContent>
+        </Popover>
+      </InDialog>,
+    );
+    escapeOn(document);
+    expect(screen.queryByText("Inner body")).toBeNull();
+    expect(screen.getByText("Outer body")).toBeInTheDocument();
+    escapeOn(document);
+    expect(screen.queryByText("Outer body")).toBeNull();
+    expect(dialog()).toBeInTheDocument();
+    escapeOn(document);
+    expect(dialog()).toBeNull();
+  });
+});
+
+describe("a modal above bars the layers below from pointer-downs", () => {
+  const alertDialog = () => document.querySelector('[data-slot="alert-dialog-content"]');
+  const sheet = () => document.querySelector('[data-slot="sheet-content"]');
+
+  function DialogWithConfirm({ children }: { children?: React.ReactNode }) {
+    const [confirm, setConfirm] = React.useState(false);
+    return (
+      <InDialog>
+        <button type="button" onClick={() => setConfirm(true)}>
+          Delete
+        </button>
+        <AlertDialog open={confirm} onOpenChange={setConfirm}>
+          <AlertDialogContent>
+            <AlertDialogTitle>Delete the position?</AlertDialogTitle>
+            <p>Confirm body</p>
+            {children}
+          </AlertDialogContent>
+        </AlertDialog>
+      </InDialog>
+    );
+  }
+
+  it("closes only the AlertDialog on a press on its scrim, the Dialog on the next on its own", () => {
+    render(<DialogWithConfirm />);
+    fireEvent.click(screen.getByText("Delete"));
+    fireEvent.pointerDown(document.querySelector('[data-slot="alert-dialog-overlay"]')!);
+    expect(alertDialog()).toBeNull();
+    expect(dialog()).toBeInTheDocument();
+    fireEvent.pointerDown(document.querySelector('[data-slot="dialog-overlay"]')!);
+    expect(dialog()).toBeNull();
+  });
+
+  it("keeps the Dialog on a press anywhere while the AlertDialog is open", () => {
+    render(<DialogWithConfirm />);
+    fireEvent.click(screen.getByText("Delete"));
+    fireEvent.pointerDown(document.body);
+    expect(dialog()).toBeInTheDocument();
+  });
+
+  it("does not bar a Popover above the AlertDialog", () => {
+    render(
+      <DialogWithConfirm>
+        <Popover>
+          <PopoverTrigger>Why?</PopoverTrigger>
+          <PopoverContent>Reason</PopoverContent>
+        </Popover>
+      </DialogWithConfirm>,
+    );
+    fireEvent.click(screen.getByText("Delete"));
+    fireEvent.click(screen.getByText("Why?"));
+    fireEvent.pointerDown(screen.getByText("Confirm body"));
+    expect(screen.queryByText("Reason")).toBeNull();
+    expect(alertDialog()).toBeInTheDocument();
+    expect(dialog()).toBeInTheDocument();
+  });
+
+  it("closes only a Sheet opened beside the Dialog on a press on its scrim", () => {
+    function Tree() {
+      const [open, setOpen] = React.useState(false);
+      return (
+        <>
+          <InDialog>
+            <button type="button" onClick={() => setOpen(true)}>
+              History
+            </button>
+          </InDialog>
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetContent>
+              <SheetTitle>History</SheetTitle>
+            </SheetContent>
+          </Sheet>
+        </>
+      );
+    }
+    render(<Tree />);
+    fireEvent.click(screen.getByText("History"));
+    fireEvent.pointerDown(document.querySelector('[data-slot="sheet-overlay"]')!);
+    expect(sheet()).toBeNull();
+    expect(dialog()).toBeInTheDocument();
+  });
+
+  it("closes only a Drawer over the Dialog on a click on its scrim", () => {
+    function Tree() {
+      const [open, setOpen] = React.useState(false);
+      return (
+        <InDialog>
+          <button type="button" onClick={() => setOpen(true)}>
+            Details
+          </button>
+          <Drawer open={open} onOpenChange={setOpen}>
+            <DrawerContent>
+              <DrawerTitle>Details</DrawerTitle>
+            </DrawerContent>
+          </Drawer>
+        </InDialog>
+      );
+    }
+    render(<Tree />);
+    fireEvent.click(screen.getByText("Details"));
+    const scrim = document.querySelector('[data-slot="drawer-overlay"]')!;
+    fireEvent.pointerDown(scrim);
+    fireEvent.click(scrim);
+    expect(drawerState()).toBe("closed");
+    expect(dialog()).toBeInTheDocument();
+  });
+});
+
+describe("the stack is one per page, not per module copy", () => {
+  it("gives the Escape and the press to a layer from another copy of the module", async () => {
+    // A micro-frontend bundling its own uikit: a fresh module instance, the same page.
+    const host = await import("../src/primitives/dismissable-layer");
+    vi.resetModules();
+    const mfe = await import("../src/primitives/dismissable-layer");
+    expect(mfe.useDismissableLayer).not.toBe(host.useDismissableLayer);
+
+    const log: string[] = [];
+    function Layer({ name, use }: { name: string; use: typeof host.useDismissableLayer }) {
+      const ref = use({ enabled: true, onDismiss: (e) => log.push(`${name}:${e.type}`) });
+      return <div ref={ref}>{name}</div>;
+    }
+    function Tree() {
+      const [second, setSecond] = React.useState(false);
+      return (
+        <>
+          <Layer name="host" use={host.useDismissableLayer} />
+          <button type="button" onClick={() => setSecond(true)}>
+            open mfe
+          </button>
+          {second && <Layer name="mfe" use={mfe.useDismissableLayer} />}
+        </>
+      );
+    }
+    const { unmount } = render(<Tree />);
+    fireEvent.click(screen.getByText("open mfe"));
+    fireEvent.pointerDown(screen.getByText("mfe"));
+    expect(log).toEqual([]);
+    escapeOn(document);
+    expect(log).toEqual(["mfe:keydown"]);
+    unmount();
   });
 });
