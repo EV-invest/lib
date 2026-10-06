@@ -115,19 +115,48 @@ export interface AnalyticsTarget {
 }
 
 /**
+ * Whether a `Cookie` string — `document.cookie` or a request's header — makes
+ * the visit a test: the QA cookie is set with a non-empty value, any value.
+ * The one rule both sides apply (the sink in the browser, `quoteRoute` on the
+ * server). `abSwitcherVisible` keeps its own copy on purpose: a module the
+ * switcher shared with the analytics island cost a chunk of its own.
+ */
+export function qaVisit(cookies: string, qaCookie: string): boolean {
+  return cookies.split(";").some(pair => {
+    const eq = pair.indexOf("=");
+    return eq > 0 && pair.slice(0, eq).trim() === qaCookie && pair.slice(eq + 1).trim() !== "";
+  });
+}
+
+/**
  * Cookieless by construction: a beacon sink keeps its `distinct_id` in memory,
  * writes no cookie and no storage, and needs no consent banner. `sendBeacon`
  * because the events that matter most — a tap on `tel:` or `wa.me` — are
  * followed by the page handing the visitor to another app. `distinctId`:
  * the visitor's id, held by the caller so a lead can name it; a random one
  * per sink without it.
+ *
+ * `qaCookie`: the brand's QA cookie (`AbSwitcher`'s). Every capture then checks
+ * `cookies` — a request's `Cookie` header on the server; left out, the
+ * browser's `document.cookie`, read at that capture — and adds `forced: true`
+ * on a test visit (`qaVisit`), so no event, present or future, has to
+ * remember it. Without `qaCookie` no cookie is read and no `forced` key sent.
+ * One wrapper for both cases, not a branch: on the place page that is ~10 B
+ * gz less than returning the bare sink.
  */
-export function analyticsSink(target: AnalyticsTarget, locationId: string | null, distinctId?: string): AnalyticsSink {
-  return createBeaconSink({
+export function analyticsSink(
+  target: AnalyticsTarget,
+  locationId: string | null,
+  distinctId?: string,
+  qaCookie?: string,
+  cookies?: string,
+): AnalyticsSink {
+  const sink = createBeaconSink({
     key: target.key ?? undefined,
     ...(distinctId !== undefined ? { distinctId } : {}),
     host: target.host,
     allowedProps: ALLOWED_PROPS,
     globalProps: locationId ? { brand_id: target.brandId, location_id: locationId } : { brand_id: target.brandId },
   });
+  return { capture: (event, props, options) => sink.capture(event, qaCookie && qaVisit(cookies ?? document.cookie, qaCookie) ? { ...props, forced: true } : props, options) };
 }

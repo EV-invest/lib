@@ -67,6 +67,13 @@ export interface QuoteRouteDeps<L extends string> {
    * `<anchor>-callback`.
    */
   anchor?: string;
+  /**
+   * The brand's QA cookie (`AnalyticsBoundary`'s and `AbSwitcher`'s
+   * `qaCookie`). A post carrying it with a value is a test visit: its
+   * `lead_form_submit` and `lead_form_reject` say `forced: true`, as the
+   * browser's events of the same visit do. Absent → no `forced` key.
+   */
+  qaCookie?: string;
   /** Work after the response; `after` from `next/server` by default. */
   defer?: (task: () => Promise<void> | void) => void;
   now?: () => number;
@@ -219,6 +226,9 @@ export function quoteRoute<L extends string, P extends string>(
       const locale = form.get("locale");
       return unavailable(null, typeof locale === "string" && site.i18n.isLocale(locale) ? locale : site.i18n.defaultLocale);
     }
+    // The request's events, marked as the browser's are (`analyticsSink`).
+    const cookies = request.headers.get("cookie") ?? "";
+    const sinkFor = (slug: string | null) => analyticsSink({ key: env.posthogKey, host: env.posthogHost, brandId: site.brand.id }, slug, undefined, deps.qaCookie, cookies);
     const outcome = await accept(form, clientKey(request.headers, env.trustedProxy ?? DEV_TRUST), {
       insert: lead => leadStore().insert(lead),
       findSubmission: async submissionId => (await leadStore().findSubmission?.(submissionId)) ?? null,
@@ -241,7 +251,7 @@ export function quoteRoute<L extends string, P extends string>(
         );
       },
       capture: (lead, formId, tags) =>
-        analyticsSink({ key: env.posthogKey, host: env.posthogHost, brandId: site.brand.id }, lead.placeSlug).capture(EVENTS.leadSubmit, {
+        sinkFor(lead.placeSlug).capture(EVENTS.leadSubmit, {
           form_id: formId,
           channel: channelOf(lead),
           ...tags,
@@ -274,7 +284,7 @@ export function quoteRoute<L extends string, P extends string>(
         const repriced = outcome.field === PRICE_CHANGED;
         const props = { form_id: outcome.formId, channel: outcome.channel, field: outcome.field, reason: repriced ? PRICE_CHANGED : "invalid", ...tags };
         if (env.posthogKey) {
-          const sink = analyticsSink({ key: env.posthogKey, host: env.posthogHost, brandId: site.brand.id }, outcome.slug);
+          const sink = sinkFor(outcome.slug);
           defer(() => sink.capture(EVENTS.formReject, props));
         }
         if (scripted) return json(422, { ok: false, field: outcome.field, ...(repriced && outcome.cents !== undefined ? { reason: PRICE_CHANGED, cents: outcome.cents } : {}) });

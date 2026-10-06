@@ -11,7 +11,9 @@
  */
 export function abSwitcherVisible(cookies: string, qaCookie: string, nodeEnv: string | undefined): boolean {
   if (nodeEnv !== "production") return true;
-  // Presence and non-empty only, no decoding: every visitor runs this.
+  // Presence and non-empty only, no decoding: every visitor runs this. The
+  // rule is `qaVisit`'s (analytics.ts), copied so the switcher and the
+  // analytics island share no module; `forced.node.test.ts` holds them equal.
   return cookies.split(";").some(pair => {
     const eq = pair.indexOf("=");
     return eq > 0 && pair.slice(0, eq).trim() === qaCookie && pair.slice(eq + 1).trim() !== "";
