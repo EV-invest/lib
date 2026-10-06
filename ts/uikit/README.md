@@ -575,6 +575,21 @@ measuring needs host-only `web-sys`). Known gaps:
   no viewport-measured floating, native focus order (no trap). TS overlays use a
   real `Portal`, single-flip `useFloating` (absolute in the document, so it
   scrolls with the page natively), `useDismissableLayer`, and `useFocusScope`.
+- **overlay layers (TS):** every TS overlay is on one dismissable-layer stack,
+  in the order the layers opened. Escape closes the layer that was on top when
+  it was pressed — a menu, `Select` or `Popover` inside a `Dialog`, `Sheet` or
+  `Drawer` closes first, the modal on the next Escape — and a press inside a
+  layer above is not "outside" the ones below. `Drawer` and `CommandDialog`
+  are on the stack for Escape but close on a click on their own scrim, not on
+  any outside pointer-down. Toasts are not layers: they never take Escape. Not
+  yet handled (#162, step 2):
+  - a layer opened in the same commit as its parent (`defaultOpen` on both, or
+    one shared `open` state) sits *below* it — Escape closes the parent first;
+  - a modal's backdrop is not part of the modal: a click on the backdrop of an
+    `AlertDialog`, `Sheet` or `Drawer` opened over a `Dialog` closes both, and
+    a click on a toast closes an open `Dialog`;
+  - the stack is per module copy: a micro-frontend bundling its own uikit has
+    its own stack, blind to the host's layers.
 - **chart:** the recharts plotting engine is not bundled. `ChartContainer` is a
   themed SVG host (emits `--color-*` from its config); `ChartTooltipContent` /
   `ChartLegendContent` are presentational and take explicit items. Draw series

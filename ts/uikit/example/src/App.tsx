@@ -41,6 +41,7 @@ import {
 } from "@evinvest/uikit";
 import { TerminalDemo } from "./TerminalDemo";
 import { DrawerDemo } from "./DrawerDemo";
+import { LayersDemo } from "./LayersDemo";
 import { BrandsDemo } from "./BrandsDemo";
 import { ShellDemo } from "./ShellDemo";
 import { CommandDemo } from "./CommandDemo";
@@ -324,6 +325,10 @@ export default function App() {
 
           <Section title="Drawer" hint="swipe towards the edge to dismiss; the body scrolls, the panel drags from its top">
             <DrawerDemo />
+          </Section>
+
+          <Section title="Nested overlays" hint="each Escape closes one layer, the top one; a click in the panel closes only the list">
+            <LayersDemo />
           </Section>
 
           <Section title="Terminal" hint="fake data; the chart host is empty on purpose">

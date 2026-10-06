@@ -119,10 +119,9 @@ export function ContextMenuContent({ className, children, ...props }: React.Comp
           data-side="bottom"
           role="menu"
           tabIndex={-1}
-          onKeyDown={(e) => {
-            rovingKeyDown(e);
-            if (e.key === "Escape") setOpen(false);
-          }}
+          // Escape is the stack's (useDismissableLayer): it closes this menu
+          // only while it is the top layer.
+          onKeyDown={rovingKeyDown}
           ref={mergeRefs(dismissRef, presRef, contentRef)}
           style={{ position: "fixed", top: point.y, left: point.x }}
           className={cn(

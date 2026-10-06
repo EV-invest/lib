@@ -64,6 +64,19 @@ Rust crate and its TypeScript mirror at once.
 
 ### Fixed
 
+- **Escape and outside clicks reach only the top overlay layer**
+  (`@evinvest/uikit`, #162 step 1). `Drawer` and `CommandDialog` join the
+  dismissable-layer stack: an Escape in a `Popover`, `Select`, menu or
+  `Command` search inside a Drawer closes that layer, not the panel, and a
+  press inside a Drawer or a `CommandDialog` opened above a `Dialog` no
+  longer closes the Dialog; their outside click is still the scrim's.
+  `DropdownMenu` and `ContextMenu` close on Escape through the stack only (no
+  second React `onKeyDown` path). An Escape belongs to the layer that was on
+  top when it was pressed, so a handler on its way that closes that layer
+  first no longer hands the same key to the layer below. A toast takes no
+  Escape: it still closes the Dialog under it. `useDismissableLayer` takes
+  `pointerOutside: false` for an overlay whose scrim decides outside clicks.
+
 - **`ev_lib::uikit` a11y and markup parity with the TS port** (`ev_lib`,
   #45 #46 #50 #51 #52). `FormMessage` renders nothing without children (an
   empty string included), so a valid field no longer carries an empty `<p>`
