@@ -2,7 +2,7 @@
 
 import { Badge, Button, cn } from "@evinvest/uikit";
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { abAssignments, abReset, abVariantUrl, AB_FORCE_PARAM } from "../core/ab-switcher";
+import { abAssignments, abReset, abRunning, abVariantUrl, AB_FORCE_PARAM } from "../core/ab-switcher";
 import type { AbSwitcherExperiment, AbSwitcherProps, AbSwitcherText } from "./ab-switcher-types";
 
 const TEXT: AbSwitcherText = {
@@ -25,7 +25,7 @@ const TEXT: AbSwitcherText = {
 export function AbSwitcherPanel({ experiments, qaCookie, current, forceParam = AB_FORCE_PARAM, className, text }: AbSwitcherProps) {
   const t = { ...TEXT, ...text };
   const keys = experiments.map(e => e.key);
-  const [assigned] = useState(() => current ?? abAssignments(document.cookie, keys));
+  const [assigned] = useState(() => abRunning(current ?? abAssignments(document.cookie, keys), document.cookie, qaCookie));
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [hidden, setHidden] = useState(false);

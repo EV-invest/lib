@@ -39,6 +39,18 @@ export function abAssignments(cookies: string, keys: readonly string[]): Record<
   return out;
 }
 
+/**
+ * `assigned` without the tests the brand's panel has paused. The brand's proxy
+ * lists them, for a QA browser only, in the cookie `<qaCookie>_off`
+ * (`lead_form,hero`): a paused test keeps every visitor's assignment cookie —
+ * dropping it would redraw them on resume — so its cookie alone cannot tell
+ * the menu it is off, and a force of it is refused.
+ */
+export function abRunning(assigned: Readonly<Record<string, string>>, cookies: string, qaCookie: string): Record<string, string> {
+  const paused = new Set((cookieValue(cookies, `${qaCookie}_off`) ?? "").split(","));
+  return Object.fromEntries(Object.entries(assigned).filter(([key]) => !paused.has(key)));
+}
+
 /** The same page forcing `key` to `value`: the other parameters and the hash kept, an earlier force replaced. */
 export function abVariantUrl(href: string, key: string, value: string, forceParam: string = AB_FORCE_PARAM): string {
   const url = new URL(href);

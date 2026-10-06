@@ -244,6 +244,7 @@ export {
   AB_COOKIE_PREFIX,
   AB_FORCE_PARAM,
   abAssignments,
+  abRunning,
   abReset,
   abVariantUrl,
   cookieValue,
