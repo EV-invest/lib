@@ -349,11 +349,11 @@ it is the plain POST to `/quote` it always was.
   (`contact` / `need` in `qualify-first`; in `steps` each screen moved to —
   `intro`, `need`, `estimate_<input>`, `locality`, `phone`), each with `form_id`, `layout`, `experiment`,
   `variant`; `contact_intent_click {channel}` for `phone`, `whatsapp`, `sms`,
-  `callback`, with the experiment (and `forced: true` on a test visit, as
-  `location_page_view`, when the boundary has `qaCookie` — see `AbSwitcher`);
-  and on the server `lead_form_submit
+  `callback`, with the experiment; and on the server `lead_form_submit
   {form_id, channel}` and `lead_form_reject {form_id, channel, field,
-  reason}` with the posted experiment.
+  reason}` with the posted experiment. On a test visit every one of them —
+  page view, intents, funnel, booking, and the server's two when
+  `quoteRoute` has `qaCookie` — carries `forced: true` (see `AbSwitcher`).
 - **Weight.** 8.9 KB gz of first-load JS on the template's place page
   (157,287 → 166,361 B against its 158,000 B target: +5.3 %, a warning
   within the 20 % tolerance); the refusals and the shared phone rule are
@@ -921,6 +921,11 @@ adds no server path: a tap on a variant goes to the same URL with
   reads `ab_<key>` from `document.cookie` (the normal case: the page stays
   static, the server reads no cookie). `forceParam` — `ab_` by default.
   `text` — the menu's words, English by default.
+- **An experiment with no assignment is off.** The proxy assigns every
+  running experiment on the page the menu mounts on, so one with no
+  `ab_<key>` cookie (or missing from `current`) is shown `not running`
+  (`text.unassigned`), its variants disabled — the proxy would refuse the
+  force — and `–` on the chip.
 - **Turning it on, on a phone, in production:** open any page with
   `?ab_<key>=<value>`. The proxy sets the QA cookie and the chip appears;
   every visit after is tagged as a test in analytics. Outside production
@@ -938,14 +943,28 @@ adds no server path: a tap on a variant goes to the same URL with
   too. **Minimize** and **Hide** last until the next load.
 - Screenshots: the chip and its panel carry `data-ab-switcher`; hide it in the
   section stylesheet, `[data-ab-switcher] { display: none !important; }`.
-- **Pass the same `qaCookie` to `AnalyticsBoundary`.** Every tap in the menu
-  is a full reload, so a test visit would add page views to the place's
-  traffic; with the cookie set, the boundary's `location_page_view` and
-  `contact_intent_click` carry `forced: true`. Without the prop, or without
-  the cookie, the events are as before — no `forced` key at all.
+- **Pass the same `qaCookie` to `AnalyticsBoundary` and `quoteRoute`
+  (#219).** Every tap in the menu is a full reload, so a test visit would add
+  page views — and form events — to the place's traffic. The mark is the
+  sink's, not each event's: `analyticsSink(target, slug, id, qaCookie)` reads
+  the cookie at every capture and adds `forced: true` on a test visit, so the
+  boundary's page views and intents, the lead form's funnel
+  (`lead_form_view` … `lead_estimate_shown`) and the booking's
+  `lead_booking_open` / `lead_booking_done` all say it, and so will any event
+  added later. `quoteRoute`'s `qaCookie` reads the post's `Cookie` header the
+  same way for `lead_form_submit` and `lead_form_reject`. A test visit is the
+  cookie set with a non-empty value — any value — on both sides
+  (`qaVisit(cookies, name)`, exported for a brand's own server events).
+  Without the prop, or without the cookie, the events are as before — no
+  `forced` key at all.
 
   ```tsx
   <AnalyticsBoundary target={target} placeSlug={slug} qaCookie="ab__qa">
+  ```
+
+  ```ts
+  // app/quote/route.ts
+  export const POST = quoteRoute(site, { env: serverEnv, notifier, unavailable, qaCookie: "ab__qa" });
   ```
 
 The decisions are plain functions in the core (`abSwitcherVisible`,
