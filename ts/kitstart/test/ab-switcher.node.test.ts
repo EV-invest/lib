@@ -61,7 +61,7 @@ describe("abReset", () => {
   it("drops the assignments and the force parameters, keeping the QA cookie", () => {
     const plan = abReset(href, ["lead_form", "hero"], "ab__qa", "reassign");
     expect(plan.cookies).toEqual([gone("ab_lead_form"), gone("ab_hero")]);
-    expect(plan.url).toBe("https://x.test/fr?utm_source=x#quote");
+    expect(plan.url).toBe("https://x.test/fr?utm_source=x");
   });
 
   it("never drops a QA cookie that looks like an assignment", () => {
@@ -71,7 +71,12 @@ describe("abReset", () => {
   it("leaving the test drops the QA cookie too", () => {
     const plan = abReset(href, ["lead_form", "hero"], "ab__qa", "leave");
     expect(plan.cookies).toEqual([gone("ab_lead_form"), gone("ab_hero"), gone("ab__qa")]);
-    expect(plan.url).toBe("https://x.test/fr?utm_source=x#quote");
+    expect(plan.url).toBe("https://x.test/fr?utm_source=x");
+  });
+
+  it("drops the hash, so a page reached by an anchor still reloads", () => {
+    const at = "https://x.test/fr#quote";
+    for (const mode of ["reassign", "leave"] as const) expect(abReset(at, ["lead_form"], "ab__qa", mode).url).toBe("https://x.test/fr");
   });
 
   it("strips the brand's own force prefix, and leaves other experiments' parameters", () => {

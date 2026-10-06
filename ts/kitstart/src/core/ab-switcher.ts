@@ -64,5 +64,9 @@ export function abReset(href: string, keys: readonly string[], qaCookie: string,
   if (mode === "leave") names.push(qaCookie);
   const url = new URL(href);
   for (const key of keys) url.searchParams.delete(`${forceParam}${key}`);
+  // `/fr#quote` with no force parameter would otherwise be the URL itself: the
+  // browser only scrolls to the anchor, the page never reloads, and the cookies
+  // just dropped are never re-drawn.
+  url.hash = "";
   return { cookies: names.map(n => `${n}=; path=/; max-age=0`), url: url.toString() };
 }
