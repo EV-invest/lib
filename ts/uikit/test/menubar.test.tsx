@@ -124,4 +124,31 @@ describe("Menubar", () => {
     expect(sub.querySelector("path")).toHaveAttribute("d", "m9 18 6-6-6-6");
     expect(getByText("Email")).toBeInTheDocument();
   });
+
+  it("moves focus over menu items only, not separators or labels", () => {
+    const { getByText, getByRole } = render(
+      <Menubar>
+        <MenubarMenu defaultOpen>
+          <MenubarTrigger>File</MenubarTrigger>
+          <MenubarContent>
+            <MenubarItem>New</MenubarItem>
+            <MenubarSeparator />
+            <MenubarItem>Open</MenubarItem>
+            <MenubarSeparator />
+            <MenubarItem>Quit</MenubarItem>
+          </MenubarContent>
+        </MenubarMenu>
+      </Menubar>,
+    );
+    const menu = getByRole("menu");
+    const press = (key: string) => fireEvent.keyDown(document.activeElement ?? menu, { key });
+    expect(getByText("New")).toHaveFocus();
+    press("End");
+    expect(getByText("Quit")).toHaveFocus();
+    press("ArrowDown");
+    expect(getByText("New")).toHaveFocus();
+    press("ArrowUp");
+    press("ArrowUp");
+    expect(getByText("Open")).toHaveFocus();
+  });
 });

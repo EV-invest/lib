@@ -88,6 +88,17 @@ Rust crate and its TypeScript mirror at once.
 
 ### Fixed
 
+- **Menu arrow keys stay on the real items** (`@evinvest/uikit`, #209).
+  `DropdownMenu` and `ContextMenu` bounded their roving focus by a hardcoded
+  64, so End moved to a non-existent item and ArrowDown past the last item
+  piled up a hidden index that later ArrowUp presses had to walk back. The
+  bound is now the number of mounted, enabled menu items, read at keydown, so
+  End lands on the last item, arrows wrap and disabled items are skipped.
+  `MenubarContent` counted its children (separators and labels included) and
+  never moved focus; it now focuses items the same way. `useRovingFocus`
+  accepts `count` as a getter (`() => number`) read only on keydown, and
+  clamps a stale index when the item set shrinks.
+
 - **Escape and outside clicks reach only the top overlay layer**
   (`@evinvest/uikit`, #162 step 1). `Drawer` and `CommandDialog` join the
   dismissable-layer stack: an Escape in a `Popover`, `Select`, menu or
