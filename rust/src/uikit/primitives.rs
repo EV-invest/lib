@@ -6,16 +6,18 @@
 //! Overlays therefore render inline with `position: fixed`, a full-screen
 //! backdrop for outside-dismiss, CSS-only placement via [`Side`], and the
 //! browser's native focus order. See the README "Limitations". The primitives
-//! that port cleanly — controlled/uncontrolled state, roving focus — live here.
+//! that port cleanly — controlled/uncontrolled state, roving focus, the stack
+//! of dismissable layers — live here.
 
 use std::{
+	cell::RefCell,
 	collections::BTreeMap,
 	rc::Rc,
 	sync::atomic::{AtomicUsize, Ordering},
 };
 
 use dioxus::{
-	dioxus_core::{DynamicNode, TemplateNode},
+	dioxus_core::{DynamicNode, TemplateNode, provide_root_context},
 	prelude::*,
 };
 
@@ -231,6 +233,112 @@ struct RovingItem {
 	el: Option<Rc<MountedData>>,
 }
 
+/// What dismissed a [`DismissableLayer`] — for a caller that treats keys and
+/// pointers apart (a Select hands focus back to its trigger after Escape, never
+/// after a click elsewhere). The mirror of the TS `DismissEvent`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DismissReason {
+	Escape,
+	Outside,
+}
+
+type DismissFn = Rc<dyn Fn(DismissReason)>;
+
+/// The open layers of one `VirtualDom`, oldest first. Lives in the root scope,
+/// so every overlay in the tree shares it without a provider of the caller's.
+/// Not a signal: it is read only from event handlers, never to render.
+#[derive(Clone, Default)]
+struct LayerStack(Rc<RefCell<Vec<(usize, DismissFn)>>>);
+
+/// One overlay's place on the layer stack — the Rust side of the TS
+/// `useDismissableLayer`.
+///
+/// Layers stack in the order they opened, and Escape or a click outside only
+/// ever dismisses the topmost one: a Select's list inside a Dialog closes the
+/// list, not the Dialog. The kit renders overlays inline, so a key or a click
+/// meant for the top layer can reach a lower one — the Escape from a field of
+/// the Dialog while its Popover is open, a click on the Dialog's own scrim
+/// below the list. A lower layer that hears one hands it to the top instead of
+/// acting on it itself.
+///
+/// Unlike the TS hook there is no document listener (that needs `web-sys`):
+/// only a key that reaches some open layer's `onkeydown` dismisses anything,
+/// and "outside" is whatever full-screen backdrop the overlay renders.
+#[derive(Clone)]
+pub struct DismissableLayer {
+	id: usize,
+	stack: LayerStack,
+}
+impl DismissableLayer {
+	/// Handles Escape for this layer's `onkeydown`: when this layer is open the
+	/// key is consumed (so no layer below hears it) and the topmost layer is
+	/// dismissed. A closed layer leaves the key alone, for the layer around it.
+	pub fn on_keydown(&self, e: &KeyboardEvent) -> bool {
+		if e.key() != Key::Escape || !self.is_open() {
+			return false;
+		}
+		e.stop_propagation();
+		self.dismiss_top(DismissReason::Escape);
+		true
+	}
+
+	/// A click on this layer's backdrop: dismisses the topmost layer, which is
+	/// this one unless another opened above it.
+	pub fn on_outside(&self) {
+		self.dismiss_top(DismissReason::Outside);
+	}
+
+	/// Whether no layer is open above this one (and this one is open).
+	pub fn is_top(&self) -> bool {
+		self.stack.0.borrow().last().is_some_and(|(id, _)| *id == self.id)
+	}
+
+	fn is_open(&self) -> bool {
+		self.stack.0.borrow().iter().any(|(id, _)| *id == self.id)
+	}
+
+	fn dismiss_top(&self, reason: DismissReason) {
+		// Cloned out so the dismiss callback may render or re-enter the stack
+		// without a live borrow.
+		let top = self.stack.0.borrow().last().map(|(_, f)| f.clone());
+		if let Some(dismiss) = top {
+			dismiss(reason);
+		}
+	}
+}
+
+/// Puts the calling overlay on the layer stack while `open`, calling
+/// `on_dismiss` when it is the top layer and Escape or an outside click
+/// arrives.
+///
+/// The stack follows renders, not handlers: a layer that closes itself stays
+/// on top until it re-renders closed, so the Escape that closed it cannot also
+/// close the layer below on its way up.
+pub fn use_dismissable_layer(open: bool, on_dismiss: impl Fn(DismissReason) + 'static) -> DismissableLayer {
+	let id = use_hook(|| NEXT_LAYER_ID.fetch_add(1, Ordering::Relaxed));
+	let stack = use_hook(|| try_consume_context::<LayerStack>().unwrap_or_else(|| provide_root_context(LayerStack::default())));
+	{
+		let mut layers = stack.0.borrow_mut();
+		let at = layers.iter().position(|(layer, _)| *layer == id);
+		match (open, at) {
+			// The callback is refreshed in place: re-pushing would move a layer
+			// that merely re-rendered above the ones opened after it.
+			(true, Some(at)) => layers[at].1 = Rc::new(on_dismiss),
+			(true, None) => layers.push((id, Rc::new(on_dismiss))),
+			(false, Some(at)) => {
+				layers.remove(at);
+			}
+			(false, None) => {}
+		}
+	}
+	use_drop({
+		let stack = stack.clone();
+		move || stack.0.borrow_mut().retain(|(layer, _)| *layer != id)
+	});
+	DismissableLayer { id, stack }
+}
+static NEXT_LAYER_ID: AtomicUsize = AtomicUsize::new(0);
+
 /// Whether a `transitionend` is the element's own exit `transform` finishing.
 ///
 /// Every exiting overlay (toast, drawer) stays mounted with
@@ -288,7 +396,58 @@ fn dynamic_has_content(node: &DynamicNode) -> bool {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::uikit::test_util::render;
+	use crate::uikit::{
+		Dialog, DialogContent, Popover, PopoverContent, PopoverTrigger,
+		test_util::{render, render_after_click, render_after_keys},
+	};
+
+	fn popover_in_dialog() -> Element {
+		rsx! {
+			Dialog { default_open: true,
+				DialogContent { show_close_button: false,
+					Popover { default_open: true,
+						PopoverTrigger { "more" }
+						PopoverContent { "panel" }
+					}
+				}
+			}
+		}
+	}
+
+	#[test]
+	fn escape_goes_to_the_top_layer_even_from_a_lower_one() {
+		// The sweep reaches the dialog's own `onkeydown` as well as the popover's.
+		let html = render_after_keys(popover_in_dialog, &[Key::Escape]);
+		assert!(!html.contains("data-slot=\"popover-content\""), "{html}");
+		assert!(html.contains("role=\"dialog\""), "the dialog below stays: {html}");
+		let html = render_after_keys(popover_in_dialog, &[Key::Escape, Key::Escape]);
+		assert!(!html.contains("role=\"dialog\""), "the next Escape is the dialog's: {html}");
+	}
+
+	#[test]
+	fn a_click_on_a_lower_scrim_dismisses_the_top_layer() {
+		let html = render_after_click(popover_in_dialog);
+		assert!(!html.contains("data-slot=\"popover-content\""), "{html}");
+		assert!(html.contains("role=\"dialog\""), "the dialog's scrim hands the click to the popover: {html}");
+	}
+
+	#[test]
+	fn a_closed_layer_leaves_escape_to_the_one_around_it() {
+		fn app() -> Element {
+			rsx! {
+				Dialog { default_open: true,
+					DialogContent { show_close_button: false,
+						Popover {
+							PopoverTrigger { "more" }
+							PopoverContent { "panel" }
+						}
+					}
+				}
+			}
+		}
+		let html = render_after_keys(app, &[Key::Escape]);
+		assert!(!html.contains("role=\"dialog\""), "{html}");
+	}
 
 	#[test]
 	fn has_content_sees_through_empty_children() {

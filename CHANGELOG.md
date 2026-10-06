@@ -88,6 +88,13 @@ Rust crate and its TypeScript mirror at once.
 
 ### Fixed
 
+- **Escape and outside clicks reach only the top Rust overlay** (`ev_lib`
+  `uikit`, #161): new `primitives::use_dismissable_layer`, the mirror of the TS
+  dismissable-layer stack. `Select`, `Popover`, `Dialog` and `DropdownMenu` are
+  on it — an Escape or a scrim click inside a `Dialog` closes the `Select` or
+  `Popover` open above it, not the `Dialog`. Other Rust overlays are listed in
+  the uikit README Limitations.
+
 - **Escape and outside clicks reach only the top overlay layer**
   (`@evinvest/uikit`, #162 step 1). `Drawer` and `CommandDialog` join the
   dismissable-layer stack: an Escape in a `Popover`, `Select`, menu or

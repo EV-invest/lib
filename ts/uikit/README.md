@@ -636,6 +636,14 @@ measuring needs host-only `web-sys`). Known gaps:
     a click on a toast closes an open `Dialog`;
   - the stack is per module copy: a micro-frontend bundling its own uikit has
     its own stack, blind to the host's layers.
+- **overlay layers (Rust):** `Select`, `Popover`, `Dialog` and `DropdownMenu`
+  share one dismissable-layer stack per `VirtualDom`
+  (`primitives::use_dismissable_layer`): Escape and a click on a backdrop act
+  on the top layer only, so a `Select` inside a `Dialog` closes first. There is
+  no document listener — an Escape counts only once it reaches an open layer's
+  `onkeydown` — and `AlertDialog`, `Sheet`, `Drawer`, `ContextMenu`, `Menubar`,
+  `NavigationMenu`, `HoverCard`, `Tooltip`, `InfoTip`, `DateTimePicker`,
+  `CommandDialog` and `DropdownMenuSub` are not on the stack yet.
 - **chart:** the recharts plotting engine is not bundled. `ChartContainer` is a
   themed SVG host (emits `--color-*` from its config); `ChartTooltipContent` /
   `ChartLegendContent` are presentational and take explicit items. Draw series

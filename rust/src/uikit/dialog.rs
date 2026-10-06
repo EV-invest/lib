@@ -4,14 +4,15 @@ use crate::{
 	cn,
 	uikit::{
 		DIALOG_CLOSE, DIALOG_CONTENT, DIALOG_DESCRIPTION, DIALOG_FOOTER, DIALOG_HEADER, DIALOG_OVERLAY, DIALOG_TITLE,
-		primitives::{Controllable, use_controllable},
+		primitives::{Controllable, DismissableLayer, use_controllable, use_dismissable_layer},
 	},
 };
 
 #[component]
 pub fn Dialog(open: Option<bool>, #[props(default)] default_open: bool, on_open_change: Option<EventHandler<bool>>, children: Element) -> Element {
 	let state = use_controllable(open, default_open, on_open_change);
-	use_context_provider(|| DialogCtx { open: state });
+	let layer = use_dismissable_layer(state.get(), move |_| state.set(false));
+	use_context_provider(|| DialogCtx { open: state, layer });
 	rsx! {
 		div { "data-slot": "dialog", {children} }
 	}
@@ -45,13 +46,15 @@ pub fn DialogContent(#[props(default = true)] show_close_button: bool, #[props(d
 		return rsx! {};
 	}
 	let cls = cn!(DIALOG_CONTENT, class);
+	let overlay_layer = ctx.layer.clone();
+	let layer = ctx.layer.clone();
 	rsx! {
 		// dep-light: native focus order, no trap/portal — see README Limitations
 		div {
 			class: DIALOG_OVERLAY,
 			"data-slot": "dialog-overlay",
 			"data-state": "open",
-			onclick: move |_| ctx.open.set(false),
+			onclick: move |_| overlay_layer.on_outside(),
 		}
 		div {
 			role: "dialog",
@@ -61,7 +64,9 @@ pub fn DialogContent(#[props(default = true)] show_close_button: bool, #[props(d
 			"data-state": "open",
 			tabindex: "-1",
 			onclick: move |e| e.stop_propagation(),
-			onkeydown: move |e| if e.key() == Key::Escape { ctx.open.set(false) },
+			onkeydown: move |e| {
+				layer.on_keydown(&e);
+			},
 			{children}
 			if show_close_button {
 				button {
@@ -128,9 +133,10 @@ pub fn DialogDescription(#[props(default)] class: String, children: Element) -> 
 		p { class: cls, "data-slot": "dialog-description", {children} }
 	}
 }
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct DialogCtx {
 	open: Controllable<bool>,
+	layer: DismissableLayer,
 }
 
 #[cfg(test)]

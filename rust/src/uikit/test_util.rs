@@ -56,17 +56,34 @@ pub fn render_focused(app: fn() -> Element) -> String {
 /// re-asserting the markup around it. Only elements listening for `keydown`
 /// react; the event does not bubble, so a handler sees exactly one press.
 pub fn render_after_keydown(app: fn() -> Element, key: Key) -> String {
+	render_after_keys(app, &[key])
+}
+
+/// [`render_after_keydown`] for a sequence: each key is swept and rendered
+/// before the next, so the second press meets whatever the first one opened.
+pub fn render_after_keys(app: fn() -> Element, keys: &[Key]) -> String {
 	let mut dom = mount(app);
-	sweep(&mut dom, "keydown", || {
-		Box::new(dioxus::html::SerializedKeyboardData::new(
-			key.clone(),
-			Code::Unidentified,
-			Location::Standard,
-			false,
-			Modifiers::empty(),
-			false,
-		))
-	});
+	for key in keys {
+		sweep(&mut dom, "keydown", || {
+			Box::new(dioxus::html::SerializedKeyboardData::new(
+				key.clone(),
+				Code::Unidentified,
+				Location::Standard,
+				false,
+				Modifiers::empty(),
+				false,
+			))
+		});
+		dom.render_immediate(&mut dioxus::dioxus_core::NoOpMutations);
+	}
+	dioxus_ssr::render(&dom)
+}
+
+/// Fires a `click` at every mounted element, then renders — for asserting what
+/// survives a click when only some of the clicked elements may act on it.
+pub fn render_after_click(app: fn() -> Element) -> String {
+	let mut dom = mount(app);
+	sweep(&mut dom, "click", || Box::new(dioxus::html::SerializedMouseData::default()));
 	dom.render_immediate(&mut dioxus::dioxus_core::NoOpMutations);
 	dioxus_ssr::render(&dom)
 }

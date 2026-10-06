@@ -5,7 +5,7 @@ use crate::{
 	uikit::{
 		DROPDOWN_MENU_CHECK_ITEM, DROPDOWN_MENU_CONTENT, DROPDOWN_MENU_ITEM, DROPDOWN_MENU_ITEM_INDICATOR, DROPDOWN_MENU_LABEL, DROPDOWN_MENU_SEPARATOR, DROPDOWN_MENU_SHORTCUT,
 		DROPDOWN_MENU_SUB_CONTENT, DROPDOWN_MENU_SUB_TRIGGER,
-		primitives::{Controllable, Side, use_controllable},
+		primitives::{Controllable, DismissableLayer, Side, use_controllable, use_dismissable_layer},
 	},
 };
 
@@ -21,7 +21,8 @@ pub enum DropdownMenuItemVariant {
 #[component]
 pub fn DropdownMenu(open: Option<bool>, #[props(default)] default_open: bool, on_open_change: Option<EventHandler<bool>>, children: Element) -> Element {
 	let state = use_controllable(open, default_open, on_open_change);
-	use_context_provider(|| DropdownMenuCtx { open: state });
+	let layer = use_dismissable_layer(state.get(), move |_| state.set(false));
+	use_context_provider(|| DropdownMenuCtx { open: state, layer });
 	rsx! {
 		div { class: "relative inline-block", "data-slot": "dropdown-menu", {children} }
 	}
@@ -52,10 +53,12 @@ pub fn DropdownMenuContent(#[props(default)] side: Side, #[props(default)] class
 		return rsx! {};
 	}
 	let cls = cn!("absolute left-0 mt-1", DROPDOWN_MENU_CONTENT, class);
+	let backdrop_layer = ctx.layer.clone();
+	let layer = ctx.layer.clone();
 	rsx! {
 		div {
 			class: "fixed inset-0 z-40",
-			onclick: move |_| ctx.open.set(false),
+			onclick: move |_| backdrop_layer.on_outside(),
 		}
 		div {
 			class: cls,
@@ -65,9 +68,7 @@ pub fn DropdownMenuContent(#[props(default)] side: Side, #[props(default)] class
 			"data-state": "open",
 			"data-side": side.as_ref(),
 			onkeydown: move |e| {
-				if e.key() == Key::Escape {
-					ctx.open.set(false);
-				}
+				layer.on_keydown(&e);
 			},
 			{children}
 		}
@@ -281,9 +282,10 @@ pub fn DropdownMenuSubContent(#[props(default)] class: String, children: Element
 		div { class: cls, role: "menu", "data-slot": "dropdown-menu-sub-content", "data-state": "open", {children} }
 	}
 }
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct DropdownMenuCtx {
 	open: Controllable<bool>,
+	layer: DismissableLayer,
 }
 #[derive(Clone, Copy)]
 struct DropdownMenuRadioCtx {
