@@ -108,6 +108,10 @@ function useCommandNavigation(
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.nativeEvent.isComposing) return;
+    // Only the search field drives the list: Enter or an arrow on a button
+    // inside Command (an action in `CommandEmpty`, a footer) stays its own.
+    const field = event.target as HTMLElement;
+    if (field.dataset["slot"] !== "command-input") return;
     const els = enabledItems();
     const current = els.findIndex((el) => el.id === activeId);
     const last = els.length - 1;
@@ -119,12 +123,8 @@ function useCommandNavigation(
       case "ArrowUp":
         next = current < 0 ? last : Math.max(current - 1, 0);
         break;
-      case "Home":
-        next = 0;
-        break;
-      case "End":
-        next = last;
-        break;
+      // Home / End are left to the caret: the field is editable (ARIA APG
+      // editable combobox).
       case "Enter": {
         const select =
           activeId !== null && current >= 0
@@ -139,9 +139,9 @@ function useCommandNavigation(
       default:
         return;
     }
-    event.preventDefault();
     const target = els[next];
     if (!target) return;
+    event.preventDefault();
     activate(target.id);
     // Optional call: jsdom implements no `scrollIntoView`.
     target.scrollIntoView?.({ block: "nearest" });

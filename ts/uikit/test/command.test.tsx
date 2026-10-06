@@ -188,9 +188,32 @@ describe("Command", () => {
     expect(input).toHaveAttribute("aria-activedescendant", cherry.id);
     fireEvent.keyDown(input, { key: "Enter" });
     expect(selected).toBe("Cherry");
+    // Home stays with the caret of the editable field.
     fireEvent.keyDown(input, { key: "Home" });
+    expect(input).toHaveAttribute("aria-activedescendant", cherry.id);
+    fireEvent.keyDown(input, { key: "ArrowUp" });
     fireEvent.keyDown(input, { key: "Enter" });
     expect(selected).toBe("Apple");
+  });
+
+  it("leaves keys from other focusables inside Command alone", () => {
+    let selected = "";
+    let clicked = false;
+    render(
+      <Command>
+        <CommandInput placeholder="Search" />
+        <CommandList>
+          <CommandItem value="Apple" onSelect={(v) => (selected = v)}>Apple</CommandItem>
+        </CommandList>
+        <button type="button" onClick={() => (clicked = true)}>Create</button>
+      </Command>,
+    );
+    const button = screen.getByRole("button", { name: "Create" });
+    const enter = fireEvent.keyDown(button, { key: "Enter" });
+    expect(enter).toBe(true); // not default-prevented
+    expect(selected).toBe("");
+    fireEvent.click(button);
+    expect(clicked).toBe(true);
   });
 
   it("moves the highlight to the first match when the query changes", () => {

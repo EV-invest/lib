@@ -498,9 +498,10 @@ is then just what `onSelect` receives.
 
 Keyboard works the same in both modes, as an ARIA combobox: focus stays in
 `CommandInput`, which points at the highlighted row via
-`aria-activedescendant`; ArrowUp / ArrowDown / Home / End move the highlight
-(clamped, disabled rows skipped), Enter fires the row's `onSelect`, and hover
-moves it too. Rows stay out of the Tab order on purpose. The highlight sits on
+`aria-activedescendant`; ArrowUp / ArrowDown move the highlight (clamped,
+disabled rows skipped), Enter fires the row's `onSelect`, and hover moves it
+too. Home / End stay with the caret, and keys from any other focusable inside
+Command (a button in `CommandEmpty`) are left alone. Rows stay out of the Tab order on purpose. The highlight sits on
 the first row until the user moves it, so results that arrive after the
 keystroke put Enter on the top hit. Without a `CommandInput` there is nothing to
 hold focus, so a bare list is pointer-only. The live demo is `CommandDemo` in

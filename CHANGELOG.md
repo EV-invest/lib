@@ -56,9 +56,9 @@ Rust crate and its TypeScript mirror at once.
   in cmdk) turns the client filter off: every mounted `CommandItem` renders in
   the caller's order and `CommandEmpty` counts mounted rows. The kit also gains
   the keyboard it never had: focus stays in `CommandInput`, which points at the
-  highlighted row through `aria-activedescendant`; ArrowUp/ArrowDown/Home/End
-  move it past disabled rows, Enter fires that row's `onSelect`, hover moves
-  it too. The highlight sits on the first row until the user moves it, so
+  highlighted row through `aria-activedescendant`; ArrowUp/ArrowDown move it
+  past disabled rows, Enter fires that row's `onSelect`, hover moves it too
+  (Home/End stay with the caret; keys from other focusables are left alone). The highlight sits on the first row until the user moves it, so
   results that land after the keystroke put Enter on the top hit. TS only —
   the Rust port still filters and has no keyboard.
 
