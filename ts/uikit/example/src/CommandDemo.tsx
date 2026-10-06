@@ -80,7 +80,8 @@ export function CommandDemo() {
           ) : (
             <CommandEmpty>No investors found.</CommandEmpty>
           )}
-          {rows.length > 0 ? (
+          {/* The previous query's rows would keep Enter on a stale answer. */}
+          {!loading && rows.length > 0 ? (
             <CommandGroup heading="Investors">
               {rows.map((name) => (
                 <CommandItem key={name} value={name} onSelect={setPicked}>
