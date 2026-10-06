@@ -24,6 +24,22 @@ Rust crate and its TypeScript mirror at once.
 
 ### Added
 
+- **Every event of a QA visit says `forced: true`, at the sink**
+  (`@evinvest/kitstart`, #219). `analyticsSink` takes the QA cookie's name
+  (4th argument, `qaCookie`; 5th, `cookies` — a request's `Cookie` header on
+  the server, `document.cookie` read per event when left out) and adds
+  `forced: true` to every capture while that cookie is set with a non-empty
+  value. `AnalyticsBoundary`
+  passes its `qaCookie` to it, so the lead form's funnel (`lead_form_view`,
+  `_start`, `_step`, `_field_error`, `_submit_error`, `lead_estimate_shown`)
+  and `lead_booking_open` / `_done` are marked like the page view and intents.
+  `quoteRoute` takes `qaCookie` too and marks `lead_form_submit` and
+  `lead_form_reject` from the post's `Cookie` header. One rule on both sides,
+  exported as `qaVisit(cookies, name)`. Without the name, the events are
+  byte-for-byte as before. The template passes `ab__qa` to `quoteRoute`.
+  First load of the template's place page: 180,245 → 180,255 B gz (+10 B; the
+  three per-event spreads go, the per-capture check comes in the sink).
+
 - **A test visit's analytics say so** (`@evinvest/kitstart/react`):
   `AnalyticsBoundary` takes an optional `qaCookie` — pass `AbSwitcher`'s. With
   that cookie set (non-empty), `location_page_view` and both
@@ -278,6 +294,13 @@ Rust crate and its TypeScript mirror at once.
   grows a close button (`labels.close`) beside Clear, both ports.
 
 ### Changed
+
+- **`AbSwitcherPanel` shows an unassigned experiment as off**
+  (`@evinvest/kitstart/react`): no `ab_<key>` cookie (or no entry in
+  `current`) now reads `not running` by default (`text.unassigned`, was
+  `not assigned`) and its variant buttons are disabled — the menu mounts on a
+  place's page, where the proxy assigns every running experiment and would
+  refuse a force for one that is not. `–` on the chip as before.
 
 - **`experiments` — weights are equal unless overridden** (**Breaking**, both
   ports; #16; a major for `@evinvest/experiments`). Weights are no longer
