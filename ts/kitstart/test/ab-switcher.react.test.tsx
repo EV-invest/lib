@@ -114,7 +114,7 @@ describe("AbSwitcherPanel", () => {
     fireEvent.click(chip());
     fireEvent.click(screen.getByRole("button", { name: "Reset" }));
     expect(document.cookie).toBe("ab__qa=1");
-    expect(nav.replace).toHaveBeenCalledWith("https://x.test/fr?utm_source=x#quote");
+    expect(nav.replace).toHaveBeenCalledWith("https://x.test/fr?utm_source=x");
     fireEvent.click(screen.getByRole("button", { name: "Leave test" }));
     expect(document.cookie).toBe("");
   });
