@@ -349,7 +349,9 @@ it is the plain POST to `/quote` it always was.
   (`contact` / `need` in `qualify-first`; in `steps` each screen moved to —
   `intro`, `need`, `estimate_<input>`, `locality`, `phone`), each with `form_id`, `layout`, `experiment`,
   `variant`; `contact_intent_click {channel}` for `phone`, `whatsapp`, `sms`,
-  `callback`, with the experiment; and on the server `lead_form_submit
+  `callback`, with the experiment (and `forced: true` on a test visit, as
+  `location_page_view`, when the boundary has `qaCookie` — see `AbSwitcher`);
+  and on the server `lead_form_submit
   {form_id, channel}` and `lead_form_reject {form_id, channel, field,
   reason}` with the posted experiment.
 - **Weight.** 8.9 KB gz of first-load JS on the template's place page
@@ -936,6 +938,15 @@ adds no server path: a tap on a variant goes to the same URL with
   too. **Minimize** and **Hide** last until the next load.
 - Screenshots: the chip and its panel carry `data-ab-switcher`; hide it in the
   section stylesheet, `[data-ab-switcher] { display: none !important; }`.
+- **Pass the same `qaCookie` to `AnalyticsBoundary`.** Every tap in the menu
+  is a full reload, so a test visit would add page views to the place's
+  traffic; with the cookie set, the boundary's `location_page_view` and
+  `contact_intent_click` carry `forced: true`. Without the prop, or without
+  the cookie, the events are as before — no `forced` key at all.
+
+  ```tsx
+  <AnalyticsBoundary target={target} placeSlug={slug} qaCookie="ab__qa">
+  ```
 
 The decisions are plain functions in the core (`abSwitcherVisible`,
 `abVariantUrl`, `abReset`, `abAssignments`), for a brand's own tests.
