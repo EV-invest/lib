@@ -14,6 +14,16 @@ import { newSubmissionId } from "./use-lead-submit";
 const INTENT_ATTR = "data-intent";
 const INTENTS: readonly IntentChannel[] = ["form_open", "booking", "sms", "callback"];
 
+/**
+ * Whether the QA cookie is set with a value. Its own copy, not `ab-gate`'s:
+ * a module shared with `AbSwitcher` makes Turbopack split it into a chunk of
+ * its own, which costs every visitor more than these lines.
+ */
+const qaVisit = (name: string) => document.cookie.split(";").some(c => {
+  const eq = c.indexOf("=");
+  return eq > 0 && c.slice(0, eq).trim() === name && c.slice(eq + 1).trim() !== "";
+});
+
 function source(): string {
   const utm = new URLSearchParams(window.location.search).get("utm_source");
   if (utm) return utm.slice(0, 64);
@@ -33,7 +43,20 @@ function source(): string {
  * writes no cookie. `target` is plain data from the server layout — the key
  * is read from the container when the page renders, never inlined.
  */
-export function AnalyticsBoundary({ target, placeSlug, children }: { target: AnalyticsTarget; placeSlug: string | null; children: ReactNode }) {
+export interface AnalyticsBoundaryProps {
+  target: AnalyticsTarget;
+  placeSlug: string | null;
+  /**
+   * The cookie the brand's force parameter sets (`AbSwitcher`'s `qaCookie`).
+   * A visit carrying it is a test: its page views and intents say
+   * `forced: true`, so the QA menu's reloads do not count as a place's
+   * traffic. Read in the browser at each event, never on the server.
+   */
+  qaCookie?: string;
+  children: ReactNode;
+}
+
+export function AnalyticsBoundary({ target, placeSlug, qaCookie, children }: AnalyticsBoundaryProps) {
   // On the target's values: a server layout hands a fresh object every render.
   const { key, host, brandId } = target;
   // One visitor for the boundary's life, in memory only: a sink rebuilt for
@@ -41,24 +64,28 @@ export function AnalyticsBoundary({ target, placeSlug, children }: { target: Ana
   const [distinctId] = useState(newSubmissionId);
   const sink = useMemo(() => analyticsSink({ key, host, brandId }, placeSlug, distinctId), [key, host, brandId, placeSlug, distinctId]);
   const pathname = usePathname();
+  // Spread into an event: `{}` without the cookie, so a brand that never
+  // passes `qaCookie` sends exactly what it sent before.
+  const forced = () => (qaCookie && qaVisit(qaCookie) ? { forced: true } : {});
 
   useEffect(() => {
     if (!countsAsPageView(pathname)) return;
     sink.capture(EVENTS.pageView, {
       source: source(),
       device: window.matchMedia("(max-width: 767px)").matches ? "mobile" : "desktop",
+      ...forced(),
     });
-  }, [sink, pathname]);
+  }, [sink, pathname, qaCookie]);
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
       const el = event.target instanceof Element ? event.target.closest(`[${INTENT_ATTR}]`) : null;
       const channel = el?.getAttribute(INTENT_ATTR);
-      if (channel && INTENTS.some(i => i === channel)) sink.capture(EVENTS.intent, { channel, ...experimentOf(el) }, { transport: "beacon" });
+      if (channel && INTENTS.some(i => i === channel)) sink.capture(EVENTS.intent, { channel, ...experimentOf(el), ...forced() }, { transport: "beacon" });
     };
     document.addEventListener("click", onClick, { capture: true });
     return () => document.removeEventListener("click", onClick, { capture: true });
-  }, [sink]);
+  }, [sink, qaCookie]);
 
   // A link inside an experiment's island (`LeadCapture`) carries the
   // assignment on itself, which is what the tracker reads.
@@ -67,7 +94,7 @@ export function AnalyticsBoundary({ target, placeSlug, children }: { target: Ana
       <AnalyticsSinkContext.Provider value={sink}>
         <ContactLinkTracker
           channels={["phone", "whatsapp"]}
-          onContact={({ channel, data }) => sink.capture(EVENTS.intent, { channel, ...experimentProps(data["experiment"], data["variant"]) }, { transport: "beacon" })}
+          onContact={({ channel, data }) => sink.capture(EVENTS.intent, { channel, ...experimentProps(data["experiment"], data["variant"]), ...forced() }, { transport: "beacon" })}
         >
           {children}
         </ContactLinkTracker>
