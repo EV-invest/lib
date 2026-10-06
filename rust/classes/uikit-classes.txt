@@ -15,6 +15,11 @@
 [&_[data-slot=command-input-wrapper]]:h-12 [&_[data-slot=command-input]]:h-12
 [&_tr:last-child]:border-0
 [&_tr]:border-b
+[--table-
+[--table-dense-py:calc(var(--spacing)*1.5)]
+[--table-dense-py:calc(var(--spacing)*1.5)] [--table-head-h:calc(var(--spacing)*8)]
+[--table-head-case:uppercase]
+[--table-px:calc(var(--spacing)*5)] [--table-py:calc(var(--spacing)*3)] [--table-head-ink:var(--ink-soft)] [--table-head-text:var(--text-xs)] [--table-head-tracking:var(--tracking-wide)] [--table-head-case:uppercase] [&_thead_tr:hover]:bg-transparent
 [.border-t]:pt-6
 [data-chart=chart-x]
 [overflow-wrap:anywhere]
@@ -120,6 +125,7 @@ bg-card
 bg-card text-ink
 bg-card text-ink border-border
 bg-card text-ink flex flex-col gap-6 rounded-xl border border-border py-6 shadow-sm
+bg-card text-ink overflow-hidden rounded-xl border border-border shadow-sm
 bg-hover
 bg-hover animate-pulse rounded-md
 bg-hover text-ink rounded-md
@@ -275,6 +281,8 @@ data-chart=\
 data-collapsible
 data-collapsible=\
 data-content
+data-density
+data-density=\
 data-disabled
 data-disabled=\
 data-front
@@ -659,8 +667,6 @@ overflow-hidden
 overflow-x-auto
 p-0
 p-1
-p-2
-p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]
 p-3 w-fit
 p-4 gap-4
 pagination-content
@@ -694,13 +700,19 @@ px-2
 px-2 py-1.5
 px-2 py-1.5 text-sm font-medium data-[inset]:pl-8
 px-4
+px-5
 px-6
 px-[var(--control-px)] py-[var(--control-py)] text-[length:var(--control-text)]
 px-[var(--page-px,1rem)]
+px-[var(--table-px
+px-[var(--table-px,calc(var(--spacing)*2))]
+px-[var(--table-px,calc(var(--spacing)*2))] py-[var(--table-dense-py,var(--table-py,calc(var(--spacing)*2)))] align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]
 py-3 px-4 gap-2.5
+py-6
 py-6 text-center text-sm
 py-[var(--band-py)]
 py-[var(--band-py-tight)]
+py-[var(--table-dense-py,var(--table-py,calc(var(--spacing)*2)))]
 radio-group
 radio-group-indicator
 radio-group-item
@@ -726,6 +738,7 @@ rounded-[4px]
 rounded-[var(--control-radius)]
 rounded-full
 rounded-md
+rounded-xl
 rounded-xs
 scroll-area
 scroll-area-scrollbar
@@ -799,6 +812,7 @@ stroke-width
 switch-thumb
 table-body
 table-caption
+table-card
 table-cell
 table-container
 table-footer
@@ -816,6 +830,7 @@ terminal-pane-header
 terminal-ticker
 text-[11px] uppercase tracking-wide text-ink-soft
 text-[14px] md:text-[15px] leading-[1.62] text-ink-soft
+text-[color:var(--table-head-ink,var(--ink))] h-[var(--table-head-h,calc(var(--spacing)*10))] px-[var(--table-px,calc(var(--spacing)*2))] text-start align-middle font-medium whitespace-nowrap text-[length:var(--table-head-text)] tracking-[var(--table-head-tracking)] [text-transform:var(--table-head-case)] [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]
 text-accent-debug
 text-accent-error
 text-accent-error bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-ink-mid
@@ -826,12 +841,12 @@ text-accent-info bg-card [&>svg]:text-current *:data-[slot=alert-description]:te
 text-accent-trace
 text-accent-warn
 text-base
+text-end tabular-nums
 text-ink
 text-ink [&_[data-slot=command-group-heading]]:text-ink-soft overflow-hidden p-1 [&_[data-slot=command-group-heading]]:px-2 [&_[data-slot=command-group-heading]]:py-1.5 [&_[data-slot=command-group-heading]]:text-xs [&_[data-slot=command-group-heading]]:font-medium
 text-ink font-mono font-medium tabular-nums
 text-ink font-normal
 text-ink font-semibold
-text-ink h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]
 text-ink px-2 py-1.5 text-sm font-medium data-[inset]:pl-8
 text-ink-soft
 text-ink-soft [&>a:hover]:text-primary-ink text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4
@@ -866,6 +881,7 @@ text-sm
 text-sm font-medium select-none
 text-sm shadow-none flex gap-2 items-center
 text-sm sm:text-xs font-light leading-relaxed text-ink/70 mb-4
+text-start
 text-xs font-light text-ink/70 hover:text-accent-debug transition-colors
 ticker-stat
 toast-close

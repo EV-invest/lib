@@ -4,6 +4,20 @@ export const TABLE_CONTAINER = "relative w-full overflow-x-auto";
 
 export const TABLE = "w-full caption-bottom text-sm";
 
+export const tableVariants = {
+  "default": "",
+  "card": "[--table-px:calc(var(--spacing)*5)] [--table-py:calc(var(--spacing)*3)] [--table-head-ink:var(--ink-soft)] [--table-head-text:var(--text-xs)] [--table-head-tracking:var(--tracking-wide)] [--table-head-case:uppercase] [&_thead_tr:hover]:bg-transparent",
+} as const;
+export type TableVariant = keyof typeof tableVariants;
+
+export const tableDensities = {
+  "default": "",
+  "compact": "[--table-dense-py:calc(var(--spacing)*1.5)] [--table-head-h:calc(var(--spacing)*8)]",
+} as const;
+export type TableDensity = keyof typeof tableDensities;
+
+export const TABLE_CARD = "bg-card text-ink overflow-hidden rounded-xl border border-border shadow-sm";
+
 export const TABLE_HEADER = "[&_tr]:border-b";
 
 export const TABLE_BODY = "[&_tr:last-child]:border-0";
@@ -12,8 +26,14 @@ export const TABLE_FOOTER = "bg-muted/50 border-t border-border font-medium [&>t
 
 export const TABLE_ROW = "hover:bg-muted/50 data-[state=selected]:bg-muted border-b border-border transition-colors";
 
-export const TABLE_HEAD = "text-ink h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]";
+export const TABLE_HEAD = "text-[color:var(--table-head-ink,var(--ink))] h-[var(--table-head-h,calc(var(--spacing)*10))] px-[var(--table-px,calc(var(--spacing)*2))] text-start align-middle font-medium whitespace-nowrap text-[length:var(--table-head-text)] tracking-[var(--table-head-tracking)] [text-transform:var(--table-head-case)] [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]";
 
-export const TABLE_CELL = "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]";
+export const TABLE_CELL = "px-[var(--table-px,calc(var(--spacing)*2))] py-[var(--table-dense-py,var(--table-py,calc(var(--spacing)*2)))] align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]";
+
+export const tableAligns = {
+  "start": "text-start",
+  "end": "text-end tabular-nums",
+} as const;
+export type TableAlign = keyof typeof tableAligns;
 
 export const TABLE_CAPTION = "text-ink-soft mt-4 text-sm";

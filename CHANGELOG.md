@@ -24,6 +24,16 @@ Rust crate and its TypeScript mirror at once.
 
 ### Added
 
+- **Card tables** (`ev_lib` `uikit`, #187; the TS `Table` follows): `Table`
+  takes `variant` (`TableVariant::Card` — uppercase `text-xs tracking-wide
+  text-ink-soft` head, `px-5 py-3` cells, no head-row hover) and `density`
+  (`TableDensity::Compact`); `TableHead`/`TableCell` take `align`
+  (`TableAlign::End` — right-aligned, tabular numerals); `TableCard` is the
+  paddingless card such a table sits in. The table only sets inherited
+  `--table-*` custom properties that the cells read, so a cell's own `class`
+  still wins. Generated TS: `tableVariants`, `tableDensities`, `tableAligns`,
+  `TABLE_CARD`. Default tables render as before; `TABLE_HEAD` aligns
+  `text-start` instead of `text-left`.
 - **`ts_gen`** (`ev_lib` 0.24.1): the TS generator `ev_lib_gen` runs on, opened
   to downstream repos — `Ts::types::<T>()` (via `ts-rs`), `Ts::Value` (via
   serde), `Ts::write`. `Ts::Array`/`Ts::Scalar` folded into `Ts::Value`; the
