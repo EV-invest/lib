@@ -4,11 +4,13 @@ import {
   cookieName,
   nextVariant,
   pickVariant,
+  pickVariantFor,
   resolveVariant,
   select,
   type ExperimentConfig,
   type Variant,
 } from '../src/index';
+import { OVERRIDE_WEIGHTS } from '../src/overrides';
 
 const config = {
   hero: { variants: ['a', 'b'] },
@@ -17,11 +19,11 @@ const config = {
 } as const satisfies ExperimentConfig;
 
 /**
- * A spec carrying weights `applyOverrides` would reject — the shape a caller
- * could still hand-build — to pin that `pickVariant` itself stays total on it.
+ * A spec carrying override weights `applyOverrides` would reject, set on the
+ * package-private key directly, to pin that `pickVariant` stays total on it.
  */
 function unchecked(variants: readonly string[], weights: readonly number[]) {
-  return { flag: { variants, weights } };
+  return { flag: { variants, [OVERRIDE_WEIGHTS]: weights } };
 }
 
 describe('cookieName', () => {
@@ -73,8 +75,24 @@ describe('pickVariant', () => {
 
   it('keeps equal shares for an experiment the override does not touch', () => {
     const live = applyOverrides(config, { team: { weights: [2, 1, 1] } });
-    expect(live.hero).not.toHaveProperty('weights');
+    expect(pickVariant(live, 'hero', () => 0.4999)).toBe('a');
     expect(pickVariant(live, 'hero', () => 0.5)).toBe('b');
+  });
+
+  it('ignores weights written into a config that skipped `satisfies`', () => {
+    // 90/10 by hand: u = 0.5 would be "a"; the equal split makes it "b".
+    const stray = { hero: { variants: ['a', 'b'], weights: [0.9, 0.1] } } as const;
+    expect(pickVariant(stray, 'hero', () => 0.5)).toBe('b');
+    expect(pickVariantFor(stray, 'hero', 'loc-1')).toBe(pickVariantFor(config, 'hero', 'loc-1'));
+    // applyOverrides does not carry them over either — with or without a panel answer.
+    for (const overrides of [undefined, {}, { hero: { enabled: true } }]) {
+      const live = applyOverrides(stray, overrides);
+      expect(live.hero).not.toHaveProperty('weights');
+      expect(pickVariant(live, 'hero', () => 0.5)).toBe('b');
+    }
+    // The panel's weights still apply over a stray field.
+    const panel = applyOverrides(stray, { hero: { weights: [0, 1] } });
+    expect(pickVariant(panel, 'hero', () => 0)).toBe('b');
   });
 
   it('falls through to the last variant at the top of the range (fp drift safety)', () => {

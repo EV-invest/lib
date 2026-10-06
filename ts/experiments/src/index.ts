@@ -19,6 +19,7 @@
 
 import { DEFAULT_COOKIE_PREFIX } from './generated/contract';
 import { hashRng } from './hash';
+import { overrideWeights } from './overrides';
 
 /** The default cookie-name prefix, `ab_` (the Rust `cookie_name` contract). */
 export { DEFAULT_COOKIE_PREFIX } from './generated/contract';
@@ -135,9 +136,10 @@ export type AbCookieOptions = {
 };
 
 /**
- * Per-device variant pick. Every variant gets an equal share unless the spec
- * carries operator `weights` laid over it by {@link applyOverrides}; those are
- * relative (normalized by their total). The loop falls through to the last
+ * Per-device variant pick. Every variant gets an equal share unless
+ * {@link applyOverrides} laid the panel's weights over the spec; those are
+ * relative (normalized by their total). A `weights` field written into the
+ * config itself is ignored. The loop falls through to the last
  * variant, so floating-point drift can never return `undefined`.
  *
  * The randomness source is injectable: pass a deterministic `rng` (a function
@@ -168,12 +170,13 @@ export function pickVariant<C extends ExperimentConfig, K extends ExperimentKey<
   key: K,
   rng: () => number = Math.random,
 ): Variant<C, K> {
-  const spec = config[key] as C[K] & { readonly weights?: readonly number[] };
+  const spec = config[key] as C[K];
   const { variants, enabled, holdout } = spec;
   if (enabled === false) return variants[0] as Variant<C, K>;
-  // Weights exist only as an operator override; without one every variant
-  // weighs 1, which is exactly the Rust core's equal-share walk.
-  const weights = spec.weights ?? variants.map(() => 1);
+  // Weights exist only as an operator override that `applyOverrides` laid
+  // over the spec; a `weights` field on the spec itself is ignored. Without
+  // one every variant weighs 1, which is exactly the Rust core's walk.
+  const weights = overrideWeights(spec) ?? variants.map(() => 1);
   // Only positive weights contribute. A non-positive total (no variants, or an
   // override that `applyOverrides` would have rejected) falls back to the
   // control instead of the last variant.

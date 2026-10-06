@@ -11,23 +11,40 @@ export type ExperimentOverride = {
   readonly holdout?: number;
 };
 
+/**
+ * Where {@link applyOverrides} puts the panel's weights on a spec. Not exported
+ * from the package: weights that reach a pick must have come through
+ * `applyOverrides`, so a `weights` key written into a config by hand (one that
+ * skipped `satisfies ExperimentConfig`) is never read. `Symbol.for`, not
+ * `Symbol()`: the `./next` and `./react` bundles may carry their own copy of
+ * this module, and the key must be the same one in each.
+ */
+export const OVERRIDE_WEIGHTS: unique symbol = Symbol.for('@evinvest/experiments/override-weights');
+
+/** The operator weights {@link applyOverrides} laid over a spec, if any. */
+export function overrideWeights(spec: object): readonly number[] | undefined {
+  return (spec as { readonly [OVERRIDE_WEIGHTS]?: readonly number[] })[OVERRIDE_WEIGHTS];
+}
+
 /** Overrides by experiment key — the `experiments` object of the panel's answer. */
 export type ExperimentOverrides = Readonly<Record<string, ExperimentOverride>>;
 
 /**
  * The config {@link applyOverrides} returns: the variants keep their declared
  * (literal) types, while `enabled` and `holdout` are whatever the operator set,
- * so they widen to plain values. `weights` is present only when the operator
- * set valid ones — the config in code never declares weights, so without an
- * override every variant gets an equal share.
+ * so they widen to plain values. The operator's weights, when valid, ride on
+ * the spec under a package-private key — they are not a field a caller reads
+ * or writes; without them every variant gets an equal share.
  */
 export type OverriddenConfig<C extends ExperimentConfig> = {
   readonly [K in keyof C]: Omit<C[K], 'enabled' | 'holdout'> & {
-    readonly weights?: readonly number[];
     readonly enabled?: boolean;
     readonly holdout?: number;
   };
 };
+
+/** A spec as it may arrive from a config built without `satisfies`. */
+type ExperimentSpecWithStray = ExperimentConfig[string] & { readonly weights?: unknown };
 
 function validWeights(raw: unknown, length: number): readonly number[] | undefined {
   if (!Array.isArray(raw) || raw.length !== length) return undefined;
@@ -85,8 +102,11 @@ export function applyOverrides<C extends ExperimentConfig>(
   for (const [key, spec] of Object.entries(config)) {
     // Own properties only: a key like `constructor` must not reach the prototype.
     const entry: unknown = Object.hasOwn(table, key) ? table[key] : undefined;
+    // A `weights` key on the spec in code is not the panel's: it is dropped, so
+    // it can neither reach a pick nor pass for an override on a second pass.
+    const { weights: _declared, ...declared } = spec as ExperimentSpecWithStray;
     if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
-      out[key] = spec;
+      out[key] = declared;
       continue;
     }
     const o = entry as Record<string, unknown>;
@@ -94,8 +114,8 @@ export function applyOverrides<C extends ExperimentConfig>(
     const holdout = validHoldout(o['holdout']);
     const enabled = typeof o['enabled'] === 'boolean' ? o['enabled'] : undefined;
     out[key] = {
-      ...spec,
-      ...(weights !== undefined ? { weights } : {}),
+      ...declared,
+      ...(weights !== undefined ? { [OVERRIDE_WEIGHTS]: weights } : {}),
       ...(holdout !== undefined ? { holdout } : {}),
       ...(enabled !== undefined ? { enabled } : {}),
     };

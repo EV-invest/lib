@@ -55,7 +55,8 @@ export const experiments = {
 ```
 
 Every variant gets an equal share; weights are not declared in code. Other
-weights come only from an operator override (`applyOverrides`, below).
+weights come only from an operator override (`applyOverrides`, below); a
+`weights` key written into the config anyway is ignored.
 
 ### `.` — core (server-safe, zero-dep)
 

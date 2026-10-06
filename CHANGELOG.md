@@ -190,9 +190,10 @@ Rust crate and its TypeScript mirror at once.
   the Rust `Experiment`; `Experiment::new(variants, weights)` is now
   `Experiment::new(variants)`, and `Experiment::uniform` is removed — use
   `Experiment::new`. Manual weights come only from an operator override in the
-  panel: `applyOverrides` lays them over the config (`OverriddenConfig` carries
-  an optional `weights`), and `pickVariant` falls back to equal shares without
-  one; Rust has no override path. kitstart's `DeclaredExperiment` drops
+  panel: `applyOverrides` lays them over the config under a package-private
+  key, and `pickVariant` reads only that — a `weights` field left in a config
+  (one without `satisfies`) is ignored and not carried over — falling back to
+  equal shares; Rust has no override path. kitstart's `DeclaredExperiment` drops
   `weights` and `experiments.declared@1` sends one each per variant — the
   panel contract is unchanged. Migration: delete `weights` from every
   experiment config; a split that was not equal is set in the panel.
