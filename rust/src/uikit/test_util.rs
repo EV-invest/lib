@@ -109,6 +109,17 @@ fn sweep(dom: &mut VirtualDom, name: &str, data: impl Fn() -> Box<dyn std::any::
 /// first key and after each — for a component whose parts register through
 /// `use_effect` and would otherwise meet the keys unregistered.
 pub fn render_after_settled_keys(app: fn() -> Element, keys: &[Key]) -> String {
+	keys_settling(app, keys, true)
+}
+
+/// [`render_after_settled_keys`] without settling before the first key: it
+/// meets the first render's effects still queued — for a test of what happens
+/// to them when that key unmounts their component.
+pub fn render_after_keys_on_queued_effects(app: fn() -> Element, keys: &[Key]) -> String {
+	keys_settling(app, keys, false)
+}
+
+fn keys_settling(app: fn() -> Element, keys: &[Key], settle_first: bool) -> String {
 	let mut dom = mount(app);
 	let settle = |dom: &mut VirtualDom| {
 		// Twice, as in `render_with_effects`: run the effects, then let what they dirtied render.
@@ -116,7 +127,9 @@ pub fn render_after_settled_keys(app: fn() -> Element, keys: &[Key]) -> String {
 			dom.render_immediate(&mut dioxus::dioxus_core::NoOpMutations);
 		}
 	};
-	settle(&mut dom);
+	if settle_first {
+		settle(&mut dom);
+	}
 	for key in keys {
 		sweep(&mut dom, "keydown", || {
 			Box::new(dioxus::html::SerializedKeyboardData::new(

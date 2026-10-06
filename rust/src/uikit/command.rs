@@ -42,7 +42,8 @@ pub fn Command(
 	let els = use_signal(BTreeMap::new);
 	let moved = use_signal(|| None::<(usize, String)>);
 	let layout = use_signal(|| 0_u64);
-	let layout_pending = use_hook(|| CopyValue::new(false));
+	let handlers = use_hook(|| CopyValue::new(BTreeMap::new()));
+	let layout_pending = use_hook(|| CopyValue::new(None::<usize>));
 	// Until the user moves the highlight it tracks the first row, so results
 	// that arrive after the keystroke (or reorder under it) put Enter on the top
 	// hit. Once moved, it sticks while that row stays and the query is the one
@@ -65,6 +66,7 @@ pub fn Command(
 		moved,
 		layout,
 		layout_pending,
+		handlers,
 		highlighted,
 		list_id,
 	});
@@ -212,18 +214,26 @@ pub fn CommandItem(value: String, #[props(default)] disabled: bool, on_select: O
 				value,
 				disabled,
 				dom_id: registered_id.clone(),
-				on_select,
 			},
 		);
 	}));
+	// Read at Enter, not frozen at registration: a handler the caller wires up
+	// (or drops) after mount must be the one that fires.
+	{
+		let mut handlers = ctx.handlers;
+		handlers.write().insert(id, on_select);
+	}
 	use_drop(move || {
 		let mut items = ctx.items;
 		items.write().remove(&id);
 		let mut els = ctx.els;
 		els.write().remove(&id);
+		let mut handlers = ctx.handlers;
+		handlers.write().remove(&id);
+		ctx.row_dropped(id);
 	});
 
-	ctx.relayout_after_render();
+	ctx.relayout_after_render(id);
 	if !ctx.matches(&value) {
 		// Unmounted by the filter: a stale element must not be placed in the document order.
 		let mut els = ctx.els;
@@ -297,8 +307,12 @@ struct CommandCtx {
 	moved: Signal<Option<(usize, String)>>,
 	/// Bumped after a render of the rows, once the DOM has their new order.
 	layout: Signal<u64>,
-	/// Whether a bump of `layout` is already queued for this render.
-	layout_pending: CopyValue<bool>,
+	/// Every row's `on_select`, refreshed on each of its renders. Not a signal:
+	/// only Enter reads it.
+	handlers: CopyValue<BTreeMap<usize, Option<EventHandler<String>>>>,
+	/// The row whose effect will bump `layout` after this render, if one is queued.
+	/// An effect dies with its row, so a row unmounting with it queued clears this.
+	layout_pending: CopyValue<Option<usize>>,
 	/// The highlighted row: Enter's target and the input's `aria-activedescendant`.
 	highlighted: Memo<Option<usize>>,
 	/// The listbox's id, for the input's `aria-controls`.
@@ -329,17 +343,32 @@ impl CommandCtx {
 	/// Queues one re-read of the rows' order for after this render — a keyed
 	/// re-sort moves rows without remounting them, so nothing else would tell
 	/// the highlight. Effects run once the edits are in the DOM.
-	fn relayout_after_render(&self) {
+	///
+	/// The effect is queued on the calling row, `row`; dioxus drops a scope's
+	/// queued effects with the scope, so [`CommandCtx::row_dropped`] takes the
+	/// job back when that row unmounts first.
+	fn relayout_after_render(&self, row: usize) {
 		let mut pending = self.layout_pending;
-		if *pending.peek() {
+		if pending.peek().is_some() {
 			return;
 		}
-		pending.set(true);
-		let mut layout = self.layout;
+		pending.set(Some(row));
+		let layout = self.layout;
 		dioxus::dioxus_core::queue_effect(move || {
-			pending.set(false);
-			layout.with_mut(|n| *n = n.wrapping_add(1));
+			pending.set(None);
+			bump(layout);
 		});
+	}
+
+	/// A row unmounting: if the re-read it queued has not run, it never will,
+	/// so re-read now — the rows that stay are already in the DOM — and free
+	/// the next render to queue its own.
+	fn row_dropped(&self, row: usize) {
+		let mut pending = self.layout_pending;
+		if *pending.peek() == Some(row) {
+			pending.set(None);
+			bump(self.layout);
+		}
 	}
 
 	fn activate(&self, id: usize) {
@@ -365,7 +394,9 @@ impl CommandCtx {
 			Key::ArrowUp => current.map_or(last, |at| at.saturating_sub(1)),
 			Key::Enter => {
 				let Some(at) = current else { return };
-				let entry = self.items.peek().get(&reachable[at]).map(|e| (e.value.clone(), e.on_select));
+				let row = reachable[at];
+				let on_select = self.handlers.peek().get(&row).copied().flatten();
+				let entry = self.items.peek().get(&row).map(|e| (e.value.clone(), on_select));
 				if let Some((value, on_select)) = entry {
 					e.prevent_default();
 					if let Some(handler) = on_select {
@@ -400,7 +431,10 @@ struct CommandEntry {
 	disabled: bool,
 	/// What the input's `aria-activedescendant` names while this row is highlighted.
 	dom_id: String,
-	on_select: Option<EventHandler<String>>,
+}
+
+fn bump(mut layout: Signal<u64>) {
+	layout.with_mut(|n| *n = n.wrapping_add(1));
 }
 
 /// The active query: trimmed, so blank input is not a search, and lowercased
@@ -414,10 +448,14 @@ fn query_of(search: &str) -> String {
 /// order on screen.
 fn reachable_rows(items: &BTreeMap<usize, CommandEntry>, els: &BTreeMap<usize, Rc<MountedData>>, query: &str, should_filter: bool) -> Vec<usize> {
 	let mut reachable: Vec<usize> = items.iter().filter(|(_, e)| !e.disabled && matches(query, should_filter, &e.value)).map(|(id, _)| *id).collect();
-	sort_by_position(&mut reachable, |a, b| match (els.get(a), els.get(b)) {
-		(Some(a), Some(b)) => document_precedes(a, b),
-		_ => None,
-	});
+	sort_by_position(
+		&mut reachable,
+		|row| els.get(row).is_some_and(|el| is_placed(el)),
+		|a, b| match (els.get(a), els.get(b)) {
+			(Some(a), Some(b)) => document_precedes(a, b),
+			_ => false,
+		},
+	);
 	reachable
 }
 
@@ -434,42 +472,70 @@ fn highlight_in(reachable: &[usize], moved: Option<&(usize, String)>, query: &st
 // The document-order sort below is the one `primitives::sort_into_document_order`
 // carries on the Select branch (#214); fold this copy into it once both land.
 
-/// A stable insertion sort that gives up — leaving `items` untouched — the
-/// first time `precedes` cannot place a pair. Insertion, not `sort_by`: the
-/// comparison comes from the DOM, and a detached node must not be able to
-/// break the total order `sort_by` may panic without.
-fn sort_by_position<T>(items: &mut [T], precedes: impl Fn(&T, &T) -> Option<bool>) {
-	for i in 0..items.len() {
-		for j in i + 1..items.len() {
-			if precedes(&items[i], &items[j]).is_none() {
-				return;
-			}
-		}
+/// Sorts `items` by `precedes` when every item is `placed`, leaving them as they
+/// are otherwise — O(n) `placed` checks, then O(n) comparisons for a list already
+/// in order and O(n log n) for one that is not. Each comparison is a call into
+/// the DOM, so an n² pass over a long list would stall every key.
+///
+/// A merge sort of our own rather than `sort_by`: `sort_by` may panic on an
+/// order that is not total, and a DOM comparison is one only while every node
+/// is in the document — this one stays a permutation whatever `precedes` says.
+fn sort_by_position<T: Clone>(items: &mut [T], placed: impl Fn(&T) -> bool, precedes: impl Fn(&T, &T) -> bool) {
+	if !items.iter().all(&placed) {
+		return;
 	}
-	for i in 1..items.len() {
-		let mut j = i;
-		while j > 0 && precedes(&items[j], &items[j - 1]) == Some(true) {
-			items.swap(j, j - 1);
-			j -= 1;
-		}
+	if items.windows(2).all(|pair| !precedes(&pair[1], &pair[0])) {
+		return;
 	}
+	merge_sort(items, &precedes);
 }
 
-/// Whether `a` comes before `b` in the document; `None` where the renderer
-/// cannot tell (SSR, desktop), which leaves the rows in registration order.
-#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
-fn document_precedes(a: &MountedData, b: &MountedData) -> Option<bool> {
-	use web_sys::Node;
-	let (a, b) = (a.downcast::<web_sys::Element>()?, b.downcast::<web_sys::Element>()?);
-	let position = a.compare_document_position(b);
-	if position & Node::DOCUMENT_POSITION_DISCONNECTED != 0 {
-		return None;
+fn merge_sort<T: Clone>(items: &mut [T], precedes: &impl Fn(&T, &T) -> bool) {
+	if items.len() < 2 {
+		return;
 	}
-	Some(position & Node::DOCUMENT_POSITION_FOLLOWING != 0)
+	let mid = items.len() / 2;
+	merge_sort(&mut items[..mid], precedes);
+	merge_sort(&mut items[mid..], precedes);
+	let mut merged = Vec::with_capacity(items.len());
+	let (mut i, mut j) = (0, mid);
+	while i < mid && j < items.len() {
+		// Strictly before, so equals keep their order: the sort is stable.
+		if precedes(&items[j], &items[i]) {
+			merged.push(items[j].clone());
+			j += 1;
+		} else {
+			merged.push(items[i].clone());
+			i += 1;
+		}
+	}
+	merged.extend_from_slice(&items[i..mid]);
+	merged.extend_from_slice(&items[j..]);
+	items.clone_from_slice(&merged);
+}
+
+/// Whether the renderer can place `el` in the document: the web renderer, for
+/// an element that is still connected.
+#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+fn is_placed(el: &MountedData) -> bool {
+	el.downcast::<web_sys::Element>().is_some_and(|el| el.is_connected())
 }
 #[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
-fn document_precedes(_: &MountedData, _: &MountedData) -> Option<bool> {
-	None
+fn is_placed(_: &MountedData) -> bool {
+	false
+}
+
+/// Whether `a` comes before `b` in the document. Only asked of placed elements.
+#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+fn document_precedes(a: &MountedData, b: &MountedData) -> bool {
+	match (a.downcast::<web_sys::Element>(), b.downcast::<web_sys::Element>()) {
+		(Some(a), Some(b)) => a.compare_document_position(b) & web_sys::Node::DOCUMENT_POSITION_FOLLOWING != 0,
+		_ => false,
+	}
+}
+#[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
+fn document_precedes(_: &MountedData, _: &MountedData) -> bool {
+	false
 }
 
 /// With `should_filter` off every row matches: the caller's rows are the results.
@@ -482,7 +548,7 @@ static NEXT_ITEM_ID: AtomicUsize = AtomicUsize::new(0);
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::uikit::test_util::{render, render_after_settled_keys, render_with_effects};
+	use crate::uikit::test_util::{render, render_after_keys_on_queued_effects, render_after_settled_keys, render_with_effects};
 
 	#[test]
 	fn renders_all_items_when_empty_search() {
@@ -805,8 +871,99 @@ mod tests {
 
 	/// `(registration id, place on screen)`; the sort sees only the place.
 	fn on_screen(rows: &mut [(usize, usize)]) -> Vec<usize> {
-		sort_by_position(rows, |a, b| Some(a.1 < b.1));
+		sort_by_position(rows, |_| true, |a, b| a.1 < b.1);
 		rows.iter().map(|r| r.0).collect()
+	}
+
+	#[test]
+	fn the_document_sort_asks_n_log_n_comparisons_not_n_squared() {
+		use std::cell::Cell;
+		let n = 1000;
+		let calls = Cell::new(0_usize);
+		let count = |a: &usize, b: &usize| {
+			calls.set(calls.get() + 1);
+			a < b
+		};
+		let mut in_order: Vec<usize> = (0..n).collect();
+		sort_by_position(&mut in_order, |_| true, count);
+		assert_eq!(calls.get(), n - 1, "rows already in order cost one pass");
+		calls.set(0);
+		let mut reversed: Vec<usize> = (0..n).rev().collect();
+		sort_by_position(&mut reversed, |_| true, count);
+		assert_eq!(reversed, (0..n).collect::<Vec<_>>());
+		assert!(calls.get() < 2 * n * 10, "{} comparisons for {n} rows", calls.get());
+	}
+
+	#[test]
+	fn an_unplaced_row_keeps_registration_order() {
+		let mut rows = [(0, Some(1)), (1, None), (2, Some(0))];
+		sort_by_position(&mut rows, |r| r.1.is_some(), |a, b| a.1 < b.1);
+		assert_eq!(rows.map(|r| r.0), [0, 1, 2]);
+	}
+
+	#[test]
+	fn an_on_select_given_after_mount_is_what_enter_fires() {
+		fn app() -> Element {
+			let mut armed = use_signal(|| false);
+			let mut picked = use_signal(String::new);
+			let on_select = armed().then(|| EventHandler::new(move |v: String| picked.set(v)));
+			rsx! {
+				span { "picked:{picked}" }
+				// Stands in for the caller wiring the handler up later.
+				div {
+					onkeydown: move |e| {
+						if e.key() == Key::F2 {
+							armed.set(true);
+						}
+					},
+				}
+				Command {
+					CommandInput {}
+					CommandList {
+						CommandItem { value: "Apple", on_select, "Apple" }
+					}
+				}
+			}
+		}
+		let html = render_after_settled_keys(app, &[Key::F2, Key::Enter]);
+		assert_eq!(picked(&html), "Apple", "{html}");
+	}
+
+	#[test]
+	fn a_row_unmounted_before_its_relayout_ran_does_not_freeze_the_order() {
+		/// Shows whether a re-read of the rows' order is still queued, re-rendering on each re-read.
+		#[component]
+		fn Probe() -> Element {
+			let ctx = use_context::<CommandCtx>();
+			let _ = ctx.layout.read();
+			let pending = ctx.layout_pending.peek().is_some();
+			rsx! { "pending:{pending}" }
+		}
+		fn app() -> Element {
+			let mut rows = use_signal(|| vec!["Apple", "Banana"]);
+			rsx! {
+				div {
+					onkeydown: move |e| {
+						if e.key() == Key::F2 {
+							rows.set(vec!["Banana"]);
+						}
+					},
+				}
+				Command {
+					CommandInput {}
+					CommandList {
+						for row in rows() {
+							CommandItem { key: "{row}", value: row, {row} }
+						}
+					}
+					Probe {}
+				}
+			}
+		}
+		// Apple queued the first re-read; F2 unmounts it before that ran, and the
+		// highlight moving to Banana then asks for another.
+		let html = render_after_keys_on_queued_effects(app, &[Key::F2, Key::ArrowDown]);
+		assert!(html.contains("pending:false"), "{html}");
 	}
 
 	#[test]
