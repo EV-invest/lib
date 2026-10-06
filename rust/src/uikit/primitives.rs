@@ -345,49 +345,81 @@ static NEXT_LAYER_ID: AtomicUsize = AtomicUsize::new(0);
 ///
 /// Only the web renderer can compare two elements' places; elsewhere (SSR,
 /// desktop) and while any item has not mounted yet, the order is left as is.
-pub(crate) fn sort_into_document_order<T>(items: &mut [T], el: impl Fn(&T) -> Option<&Rc<MountedData>>) {
-	sort_by_position(items, |a, b| match (el(a), el(b)) {
-		(Some(a), Some(b)) => document_precedes(a, b),
-		_ => None,
-	});
+pub(crate) fn sort_into_document_order<T: Clone>(items: &mut [T], el: impl Fn(&T) -> Option<&Rc<MountedData>>) {
+	sort_by_position(
+		items,
+		|item| el(item).is_some_and(|el| is_placed(el)),
+		|a, b| match (el(a), el(b)) {
+			(Some(a), Some(b)) => document_precedes(a, b),
+			_ => false,
+		},
+	);
 }
 
-/// A stable insertion sort that gives up — leaving `items` untouched — the
-/// first time `precedes` cannot place a pair. Insertion, not `sort_by`: the
-/// comparison comes from the DOM, and a detached node must not be able to
-/// break the total order `sort_by` may panic without.
-fn sort_by_position<T>(items: &mut [T], precedes: impl Fn(&T, &T) -> Option<bool>) {
-	for i in 0..items.len() {
-		for j in i + 1..items.len() {
-			if precedes(&items[i], &items[j]).is_none() {
-				return;
-			}
-		}
+/// Sorts `items` by `precedes` when every item is `placed`, leaving them as they
+/// are otherwise — O(n) `placed` checks, then O(n) comparisons for a list already
+/// in order and O(n log n) for one that is not. Each comparison is a call into
+/// the DOM, so an n² pass over a long list would stall every key.
+///
+/// A merge sort of our own rather than `sort_by`: `sort_by` may panic on an
+/// order that is not total, and a DOM comparison is one only while every node
+/// is in the document — this one stays a permutation whatever `precedes` says.
+fn sort_by_position<T: Clone>(items: &mut [T], placed: impl Fn(&T) -> bool, precedes: impl Fn(&T, &T) -> bool) {
+	if !items.iter().all(&placed) {
+		return;
 	}
-	for i in 1..items.len() {
-		let mut j = i;
-		while j > 0 && precedes(&items[j], &items[j - 1]) == Some(true) {
-			items.swap(j, j - 1);
-			j -= 1;
-		}
+	if items.windows(2).all(|pair| !precedes(&pair[1], &pair[0])) {
+		return;
 	}
+	merge_sort(items, &precedes);
 }
 
-/// Whether `a` comes before `b` in the document; `None` where the renderer
-/// cannot tell.
+fn merge_sort<T: Clone>(items: &mut [T], precedes: &impl Fn(&T, &T) -> bool) {
+	if items.len() < 2 {
+		return;
+	}
+	let mid = items.len() / 2;
+	merge_sort(&mut items[..mid], precedes);
+	merge_sort(&mut items[mid..], precedes);
+	let mut merged = Vec::with_capacity(items.len());
+	let (mut i, mut j) = (0, mid);
+	while i < mid && j < items.len() {
+		// Strictly before, so equals keep their order: the sort is stable.
+		if precedes(&items[j], &items[i]) {
+			merged.push(items[j].clone());
+			j += 1;
+		} else {
+			merged.push(items[i].clone());
+			i += 1;
+		}
+	}
+	merged.extend_from_slice(&items[i..mid]);
+	merged.extend_from_slice(&items[j..]);
+	items.clone_from_slice(&merged);
+}
+
+/// Whether the renderer can place `el` in the document: the web renderer, for
+/// an element that is still connected.
 #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
-fn document_precedes(a: &MountedData, b: &MountedData) -> Option<bool> {
-	use web_sys::Node;
-	let (a, b) = (a.downcast::<web_sys::Element>()?, b.downcast::<web_sys::Element>()?);
-	let position = a.compare_document_position(b);
-	if position & Node::DOCUMENT_POSITION_DISCONNECTED != 0 {
-		return None;
-	}
-	Some(position & Node::DOCUMENT_POSITION_FOLLOWING != 0)
+fn is_placed(el: &MountedData) -> bool {
+	el.downcast::<web_sys::Element>().is_some_and(|el| el.is_connected())
 }
 #[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
-fn document_precedes(_: &MountedData, _: &MountedData) -> Option<bool> {
-	None
+fn is_placed(_: &MountedData) -> bool {
+	false
+}
+
+/// Whether `a` comes before `b` in the document. Only asked of placed elements.
+#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+fn document_precedes(a: &MountedData, b: &MountedData) -> bool {
+	match (a.downcast::<web_sys::Element>(), b.downcast::<web_sys::Element>()) {
+		(Some(a), Some(b)) => a.compare_document_position(b) & web_sys::Node::DOCUMENT_POSITION_FOLLOWING != 0,
+		_ => false,
+	}
+}
+#[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
+fn document_precedes(_: &MountedData, _: &MountedData) -> bool {
+	false
 }
 
 /// The text `children` would render, as far as it can be read off the vnode —
@@ -512,7 +544,7 @@ mod tests {
 
 	/// `(registration id, place on screen)`; the sort sees only the place.
 	fn by_place(items: &mut [(usize, Option<usize>)]) {
-		sort_by_position(items, |a, b| Some(a.1? < b.1?));
+		sort_by_position(items, |i| i.1.is_some(), |a, b| a.1 < b.1);
 	}
 
 	#[test]
@@ -535,6 +567,38 @@ mod tests {
 		let mut items = [(0, Some(1)), (1, None), (2, Some(0))];
 		by_place(&mut items);
 		assert_eq!(items.map(|i| i.0), [0, 1, 2]);
+	}
+
+	#[test]
+	fn the_document_sort_asks_n_log_n_comparisons_not_n_squared() {
+		use std::cell::Cell;
+		let n = 1000;
+		let calls = Cell::new(0_usize);
+		let count = |a: &usize, b: &usize| {
+			calls.set(calls.get() + 1);
+			a < b
+		};
+		let mut in_order: Vec<usize> = (0..n).collect();
+		sort_by_position(&mut in_order, |_| true, count);
+		assert_eq!(calls.get(), n - 1, "a list already in order costs one pass");
+		calls.set(0);
+		// A keyed re-sort that reverses the list: the worst case for the old insertion sort.
+		let mut reversed: Vec<usize> = (0..n).rev().collect();
+		sort_by_position(&mut reversed, |_| true, count);
+		assert_eq!(reversed, (0..n).collect::<Vec<_>>());
+		assert!(calls.get() < 2 * n * 10, "{} comparisons for {n} items", calls.get());
+	}
+
+	#[test]
+	fn the_document_sort_is_stable_and_survives_an_inconsistent_order() {
+		let mut items = [(0, 1), (1, 0), (2, 1), (3, 0)];
+		sort_by_position(&mut items, |_| true, |a, b| a.1 < b.1);
+		assert_eq!(items.map(|i| i.0), [1, 3, 0, 2]);
+		// A comparison that is no order at all still leaves a permutation, never a panic.
+		let mut items: Vec<usize> = (0..50).collect();
+		sort_by_position(&mut items, |_| true, |a, b| (a * 7 + b * 3) % 5 == 0);
+		items.sort_unstable();
+		assert_eq!(items, (0..50).collect::<Vec<_>>());
 	}
 
 	#[test]
