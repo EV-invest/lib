@@ -83,6 +83,21 @@ test("Leave test drops the QA cookie too: after the load there is no chip", asyn
   await expect(chip(page)).toHaveCount(0);
 });
 
+test("Leave test from a page reached by an anchor still reloads it, and the chip goes", async ({ page, context, baseURL }) => {
+  await asTester(context, baseURL);
+  await page.goto("/fr#quote");
+  await chip(page).click();
+  // A same-URL replace with the anchor kept is a scroll, not a load: this waits forever.
+  const reloaded = page.waitForEvent("load");
+  await panel(page).getByRole("button", { name: "Leave test" }).click();
+  await reloaded;
+  await expect(page).toHaveURL(/\/fr$/);
+  await hydrated(page);
+  await page.waitForLoadState("networkidle");
+  expect(await cookieNames(context)).not.toContain(QA_COOKIE);
+  await expect(chip(page)).toHaveCount(0);
+});
+
 test("Escape closes the panel and gives the focus back to the chip", async ({ page, context, baseURL }) => {
   await assignedB(page, context, baseURL);
   await page.keyboard.press("Escape");

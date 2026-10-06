@@ -130,6 +130,12 @@ Rust crate and its TypeScript mirror at once.
   on it — an Escape or a scrim click inside a `Dialog` closes the `Select` or
   `Popover` open above it, not the `Dialog`. Other Rust overlays are listed in
   the uikit README Limitations.
+- **`AbSwitcher` Reset and Leave test reload a page reached by an anchor**
+  (`@evinvest/kitstart`). On `/fr#quote` with no force parameter the reset
+  URL was the page itself, so `location.replace` only scrolled: the cookies
+  were dropped but nothing reloaded, and after Leave test the page kept
+  sending events without the QA mark. `abReset` now drops the hash.
+
 - **Menu arrow keys stay on the real items** (`@evinvest/uikit`, #209).
   `DropdownMenu` and `ContextMenu` bounded their roving focus by a hardcoded
   64, so End moved to a non-existent item and ArrowDown past the last item
