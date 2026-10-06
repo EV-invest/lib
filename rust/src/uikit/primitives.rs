@@ -14,7 +14,10 @@ use std::{
 	sync::atomic::{AtomicUsize, Ordering},
 };
 
-use dioxus::prelude::*;
+use dioxus::{
+	dioxus_core::{DynamicNode, TemplateNode},
+	prelude::*,
+};
 
 /// Which edge of its anchor an overlay is placed against. Rendered as a
 /// `data-side` attribute so CSS positions and animates the overlay; the kit
@@ -239,10 +242,66 @@ pub(crate) fn is_transform_transition(_: &Event<TransitionData>) -> bool {
 	true
 }
 
+/// Whether `children` would render anything — the Rust side of the TS ports'
+/// `!children` checks. A Dioxus component always receives an `Element`, even
+/// when the caller passed nothing or an empty string (`{error_text}` with no
+/// error), so emptiness has to be read off the vnode rather than the prop's
+/// presence. A child component counts as content: knowing what it renders would
+/// mean rendering it.
+pub(crate) fn has_content(children: &Element) -> bool {
+	// An error must still surface where the children would have rendered.
+	let Ok(node) = children else { return true };
+	vnode_has_content(node)
+}
+fn vnode_has_content(node: &VNode) -> bool {
+	node.template.roots.iter().any(|root| match root {
+		TemplateNode::Element { .. } => true,
+		TemplateNode::Text { text } => !text.is_empty(),
+		TemplateNode::Dynamic { id } => node.dynamic_nodes.get(*id).is_some_and(dynamic_has_content),
+	})
+}
+fn dynamic_has_content(node: &DynamicNode) -> bool {
+	match node {
+		DynamicNode::Component(_) => true,
+		DynamicNode::Text(text) => !text.value.is_empty(),
+		DynamicNode::Placeholder(_) => false,
+		DynamicNode::Fragment(nodes) => nodes.iter().any(vnode_has_content),
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
 	use crate::uikit::test_util::render;
+
+	#[test]
+	fn has_content_sees_through_empty_children() {
+		let empty = String::new();
+		let none: Option<&str> = None;
+		let blanks = [String::new()];
+		assert!(!has_content(&VNode::empty()));
+		assert!(!has_content(&rsx! {}));
+		assert!(!has_content(&rsx! { {empty} }));
+		assert!(!has_content(&rsx! { {none} }));
+		assert!(!has_content(&rsx! {
+			for b in blanks.iter() {
+				{b.clone()}
+			}
+		}));
+	}
+
+	#[test]
+	fn has_content_sees_text_elements_and_components() {
+		#[component]
+		fn Child() -> Element {
+			rsx! {}
+		}
+		let text = String::from("required");
+		assert!(has_content(&rsx! { "or" }));
+		assert!(has_content(&rsx! { {text} }));
+		assert!(has_content(&rsx! { span {} }));
+		assert!(has_content(&rsx! { Child {} }));
+	}
 
 	#[test]
 	fn uncontrolled_uses_default_then_updates() {

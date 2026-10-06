@@ -1,7 +1,7 @@
 import { ANALYTICS_ID, experimentProps } from "./analytics";
 import { HONEYPOT_FIELD, LEGACY_HONEYPOT_FIELDS, RENDERED_AT_FIELD, screen, type RateLimiter } from "./antispam";
 import { channelOf, MAX_FIELD, readCandidate, validateCandidate, type Lead, type LeadCandidate, type LeadChannel, type LeadPrice } from "./lead";
-import { flowOf, readEstimateInputs, type LeadFlow } from "./pricing/flow";
+import { answeredUnknown, flowOf, readEstimateInputs, type LeadFlow } from "./pricing/flow";
 import type { PricingModel } from "./pricing/model";
 import { priceOf } from "./pricing/price";
 import type { Site } from "./site";
@@ -109,7 +109,8 @@ export function leadRef(id: number, seed: string): string {
  * from the posted answers through the same `priceOf` the form showed; a
  * posted amount is never read. A callback asks for a call, not a price: no
  * flow. An estimate whose answers do not price (a stale form, a tampered
- * field) is kept as a `quote`: the customer is still a customer.
+ * field) is kept as a `quote`: the customer is still a customer — and so is
+ * one answered "I don't know" (`ESTIMATE_UNKNOWN`), on purpose.
  */
 async function priced(site: Pick<Site<string, string>, "lead" | "pricing">, form: FormData, lead: LeadCandidate, deps: AcceptDeps): Promise<{ flow?: LeadFlow; price?: LeadPrice }> {
   const flows = site.lead.flows;
@@ -123,6 +124,8 @@ async function priced(site: Pick<Site<string, string>, "lead" | "pricing">, form
   }
   const flow = flowOf(flows, model, lead.subject);
   if (flow === "quote" || !model) return { flow: "quote" };
+  // "I don't know" is an answer, not a stale form: a quote, said so, without a warning.
+  if (flow === "estimate" && answeredUnknown(model, lead.subject, name => field(form, name))) return { flow: "quote" };
   const inputs = flow === "estimate" ? readEstimateInputs(model, lead.subject, name => field(form, name)) : {};
   const price = priceOf(model, lead.subject, inputs);
   if (!price) {

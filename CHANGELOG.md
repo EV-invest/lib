@@ -41,6 +41,22 @@ Rust crate and its TypeScript mirror at once.
   `TableCellProps`, and the TS-only `ListRows`/`ListRow`/`ListRowLabel`/
   `ListRowValue` (a table's phone form; shipped in 0.26.0's `dist/` but not
   reachable from the barrel). The example app mounts a Tables section.
+- **`LeadCapture` one question a screen, and the compact form**
+  (`@evinvest/kitstart/react`). `layout="steps"` — the intro question, the
+  need, each estimate question, the postcode, the phone last; a thin bar,
+  "Retour", answered screens as chips; `lead_form_step` per screen; the same
+  screen on the server and after hydration, every screen posted, a noscript
+  style for the form without a script. `intro` (an answer posted as a brand's
+  extra, `channel: "callback"` cutting the form to the phone and its consent),
+  `localityStep`, `needDisplay` (`tiles` · `cards` with the brand's icons),
+  `questions` (`display: "cards"` with each answer's total, `badges`,
+  `shortLabels` (and `needs[].shortLabel`) for phones, `step` to share a
+  screen with a `next` button, `unknown` → "Je ne sais pas" (`unknownSpan`), a quote on the form and on the server via
+  `ESTIMATE_UNKNOWN`/`answeredUnknown`), `price="compact"` with `taxCredit`,
+  `afterPhone`, `channelsDisplay="row"` with `channelIcons`, `focusNext`, and
+  `?postcode=` prefilling the postcode. Opt-in: every existing prop renders as
+  in 0.13; `qualify-first` is unchanged. No lead schema change (`urgency` and
+  the like are a brand's `extras`).
 - **`ts_gen`** (`ev_lib` 0.24.1): the TS generator `ev_lib_gen` runs on, opened
   to downstream repos — `Ts::types::<T>()` (via `ts-rs`), `Ts::Value` (via
   serde), `Ts::write`. `Ts::Array`/`Ts::Scalar` folded into `Ts::Value`; the
@@ -52,8 +68,30 @@ Rust crate and its TypeScript mirror at once.
   type-checked against the Rust presets' variable names. Exports unchanged.
   New Rust consts: `experiments::{FNV_OFFSET_BASIS, FNV_PRIME, COOKIE_PREFIX,
   COOKIE_MAX_AGE_SECS}`; `ts_gen::Ts::Union`.
+- **`Command` takes server-driven results** (`@evinvest/uikit`, #107).
+  `shouldFilter={false}` (on `Command` and `CommandDialog`; default `true`, as
+  in cmdk) turns the client filter off: every mounted `CommandItem` renders in
+  the caller's order and `CommandEmpty` counts mounted rows. The kit also gains
+  the keyboard it never had: focus stays in `CommandInput`, which points at the
+  highlighted row through `aria-activedescendant`; ArrowUp/ArrowDown move it
+  past disabled rows, Enter fires that row's `onSelect`, hover moves it too
+  (Home/End stay with the caret; keys from other focusables are left alone). The highlight sits on the first row until the user moves it, so
+  results that land after the keystroke put Enter on the top hit. TS only —
+  the Rust port still filters and has no keyboard.
 
 ### Fixed
+
+- **`ev_lib::uikit` a11y and markup parity with the TS port** (`ev_lib`,
+  #45 #46 #50 #51 #52). `FormMessage` renders nothing without children (an
+  empty string included), so a valid field no longer carries an empty `<p>`
+  and a spurious grid gap. `FieldSeparator` sets `data-content` from its
+  children and omits the content span when it has none, so a bare divider is
+  no longer notched. `Slider`'s `aria_label` now names the `role="slider"`
+  thumb instead of the role-less root. `PaginationLink` takes an optional
+  `aria_label` (additive, not breaking); `PaginationPrevious`/`PaginationNext`
+  pass "Go to previous page"/"Go to next page", so they stay named below `sm`
+  where the visible text is hidden. `CommandDialog` and `DrawerContent` set
+  `aria-modal="true"` like `Dialog`/`AlertDialog`/`Sheet`.
 
 - **`Calendar` weekday headers stay on one line in `vi` and `he`**
   (`@evinvest/uikit`, #122). CLDR spells the Vietnamese short weekday as two

@@ -123,9 +123,11 @@ export {
 export { isMobilePhone, isPlausiblePhone, normalizePhone, phoneProblem } from "./core/phone";
 
 export {
+  answeredUnknown,
   CENTS_BUCKETS,
   centsBucket,
   ESTIMATE_FIELD_PREFIX,
+  ESTIMATE_UNKNOWN,
   estimateField,
   flowOf,
   labelOf,

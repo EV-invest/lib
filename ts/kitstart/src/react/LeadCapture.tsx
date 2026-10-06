@@ -1,37 +1,43 @@
 "use client";
 
-import { cn } from "@evinvest/uikit";
-import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
+import { Button, cn } from "@evinvest/uikit";
+import { Fragment, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { PRICE_CHANGED, SHOWN_CENTS_FIELD } from "../core/accept";
 import { resolveChannels, type CaptureChannel } from "../core/channels";
-import { leadErrorFor, type LeadError, type LeadWire, type PageLeadError } from "../core/lead";
+import { CHANNEL_FIELD, leadErrorFor, type LeadError, type LeadWire, type PageLeadError } from "../core/lead";
 import { fillText, openingText } from "../core/lead-capture-format";
 import { flowTextOf, type LeadCaptureText } from "../core/lead-capture-text";
 import { bookingOf } from "../core/booking/model";
 import { servedLocalities, storefrontOf, type Place } from "../core/place/types";
-import { flowOf, type LeadFlows } from "../core/pricing/flow";
-import type { PricingModel } from "../core/pricing/model";
-import type { FormSelectOption } from "./FormSelect";
+import { ESTIMATE_UNKNOWN, estimateField, flowOf, type LeadFlows } from "../core/pricing/flow";
+import type { PricingInput, PricingModel } from "../core/pricing/model";
+import { labelOf } from "../core/pricing/validate";
 import type { BookingAdapters } from "./booking-adapters";
+import { focusNext } from "./focus-next";
 import { LeadBooking } from "./LeadBooking";
 import type { BookingPart } from "./LeadBookingManual";
 import { LeadCapturePriced, type PricedPart } from "./LeadCapturePriced";
-import { CallbackForm, ChannelLink, ExperimentFields, PhotosAsk, type ChannelPart, type Experiment } from "./LeadCaptureChannels";
-import { EstimateInputs, PriceBox, useEstimate, type EstimatePart } from "./LeadCaptureEstimate";
-import { FormMessage, LocalityField, NameField, PhoneField, type FieldPart } from "./LeadCaptureFields";
-import { NeedField, type LeadCaptureLayout } from "./LeadCaptureNeed";
+import { CallbackForm, ChannelLink, ExperimentFields, PhotosAsk, type ChannelIconKey, type ChannelPart, type Experiment } from "./LeadCaptureChannels";
+import { askedInputs, EstimateInputs, EstimateQuestionField, estimatePlan, screensOf, useEstimate, type EstimatePart, type EstimateQuestions } from "./LeadCaptureEstimate";
+import { ConsentField, FormMessage, LocalityField, NameField, PhoneField, type FieldPart } from "./LeadCaptureFields";
+import { NeedField, type LeadCaptureLayout, type LeadNeedDisplay, type LeadNeedOption } from "./LeadCaptureNeed";
+import { PriceBox, PriceCompact, type PricePart } from "./LeadCapturePrice";
+import { IntroField, LeadSteps, type StepsPart, type StepView } from "./LeadCaptureSteps";
+import { stepOfField, stepsOf, useLeadSteps, type LeadIntro, type StepId } from "./lead-steps";
 import type { PartClassNames } from "./parts";
 import { QuoteFormShell } from "./QuoteFormShell";
-import { useHeld, useHydrated, useNeed, useNow, useOpenOnHash } from "./use-lead-context";
+import { useHeld, useHydrated, useNeed, useNow, useOpenOnHash, usePostcode } from "./use-lead-context";
 import { errorText, formMessageId, OWN_FIELDS, useLeadError } from "./use-lead-error";
 import { useLeadEvents } from "./use-lead-events";
+import { useLeadFocus } from "./use-lead-focus";
 import { FailureMessage, SubmitButton } from "./LeadCaptureSubmit";
 import { useLeadSubmit, type LeadSent } from "./use-lead-submit";
 import { useRepriced } from "./use-repriced";
 
 export type LeadCapturePart =
   | "root" | "head" | "title" | "lede" | "form" | "contact" | "submit" | "trust" | "privacy" | "opening" | "others" | "done"
-  | "needs" | "need" | "summary" | FieldPart | ChannelPart | EstimatePart | PricedPart | BookingPart;
+  | "needs" | "need" | "summary" | "icon" | "intro" | "introOption" | "stepNext"
+  | FieldPart | ChannelPart | EstimatePart | PricePart | StepsPart | PricedPart | BookingPart;
 
 export interface LeadCaptureProps {
   /** Its hours order the channels; its service area suggests the commune. */
@@ -43,8 +49,8 @@ export interface LeadCaptureProps {
   renderedAt: number;
   /** `site.lead.wire`: the names the funnel reads. */
   wire: LeadWire;
-  /** The brand's subjects with their labels, in order. */
-  needs: readonly FormSelectOption[];
+  /** The brand's subjects with their labels, in order — and an icon each for `needDisplay="cards"`. */
+  needs: readonly LeadNeedOption[];
   /**
    * How each need is sold — `site.lead.flows`, the map the server prices
    * with. A need runs `estimate` or `fixed` only when `pricing` prices it so
@@ -85,13 +91,45 @@ export interface LeadCaptureProps {
   bookingEmbed?: boolean | undefined;
   /** The need the page already knows; `?need=` and `[data-need]` triggers set it too. */
   need?: string | undefined;
-  /** `single` (one screen) or `qualify-first` (the need, then the contact) — an experiment's switch. */
+  /**
+   * `single` (one screen, the default) · `steps` (one question per screen, a
+   * thin bar, a way back, the phone last) · `qualify-first` (the two screens
+   * `steps` grew from: the need, then the contact) — an experiment's switch.
+   */
   layout?: LeadCaptureLayout | undefined;
+  /** How the need is asked: `select` (default on one screen), `tiles` (default otherwise), `cards` with the `icon` of each need. */
+  needDisplay?: LeadNeedDisplay | undefined;
+  /**
+   * `steps` only: a question before the need whose answer is posted as one of
+   * the brand's extras (`field`) and may change the channel — `callback`:
+   * the rest is the phone and its consent, posted as a callback.
+   */
+  intro?: LeadIntro | undefined;
+  /** `steps` only: the postcode on a screen of its own (default), or on the phone's. */
+  localityStep?: "own" | "with-phone" | undefined;
+  /**
+   * After a choice (the need, an estimate's answer) the focus moves to the
+   * next empty field, and Enter in a field moves to the next empty one before
+   * it submits. Always so in `steps`; off by default on one screen.
+   */
+  focusNext?: boolean | undefined;
+  /** By estimate input id: how a question is asked — `cards` with the total each answer makes, an "I don't know", badges. */
+  questions?: EstimateQuestions | undefined;
+  /** `box` (default): the price box. `compact`: one line, a tax-credit line with `taxCredit`, the breakdown behind "Détail". */
+  price?: "box" | "compact" | undefined;
+  /** `price="compact"`: the share of the price a tax credit gives back (0.5 for half), shown as what is left to pay. */
+  taxCredit?: number | undefined;
   locality?: "required" | "optional" | undefined;
   /** A name field, posted as the brand's extra `field`. Off by default: every field costs leads. */
   name?: { field: string; required?: boolean } | undefined;
   /** The brand's extra fields, after the phone — never before it. */
   extras?: ReactNode;
+  /** Right under the phone field: one short line of reassurance ("Votre numéro reste entre nous"). */
+  afterPhone?: ReactNode;
+  /** The other ways out: `stack` (default), under a heading, or `row`, one row of compact buttons. */
+  channelsDisplay?: "stack" | "row" | undefined;
+  /** The brand's icon before a channel's label, by channel. */
+  channelIcons?: Partial<Record<ChannelIconKey, ReactNode>> | undefined;
   /** Moved first when available — a `default_channel` experiment's arm. */
   prefer?: CaptureChannel | undefined;
   /** The site's assignment: on every event, and posted with the form. Slugs only. */
@@ -156,10 +194,22 @@ export function LeadCapture(props: LeadCaptureProps) {
   const { place, contact, locale, renderedAt, wire, needs, layout = "single", text } = props;
   const { formId = "quote", id = "quote", experiment } = props;
   const c = props.labels === "hidden" ? { ...props.classNames, label: cn("sr-only", props.classNames?.label) } : props.classNames;
+  const steps = layout === "steps";
+  const needDisplay = props.needDisplay ?? (layout === "single" ? "select" : "tiles");
+  // Enter on a tile answers it wherever an answer moves the visitor on.
+  const enterPicks = layout !== "single" || props.focusNext === true;
   const root = useRef<HTMLDivElement>(null);
+  const formRef = () => root.current?.querySelector<HTMLFormElement>(`#${CSS.escape(`${id}-form`)}`) ?? null;
   const hydrated = useHydrated();
   const [editing, setEditing] = useState(false);
   const [need, setNeed] = useNeed(props.need, needs.map(n => n.value), () => setEditing(false));
+  const [introValue, setIntro] = useState<string | undefined>(undefined);
+  const intro = steps ? props.intro : undefined;
+  const callbackPreset = intro?.options.find(o => o.value === introValue)?.channel === "callback";
+  const served = localitySuggestions(place);
+  const postcode = usePostcode();
+  const [locality, setLocality] = useState<string | undefined>(undefined);
+  const localityShown = locality ?? postcode ?? (served.length === 1 ? served[0] : undefined);
   const events = useLeadEvents(root, { formId, layout, experiment });
   useOpenOnHash(`${id}-callback`);
   // Only this card's: a page may draw several, and the query names one.
@@ -167,10 +217,11 @@ export function LeadCapture(props: LeadCaptureProps) {
   const [error, setError] = useLeadError(root, id, initial);
   const flowText = flowTextOf(text, locale);
   // `single` shows its select at the first need until one is picked: that is the need on screen.
-  const shownNeed = need ?? (layout === "single" ? needs[0]?.value : undefined);
+  const shownNeed = need ?? (layout === "single" && needDisplay === "select" ? needs[0]?.value : undefined);
   const model = props.pricing ?? null;
-  const flow = flowOf(props.flows, model, shownNeed);
-  const estimate = useEstimate(model, shownNeed, flow, events.estimateShown);
+  const wanted = flowOf(props.flows, model, shownNeed);
+  const estimate = useEstimate(model, shownNeed, wanted, events.estimateShown);
+  const flow = estimate.flow;
   const repriced = useRepriced(estimate.price, shownNeed, flowText, locale);
   // A priced lead stays in the card: its price is confirmed there, and the slot promised.
   const staysInCard = (ch: "form" | "callback") => props.done !== undefined || (ch === "form" && flow !== "quote");
@@ -180,7 +231,8 @@ export function LeadCapture(props: LeadCaptureProps) {
     {
       onRefused: (channel, field, cents) => {
         repriced.refused(field, cents);
-        setError({ channel, field });
+        // The intro's callback is this form's: its refusal shows here, not in the folded callback.
+        setError({ channel: callbackPreset ? "form" : channel, field });
       },
       onFailed: (channel, why) => events.submitError(why, channel),
     },
@@ -188,7 +240,8 @@ export function LeadCapture(props: LeadCaptureProps) {
   // The form's refusal by where it shows: under the field the card draws, else above the submit.
   const formError = error?.channel === "form" ? error.field : null;
   const at = (field: string) => (formError === field ? errorText(field, text) : null);
-  const above = formError === PRICE_CHANGED ? repriced.message() : formError !== null && !OWN_FIELDS.form.includes(formError) ? errorText(formError, text) : null;
+  const drawn = (field: string) => OWN_FIELDS.form.includes(field) || (callbackPreset && field === "consent");
+  const above = formError === PRICE_CHANGED ? repriced.message() : formError !== null && !drawn(formError) ? errorText(formError, text) : null;
   const doneRef = useRef<HTMLDivElement>(null);
   // The form the focus was in is gone: the news takes it, and is read out.
   useEffect(() => doneRef.current?.focus(), [sent]);
@@ -200,12 +253,34 @@ export function LeadCapture(props: LeadCaptureProps) {
   const message = needLabel ? fillText(text.message, { need: needLabel }) : text.messageGeneric;
   const [lead = "form", ...rest] = resolved.order;
   const links = rest.filter((ch): ch is "phone" | "whatsapp" | "sms" => ch !== "form" && ch !== "callback");
+  // The intro asked for a call back: the folded callback would be a second one.
+  const callbackElsewhere = !callbackPreset;
 
-  const pick = (value: string) => {
+  const asked = model && shownNeed !== undefined && wanted === "estimate" ? askedInputs(model, shownNeed, estimate.answers) : [];
+  const screens = screensOf(asked.map(i => i.id), props.questions);
+  const stepIds = steps ? stepsOf({ intro: intro !== undefined, callback: callbackPreset, estimate: screens, localityOwn: props.localityStep !== "with-phone" }) : [];
+  const screenOf = (step: StepId) => screens.find(screen => screen[0] !== undefined && estimateField(screen[0]) === step) ?? [];
+  // The bar counts the most screens an answer to come could add — the need's
+  // longest estimate — so it never moves back; until the intro picks its branch, no total is said.
+  const longest = Math.max(0, ...needs.map(n => (model && flowOf(props.flows, model, n.value) === "estimate" ? screensOf(estimatePlan(model, n.value), props.questions).length : 0)));
+  const total = intro !== undefined && introValue === undefined ? null : stepIds.length + (need === undefined && !callbackPreset ? longest : 0);
+  const answered = (step: StepId) =>
+    step === "intro" ? introValue !== undefined : step === "need" ? need !== undefined : step === "locality" ? localityShown !== undefined : step === "phone" ? false : screenOf(step).every(id => estimate.answers[id] !== undefined);
+  const stepper = useLeadSteps(stepIds, answered, steps && formError !== null ? stepOfField(stepIds, formError, screens) : null, events.step);
+  const { moveOn, focusAfterSelect } = useLeadFocus(formRef, { steps, focusNext: props.focusNext === true, current: stepper.current });
+
+  const pick = (value: string, from: HTMLElement | null) => {
+    // A need that brings an estimate's questions brings screens React has yet to draw.
+    const brings = flowOf(props.flows, model, value) === "estimate";
+    if (steps) return moveOn(() => (setNeed(value), stepper.next()), from, !brings && asked.length === 0);
     if (layout === "single") {
-      setNeed(value);
-      setEditing(true);
-      return;
+      if (from === null) {
+        setNeed(value);
+        setEditing(true);
+        focusAfterSelect();
+        return;
+      }
+      return moveOn(() => (setNeed(value), setEditing(true)), from, !brings && asked.length === 0);
     }
     // The checked radio has already shown the contact step (`:has`, below), so
     // the first empty field — the postcode unless filled, else the phone —
@@ -218,10 +293,39 @@ export function LeadCapture(props: LeadCaptureProps) {
     setEditing(false);
     events.step("contact");
   };
-  // An arrow key in `qualify-first`: the tile is chosen, the group stays open.
+  // An arrow key among the tiles: the tile is chosen, the group stays open.
   const select = (value: string) => {
     setNeed(value);
     setEditing(true);
+  };
+  // "I don't know", or an answer instead of it, changes which questions are asked.
+  // On a screen shared by a few questions, the last one answered moves on; until then the screen stays.
+  const answerPicked = (input: string, option: string, radio: HTMLInputElement) => {
+    const screen = steps ? screenOf(stepper.current) : [];
+    const complete = screen.every(id => id === input || option === ESTIMATE_UNKNOWN || estimate.answers[id] !== undefined);
+    moveOn(() => (estimate.answer(input, option), steps && (complete ? stepper.next() : stepper.edit(stepper.current))), radio, option !== ESTIMATE_UNKNOWN && estimate.answers[input] !== ESTIMATE_UNKNOWN);
+  };
+  /** A shared screen's button: on when every question is answered, else the first one unanswered says so. */
+  const continueScreen = (screen: readonly string[]) => {
+    const missing = screen.find(id => estimate.answers[id] === undefined);
+    const radio = missing === undefined ? null : formRef()?.querySelector<HTMLInputElement>(`input[name="${estimateField(missing)}"]`);
+    if (radio) return void radio.reportValidity();
+    moveOn(stepper.next, null, false);
+  };
+  const continueLocality = () => {
+    const el = formRef()?.querySelector<HTMLInputElement>('[data-lead-step="locality"] [data-lead-field="locality"]');
+    if (!el?.reportValidity()) return;
+    moveOn(() => (setLocality(el.value.trim()), stepper.next()), el, true);
+  };
+  // Enter in a typed field: the next empty field, or the next screen, before the submit.
+  const onKeyDown = (e: KeyboardEvent<HTMLFormElement>) => {
+    const field = e.target;
+    if (e.key !== "Enter" || !(steps || props.focusNext) || !(field instanceof HTMLInputElement) || ["radio", "checkbox", "submit", "button"].includes(field.type)) return;
+    if (focusNext(e.currentTarget, field)) e.preventDefault();
+    else if (steps && stepper.current === "locality") {
+      e.preventDefault();
+      continueLocality();
+    }
   };
 
   const channel = (ch: CaptureChannel, primary: boolean) =>
@@ -247,16 +351,13 @@ export function LeadCapture(props: LeadCaptureProps) {
         failure={failure?.channel === "callback" ? failure.failure : null}
         onRetry={retry}
         onSoftError={() => events.fieldError("phone")}
+        row={!primary && props.channelsDisplay === "row"}
+        icon={props.channelIcons?.callback}
         classNames={c}
       />
     ) : ch === "form" ? null : (
-      <ChannelLink key={ch} channel={ch} contact={contact} message={message} text={text} primary={primary} experiment={experiment} classNames={c} />
+      <ChannelLink key={ch} channel={ch} contact={contact} message={message} text={text} primary={primary} experiment={experiment} icon={props.channelIcons?.[ch]} classNames={c} />
     );
-
-  // `qualify-first` shows the contact step as soon as a need's radio is
-  // checked (`:has`) — without a script, and inside the tap with one.
-  const contactShown = layout === "single" || (need !== undefined && !editing);
-  const contactClass = contactShown ? "flex" : "hidden group-has-[[data-need-option]:checked]/lead:flex";
 
   const rootProps = { id, className: cn("flex w-full flex-col gap-6", props.className, c?.root), "data-experiment": experiment?.name, "data-variant": experiment?.variant };
   if (sent && staysInCard(sent.channel)) {
@@ -287,6 +388,190 @@ export function LeadCapture(props: LeadCaptureProps) {
     );
   }
 
+  // An arrow key in `steps`: chosen, and the screen stays on until the answer is given.
+  const stay = <A extends unknown[]>(choose: (...args: A) => void) => (...args: A) => {
+    if (steps) stepper.edit(stepper.current);
+    choose(...args);
+  };
+  const estimateProps = { locale, answers: estimate.answers, unknownLabel: flowText.estimateUnknown, required: hydrated, enterPicks, onPick: answerPicked, onSelect: stay(estimate.answer), classNames: c };
+  const priceShown = model && flow !== "quote" && (
+    props.price === "compact" ? (
+      <PriceCompact model={model} flow={flow} price={repriced.price} locale={locale} taxCredit={props.taxCredit} text={flowText} classNames={c} />
+    ) : (
+      <PriceBox model={model} flow={flow} price={repriced.price} locale={locale} text={flowText} classNames={c} />
+    )
+  );
+  const photos = flow === "quote" && shownNeed !== undefined && props.photos?.includes(shownNeed) && !callbackPreset && (
+    <PhotosAsk whatsapp={contact.whatsapp} needLabel={needs.find(n => n.value === shownNeed)?.label ?? shownNeed} text={flowText} experiment={experiment} className={c?.photos} />
+  );
+  const localityField = (
+    <LocalityField
+      // Remounted with what the query knew: an untouched field takes it as typed.
+      key={postcode ?? ""}
+      name={wire.locality}
+      label={text.localityLabel}
+      servedLabel={text.servedLabel}
+      served={served}
+      placeholder={text.localityPlaceholder}
+      required={props.locality !== "optional"}
+      optional={text.optional}
+      requiredText={text.required}
+      error={at("locality")}
+      hydrated={hydrated}
+      preset={postcode}
+      classNames={c}
+    />
+  );
+  const phone = (
+    <>
+      <PhoneField name={wire.mobile} text={text} error={at("phone")} onSoftError={() => events.fieldError("phone")} classNames={c} />
+      <Fragment key="afterPhone">{props.afterPhone}</Fragment>
+    </>
+  );
+  const nameField = props.name && (
+    <NameField
+      name={props.name.field}
+      label={text.nameLabel}
+      placeholder={text.namePlaceholder}
+      required={props.name.required ?? false}
+      optional={text.optional}
+      requiredText={text.required}
+      error={at("name")}
+      classNames={c}
+    />
+  );
+  const mainBusy = busy === "form" || (callbackPreset && busy === "callback");
+  const mainFailure = failure && (failure.channel === "form" || callbackPreset) ? failure.failure : null;
+  const tail = (
+    <>
+      <FormMessage id={formMessageId(id, "form")} error={above} className={c?.error} />
+      <FailureMessage failure={mainFailure} text={text} onRetry={retry} className={c?.error} />
+      <div className={cn("flex flex-col gap-3", c?.trust)}>
+        <SubmitButton busy={mainBusy} label={callbackPreset ? text.callbackSubmit : flow === "quote" ? text.submit : flowText.bookSubmit} sending={text.sending} className={callbackPreset ? cn(c?.submit, c?.callbackSubmit) : c?.submit} />
+        <Fragment key="trust">{props.trust}</Fragment>
+      </div>
+      {opening && lead !== "callback" && <p className={cn("text-sm text-ink-soft", c?.opening)}>{opening}</p>}
+      {text.privacy !== "" && <p className={cn("text-sm text-ink-soft", c?.privacy)}>{text.privacy}</p>}
+    </>
+  );
+
+  // `qualify-first` shows the contact step as soon as a need's radio is
+  // checked (`:has`) — without a script, and inside the tap with one.
+  const contactShown = layout === "single" || (need !== undefined && !editing);
+  const contactClass = contactShown ? "flex" : "hidden group-has-[[data-need-option]:checked]/lead:flex";
+
+  const stepView = (step: StepId): StepView => {
+    switch (step) {
+      case "intro": {
+        const chosen = intro?.options.find(o => o.value === introValue);
+        return {
+          id: step,
+          label: intro?.label ?? "",
+          value: chosen?.label ?? null,
+          node: intro && (
+            <IntroField
+              intro={intro}
+              value={introValue}
+              onPick={(v, radio) => moveOn(() => (setIntro(v), stepper.next()), radio, false)}
+              onSelect={stay(setIntro)}
+              // On a screen of its own, a question is its heading: never only for assistive technology.
+              classNames={props.classNames}
+            />
+          ),
+        };
+      }
+      case "need":
+        return {
+          id: step,
+          label: text.needLabel,
+          value: needLabel ?? null,
+          node: (
+            <NeedField
+              display={needDisplay === "select" ? "tiles" : needDisplay}
+              name={wire.subject}
+              needs={needs}
+              need={need}
+              editing
+              hydrated={hydrated}
+              label={text.needLabel}
+              changeLabel={text.needChange}
+              requiredText={text.needRequired}
+              enterPicks
+              onPick={pick}
+              onSelect={stay(setNeed)}
+              onEdit={() => undefined}
+              classNames={props.classNames}
+            />
+          ),
+        };
+      case "locality":
+        return {
+          id: step,
+          label: text.localityLabel,
+          value: localityShown ?? null,
+          node: (
+            <>
+              {localityField}
+              <Button type="button" size="touch" data-lead-chrome="" className={cn("w-full", c?.stepNext)} onClick={continueLocality}>
+                {flowText.stepNext}
+              </Button>
+            </>
+          ),
+        };
+      case "phone":
+        return {
+          id: step,
+          label: text.phoneLabel,
+          value: null,
+          node: callbackPreset ? (
+            <>
+              <input type="hidden" name={CHANNEL_FIELD} value="callback" />
+              {phone}
+              <ConsentField sentence={text.callbackConsent} requiredText={text.consentRequired} error={at("consent")} className={c?.consent} classNames={c} />
+              {tail}
+            </>
+          ) : (
+            <>
+              {priceShown}
+              {photos}
+              {props.localityStep === "with-phone" && localityField}
+              {phone}
+              {nameField}
+              <Fragment key="extras">{props.extras}</Fragment>
+              {tail}
+            </>
+          ),
+        };
+      default: {
+        const inputs = screenOf(step).flatMap(id => asked.filter(i => i.id === id));
+        const answerOf = (input: PricingInput) => {
+          const answer = estimate.answers[input.id];
+          const option = input.options.find(o => o.id === answer);
+          return answer === ESTIMATE_UNKNOWN ? flowText.estimateUnknown : option ? labelOf(option.labels, locale) : null;
+        };
+        const values = inputs.map(answerOf);
+        const first = inputs[0];
+        return {
+          id: step,
+          label: inputs.map(i => labelOf(i.labels, locale)).join(" · "),
+          value: values.length > 0 && values.every(v => v !== null) ? values.join(" · ") : null,
+          node: model && shownNeed !== undefined && first && (
+            <>
+              {inputs.map(input => (
+                <EstimateQuestionField key={input.id} model={model} need={shownNeed} input={input} question={props.questions?.[input.id]} {...estimateProps} />
+              ))}
+              {inputs.length > 1 && (
+                <Button type="button" size="touch" data-lead-chrome="" className={cn("w-full", c?.stepNext)} onClick={() => continueScreen(inputs.map(i => i.id))}>
+                  {props.questions?.[first.id]?.next ?? flowText.stepNext}
+                </Button>
+              )}
+            </>
+          ),
+        };
+      }
+    }
+  };
+
   return (
     <div ref={root} {...rootProps}>
       {/*
@@ -303,7 +588,7 @@ export function LeadCapture(props: LeadCaptureProps) {
           </div>
         )}
       </Fragment>
-      {lead !== "form" && channel(lead, true)}
+      {lead !== "form" && (lead !== "callback" || callbackElsewhere) && channel(lead, true)}
       <QuoteFormShell
         id={`${id}-form`}
         placeSlug={place.slug}
@@ -313,81 +598,70 @@ export function LeadCapture(props: LeadCaptureProps) {
         formId={formId}
         card={id}
         onSubmit={onSubmit}
+        onKeyDown={onKeyDown}
+        data={steps ? { "data-lead-steps": "" } : undefined}
         className={cn("group/lead", c?.form)}
       >
         <ExperimentFields experiment={experiment} />
-        <NeedField
-          layout={layout}
-          name={wire.subject}
-          needs={needs}
-          need={need}
-          editing={editing}
-          hydrated={hydrated}
-          label={text.needLabel}
-          changeLabel={text.needChange}
-          requiredText={text.needRequired}
-          onPick={pick}
-          onSelect={select}
-          onEdit={() => {
-            setEditing(true);
-            events.step("need");
-          }}
-          classNames={c}
-        />
-        <div className={cn("flex-col gap-5", contactClass, c?.contact)}>
-          {model && shownNeed !== undefined && flow === "estimate" && (
-            <EstimateInputs model={model} need={shownNeed} locale={locale} answers={estimate.answers} onAnswer={estimate.answer} required={hydrated} classNames={c} />
-          )}
-          {model && flow !== "quote" && <PriceBox model={model} flow={flow} price={repriced.price} locale={locale} text={flowText} classNames={c} />}
-          {/* Compared by the server, never stored: a lead is taken at the price it was shown. */}
-          {flow !== "quote" && repriced.shownCents !== undefined && <input type="hidden" name={SHOWN_CENTS_FIELD} value={repriced.shownCents} />}
-          {flow === "quote" && shownNeed !== undefined && props.photos?.includes(shownNeed) && (
-            <PhotosAsk whatsapp={contact.whatsapp} needLabel={needs.find(n => n.value === shownNeed)?.label ?? shownNeed} text={flowText} experiment={experiment} className={c?.photos} />
-          )}
-          <LocalityField
-            name={wire.locality}
-            label={text.localityLabel}
-            servedLabel={text.servedLabel}
-            served={localitySuggestions(place)}
-            placeholder={text.localityPlaceholder}
-            required={props.locality !== "optional"}
-            optional={text.optional}
-            requiredText={text.required}
-            error={at("locality")}
-            hydrated={hydrated}
+        {/* Compared by the server, never stored: a lead is taken at the price it was shown. */}
+        {flow !== "quote" && repriced.shownCents !== undefined && <input type="hidden" name={SHOWN_CENTS_FIELD} value={repriced.shownCents} />}
+        {steps ? (
+          <LeadSteps
+            steps={stepIds.map(stepView)}
+            current={stepper.current}
+            total={total}
+            onBack={() => moveOn(stepper.back, null, false)}
+            onEdit={step => moveOn(() => stepper.edit(step), null, false)}
+            text={{ stepProgress: flowText.stepProgress, stepProgressOpen: flowText.stepProgressOpen, stepBack: flowText.stepBack, change: text.needChange }}
             classNames={c}
           />
-          <PhoneField name={wire.mobile} text={text} error={at("phone")} onSoftError={() => events.fieldError("phone")} classNames={c} />
-          {props.name && (
-            <NameField
-              name={props.name.field}
-              label={text.nameLabel}
-              placeholder={text.namePlaceholder}
-              required={props.name.required ?? false}
-              optional={text.optional}
-              requiredText={text.required}
-              error={at("name")}
+        ) : (
+          <>
+            <NeedField
+              display={needDisplay}
+              name={wire.subject}
+              needs={needs}
+              need={need}
+              editing={editing}
+              hydrated={hydrated}
+              label={text.needLabel}
+              changeLabel={text.needChange}
+              requiredText={text.needRequired}
+              enterPicks={enterPicks}
+              onPick={pick}
+              onSelect={select}
+              onEdit={() => {
+                setEditing(true);
+                events.step("need");
+              }}
               classNames={c}
             />
-          )}
-          <Fragment key="extras">{props.extras}</Fragment>
-          <FormMessage id={formMessageId(id, "form")} error={above} className={c?.error} />
-          <FailureMessage failure={failure?.channel === "form" ? failure.failure : null} text={text} onRetry={retry} className={c?.error} />
-          <div className={cn("flex flex-col gap-3", c?.trust)}>
-            <SubmitButton busy={busy === "form"} label={flow === "quote" ? text.submit : flowText.bookSubmit} sending={text.sending} className={c?.submit} />
-            <Fragment key="trust">{props.trust}</Fragment>
-          </div>
-          {opening && lead !== "callback" && <p className={cn("text-sm text-ink-soft", c?.opening)}>{opening}</p>}
-          <p className={cn("text-sm text-ink-soft", c?.privacy)}>{text.privacy}</p>
-        </div>
+            <div className={cn("flex-col gap-5", contactClass, c?.contact)}>
+              {model && shownNeed !== undefined && wanted === "estimate" && <EstimateInputs model={model} need={shownNeed} questions={props.questions} {...estimateProps} />}
+              {priceShown}
+              {photos}
+              {localityField}
+              {phone}
+              {nameField}
+              <Fragment key="extras">{props.extras}</Fragment>
+              {tail}
+            </div>
+          </>
+        )}
       </QuoteFormShell>
-      {(links.length > 0 || rest.includes("callback")) && (
-        <div className={cn("flex flex-col gap-3", c?.others)}>
-          <p className="text-sm font-medium text-ink">{text.otherChannels}</p>
-          {links.length > 0 && <div className="flex flex-wrap gap-2">{links.map(ch => channel(ch, false))}</div>}
-          {rest.includes("callback") && channel("callback", false)}
-        </div>
-      )}
+      {(links.length > 0 || (rest.includes("callback") && callbackElsewhere)) &&
+        (props.channelsDisplay === "row" ? (
+          <div role="group" aria-label={text.otherChannels} className={cn("flex flex-row flex-wrap gap-2", c?.others)}>
+            {links.map(ch => channel(ch, false))}
+            {rest.includes("callback") && callbackElsewhere && channel("callback", false)}
+          </div>
+        ) : (
+          <div className={cn("flex flex-col gap-3", c?.others)}>
+            <p className="text-sm font-medium text-ink">{text.otherChannels}</p>
+            {links.length > 0 && <div className="flex flex-wrap gap-2">{links.map(ch => channel(ch, false))}</div>}
+            {rest.includes("callback") && callbackElsewhere && channel("callback", false)}
+          </div>
+        ))}
     </div>
   );
 }

@@ -513,6 +513,44 @@ import { Table, TableBody, TableCard, TableCell, TableHead, TableHeader, TableRo
   </ListRows>
 </TableCard>
 ```
+### Command
+
+By default `Command` filters its items on the client: a case-insensitive
+substring match of the typed query against each `CommandItem`'s `value`. When the
+rows are already the answer to the query — a search endpoint, a ranking of your
+own — pass `shouldFilter={false}` and own the query state:
+
+```tsx
+const [query, setQuery] = useState("");
+const { rows, loading } = useInvestorSearch(query); // your fetch, debounced or not
+
+<Command shouldFilter={false} search={query} onSearchChange={setQuery}>
+  <CommandInput placeholder="Search investors…" />
+  <CommandList>
+    {loading ? <Spinner /> : <CommandEmpty>No investors found.</CommandEmpty>}
+    {rows.map((r) => (
+      <CommandItem key={r.id} value={r.id} onSelect={pick}>
+        {r.name}
+      </CommandItem>
+    ))}
+  </CommandList>
+</Command>
+```
+
+Then nothing is hidden or reordered: every mounted item renders in your order,
+and `CommandEmpty` shows once a query is typed and no item is mounted. `value`
+is then just what `onSelect` receives.
+
+Keyboard works the same in both modes, as an ARIA combobox: focus stays in
+`CommandInput`, which points at the highlighted row via
+`aria-activedescendant`; ArrowUp / ArrowDown move the highlight (clamped,
+disabled rows skipped), Enter fires the row's `onSelect`, and hover moves it
+too. Home / End stay with the caret, and keys from any other focusable inside
+Command (a button in `CommandEmpty`) are left alone. Rows stay out of the Tab order on purpose. The highlight sits on
+the first row until the user moves it, so results that arrive after the
+keystroke put Enter on the top hit. Without a `CommandInput` there is nothing to
+hold focus, so a bare list is pointer-only. The live demo is `CommandDemo` in
+`example/`.
 
 ## Rust ↔ TS parity
 
