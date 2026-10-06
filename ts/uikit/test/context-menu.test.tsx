@@ -55,4 +55,28 @@ describe("ContextMenu", () => {
     fireEvent.click(getByText("Back"));
     expect(queryByText("Back")).toBeNull();
   });
+
+  it("clamps roving focus to the real item count and skips disabled items", () => {
+    const { getByText, getByRole } = render(
+      <ContextMenu>
+        <ContextMenuTrigger>area</ContextMenuTrigger>
+        <ContextMenuContent>
+          <ContextMenuItem>Back</ContextMenuItem>
+          <ContextMenuItem disabled>Forward</ContextMenuItem>
+          <ContextMenuItem>Reload</ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>,
+    );
+    fireEvent.contextMenu(getByText("area"));
+    const menu = getByRole("menu");
+    const press = (key: string) => fireEvent.keyDown(document.activeElement ?? menu, { key });
+    expect(getByText("Back")).toHaveFocus();
+    press("End");
+    expect(getByText("Reload")).toHaveFocus();
+    press("ArrowDown");
+    expect(getByText("Back")).toHaveFocus();
+    press("ArrowUp");
+    press("ArrowUp");
+    expect(getByText("Back")).toHaveFocus();
+  });
 });

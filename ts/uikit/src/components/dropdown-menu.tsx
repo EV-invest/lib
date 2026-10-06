@@ -116,11 +116,16 @@ export function DropdownMenuContent({
     Array.from(
       contentRef.current?.querySelectorAll<HTMLElement>("[role^='menuitem']") ?? [],
     ).filter((el) => el.getAttribute("data-disabled") === null);
-  const { activeIndex, onKeyDown: rovingKeyDown } = useRovingFocus({
-    count: 64,
+  const { activeIndex, setActiveIndex, onKeyDown: rovingKeyDown } = useRovingFocus({
+    count: () => items().length,
     orientation: "vertical",
     loop: true,
   });
+  // Reset on close: a menu reopens on its first item, and an index left past
+  // the end (items gone while closed) would focus nothing.
+  React.useEffect(() => {
+    if (!open) setActiveIndex(0);
+  }, [open, setActiveIndex]);
   React.useEffect(() => {
     if (!open) return;
     items()[activeIndex]?.focus();

@@ -47,6 +47,43 @@ describe("useRovingFocus", () => {
   });
 });
 
+describe("useRovingFocus with a count getter", () => {
+  const ev = (key: string) =>
+    ({ key, preventDefault() {} }) as unknown as React.KeyboardEvent;
+
+  it("reads the bound at keydown time", () => {
+    let total = 3;
+    const { result } = renderHook(() =>
+      useRovingFocus({ count: () => total, orientation: "vertical" }),
+    );
+    act(() => result.current.onKeyDown(ev("End")));
+    expect(result.current.activeIndex).toBe(2);
+    total = 5;
+    act(() => result.current.onKeyDown(ev("End")));
+    expect(result.current.activeIndex).toBe(4);
+  });
+
+  it("clamps a stale index when the item set shrinks", () => {
+    let total = 5;
+    const { result } = renderHook(() =>
+      useRovingFocus({ count: () => total, orientation: "vertical" }),
+    );
+    act(() => result.current.onKeyDown(ev("End")));
+    total = 2;
+    act(() => result.current.onKeyDown(ev("ArrowUp")));
+    expect(result.current.activeIndex).toBe(0);
+  });
+
+  it("ignores navigation when there are no items", () => {
+    const { result } = renderHook(() =>
+      useRovingFocus({ count: () => 0, orientation: "vertical" }),
+    );
+    act(() => result.current.onKeyDown(ev("End")));
+    act(() => result.current.onKeyDown(ev("ArrowDown")));
+    expect(result.current.activeIndex).toBe(0);
+  });
+});
+
 describe("Portal", () => {
   it("renders children into document.body", () => {
     render(<Portal>portaled</Portal>);

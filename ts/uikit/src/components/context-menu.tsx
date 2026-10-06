@@ -99,11 +99,15 @@ export function ContextMenuContent({ className, children, ...props }: React.Comp
     Array.from(
       contentRef.current?.querySelectorAll<HTMLElement>("[role^='menuitem']") ?? [],
     ).filter((el) => el.getAttribute("data-disabled") === null);
-  const { activeIndex, onKeyDown: rovingKeyDown } = useRovingFocus({
-    count: 64,
+  const { activeIndex, setActiveIndex, onKeyDown: rovingKeyDown } = useRovingFocus({
+    count: () => items().length,
     orientation: "vertical",
     loop: true,
   });
+  // Reset on close: reopen on the first item, never on an index past the end.
+  React.useEffect(() => {
+    if (!open) setActiveIndex(0);
+  }, [open, setActiveIndex]);
   React.useEffect(() => {
     if (!open) return;
     items()[activeIndex]?.focus();

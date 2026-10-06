@@ -41,6 +41,18 @@ Rust crate and its TypeScript mirror at once.
   `TableCellProps`, and the TS-only `ListRows`/`ListRow`/`ListRowLabel`/
   `ListRowValue` (a table's phone form; shipped in 0.26.0's `dist/` but not
   reachable from the barrel). The example app mounts a Tables section.
+- **`AbSwitcher`, the QA menu for A/B variants** (`@evinvest/kitstart/react`).
+  A chip in a corner (`data-ab-switcher`, placed by `className`) whose panel
+  lists each experiment's variants, the current one pressed; a tap is the
+  brand's own force parameter (`?ab_<key>=<value>`), no new server path.
+  "Reset" drops the `ab_<key>` assignments and the force parameters and keeps
+  the QA cookie; "Leave test" drops it too; minimize and hide last until the
+  next load. About 190 B gz of first load: after hydration it imports the
+  panel only outside production or for a visit with the QA cookie, so a
+  visitor never fetches it and the page stays static. The decisions are core
+  functions (`abSwitcherVisible`, `abVariantUrl`, `abReset`, `abAssignments`,
+  `cookieValue`). The template mounts it with a demo `lead_form` experiment
+  and an e2e of its own.
 - **`LeadCapture` one question a screen, and the compact form**
   (`@evinvest/kitstart/react`). `layout="steps"` — the intro question, the
   need, each estimate question, the postcode, the phone last; a thin bar,
@@ -87,6 +99,17 @@ Rust crate and its TypeScript mirror at once.
   once in development and keeps the last value. `defaultValue` is unchanged.
 
 ### Fixed
+
+- **Menu arrow keys stay on the real items** (`@evinvest/uikit`, #209).
+  `DropdownMenu` and `ContextMenu` bounded their roving focus by a hardcoded
+  64, so End moved to a non-existent item and ArrowDown past the last item
+  piled up a hidden index that later ArrowUp presses had to walk back. The
+  bound is now the number of mounted, enabled menu items, read at keydown, so
+  End lands on the last item, arrows wrap and disabled items are skipped.
+  `MenubarContent` counted its children (separators and labels included) and
+  never moved focus; it now focuses items the same way. `useRovingFocus`
+  accepts `count` as a getter (`() => number`) read only on keydown, and
+  clamps a stale index when the item set shrinks.
 
 - **Escape and outside clicks reach only the top overlay layer**
   (`@evinvest/uikit`, #162 step 1). `Drawer` and `CommandDialog` join the

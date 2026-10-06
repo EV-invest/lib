@@ -114,14 +114,31 @@ export function MenubarContent({
     exclude: [triggerRef],
   });
 
-  const items = React.Children.toArray(children);
-  const { onKeyDown } = useRovingFocus({ count: items.length, orientation: "vertical" });
+  // Count the mounted menu items, not the children: separators, labels and
+  // groups are children too, and an inline sub-menu adds items when it opens.
+  const contentRef = React.useRef<HTMLDivElement | null>(null);
+  const items = () =>
+    Array.from(
+      contentRef.current?.querySelectorAll<HTMLElement>("[role^='menuitem']") ?? [],
+    ).filter((el) => el.getAttribute("data-disabled") === null);
+  const { activeIndex, setActiveIndex, onKeyDown } = useRovingFocus({
+    count: () => items().length,
+    orientation: "vertical",
+  });
+  // Reset on close: reopen on the first item, never on an index past the end.
+  React.useEffect(() => {
+    if (!open) setActiveIndex(0);
+  }, [open, setActiveIndex]);
+  React.useEffect(() => {
+    if (!open) return;
+    items()[activeIndex]?.focus();
+  }, [open, activeIndex]);
 
   if (!isPresent) return null;
   return (
     <Portal>
       <div
-        ref={mergeRefs(presenceRef, floatingRef, dismissRef)}
+        ref={mergeRefs(presenceRef, floatingRef, dismissRef, contentRef)}
         data-slot="menubar-content"
         data-state={open ? "open" : "closed"}
         data-side={side}

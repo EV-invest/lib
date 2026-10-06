@@ -239,6 +239,17 @@ export {
   type LeadStep,
 } from "./core/analytics";
 
+export {
+  AB_COOKIE_PREFIX,
+  AB_FORCE_PARAM,
+  abAssignments,
+  abReset,
+  abVariantUrl,
+  cookieValue,
+  type AbReset,
+} from "./core/ab-switcher";
+export { abSwitcherVisible } from "./core/ab-gate";
+
 export type {
   CallBarText,
   CopySlice,
