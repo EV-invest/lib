@@ -638,6 +638,14 @@ measuring needs host-only `web-sys`). Known gaps:
   opening order. A non-uikit overlay joins through `useDismissableLayer`
   (`modal`, `pointerOutside`) and `DismissableLayerScope`; mark a floating
   region that should dismiss nothing with `LAYER_IGNORE_ATTR`.
+- **overlay layers (Rust):** `Select`, `Popover`, `Dialog` and `DropdownMenu`
+  share one dismissable-layer stack per `VirtualDom`
+  (`primitives::use_dismissable_layer`): Escape and a click on a backdrop act
+  on the top layer only, so a `Select` inside a `Dialog` closes first. There is
+  no document listener — an Escape counts only once it reaches an open layer's
+  `onkeydown` — and `AlertDialog`, `Sheet`, `Drawer`, `ContextMenu`, `Menubar`,
+  `NavigationMenu`, `HoverCard`, `Tooltip`, `InfoTip`, `DateTimePicker`,
+  `CommandDialog` and `DropdownMenuSub` are not on the stack yet.
 - **chart:** the recharts plotting engine is not bundled. `ChartContainer` is a
   themed SVG host (emits `--color-*` from its config); `ChartTooltipContent` /
   `ChartLegendContent` are presentational and take explicit items. Draw series

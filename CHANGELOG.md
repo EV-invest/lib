@@ -113,6 +113,23 @@ Rust crate and its TypeScript mirror at once.
 
 ### Fixed
 
+- **Rust `Select` from the keyboard** (`ev_lib` `uikit`, #161): ArrowDown or
+  ArrowUp on the trigger opens the list; opening focuses the chosen option
+  (else the first); ArrowUp/ArrowDown/Home/End move between options (wrapping,
+  skipping `disabled` ones; on the web in the order on screen, so a re-sorted
+  or newly inserted option is walked where it shows), Enter or Space chooses
+  (never a disabled option, even a focused one), and letters type ahead (a
+  repeated letter cycles; a space inside a query is part of it). Escape and a choice close the list and hand focus
+  back to the trigger; Tab and a click outside close it and leave focus where
+  it went. The trigger carries `aria-haspopup="listbox"` and, while open,
+  `aria-controls` naming the listbox. `SelectItem` takes `disabled` and
+  `text_value` (what type-ahead matches; defaults to the text of its children).
+- **Escape and outside clicks reach only the top Rust overlay** (`ev_lib`
+  `uikit`, #161): new `primitives::use_dismissable_layer`, the mirror of the TS
+  dismissable-layer stack. `Select`, `Popover`, `Dialog` and `DropdownMenu` are
+  on it — an Escape or a scrim click inside a `Dialog` closes the `Select` or
+  `Popover` open above it, not the `Dialog`. Other Rust overlays are listed in
+  the uikit README Limitations.
 - **`AbSwitcher` Reset and Leave test reload a page reached by an anchor**
   (`@evinvest/kitstart`). On `/fr#quote` with no force parameter the reset
   URL was the page itself, so `location.replace` only scrolled: the cookies

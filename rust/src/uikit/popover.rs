@@ -4,22 +4,24 @@ use crate::{
 	cn,
 	uikit::{
 		POPOVER_CONTENT,
-		primitives::{Controllable, Side, use_controllable},
+		primitives::{Controllable, DismissableLayer, Side, use_controllable, use_dismissable_layer},
 	},
 };
 
 #[component]
 pub fn Popover(open: Option<bool>, #[props(default)] default_open: bool, on_open_change: Option<EventHandler<bool>>, children: Element) -> Element {
 	let state = use_controllable(open, default_open, on_open_change);
-	use_context_provider(|| PopoverCtx { open: state });
+	let layer = use_dismissable_layer(state.get(), move |_| state.set(false));
+	use_context_provider({
+		let layer = layer.clone();
+		move || PopoverCtx { open: state, layer }
+	});
 	// dep-light: inline positioning + backdrop; no portal/floating — see README Limitations
 	rsx! {
 		div {
 			class: "relative inline-block",
 			onkeydown: move |e| {
-				if e.key() == Key::Escape {
-					state.set(false);
-				}
+				layer.on_keydown(&e);
 			},
 			{children}
 		}
@@ -58,10 +60,11 @@ pub fn PopoverContent(#[props(default)] side: Side, #[props(default = String::fr
 		return rsx! {};
 	}
 	let cls = cn!(POPOVER_CONTENT, "absolute top-full left-1/2 -translate-x-1/2 mt-1", class);
+	let layer = ctx.layer.clone();
 	rsx! {
 		div {
 			class: "fixed inset-0 z-40",
-			onclick: move |_| ctx.open.set(false),
+			onclick: move |_| layer.on_outside(),
 		}
 		div {
 			class: cls,
@@ -74,9 +77,10 @@ pub fn PopoverContent(#[props(default)] side: Side, #[props(default = String::fr
 	}
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct PopoverCtx {
 	open: Controllable<bool>,
+	layer: DismissableLayer,
 }
 
 #[cfg(test)]

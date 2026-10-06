@@ -67,18 +67,55 @@ pub fn render_focused(app: fn() -> Element) -> String {
 /// re-asserting the markup around it. Only elements listening for `keydown`
 /// react; the event does not bubble, so a handler sees exactly one press.
 pub fn render_after_keydown(app: fn() -> Element, key: Key) -> String {
+	render_after_keys(app, &[key])
+}
+
+/// [`render_after_keydown`] for a sequence: each key is swept and rendered
+/// before the next, so the second press meets whatever the first one opened.
+pub fn render_after_keys(app: fn() -> Element, keys: &[Key]) -> String {
 	let mut dom = mount(app);
-	sweep(&mut dom, "keydown", || {
-		Box::new(dioxus::html::SerializedKeyboardData::new(
-			key.clone(),
-			Code::Unidentified,
-			Location::Standard,
-			false,
-			Modifiers::empty(),
-			false,
-		))
-	});
-	dom.render_immediate(&mut dioxus::dioxus_core::NoOpMutations);
+	for key in keys {
+		sweep(&mut dom, "keydown", || {
+			Box::new(dioxus::html::SerializedKeyboardData::new(
+				key.clone(),
+				Code::Unidentified,
+				Location::Standard,
+				false,
+				Modifiers::empty(),
+				false,
+			))
+		});
+		dom.render_immediate(&mut dioxus::dioxus_core::NoOpMutations);
+	}
+	dioxus_ssr::render(&dom)
+}
+
+/// One sweep of [`render_after_steps`].
+pub enum Step {
+	Key(Key),
+	Focus,
+}
+
+/// Sweeps each step at every mounted element and renders after it — for a
+/// sequence that mixes keys with focus moves.
+pub fn render_after_steps(app: fn() -> Element, steps: &[Step]) -> String {
+	let mut dom = mount(app);
+	for step in steps {
+		match step {
+			Step::Key(key) => sweep(&mut dom, "keydown", || {
+				Box::new(dioxus::html::SerializedKeyboardData::new(
+					key.clone(),
+					Code::Unidentified,
+					Location::Standard,
+					false,
+					Modifiers::empty(),
+					false,
+				))
+			}),
+			Step::Focus => sweep(&mut dom, "focus", || Box::new(dioxus::html::SerializedFocusData::default())),
+		}
+		dom.render_immediate(&mut dioxus::dioxus_core::NoOpMutations);
+	}
 	dioxus_ssr::render(&dom)
 }
 
