@@ -132,6 +132,19 @@ pub fn mutations_after_input(app: fn() -> Element, value: &str) -> Vec<Mutation>
 	mutations.edits
 }
 
+/// Fires each of `keys` as a `keydown` at every mounted element, like
+/// [`render_after_keydown`], but only once effects have settled — before the
+/// first key and after each — for a component whose parts register through
+/// `use_effect` and would otherwise meet the keys unregistered.
+pub fn render_after_settled_keys(app: fn() -> Element, keys: &[Key]) -> String {
+	keys_settling(app, keys, true)
+}
+/// [`render_after_settled_keys`] without settling before the first key: it
+/// meets the first render's effects still queued — for a test of what happens
+/// to them when that key unmounts their component.
+pub fn render_after_keys_on_queued_effects(app: fn() -> Element, keys: &[Key]) -> String {
+	keys_settling(app, keys, false)
+}
 fn mount(app: fn() -> Element) -> VirtualDom {
 	// Listeners receive `PlatformEventData` and a converter turns it back into
 	// the concrete data. The web/desktop platforms install one; under
@@ -150,21 +163,6 @@ fn sweep(dom: &mut VirtualDom, name: &str, data: impl Fn() -> Box<dyn std::any::
 		let event = Rc::new(PlatformEventData::new(data()));
 		runtime.handle_event(name, Event::new(event, false), dioxus::dioxus_core::ElementId(id));
 	}
-}
-
-/// Fires each of `keys` as a `keydown` at every mounted element, like
-/// [`render_after_keydown`], but only once effects have settled — before the
-/// first key and after each — for a component whose parts register through
-/// `use_effect` and would otherwise meet the keys unregistered.
-pub fn render_after_settled_keys(app: fn() -> Element, keys: &[Key]) -> String {
-	keys_settling(app, keys, true)
-}
-
-/// [`render_after_settled_keys`] without settling before the first key: it
-/// meets the first render's effects still queued — for a test of what happens
-/// to them when that key unmounts their component.
-pub fn render_after_keys_on_queued_effects(app: fn() -> Element, keys: &[Key]) -> String {
-	keys_settling(app, keys, false)
 }
 
 fn keys_settling(app: fn() -> Element, keys: &[Key], settle_first: bool) -> String {

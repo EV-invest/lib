@@ -10,6 +10,20 @@ pub const TABLE_CONTAINER: &str = "relative w-full overflow-x-auto";
 /// selector on the table (`[&_td]:px-5`) would outrank it instead.
 pub const TABLE: &str = "w-full caption-bottom text-sm";
 
+/// The card a `variant="card"` table sits in: the [`CARD`](crate::CARD)
+/// surface without its padding and gap, clipping the rows to the radius.
+pub const TABLE_CARD: &str = "bg-card text-ink overflow-hidden rounded-xl border border-border shadow-sm";
+pub const TABLE_HEADER: &str = "[&_tr]:border-b";
+pub const TABLE_BODY: &str = "[&_tr:last-child]:border-0";
+pub const TABLE_FOOTER: &str = "bg-muted/50 border-t border-border font-medium [&>tr]:last:border-b-0";
+pub const TABLE_ROW: &str = "hover:bg-muted/50 data-[state=selected]:bg-muted border-b border-border transition-colors";
+pub const TABLE_HEAD: &str = "text-[color:var(--table-head-ink,var(--ink))] h-[var(--table-head-h,calc(var(--spacing)*10))] \
+                             px-[var(--table-px,calc(var(--spacing)*2))] text-start align-middle font-medium whitespace-nowrap \
+                             text-[length:var(--table-head-text)] tracking-[var(--table-head-tracking)] [text-transform:var(--table-head-case)] \
+                             [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]";
+pub const TABLE_CELL: &str = "px-[var(--table-px,calc(var(--spacing)*2))] py-[var(--table-dense-py,var(--table-py,calc(var(--spacing)*2)))] \
+                             align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]";
+pub const TABLE_CAPTION: &str = "text-ink-soft mt-4 text-sm";
 /// The look of the table: `default` is the shadcn canon, `card` the tracked
 /// uppercase list that sits edge to edge in a [`TABLE_CARD`].
 #[derive(Debug, PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
@@ -57,33 +71,12 @@ pub enum TableAlign {
 	End,
 }
 
-/// The card a `variant="card"` table sits in: the [`CARD`](crate::CARD)
-/// surface without its padding and gap, clipping the rows to the radius.
-pub const TABLE_CARD: &str = "bg-card text-ink overflow-hidden rounded-xl border border-border shadow-sm";
-
-pub const TABLE_HEADER: &str = "[&_tr]:border-b";
-
-pub const TABLE_BODY: &str = "[&_tr:last-child]:border-0";
-
-pub const TABLE_FOOTER: &str = "bg-muted/50 border-t border-border font-medium [&>tr]:last:border-b-0";
-
-pub const TABLE_ROW: &str = "hover:bg-muted/50 data-[state=selected]:bg-muted border-b border-border transition-colors";
-
 // The typography properties have no fallback on purpose: an undefined custom
 // property makes the declaration compute to `unset`, and font-size,
 // letter-spacing and text-transform all inherit — so outside a `card` table the
 // head keeps the table's own `text-sm` exactly as before. Colours read the
 // `:root` tokens (`--ink`), not `--color-ink`: the theme is `@theme inline`, so
 // Tailwind never emits the `--color-*` names for a `var()` to find.
-pub const TABLE_HEAD: &str = "text-[color:var(--table-head-ink,var(--ink))] h-[var(--table-head-h,calc(var(--spacing)*10))] \
-                             px-[var(--table-px,calc(var(--spacing)*2))] text-start align-middle font-medium whitespace-nowrap \
-                             text-[length:var(--table-head-text)] tracking-[var(--table-head-tracking)] [text-transform:var(--table-head-case)] \
-                             [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]";
-
-pub const TABLE_CELL: &str = "px-[var(--table-px,calc(var(--spacing)*2))] py-[var(--table-dense-py,var(--table-py,calc(var(--spacing)*2)))] \
-                             align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]";
-
-pub const TABLE_CAPTION: &str = "text-ink-soft mt-4 text-sm";
 
 #[cfg(test)]
 mod tests {

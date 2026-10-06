@@ -52,16 +52,6 @@ impl LocalDateTime {
 	}
 }
 
-/// The day a time typed before any day is chosen lands on: `today`, else
-/// `min`'s day, else the first of the displayed `month` — then pulled inside
-/// `[min, max]`. Clamping the day rather than the whole value keeps the typed
-/// hour when `min` is in the future (or `max` in the past).
-fn landing_day(today: Option<CalendarDate>, min: Option<CalendarDate>, max: Option<CalendarDate>, month: CalendarDate) -> CalendarDate {
-	let day = today.or(min).unwrap_or_else(|| CalendarDate::new(month.year, month.month, 1));
-	let day = min.map_or(day, |m| day.max(m));
-	max.map_or(day, |m| day.min(m))
-}
-
 /// The picker's own strings; every one defaults to English.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct DateTimePickerLabels {
@@ -80,7 +70,6 @@ pub struct DateTimePickerLabels {
 	/// `aria-label` of the popover dialog; "Choose date and time".
 	pub dialog: Option<String>,
 }
-
 /// A date + time field over the kit's own bricks: an outline trigger opening a
 /// popover with the [`Calendar`] and two numeric hours/minutes inputs — no
 /// native `datetime-local`, so the browser's locale popup never appears.
@@ -306,6 +295,16 @@ pub fn DateTimePicker(
 		}
 	}
 }
+/// The day a time typed before any day is chosen lands on: `today`, else
+/// `min`'s day, else the first of the displayed `month` — then pulled inside
+/// `[min, max]`. Clamping the day rather than the whole value keeps the typed
+/// hour when `min` is in the future (or `max` in the past).
+fn landing_day(today: Option<CalendarDate>, min: Option<CalendarDate>, max: Option<CalendarDate>, month: CalendarDate) -> CalendarDate {
+	let day = today.or(min).unwrap_or_else(|| CalendarDate::new(month.year, month.month, 1));
+	let day = min.map_or(day, |m| day.max(m));
+	max.map_or(day, |m| day.min(m))
+}
+
 /// Parses the digits an operator typed into an hours/minutes field. `None`
 /// (nothing typed, or no digit at all) keeps the last value.
 ///
