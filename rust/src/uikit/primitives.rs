@@ -364,7 +364,7 @@ pub(crate) fn sort_into_document_order<T: Clone>(items: &mut [T], el: impl Fn(&T
 /// A merge sort of our own rather than `sort_by`: `sort_by` may panic on an
 /// order that is not total, and a DOM comparison is one only while every node
 /// is in the document — this one stays a permutation whatever `precedes` says.
-fn sort_by_position<T: Clone>(items: &mut [T], placed: impl Fn(&T) -> bool, precedes: impl Fn(&T, &T) -> bool) {
+pub(crate) fn sort_by_position<T: Clone>(items: &mut [T], placed: impl Fn(&T) -> bool, precedes: impl Fn(&T, &T) -> bool) {
 	if !items.iter().all(&placed) {
 		return;
 	}

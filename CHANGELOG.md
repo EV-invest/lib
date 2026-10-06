@@ -122,6 +122,19 @@ Rust crate and its TypeScript mirror at once.
 
 ### Fixed
 
+- **Rust `Command` from the keyboard** (`ev_lib` `uikit`, #197), the model of
+  the TS `Command` (#196): focus stays in the search field, now
+  `role="combobox"` with `aria-controls` naming the list, `aria-expanded` and
+  `aria-activedescendant` naming the highlighted row. ArrowUp/ArrowDown move
+  the highlight (stopping at the ends, skipping `disabled` rows), Enter fires
+  the highlighted row's `on_select`, and Home/End stay with the caret. On the
+  web both follow the rows' order on screen, so a keyed re-sort or a row
+  inserted on top is walked where it shows. Until moved, the highlight tracks
+  the first row the filter keeps; a row under the
+  pointer takes it too. Rows carry `id`, `data-selected`/`aria-selected` and
+  `aria-disabled`. New `should_filter` on `Command` and `CommandDialog`
+  (default `true`): `false` renders every mounted row and `CommandEmpty` counts
+  mounted rows, for results the caller filters itself.
 - **Rust `Select` from the keyboard** (`ev_lib` `uikit`, #161): ArrowDown or
   ArrowUp on the trigger opens the list; opening focuses the chosen option
   (else the first); ArrowUp/ArrowDown/Home/End move between options (wrapping,
