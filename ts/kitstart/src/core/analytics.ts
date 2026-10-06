@@ -75,6 +75,9 @@ export const ALLOWED_PROPS = [
   "cents_bucket",
   // The booking's provider, `manual` | `link` | `cal_com` — never its URL.
   "provider",
+  // A test visit (`true`): the brand's QA cookie was set, by a forced variant
+  // or the QA menu. Absent otherwise, never `false`.
+  "forced",
 ] as const;
 
 /**

@@ -15,7 +15,7 @@
  */
 export { AbSwitcher } from "./AbSwitcher";
 export type { AbSwitcherExperiment, AbSwitcherProps, AbSwitcherText, AbSwitcherVariant } from "./ab-switcher-types";
-export { AnalyticsBoundary } from "./AnalyticsBoundary";
+export { AnalyticsBoundary, type AnalyticsBoundaryProps } from "./AnalyticsBoundary";
 export { AreaChips } from "./AreaChips";
 export { CallBar, type CallBarPart, type CallBarProps } from "./CallBar";
 export { Coverage, type CoveragePart, type CoverageProps } from "./Coverage";
