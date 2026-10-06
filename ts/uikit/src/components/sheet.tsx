@@ -3,7 +3,7 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
-import { useDismissableLayer } from "../primitives/dismissable-layer";
+import { DismissableLayerScope, useDismissableLayer } from "../primitives/dismissable-layer";
 import { type InitialFocus, useFocusScope } from "../primitives/focus-scope";
 import { usePresence } from "../primitives/presence";
 import { mergeRefs } from "../primitives/merge-refs";
@@ -142,6 +142,7 @@ export function SheetContent({
     enabled: open,
     onDismiss: () => setOpen(false),
     exclude: [triggerRef],
+    modal: true,
   });
   if (!isPresent) return null;
   return (
@@ -156,7 +157,7 @@ export function SheetContent({
         className={cn(SHEET_CONTENT, sheetSideClasses[side], className)}
         {...(props as Record<string, unknown>)}
       >
-        {children}
+        <DismissableLayerScope layer={dismissRef}>{children}</DismissableLayerScope>
         <button
           type="button"
           data-slot="sheet-close"

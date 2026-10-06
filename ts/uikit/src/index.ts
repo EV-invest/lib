@@ -17,7 +17,7 @@ export type { SlotProps } from "./primitives/slot";
 export { useControllableState } from "./primitives/use-controllable-state";
 export { Portal, PortalProvider } from "./primitives/portal";
 export type { PortalProps, PortalProviderProps } from "./primitives/portal";
-export { useDismissableLayer } from "./primitives/dismissable-layer";
+export { useDismissableLayer, DismissableLayerScope, LAYER_IGNORE_ATTR } from "./primitives/dismissable-layer";
 export type { DismissEvent } from "./primitives/dismissable-layer";
 export { useFloating } from "./primitives/use-floating";
 export type { Side, Align, FloatingResult } from "./primitives/use-floating";

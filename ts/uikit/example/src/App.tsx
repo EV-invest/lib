@@ -365,7 +365,7 @@ export default function App() {
             <DrawerDemo />
           </Section>
 
-          <Section title="Nested overlays" hint="each Escape closes one layer, the top one; a click in the panel closes only the list">
+          <Section title="Nested overlays" hint="each Escape closes one layer, the top one; a click in the panel closes only the list; a modal's backdrop closes only that modal">
             <LayersDemo />
           </Section>
 

@@ -4,7 +4,7 @@ import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
 import { useFloating } from "../primitives/use-floating";
-import { useDismissableLayer } from "../primitives/dismissable-layer";
+import { DismissableLayerScope, useDismissableLayer } from "../primitives/dismissable-layer";
 import { usePresence } from "../primitives/presence";
 import { useRovingFocus } from "../primitives/use-roving-focus";
 import { mergeRefs } from "../primitives/merge-refs";
@@ -148,7 +148,7 @@ export function DropdownMenuContent({
           )}
           {...(props as Record<string, unknown>)}
         >
-          {children}
+          <DismissableLayerScope layer={dismissRef}>{children}</DismissableLayerScope>
         </div>
       </DropdownMenuCloseContext.Provider>
     </Portal>

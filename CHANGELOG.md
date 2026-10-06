@@ -101,6 +101,21 @@ Rust crate and its TypeScript mirror at once.
   Escape: it still closes the Dialog under it. `useDismissableLayer` takes
   `pointerOutside: false` for an overlay whose scrim decides outside clicks.
 
+- **Nested overlay layers keep their order and a modal bars the ones below**
+  (`@evinvest/uikit`, #162 step 2). Closes #162. A layer rendered inside
+  another stacks above it through a React context, not by when its effect
+  ran: a `Popover` opened in its `Dialog`'s own commit (`defaultOpen` on both,
+  one shared `open`) takes the first Escape, and a press in it no longer
+  closes the Dialog. `Dialog`, `AlertDialog`, `Sheet`, `Drawer` and
+  `CommandDialog` are modal: while one is open the layers below ignore every
+  pointer-down, so a click on the backdrop of an `AlertDialog`, `Sheet` or
+  `Drawer` over a `Dialog` closes the upper one only. Toasts are outside every
+  layer: a click on one no longer closes a `Dialog` or a `Popover`. The stack
+  lives on `globalThis` (`Symbol.for`), so a micro-frontend with its own uikit
+  copy shares the host's. New exports: `DismissableLayerScope` (wrap a custom
+  overlay's content so layers in it stack above), `LAYER_IGNORE_ATTR`, and
+  `useDismissableLayer`'s `modal` option.
+
 - **`uikit::Slider` drag no longer sticks off the web** (`ev_lib`, #47).
   Without pointer capture (desktop/native renderers) a release outside the
   slider never reached `onpointerup`, so the value kept following the bare

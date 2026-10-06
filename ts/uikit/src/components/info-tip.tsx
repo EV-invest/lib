@@ -4,7 +4,7 @@ import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
 import { useFloating } from "../primitives/use-floating";
-import { useDismissableLayer } from "../primitives/dismissable-layer";
+import { DismissableLayerScope, useDismissableLayer } from "../primitives/dismissable-layer";
 import { usePresence } from "../primitives/presence";
 import { useHoverIntent } from "../primitives/use-hover-intent";
 import { mergeRefs } from "../primitives/merge-refs";
@@ -195,7 +195,7 @@ export function InfoTipContent({
         className={cn(POPOVER_CONTENT, "w-64 p-3 text-sm", className)}
         {...(props as Record<string, unknown>)}
       >
-        {children}
+        <DismissableLayerScope layer={dismissRef}>{children}</DismissableLayerScope>
       </div>
     </Portal>
   );
