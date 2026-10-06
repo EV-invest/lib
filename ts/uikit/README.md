@@ -367,10 +367,11 @@ export function Nav() {
 }
 ```
 
-- **`AppShell`** — slots `rail`, `tabBar`, `banner`, `children`; `breakpoint`
+- **`AppShell`** — slots `rail`, `topBar`, `tabBar`, `banner`, `children`; `breakpoint`
   (`"md"` | `"lg"`, default `lg`) is where the tab bar gives way to the rail.
   Fills `100dvh` less `--ev-shell-offset`; the rail sticks under that offset; the
   column reserves `--shell-tab-bar-h` plus the bottom safe area for the bar.
+  `topBar` sticks over the column, also under that offset, from `breakpoint` up.
   `mainProps` reaches the `<main>`. Layout only — no `"use client"`.
 - **`NavItem`** — `{ id, href, label, icon?, badge?, trailing?, external?,
   target?, match?, also?, disabled? }`, shared by the rail and the tab bar.
@@ -402,6 +403,10 @@ export function Nav() {
 - **`MobileAppBar`** `{ title, back?: { href } | { onClick }, right?,
   linkComponent?, hideFrom = "lg", labels: { back } }` — sticky under
   `--ev-shell-offset`; with `back` the title centres.
+- **`TopBar`** `{ start?, end? }` — layout only, server-safe.
+- **`AccountMenu`** `{ account: { name?, email }, manageHref?, switchHref,
+  groups?: NavGroup[], onSignOut, linkComponent?, labels: { trigger, manage,
+  switchAccount, signOut } }` — an initials avatar opening the menu.
 - **`PageFrame`** `{ title?, description?, eyebrow?, actions?, appBar?,
   width: "full" | "content", breakpoint }`, with **`PageHeading`** and
   **`SectionLabel`** (`tone: "muted" | "accent"`). With an `appBar` the heading
@@ -419,6 +424,25 @@ export function Nav() {
 
 Every string the kit renders or speaks is a `labels` entry with an English
 default.
+
+### The top bar contract
+
+Every service under one account wears the same top bar, so a user moving
+between them finds who they are and how to leave in the same place:
+
+```
+[start: app switcher or service name]        [end: service stats…]  [AccountMenu]
+AccountMenu: name / email · Manage account · ── service groups ── · Switch account · Sign out
+```
+
+- The bar is utility only; product nav stays in the rail.
+- The kit owns the fixed parts and their order. A service adds stats before the
+  `AccountMenu` and `groups` inside it — it never reorders or drops the rest.
+- Data is the host's: each service reads its own session and passes `account`;
+  `manageHref` is the identity provider's account center, `switchHref` the
+  sign-in that shows the account chooser.
+- A surface that cannot take the kit (the cabinet's public chip) hand-writes the
+  same order.
 
 ### Motion without a motion library
 
@@ -569,7 +593,7 @@ element across the two ports.
 | overlay placement | inline `position:fixed` + `data-side` | `Portal` + `useFloating` |
 | dismiss / focus trap | full-screen backdrop / native order | `useDismissableLayer` / `useFocusScope` |
 
-### Component inventory (all 73 bricks)
+### Component inventory (all 75 bricks)
 
 - **Tier A — static (23):** badge, button, button-group, card, input, textarea,
   label, field, separator, skeleton, spinner, kbd, table, container, alert,
@@ -588,8 +612,8 @@ element across the two ports.
   / `Forbidden` / `ServerError` presets (404 / 403 / 500). The kit ships no
   artwork: `Logo` masks whatever `--brand-mark` / `--brand-aspect` the consumer
   declares beside the palette, and the status pages use it for their mark.
-- **App shell — TS-only (10):** app-shell, shell-nav, bottom-tab-bar,
-  nav-badge (`NavBadge` / `NavDot`), mobile-app-bar, page-frame (`PageFrame` /
+- **App shell — TS-only (12):** app-shell, shell-nav, bottom-tab-bar,
+  nav-badge (`NavBadge` / `NavDot`), top-bar, account-menu, mobile-app-bar, page-frame (`PageFrame` /
   `PageHeading` / `SectionLabel`), section-nav, resource-error, system-banner,
   settled — see [App shell](#app-shell).
 - **Features — composed screens (1):** terminal — a trading terminal over an
@@ -716,7 +740,7 @@ measuring needs host-only `web-sys`). Known gaps:
   or passed whole as `lockup`. Brand-coloured text reads `primary-ink`.
 - **TS-only for now:** `NativeSelect`, the `Field` id hand-off,
   `SelectValue` labels, `ListRows` / `ListRow` (a table's phone form), and the whole [app shell](#app-shell) (`AppShell`,
-  `ShellNav`, `BottomTabBar`, `NavBadge` / `NavDot`, `MobileAppBar`, `PageFrame` /
+  `ShellNav`, `BottomTabBar`, `NavBadge` / `NavDot`, `TopBar`, `AccountMenu`, `MobileAppBar`, `PageFrame` /
   `PageHeading` / `SectionLabel`, `SectionNav`, `ResourceError`, `SystemBanner`,
   `Settled`) — no Dioxus twin. Its CSS (the entrances, the markers, the motion
   and shell tokens) ships in the shared sheet, so a Rust app can use the

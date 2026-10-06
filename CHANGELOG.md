@@ -24,6 +24,14 @@ Rust crate and its TypeScript mirror at once.
 
 ### Added
 
+- **`TopBar`, `AccountMenu`, `AppShell.topBar`** (`@evinvest/uikit`, TS-only):
+  the wide screen's utility bar over the content column, and the account menu
+  every service under one account shows in the same order — name / email,
+  Manage account, the service's groups, Switch account, Sign out. The contract
+  is in the README's App shell section. `DropdownMenuContent` takes `align`
+  (default `start`, as before) and `DropdownMenuItem` takes `asChild`, so an
+  item can be a link.
+
 - **Every event of a QA visit says `forced: true`, at the sink**
   (`@evinvest/kitstart`, #219). `analyticsSink` takes the QA cookie's name
   (4th argument, `qaCookie`; 5th, `cookies` — a request's `Cookie` header on

@@ -1,5 +1,6 @@
 import { useEffect, useState, type ComponentProps, type MouseEvent } from "react";
 import {
+  AccountMenu,
   AppShell,
   BottomTabBar,
   Button,
@@ -16,6 +17,7 @@ import {
   ShellNav,
   Skeleton,
   SystemBanner,
+  TopBar,
   type NavGroup,
   type NavItem,
 } from "@evinvest/uikit";
@@ -158,6 +160,24 @@ export function ShellDemo() {
         className="min-h-full"
         rail={<ShellNav groups={GROUPS} footerGroups={FOOTER} pathname={pathname} linkComponent={Link} header={<span className="text-ink px-3 font-semibold">ACME</span>} />}
         tabBar={<BottomTabBar items={TABS} pathname={pathname} linkComponent={Link} />}
+        topBar={
+          <TopBar
+            start={<span className="text-ink font-semibold">ACME</span>}
+            end={
+              <>
+                <span className="text-ink-soft text-sm">123 tokens</span>
+                <AccountMenu
+                  account={{ name: "Ada Lovelace", email: "ada@example.com" }}
+                  manageHref="#account-center"
+                  switchHref="#switch-account"
+                  groups={[{ id: "service", items: [{ id: "account", href: "/profile", label: "Account" }] }]}
+                  onSignOut={() => {}}
+                  linkComponent={Link}
+                />
+              </>
+            }
+          />
+        }
         banner={
           <>
             <SystemBanner tone="warn">Read-only: withdrawals are paused.</SystemBanner>

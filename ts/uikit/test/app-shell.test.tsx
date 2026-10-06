@@ -27,11 +27,18 @@ describe("AppShell", () => {
     expect(slot(container, "app-shell-tab-bar")).toHaveClass("md:hidden");
   });
 
+  it("pins the top bar over the column from the breakpoint up", () => {
+    const { container } = render(<AppShell breakpoint="md" topBar={<header>bar</header>}>x</AppShell>);
+    expect(slot(container, "app-shell-top-bar")).toHaveClass("hidden", "md:block", "sticky");
+    expect(slot(container, "app-shell-content")?.firstElementChild).toBe(slot(container, "app-shell-top-bar"));
+  });
+
   it("renders no wrapper, and reserves no room, for an empty slot", () => {
     const { container } = render(<AppShell rail={false} tabBar={null}>x</AppShell>);
     expect(slot(container, "app-shell-rail")).toBeNull();
     expect(slot(container, "app-shell-tab-bar")).toBeNull();
     expect(slot(container, "app-shell-banner")).toBeNull();
+    expect(slot(container, "app-shell-top-bar")).toBeNull();
     expect(slot(container, "app-shell-content")?.className).not.toContain("pb-");
   });
 

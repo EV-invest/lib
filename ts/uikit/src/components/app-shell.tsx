@@ -9,6 +9,8 @@ export interface AppShellProps extends React.ComponentProps<"div"> {
   rail?: React.ReactNode;
   /** The phone's tab bar — a `BottomTabBar`. Pinned to the viewport bottom below `breakpoint`. */
   tabBar?: React.ReactNode;
+  /** A `TopBar`, pinned over the column from `breakpoint` up (a phone titles its screen with `MobileAppBar`). */
+  topBar?: React.ReactNode;
   /** Strips above the page (`SystemBanner`s). An empty slot takes no room. */
   banner?: React.ReactNode;
   /** Default `lg`. */
@@ -22,12 +24,14 @@ const AT = {
   md: {
     rail: "hidden md:flex",
     tabBar: "md:hidden",
+    topBar: "hidden md:block",
     reserve: "pb-[calc(var(--shell-tab-bar-h)+env(safe-area-inset-bottom,0px))] md:pb-0",
     banner: "md:px-8",
   },
   lg: {
     rail: "hidden lg:flex",
     tabBar: "lg:hidden",
+    topBar: "hidden lg:block",
     reserve: "pb-[calc(var(--shell-tab-bar-h)+env(safe-area-inset-bottom,0px))] lg:pb-0",
     banner: "lg:px-8",
   },
@@ -37,8 +41,8 @@ const present = (node: React.ReactNode) => node !== null && node !== undefined &
 
 /**
  * The signed-in app's frame: a rail beside a content column on a wide screen, a
- * bottom tab bar under it on a phone. Layout only — the nav, the banners and the
- * page are slots, so the shell knows nothing about routes, roles or data.
+ * bottom tab bar under it on a phone. Layout only — the nav, the top bar, the banners
+ * and the page are slots, so the shell knows nothing about routes, roles or data.
  *
  * Fills the viewport less `--ev-shell-offset` (the room a host shell's own header
  * takes); the rail sticks under that offset at full remaining height and scrolls
@@ -48,6 +52,7 @@ const present = (node: React.ReactNode) => node !== null && node !== undefined &
 export function AppShell({
   rail,
   tabBar,
+  topBar,
   banner,
   breakpoint = "lg",
   mainProps,
@@ -81,6 +86,14 @@ export function AppShell({
         data-slot="app-shell-content"
         className={cn("flex min-w-0 flex-1 flex-col", present(tabBar) && at.reserve)}
       >
+        {present(topBar) && (
+          <div
+            data-slot="app-shell-top-bar"
+            className={cn("sticky top-[var(--ev-shell-offset,0px)] z-30", at.topBar)}
+          >
+            {topBar}
+          </div>
+        )}
         {present(banner) && (
           <div
             data-slot="app-shell-banner"

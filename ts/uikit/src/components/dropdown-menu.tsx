@@ -88,11 +88,13 @@ export function DropdownMenuTrigger({ asChild = false, onClick, ...props }: Drop
 
 export interface DropdownMenuContentProps extends React.ComponentProps<"div"> {
   sideOffset?: number;
+  align?: "start" | "center" | "end";
 }
 
 export function DropdownMenuContent({
   className,
   sideOffset = 4,
+  align = "start",
   children,
   ...props
 }: DropdownMenuContentProps) {
@@ -102,7 +104,7 @@ export function DropdownMenuContent({
     anchorRef,
     open,
     side: "bottom",
-    align: "start",
+    align,
     offset: sideOffset,
   });
   const dismissRef = useDismissableLayer({
@@ -167,12 +169,15 @@ export function DropdownMenuGroup({ className, ...props }: React.ComponentProps<
 }
 
 export interface DropdownMenuItemProps extends React.ComponentProps<"div"> {
+  /** Render the child (a link) as the item. */
+  asChild?: boolean;
   inset?: boolean;
   variant?: "neutral" | "destructive";
   disabled?: boolean;
 }
 
 export function DropdownMenuItem({
+  asChild = false,
   className,
   inset,
   variant = "neutral",
@@ -182,8 +187,9 @@ export function DropdownMenuItem({
   ...props
 }: DropdownMenuItemProps) {
   const close = React.useContext(DropdownMenuCloseContext);
+  const Comp = asChild ? Slot : "div";
   return (
-    <div
+    <Comp
       data-slot="dropdown-menu-item"
       data-inset={inset ? "" : undefined}
       data-variant={variant}

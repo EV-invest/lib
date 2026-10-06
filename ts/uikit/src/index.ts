@@ -750,6 +750,12 @@ export type { NavBadgeProps, NavBadgeVariant, NavDotProps, NavDotTone } from "./
 export { BottomTabBar } from "./components/bottom-tab-bar";
 export type { BottomTabBarLabels, BottomTabBarProps } from "./components/bottom-tab-bar";
 
+export { TopBar } from "./components/top-bar";
+export type { TopBarProps } from "./components/top-bar";
+
+export { AccountMenu } from "./components/account-menu";
+export type { AccountMenuLabels, AccountMenuProps } from "./components/account-menu";
+
 export { MobileAppBar } from "./components/mobile-app-bar";
 export type { MobileAppBarBack, MobileAppBarLabels, MobileAppBarProps } from "./components/mobile-app-bar";
 
