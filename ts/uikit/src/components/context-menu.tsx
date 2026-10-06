@@ -3,7 +3,7 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
-import { useDismissableLayer } from "../primitives/dismissable-layer";
+import { DismissableLayerScope, useDismissableLayer } from "../primitives/dismissable-layer";
 import { usePresence } from "../primitives/presence";
 import { useRovingFocus } from "../primitives/use-roving-focus";
 import { mergeRefs } from "../primitives/merge-refs";
@@ -99,11 +99,15 @@ export function ContextMenuContent({ className, children, ...props }: React.Comp
     Array.from(
       contentRef.current?.querySelectorAll<HTMLElement>("[role^='menuitem']") ?? [],
     ).filter((el) => el.getAttribute("data-disabled") === null);
-  const { activeIndex, onKeyDown: rovingKeyDown } = useRovingFocus({
-    count: 64,
+  const { activeIndex, setActiveIndex, onKeyDown: rovingKeyDown } = useRovingFocus({
+    count: () => items().length,
     orientation: "vertical",
     loop: true,
   });
+  // Reset on close: reopen on the first item, never on an index past the end.
+  React.useEffect(() => {
+    if (!open) setActiveIndex(0);
+  }, [open, setActiveIndex]);
   React.useEffect(() => {
     if (!open) return;
     items()[activeIndex]?.focus();
@@ -130,7 +134,7 @@ export function ContextMenuContent({ className, children, ...props }: React.Comp
           )}
           {...(props as Record<string, unknown>)}
         >
-          {children}
+          <DismissableLayerScope layer={dismissRef}>{children}</DismissableLayerScope>
         </div>
       </ContextMenuCloseContext.Provider>
     </Portal>

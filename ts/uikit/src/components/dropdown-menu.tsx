@@ -4,7 +4,7 @@ import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
 import { useFloating } from "../primitives/use-floating";
-import { useDismissableLayer } from "../primitives/dismissable-layer";
+import { DismissableLayerScope, useDismissableLayer } from "../primitives/dismissable-layer";
 import { usePresence } from "../primitives/presence";
 import { useRovingFocus } from "../primitives/use-roving-focus";
 import { mergeRefs } from "../primitives/merge-refs";
@@ -116,11 +116,16 @@ export function DropdownMenuContent({
     Array.from(
       contentRef.current?.querySelectorAll<HTMLElement>("[role^='menuitem']") ?? [],
     ).filter((el) => el.getAttribute("data-disabled") === null);
-  const { activeIndex, onKeyDown: rovingKeyDown } = useRovingFocus({
-    count: 64,
+  const { activeIndex, setActiveIndex, onKeyDown: rovingKeyDown } = useRovingFocus({
+    count: () => items().length,
     orientation: "vertical",
     loop: true,
   });
+  // Reset on close: a menu reopens on its first item, and an index left past
+  // the end (items gone while closed) would focus nothing.
+  React.useEffect(() => {
+    if (!open) setActiveIndex(0);
+  }, [open, setActiveIndex]);
   React.useEffect(() => {
     if (!open) return;
     items()[activeIndex]?.focus();
@@ -148,7 +153,7 @@ export function DropdownMenuContent({
           )}
           {...(props as Record<string, unknown>)}
         >
-          {children}
+          <DismissableLayerScope layer={dismissRef}>{children}</DismissableLayerScope>
         </div>
       </DropdownMenuCloseContext.Provider>
     </Portal>

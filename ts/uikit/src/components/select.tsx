@@ -5,7 +5,7 @@ import { cn } from "../lib/cn";
 import { SELECT_CONTENT_BOUNDS, SELECT_ITEM, selectTriggerSizeClasses, type SelectTriggerSize } from "../generated/select";
 import { useControllableState } from "../primitives/use-controllable-state";
 import { useFloating } from "../primitives/use-floating";
-import { useDismissableLayer } from "../primitives/dismissable-layer";
+import { DismissableLayerScope, useDismissableLayer } from "../primitives/dismissable-layer";
 import { usePresence } from "../primitives/presence";
 import { mergeRefs } from "../primitives/merge-refs";
 import { Portal } from "../primitives/portal";
@@ -307,7 +307,7 @@ export function SelectContent({
         )}
         {...(props as Record<string, unknown>)}
       >
-        <div className="p-1">{children}</div>
+        <div className="p-1"><DismissableLayerScope layer={dismissRef}>{children}</DismissableLayerScope></div>
       </div>
     </Portal>
   );

@@ -45,7 +45,7 @@ brand's `flake.nix` is its own config plus one call — `template/flake.nix` is
 the whole of one:
 
 ```nix
-inputs.ev.url = "github:EV-invest/lib?ref=@evinvest/kitstart-v0.13.0"; # the version in package-lock.json
+inputs.ev.url = "github:EV-invest/lib?ref=@evinvest/kitstart-v0.15.0"; # the version in package-lock.json
 inputs.ev.inputs.v_flakes.follows = "v_flakes";
 
 landing = ev.lib.mkLanding {
@@ -122,7 +122,7 @@ the two must be one release. Pin the flake to the matching
 Structural only — where behaviour matters more than look. Marketing sections
 (hero, prices, reviews…) stay in the brand until two brands hold the same one.
 Each widget is a Server Component unless it needs the browser (`MapFacade`,
-`AnalyticsBoundary`, `FormSelect`), styled with the kit's token roles only, restyled through
+`AnalyticsBoundary`, `FormSelect`, `AbSwitcher`), styled with the kit's token roles only, restyled through
 `className` — and, where a brand needs geometry inside one (`Faq`, `CallBar`,
 `StatusScreen`, `PlaceDirectory`, `Coverage`), through its named parts:
 `classNames={{ list: "rounded-none", answer: "px-2" }}`, merged after the
@@ -898,6 +898,47 @@ the last declaration. An experiment the panel would refuse (key not
 `[a-z0-9_]{1,64}`, fewer than two unique slug variants, holdout outside
 `[0, 1)`, summary over
 200 characters) is left out and logged, since the panel judges the event whole.
+
+### The QA switcher: `AbSwitcher`
+
+A chip in a corner that switches an experiment's variant in one tap — for the
+owner on a phone, in production. It drives the brand proxy's own mechanism and
+adds no server path: a tap on a variant goes to the same URL with
+`?ab_<key>=<value>`, which forces it and sets the QA cookie.
+
+```tsx
+// app/[locale]/[location]/layout.tsx — a server layout; the props are plain data
+<AbSwitcher
+  experiments={[{ key: "lead_form", label: "Lead form", variants: [{ value: "a", label: "Compact" }, { value: "b", label: "Steps" }] }]}
+  qaCookie="ab__qa"              // the cookie the brand's force parameter sets
+  className="bottom-20 md:bottom-4" // over the brand's sticky bars; bottom-right by default
+/>
+```
+
+- `current` — the assignments, if the caller knows them; left out, the panel
+  reads `ab_<key>` from `document.cookie` (the normal case: the page stays
+  static, the server reads no cookie). `forceParam` — `ab_` by default.
+  `text` — the menu's words, English by default.
+- **Turning it on, on a phone, in production:** open any page with
+  `?ab_<key>=<value>`. The proxy sets the QA cookie and the chip appears;
+  every visit after is tagged as a test in analytics. Outside production
+  (`next dev`) the chip is always there.
+- **What a visitor pays:** ~190 B gz of first load on the template's place
+  page. After hydration the gate checks `NODE_ENV` and the QA cookie
+  (non-empty) and only then imports the panel — a chunk of its own, ~2.1 KB
+  gz, that a visitor without the cookie never requests. The panel is the
+  kit's `Button` and `Badge` over its own small layer, not `Popover`: sharing
+  the overlay primitives with the page made Turbopack re-split the page's
+  chunks, ~400 B gz more for every visitor.
+- **Reset** drops the experiments' assignment cookies (`ab_<key>`) and the
+  force parameters from the URL, then reloads: the variants are drawn again
+  and the visit stays a test, menu included. **Leave test** drops the QA cookie
+  too. **Minimize** and **Hide** last until the next load.
+- Screenshots: the chip and its panel carry `data-ab-switcher`; hide it in the
+  section stylesheet, `[data-ab-switcher] { display: none !important; }`.
+
+The decisions are plain functions in the core (`abSwitcherVisible`,
+`abVariantUrl`, `abReset`, `abAssignments`), for a brand's own tests.
 
 ## The site
 
