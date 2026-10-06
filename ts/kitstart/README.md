@@ -925,7 +925,11 @@ adds no server path: a tap on a variant goes to the same URL with
   running experiment on the page the menu mounts on, so one with no
   `ab_<key>` cookie (or missing from `current`) is shown `not running`
   (`text.unassigned`), its variants disabled — the proxy would refuse the
-  force — and `–` on the chip.
+  force — and `–` on the chip. A test the panel only **paused** keeps its
+  visitors' cookies (dropping them would redraw everyone on resume), so the
+  brand's proxy lists paused tests for a QA browser only in the cookie
+  `<qaCookie>_off` (`ab__qa_off=lead_form,hero`); those read `not running`
+  too (`abRunning`).
 - **Turning it on, on a phone, in production:** open any page with
   `?ab_<key>=<value>`. The proxy sets the QA cookie and the chip appears;
   every visit after is tagged as a test in analytics. Outside production

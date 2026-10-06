@@ -300,7 +300,9 @@ Rust crate and its TypeScript mirror at once.
   `current`) now reads `not running` by default (`text.unassigned`, was
   `not assigned`) and its variant buttons are disabled — the menu mounts on a
   place's page, where the proxy assigns every running experiment and would
-  refuse a force for one that is not. `–` on the chip as before.
+  refuse a force for one that is not. `–` on the chip as before. A test
+  listed in the QA-only cookie `<qaCookie>_off` — the brand proxy's list of
+  paused tests, whose assignment cookies stay — reads the same (`abRunning`).
 
 - **`experiments` — weights are equal unless overridden** (**Breaking**, both
   ports; #16; a major for `@evinvest/experiments`). Weights are no longer
