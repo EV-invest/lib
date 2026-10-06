@@ -339,6 +339,34 @@ pub fn use_dismissable_layer(open: bool, on_dismiss: impl Fn(DismissReason) + 's
 }
 static NEXT_LAYER_ID: AtomicUsize = AtomicUsize::new(0);
 
+/// The text `children` would render, as far as it can be read off the vnode —
+/// the Rust side of the DOM's `textContent` for a type-ahead or a label. A
+/// child component's text is invisible (knowing it would mean rendering it),
+/// so a caller with one should pass the text explicitly.
+pub(crate) fn text_of(children: &Element) -> String {
+	let mut out = String::new();
+	if let Ok(node) = children {
+		vnode_text(node, &mut out);
+	}
+	out
+}
+fn vnode_text(node: &VNode, out: &mut String) {
+	for root in node.template.roots.iter() {
+		template_text(node, root, out);
+	}
+}
+fn template_text(node: &VNode, template: &TemplateNode, out: &mut String) {
+	match template {
+		TemplateNode::Element { children, .. } => children.iter().for_each(|c| template_text(node, c, out)),
+		TemplateNode::Text { text } => out.push_str(text),
+		TemplateNode::Dynamic { id } => match node.dynamic_nodes.get(*id) {
+			Some(DynamicNode::Text(text)) => out.push_str(&text.value),
+			Some(DynamicNode::Fragment(nodes)) => nodes.iter().for_each(|n| vnode_text(n, out)),
+			Some(DynamicNode::Component(_) | DynamicNode::Placeholder(_)) | None => {}
+		},
+	}
+}
+
 /// Whether a `transitionend` is the element's own exit `transform` finishing.
 ///
 /// Every exiting overlay (toast, drawer) stays mounted with
@@ -476,6 +504,14 @@ mod tests {
 		assert!(has_content(&rsx! { {text} }));
 		assert!(has_content(&rsx! { span {} }));
 		assert!(has_content(&rsx! { Child {} }));
+	}
+
+	#[test]
+	fn text_of_reads_static_and_dynamic_text() {
+		let name = String::from("Blue");
+		assert_eq!(text_of(&rsx! { "Apple" }), "Apple");
+		assert_eq!(text_of(&rsx! { span { {name} } " berry" }), "Blue berry");
+		assert_eq!(text_of(&rsx! {}), "");
 	}
 
 	#[test]
