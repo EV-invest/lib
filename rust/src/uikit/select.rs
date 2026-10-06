@@ -334,8 +334,25 @@ impl SelectCtx {
 			option.el = Some(el);
 			option.value.clone()
 		};
-		if self.active.peek().is_none() && self.landing().as_deref() == Some(value.as_str()) {
-			self.move_to(value);
+		if self.active.peek().is_some() {
+			return;
+		}
+		// Decide without the document-order sort while options are still
+		// mounting: one sort per mount would cost ~n² DOM calls on opening a long
+		// list. A reachable chosen option is found by value alone; with none, the
+		// first option on screen is known once every option has mounted.
+		let chosen = self.value.get();
+		let chosen_reachable = self.options.peek().values().any(|o| !o.disabled && o.value == chosen);
+		if chosen_reachable {
+			if value == chosen {
+				self.move_to(value);
+			}
+			return;
+		}
+		if self.options.peek().values().all(|o| o.el.is_some())
+			&& let Some(first) = self.landing()
+		{
+			self.move_to(first);
 		}
 	}
 
