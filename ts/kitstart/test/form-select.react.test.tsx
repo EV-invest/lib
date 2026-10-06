@@ -290,6 +290,25 @@ describe("FormSelect under a value", () => {
     expect(onValueChange).toHaveBeenCalledExactlyOnceWith("boiler");
   });
 
+  // No option carries the value, so the browser shows its first one: no visitor chose it.
+  it.each([
+    ["an empty value without a placeholder", ""],
+    ["a value no option carries", "gone"],
+  ])("reports nothing on hydration under %s", async (_, value) => {
+    const onValueChange = vi.fn();
+    await hydrate(form({ value, onValueChange }));
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it("reports a pre-hydration pick even when the value matched no option", async () => {
+    const onValueChange = vi.fn();
+    await hydrate(form({ value: "gone", onValueChange }), root => {
+      const select = root.querySelector("select");
+      if (select) select.value = "boiler";
+    });
+    expect(onValueChange).toHaveBeenCalledExactlyOnceWith("boiler");
+  });
+
   it("hydrates under a value without a mismatch", async () => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const onValueChange = vi.fn();

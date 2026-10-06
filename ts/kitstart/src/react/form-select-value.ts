@@ -38,13 +38,16 @@ export function useFormSelectValue(opts: {
   // A choice made in the native select before the script arrived survives the
   // swap: read in the hydration commit, before the scripted render. Once —
   // later renders never hold the native select. Under a `value` it is the
-  // parent's to take, so it is reported instead of kept.
+  // parent's to take, so it is reported instead of kept — and only a real
+  // pick: a `value` no option carries leaves the browser on its own default,
+  // which is no choice of the visitor's.
   useLayoutEffect(() => {
-    const picked = native.current?.value;
-    if (picked === undefined) return;
+    const select = native.current;
+    if (!select) return;
+    const picked = select.value;
     const { isControlled: held, value: shown, onValueChange: report } = latest.current;
     if (!held) setOwn(picked);
-    else if (picked !== shown) report?.(picked);
+    else if (picked !== shown && picked !== untouched(select)) report?.(picked);
   }, [native]);
 
   // A form reset puts a native select back on its default; so does this.
@@ -98,6 +101,16 @@ export function useFormSelectValue(opts: {
   };
 
   return { value, choose, invalid, open, setOpen, onInvalid };
+}
+
+/**
+ * What a single select shows before anyone touches it: the option marked
+ * `selected` in the markup, else the first enabled one (HTML's selectedness
+ * setting). A pick of that same option is indistinguishable, and harmless.
+ */
+function untouched(select: HTMLSelectElement): string | undefined {
+  const options = Array.from(select.options);
+  return (options.find(o => o.defaultSelected) ?? options.find(o => !o.disabled))?.value;
 }
 
 /** React's warning for an `<input>` that changes mode: once, and nothing else changes. */
