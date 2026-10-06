@@ -1,12 +1,10 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
-
 use dioxus::prelude::*;
 
 use crate::{
 	cn,
 	uikit::{
 		POPOVER_CONTENT,
-		primitives::{Controllable, Side, use_controllable},
+		primitives::{Controllable, Side, use_controllable, use_stable_id},
 	},
 };
 
@@ -23,7 +21,7 @@ use crate::{
 #[component]
 pub fn InfoTip(open: Option<bool>, #[props(default)] default_open: bool, on_open_change: Option<EventHandler<bool>>, children: Element) -> Element {
 	let state = use_controllable(open, default_open, on_open_change);
-	let id = use_hook(|| format!("info-tip-{}", NEXT_TIP_ID.fetch_add(1, Ordering::Relaxed)));
+	let id = use_stable_id("info-tip");
 	use_context_provider(|| InfoTipCtx { open: state, id });
 	rsx! {
 		span {
@@ -98,7 +96,6 @@ pub fn InfoTipContent(#[props(default)] side: Side, #[props(default = String::fr
 		}
 	}
 }
-static NEXT_TIP_ID: AtomicUsize = AtomicUsize::new(0);
 
 #[derive(Clone)]
 struct InfoTipCtx {
@@ -110,6 +107,22 @@ struct InfoTipCtx {
 mod tests {
 	use super::*;
 	use crate::uikit::test_util::render;
+
+	#[test]
+	fn aria_controls_id_is_stable_across_renders() {
+		fn app() -> Element {
+			rsx! {
+				InfoTip { default_open: true,
+					InfoTipTrigger { label: "About network" }
+					InfoTipContent { "panel" }
+				}
+			}
+		}
+		// Server render vs hydrating render: the same tree must mint the same id.
+		let first = render(app);
+		assert!(first.contains("aria-controls=\"info-tip-"), "{first}");
+		assert_eq!(first, render(app));
+	}
 
 	#[test]
 	fn closed_by_default_hides_content() {

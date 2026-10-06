@@ -77,6 +77,22 @@ pub fn use_controllable<T: Clone + PartialEq + 'static>(controlled: Option<T>, d
 	}
 }
 
+/// A DOM id for the calling component, derived from its place in the tree —
+/// the Rust side of React's `useId`.
+///
+/// The id is the component's `ScopeId`, which the `VirtualDom` hands out in
+/// render order: the server render and the client's hydrating render of the
+/// same tree mint the same ids, so `for`/`aria-*` wiring survives hydration. A
+/// process-global counter would not — a long-lived server has advanced it
+/// across earlier requests while a fresh client starts from zero.
+///
+/// Unique among the components mounted in one `VirtualDom` (a scope id is only
+/// recycled after its component unmounts). Two independent `VirtualDom`s on one
+/// page can collide; give them different `prefix`es.
+pub fn use_stable_id(prefix: &str) -> String {
+	use_hook(|| format!("{prefix}-{}", dioxus::dioxus_core::current_scope_id().0))
+}
+
 /// Which arrow keys walk a [`RovingFocus`] group. `Home`/`End` always do.
 #[derive(Clone, Copy, Default, PartialEq)]
 pub enum RovingOrientation {

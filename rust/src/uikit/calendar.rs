@@ -18,6 +18,9 @@ const CHEVRON_RIGHT: &str = "m9 18 6-6-6-6";
 /// changes, and six rows is the most any month needs with a Monday-first week
 /// (31 days starting on a Sunday).
 const GRID_CELLS: usize = 6 * 7;
+/// What an uncontrolled calendar opens on when the build has no clock to read
+/// (see [`CalendarDate::today`]) and the caller passed no `default_month`.
+pub(crate) const NO_CLOCK_MONTH: CalendarDate = CalendarDate { year: 1970, month: 1, day: 1 };
 /// A calendar date as plain `(year, month 1-12, day 1-31)`. The kernel does its
 /// own date math (no `chrono`/`jiff`): `wasm32`-safe and dependency-free.
 ///
@@ -64,6 +67,50 @@ impl CalendarDate {
 		((h + 5).rem_euclid(7)) as u32
 	}
 
+	/// Today on the host clock, or `None` where the build has no clock to read.
+	///
+	/// Web (`wasm32` + the `wasm` feature) reads the browser's local date, like
+	/// the TS port's `new Date()`. Native reads `SystemTime` and takes the **UTC**
+	/// date: the local zone needs tz data the dep-light kit does not carry, so
+	/// near midnight a native host can be a day off its wall clock. Bare `wasm32`
+	/// without `wasm` has no clock (`SystemTime::now` panics there) and yields
+	/// `None`.
+	pub fn today() -> Option<Self> {
+		#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+		{
+			let now = web_sys::js_sys::Date::new_0();
+			Some(Self::new(now.get_full_year() as i32, now.get_month() + 1, now.get_date()))
+		}
+		#[cfg(not(target_arch = "wasm32"))]
+		{
+			let secs = match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
+				Ok(after) => after.as_secs() as i64,
+				Err(before) => -(before.duration().as_secs() as i64),
+			};
+			Some(Self::from_unix_days(secs.div_euclid(86_400)))
+		}
+		#[cfg(all(target_arch = "wasm32", not(feature = "wasm")))]
+		{
+			None
+		}
+	}
+
+	/// The civil date `days` after 1970-01-01 (Hinnant's `civil_from_days`).
+	/// Only the `SystemTime` path needs it; the browser hands back a civil date.
+	#[cfg(any(not(target_arch = "wasm32"), test))]
+	fn from_unix_days(days: i64) -> Self {
+		let z = days + 719_468;
+		let era = z.div_euclid(146_097);
+		let doe = z.rem_euclid(146_097);
+		let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+		let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+		let mp = (5 * doy + 2) / 153;
+		let day = (doy - (153 * mp + 2) / 5 + 1) as u32;
+		let month = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
+		let year = (yoe + era * 400 + i64::from(month <= 2)) as i32;
+		Self { year, month, day }
+	}
+
 	/// Same month + day shifted by `delta` months, clamped to the target
 	/// month's length (used by the prev/next nav).
 	fn add_months(&self, delta: i32) -> Self {
@@ -92,12 +139,12 @@ pub fn Calendar(
 	on_select: Option<EventHandler<CalendarDate>>,
 	/// Controlled displayed month (any day in it is fine).
 	month: Option<CalendarDate>,
-	/// Uncontrolled initial displayed month.
-	#[props(default = CalendarDate::new(2026, 6, 1))]
-	default_month: CalendarDate,
+	/// Uncontrolled initial displayed month; the host's current month by default.
+	default_month: Option<CalendarDate>,
 	/// Fired when the displayed month changes via the nav buttons.
 	on_month_change: Option<EventHandler<CalendarDate>>,
-	/// "Today", highlighted in the grid.
+	/// "Today", highlighted in the grid; the host's current date by default
+	/// ([`CalendarDate::today`]).
 	today: Option<CalendarDate>,
 	/// Earliest selectable day (inclusive); earlier days render disabled.
 	min: Option<CalendarDate>,
@@ -112,7 +159,11 @@ pub fn Calendar(
 	next_month_label: Option<String>,
 	#[props(default)] class: String,
 ) -> Element {
-	let view = use_controllable(month, default_month, on_month_change);
+	// Both default to the host clock independently, as in the TS port: an
+	// explicit `today` does not move the opening month.
+	let host_today = CalendarDate::today();
+	let today = today.or(host_today);
+	let view = use_controllable(month, default_month.or(host_today).unwrap_or(NO_CLOCK_MONTH), on_month_change);
 	let current = view.get();
 
 	let go = move |delta: i32| {
@@ -428,6 +479,48 @@ mod tests {
 			assert_eq!(html.matches("role=\"gridcell\"").count(), days, "{html}");
 			assert_eq!(html.matches(CALENDAR_DAY_EMPTY).count(), GRID_CELLS - days, "{html}");
 		}
+	}
+
+	#[test]
+	fn unix_days_map_to_civil_dates() {
+		assert_eq!(CalendarDate::from_unix_days(0), CalendarDate::new(1970, 1, 1));
+		assert_eq!(CalendarDate::from_unix_days(-1), CalendarDate::new(1969, 12, 31));
+		// 2000 is a leap year divisible by 400: 29 Feb exists, 1 Mar follows it.
+		assert_eq!(CalendarDate::from_unix_days(11_016), CalendarDate::new(2000, 2, 29));
+		assert_eq!(CalendarDate::from_unix_days(11_017), CalendarDate::new(2000, 3, 1));
+		assert_eq!(CalendarDate::from_unix_days(19_723), CalendarDate::new(2024, 1, 1));
+		assert_eq!(CalendarDate::from_unix_days(20_638), CalendarDate::new(2026, 7, 4));
+	}
+
+	#[test]
+	fn explicit_month_and_today_win_over_the_host_clock() {
+		// A fixed month in the past and an explicit `today`: what the host clock
+		// says cannot reach the markup, so this stays byte-stable forever.
+		fn app() -> Element {
+			rsx! {
+				Calendar { default_month: CalendarDate::new(2026, 6, 1), today: CalendarDate::new(2026, 6, 10) }
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("June 2026"), "{html}");
+		assert_eq!(html.matches("data-today=\"true\"").count(), 1, "{html}");
+	}
+
+	#[test]
+	fn uncontrolled_calendar_opens_on_the_host_month_and_marks_today() {
+		fn app() -> Element {
+			rsx! {
+				Calendar {}
+			}
+		}
+		// Sampled on both sides of the render: a month rollover between the two
+		// reads must not turn into a flake.
+		let before = CalendarDate::today().expect("native builds read SystemTime");
+		let html = render(app);
+		let after = CalendarDate::today().expect("native builds read SystemTime");
+		let caption = |d: CalendarDate| format!("{} {}", MONTHS[(d.month - 1) as usize], d.year);
+		assert!(html.contains(&caption(before)) || html.contains(&caption(after)), "{html}");
+		assert_eq!(html.matches("data-today=\"true\"").count(), 1, "{html}");
 	}
 
 	#[test]

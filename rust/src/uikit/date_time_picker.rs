@@ -6,7 +6,7 @@ use crate::{
 		ButtonVariant, DATE_TIME_PICKER_CLEAR, DATE_TIME_PICKER_CONTENT, DATE_TIME_PICKER_TIME, DATE_TIME_PICKER_TIME_INPUT, DATE_TIME_PICKER_TIME_SEPARATOR, DATE_TIME_PICKER_TRIGGER,
 		INPUT_BASE, POPOVER_CONTENT, Size,
 		button::button_classes,
-		calendar::{Calendar, CalendarDate},
+		calendar::{Calendar, CalendarDate, NO_CLOCK_MONTH},
 		primitives::use_controllable,
 	},
 };
@@ -76,9 +76,10 @@ pub struct DateTimePickerLabels {
 /// native `datetime-local`, so the browser's locale popup never appears.
 ///
 /// The parent owns the value (like `Calendar`'s `selected`); every edit reports
-/// through `on_change`. The Rust kit has no clock, so with no `today` the grid
-/// highlights nothing and a time typed before a day is chosen lands on `min`'s
-/// day, else the first of the displayed month. The overlay is the inline Rust
+/// through `on_change`. `today` defaults to the host date
+/// ([`CalendarDate::today`]), like the TS port's `new Date()`; a time typed
+/// before a day is chosen lands on it. Only where the build has no clock does
+/// that fall back to `min`'s day, else the first of the displayed month. The overlay is the inline Rust
 /// popover (see the README "Limitations").
 #[component]
 pub fn DateTimePicker(
@@ -111,11 +112,12 @@ pub fn DateTimePicker(
 	/// Put on the trigger, so a `FieldLabel`'s `for` reaches it.
 	id: Option<String>,
 ) -> Element {
+	let today = today.or_else(CalendarDate::today);
 	let open = use_controllable(open, default_open, on_open_change);
 	let is_open = open.get();
 	// `min` before `today`: a bound in the future would otherwise open on a fully
 	// disabled grid.
-	let mut month = use_signal(|| value.map(|v| v.date).or(min.map(|m| m.date)).or(today).unwrap_or(CalendarDate::new(2026, 6, 1)));
+	let mut month = use_signal(|| value.map(|v| v.date).or(min.map(|m| m.date)).or(today).unwrap_or(NO_CLOCK_MONTH));
 
 	let emit = move |next: Option<LocalDateTime>| {
 		if let Some(h) = on_change {
@@ -477,6 +479,8 @@ mod tests {
 				DateTimePicker {
 					default_open: true,
 					disabled: true,
+					// Pins the opening month (30-day June) instead of the host's.
+					today: CalendarDate::new(2026, 6, 15),
 					labels: DateTimePickerLabels {
 						previous_month: Some("Назад".into()),
 						next_month: Some("Вперёд".into()),
