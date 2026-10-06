@@ -4,7 +4,7 @@ import { channelHref, type CaptureChannel } from "../core/channels";
 import { CHANNEL_FIELD } from "../core/lead";
 import { fillText } from "../core/lead-capture-format";
 import type { LeadCaptureFlowText, LeadCaptureText } from "../core/lead-capture-text";
-import type { FormEventHandler } from "react";
+import type { FormEventHandler, ReactNode } from "react";
 import { ConsentField, FormMessage, PhoneField, type FieldPart } from "./LeadCaptureFields";
 import { FailureMessage, SubmitButton } from "./LeadCaptureSubmit";
 import type { SendFailure } from "./use-lead-submit";
@@ -15,7 +15,20 @@ import { QuoteFormShell } from "./QuoteFormShell";
  * `channel` and `primary` dress every way out, the callback's summary
  * included; the `callback*` parts are the callback's own, after them.
  */
-export type ChannelPart = "channel" | "primary" | "callback" | "callbackSummary" | "callbackForm" | "callbackLede" | "callbackSubmit" | "consent" | "photos";
+export type ChannelPart = "channel" | "primary" | "callback" | "callbackSummary" | "callbackForm" | "callbackLede" | "callbackSubmit" | "consent" | "photos" | "channelIcon";
+
+/** A way out the brand may draw an icon for (`channelIcons`). */
+export type ChannelIconKey = "phone" | "whatsapp" | "sms" | "callback";
+
+/** The brand's icon before a channel's label, hidden from assistive technology: the label names it. */
+function ChannelIcon({ icon, className }: { icon: ReactNode; className: string | undefined }) {
+  if (icon === undefined || icon === null) return null;
+  return (
+    <span aria-hidden="true" className={cn("flex shrink-0 items-center [&_svg]:size-5", className)}>
+      {icon}
+    </span>
+  );
+}
 
 /**
  * A whole-pixel line under a brand's own type size: tailwind-merge drops a
@@ -55,6 +68,7 @@ export function ChannelLink(props: {
   text: LeadCaptureText;
   primary: boolean;
   experiment: Experiment | undefined;
+  icon?: ReactNode;
   classNames?: PartClassNames<ChannelPart> | undefined;
 }) {
   const { channel, contact, message, text, primary, experiment, classNames: c } = props;
@@ -70,6 +84,7 @@ export function ChannelLink(props: {
       data-experiment={experiment?.name}
       data-variant={experiment?.variant}
     >
+      <ChannelIcon icon={props.icon} className={c?.channelIcon} />
       {text[LABEL[channel]]}
     </Button>
   );
@@ -107,12 +122,15 @@ export function CallbackForm(props: {
   failure: SendFailure | null;
   onRetry: () => void;
   onSoftError: () => void;
+  /** In the row of channels (`channelsDisplay="row"`): a button among the others, its form on a line of its own once open. */
+  row?: boolean | undefined;
+  icon?: ReactNode;
   classNames?: PartClassNames<ChannelPart | FieldPart> | undefined;
 }) {
   const { id, primary, open, formId, placeSlug, locale, renderedAt, mobileName, subject, opening, text, experiment, error, classNames: c } = props;
   const at = (field: string) => (error?.field === field ? error.text : null);
   return (
-    <details id={id} open={open} className={cn("w-full", c?.callback)}>
+    <details id={id} open={open} className={cn(props.row ? "min-w-0 flex-1 open:basis-full" : "w-full", c?.callback)}>
       {/* A block, not the button's inline-flex: an inline box sits in a line box
           of the details' own, whose strut and baseline add height to the closed
           callback. */}
@@ -124,6 +142,7 @@ export function CallbackForm(props: {
           cn(c?.channel, primary && c?.primary, c?.callbackSummary) || undefined,
         )}
       >
+        <ChannelIcon icon={props.icon} className={c?.channelIcon} />
         {text.callback}
       </summary>
       <QuoteFormShell

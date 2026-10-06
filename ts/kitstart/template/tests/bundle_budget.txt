@@ -10,6 +10,7 @@
 # Over it now, on purpose: the form became `LeadCapture`, a client island
 # (162,985 B gz, +3.2 %) — a warning to pay back, not a new target. The form
 # variants (an estimate's tiles and live price, the priced success) add
-# about 3.9 KB gz more (170,375 B gz, +7.8 %).
+# about 3.9 KB gz more (170,375 B gz, +7.8 %); one question a screen and the
+# compact form's pieces about 9 KB more (179,430 B gz, +13.6 %).
 158000
 tolerance 20%

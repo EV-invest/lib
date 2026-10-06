@@ -32,6 +32,21 @@ export const ESTIMATE_FIELD_PREFIX = "estimate_";
 export const estimateField = (input: string): string => `${ESTIMATE_FIELD_PREFIX}${input}`;
 
 /**
+ * The answer "I don't know" to an estimate's question (`EstimateQuestion.unknown`
+ * in `LeadCapture`): not a slug, so it can never be an option a model prices.
+ * A need answered with it is sold as a `quote` for that lead — on the form and
+ * on the server alike (`answeredUnknown`).
+ */
+export const ESTIMATE_UNKNOWN = "?";
+
+/** Whether any of the need's questions was answered "I don't know" — the lead is then a `quote`. */
+export function answeredUnknown(model: PricingModel, need: string, get: (field: string) => string | null): boolean {
+  const pricing = Object.hasOwn(model.needs, need) ? model.needs[need] : undefined;
+  if (pricing?.kind !== "estimate") return false;
+  return pricing.inputs.some(id => get(estimateField(id))?.trim() === ESTIMATE_UNKNOWN);
+}
+
+/**
  * The answers a form posted for the need's inputs — only those, and only
  * slugs. Read by the server, which prices them itself: a posted amount, if
  * any, is never read.

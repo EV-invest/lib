@@ -43,6 +43,12 @@ the link and eyebrow colour on a card. Hence `primary` / `primary-ink`, the
 same hue and chroma one step apart in lightness; a role whose two values ever
 diverge names its ink the same way, `{role}-ink`.
 
+**Label polarity is deliberately split.** White on a fill marks the one call to
+action, so it belongs to `primary` alone; `destructive`, `positive` and the five
+accents keep the dark `on-*` label. A Primary and a Destructive button side by
+side in a dialog footer read as two polarities on purpose — do not "fix" it by
+whitening the semantic fills.
+
 **What is the fill and what is the ink.** `bg-primary`, `text-on-primary`, the
 checked state of a Checkbox and a Switch, a selected Calendar day and the
 `Primary` band are the fill. A link, an eyebrow, a checked Field outline, the

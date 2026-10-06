@@ -15,7 +15,11 @@ use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::{FORM_DESCRIPTION, FORM_ITEM, FORM_LABEL, FORM_MESSAGE, label::Label, primitives::use_stable_id},
+	uikit::{
+		FORM_DESCRIPTION, FORM_ITEM, FORM_LABEL, FORM_MESSAGE,
+		label::Label,
+		primitives::{has_content, use_stable_id},
+	},
 };
 
 /// What [`FormControl`] hands down to the control beneath it. Provided as a
@@ -134,10 +138,14 @@ pub fn FormDescription(#[props(default)] class: String, children: Element) -> El
 		p { class: cls, "data-slot": "form-description", id: ctx.form_description_id(), {children} }
 	}
 }
-/// Error/validation text. Renders only when it has children.
+/// Error/validation text. Renders only when it has children, so a permanently
+/// mounted message on a valid field leaves no empty row in the item's grid.
 #[component]
 pub fn FormMessage(#[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<FormItemContext>();
+	if !has_content(&children) {
+		return rsx! {};
+	}
 	let cls = cn!(FORM_MESSAGE, class);
 	rsx! {
 		p { class: cls, "data-slot": "form-message", id: ctx.form_message_id(), {children} }
@@ -334,5 +342,29 @@ mod tests {
 		assert!(html.contains("data-slot=\"form-message\""), "{html}");
 		assert!(html.contains("text-accent-error"), "{html}");
 		assert!(html.contains("required"), "{html}");
+	}
+
+	#[test]
+	fn message_without_children_renders_nothing() {
+		fn absent() -> Element {
+			rsx! {
+				FormItem {
+					FormMessage {}
+				}
+			}
+		}
+		fn blank() -> Element {
+			let error_text = String::new();
+			rsx! {
+				FormItem {
+					FormMessage { {error_text} }
+				}
+			}
+		}
+		for app in [absent, blank] {
+			let html = render(app);
+			assert!(!html.contains("form-message"), "{html}");
+			assert!(!html.contains("<p"), "{html}");
+		}
 	}
 }

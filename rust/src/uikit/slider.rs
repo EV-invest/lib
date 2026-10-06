@@ -81,7 +81,6 @@ pub fn Slider(
 			"data-slot": "slider",
 			"data-orientation": ori,
 			"data-disabled": disabled.then_some(true),
-			"aria-label": aria_label,
 			onpointerdown: move |e: PointerEvent| async move {
 				if disabled {
 					return;
@@ -140,6 +139,9 @@ pub fn Slider(
 				"data-orientation": ori,
 				style: thumb_style,
 				role: "slider",
+				// The name belongs on the focusable `role="slider"` node: on the
+				// role-less root it is prohibited and never announced.
+				"aria-label": aria_label,
 				tabindex: if disabled { "-1" } else { "0" },
 				"aria-valuenow": current,
 				"aria-valuemin": min,
@@ -221,6 +223,23 @@ mod tests {
 		assert!(html.contains("aria-valuemin=0"), "{html}");
 		assert!(html.contains("aria-valuemax=100"), "{html}");
 		assert!(html.contains("aria-orientation=\"horizontal\""), "{html}");
+	}
+
+	#[test]
+	fn aria_label_names_the_thumb_not_the_root() {
+		fn app() -> Element {
+			rsx! {
+				Slider { aria_label: "Volume", default_value: 50.0 }
+			}
+		}
+		let html = render(app);
+		let root_at = html.find("data-slot=\"slider\"").expect("root rendered");
+		let root = &html[html[..root_at].rfind('<').expect("opening tag")..root_at + html[root_at..].find('>').expect("closing bracket")];
+		assert!(!root.contains("aria-label"), "the role-less root must not carry the name: {root}");
+		let thumb_at = html.find("data-slot=\"slider-thumb\"").expect("thumb rendered");
+		let thumb = &html[thumb_at..thumb_at + html[thumb_at..].find('>').expect("closing bracket")];
+		assert!(thumb.contains("role=\"slider\""), "{thumb}");
+		assert!(thumb.contains("aria-label=\"Volume\""), "{thumb}");
 	}
 
 	#[test]
