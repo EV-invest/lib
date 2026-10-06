@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyOverrides,
   fnv1a32,
   forcedVariant,
   hashRng,
@@ -62,8 +63,8 @@ describe('hashRng', () => {
 });
 
 const config = {
-  hero: { variants: ['a', 'b'], weights: [0.5, 0.5] },
-  team: { variants: ['a', 'b', 'c'], weights: [2, 1, 1] },
+  hero: { variants: ['a', 'b'] },
+  team: { variants: ['a', 'b', 'c'] },
 } as const satisfies ExperimentConfig;
 
 describe('pickVariantFor', () => {
@@ -82,11 +83,25 @@ describe('pickVariantFor', () => {
     }
   });
 
-  it('distributes 10k subjects close to the weights', () => {
+  it('distributes 10k subjects in equal thirds', () => {
     const counts: Record<string, number> = { a: 0, b: 0, c: 0 };
     const n = 10_000;
     for (let i = 0; i < n; i++) {
       const v = pickVariantFor(config, 'team', `location-${i}`);
+      counts[v] = (counts[v] ?? 0) + 1;
+    }
+    // ±2 pp is > 4 sigma at n = 10k.
+    for (const v of ['a', 'b', 'c']) {
+      expect(Math.abs((counts[v] ?? 0) / n - 1 / 3)).toBeLessThan(0.02);
+    }
+  });
+
+  it('distributes 10k subjects close to operator weights', () => {
+    const live = applyOverrides(config, { team: { weights: [2, 1, 1] } });
+    const counts: Record<string, number> = { a: 0, b: 0, c: 0 };
+    const n = 10_000;
+    for (let i = 0; i < n; i++) {
+      const v = pickVariantFor(live, 'team', `location-${i}`);
       counts[v] = (counts[v] ?? 0) + 1;
     }
     // weights 2:1:1 → 50/25/25 %; ±2 pp is > 4 sigma at n = 10k.
@@ -105,7 +120,7 @@ describe('pickVariantFor', () => {
 
 describe('enabled', () => {
   const off = {
-    hero: { variants: ['a', 'b'], weights: [0, 1], enabled: false },
+    hero: { variants: ['a', 'b'], enabled: false },
   } as const satisfies ExperimentConfig;
 
   it('a disabled experiment picks the control without drawing', () => {
@@ -124,7 +139,7 @@ describe('enabled', () => {
   });
 
   it('enabled: true behaves like an omitted flag', () => {
-    const on = { hero: { variants: ['a', 'b'], weights: [0, 1], enabled: true } } as const;
+    const on = { hero: { variants: ['a', 'b'], enabled: true } } as const;
     expect(pickVariant(on, 'hero', () => 0.5)).toBe('b');
     expect(resolveVariant(on, 'hero', 'b')).toBe('b');
   });
@@ -132,18 +147,21 @@ describe('enabled', () => {
 
 describe('holdout', () => {
   const held = {
-    hero: { variants: ['a', 'b'], weights: [0, 1], holdout: 0.2 },
+    hero: { variants: ['a', 'b'], holdout: 0.2 },
   } as const satisfies ExperimentConfig;
+  // An operator override pinning every non-held-out draw to "b", so the control
+  // count below is exactly the holdout.
+  const heldAllB = applyOverrides(held, { hero: { weights: [0, 1] } });
 
   it('pins draws below the holdout to the control', () => {
-    expect(pickVariant(held, 'hero', () => 0)).toBe('a');
-    expect(pickVariant(held, 'hero', () => 0.1999)).toBe('a');
-    expect(pickVariant(held, 'hero', () => 0.2)).toBe('b');
+    expect(pickVariant(heldAllB, 'hero', () => 0)).toBe('a');
+    expect(pickVariant(heldAllB, 'hero', () => 0.1999)).toBe('a');
+    expect(pickVariant(heldAllB, 'hero', () => 0.2)).toBe('b');
   });
 
-  it('rescales the remaining draw onto the weights with a single rng call', () => {
+  it('rescales the remaining draw onto the equal split with a single rng call', () => {
     const split = {
-      hero: { variants: ['a', 'b'], weights: [0.5, 0.5], holdout: 0.5 },
+      hero: { variants: ['a', 'b'], holdout: 0.5 },
     } as const satisfies ExperimentConfig;
     // u = 0.7 → (0.7 - 0.5) / 0.5 = 0.4 → "a"; u = 0.8 → 0.6 → "b".
     expect(pickVariant(split, 'hero', () => 0.7)).toBe('a');
@@ -157,21 +175,22 @@ describe('holdout', () => {
   });
 
   it('holdout 1 is all control, out-of-range values are clamped, NaN is none', () => {
-    const all = { hero: { variants: ['a', 'b'], weights: [0, 1], holdout: 1 } } as const;
+    const all = { hero: { variants: ['a', 'b'], holdout: 1 } } as const;
     expect(pickVariant(all, 'hero', () => 0.999)).toBe('a');
-    const over = { hero: { variants: ['a', 'b'], weights: [0, 1], holdout: 7 } } as const;
+    const over = { hero: { variants: ['a', 'b'], holdout: 7 } } as const;
     expect(pickVariant(over, 'hero', () => 0.999)).toBe('a');
-    const neg = { hero: { variants: ['a', 'b'], weights: [0, 1], holdout: -1 } } as const;
-    expect(pickVariant(neg, 'hero', () => 0)).toBe('b');
-    const nan = { hero: { variants: ['a', 'b'], weights: [0, 1], holdout: Number.NaN } };
-    expect(pickVariant(nan, 'hero', () => 0)).toBe('b');
+    // No holdout: u = 0.6 is the second half → "b" (a 0.6 holdout would pin it).
+    const neg = { hero: { variants: ['a', 'b'], holdout: -1 } } as const;
+    expect(pickVariant(neg, 'hero', () => 0.6)).toBe('b');
+    const nan = { hero: { variants: ['a', 'b'], holdout: Number.NaN } };
+    expect(pickVariant(nan, 'hero', () => 0.6)).toBe('b');
   });
 
   it('holds out close to the configured share across 10k subjects', () => {
     let control = 0;
     const n = 10_000;
     for (let i = 0; i < n; i++) {
-      if (pickVariantFor(held, 'hero', `location-${i}`) === 'a') control++;
+      if (pickVariantFor(heldAllB, 'hero', `location-${i}`) === 'a') control++;
     }
     expect(Math.abs(control / n - 0.2)).toBeLessThan(0.02);
   });
@@ -182,15 +201,15 @@ describe('holdout', () => {
 // (u ≈ 0.348) the rescale — without the holdout it would land on "b".
 describe('pickVariantFor with holdout parity vector', () => {
   const held = {
-    hero: { variants: ['a', 'b', 'c'], weights: [1, 2, 3], holdout: 0.25 },
+    hero: { variants: ['a', 'b', 'c'], holdout: 0.25 },
   } as const satisfies ExperimentConfig;
 
   it('matches the Rust results per subject', () => {
-    const expected = { 'loc-1': 'a', 'loc-2': 'c', 'loc-3': 'b', 'loc-4': 'a', 'loc-5': 'c', 'loc-6': 'c' };
+    const expected = { 'loc-1': 'a', 'loc-2': 'c', 'loc-3': 'a', 'loc-4': 'a', 'loc-5': 'c', 'loc-6': 'b' };
     for (const [subject, variant] of Object.entries(expected)) {
       expect(pickVariantFor(held, 'hero', subject)).toBe(variant);
     }
-    const plain = { hero: { variants: ['a', 'b', 'c'], weights: [1, 2, 3] } } as const;
+    const plain = { hero: { variants: ['a', 'b', 'c'] } } as const;
     expect(pickVariantFor(plain, 'hero', 'loc-4')).toBe('b');
   });
 });
@@ -205,7 +224,7 @@ describe('forcedVariant', () => {
   });
 
   it('is refused for a disabled experiment', () => {
-    const off = { hero: { variants: ['a', 'b'], weights: [1, 1], enabled: false } } as const;
+    const off = { hero: { variants: ['a', 'b'], enabled: false } } as const;
     expect(forcedVariant(off, 'hero', 'b')).toBeUndefined();
   });
 });

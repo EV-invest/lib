@@ -183,6 +183,22 @@ Rust crate and its TypeScript mirror at once.
 
 ### Changed
 
+- **`experiments` — weights are equal unless overridden** (**Breaking**, both
+  ports; #16; a major for `@evinvest/experiments`). Weights are no longer
+  declared in code: every variant gets an equal share. `weights` is gone from
+  the TS `ExperimentSpec` (`satisfies ExperimentConfig` rejects it) and from
+  the Rust `Experiment`; `Experiment::new(variants, weights)` is now
+  `Experiment::new(variants)`, and `Experiment::uniform` is removed — use
+  `Experiment::new`. Manual weights come only from an operator override in the
+  panel: `applyOverrides` lays them over the config (`OverriddenConfig` carries
+  an optional `weights`), and `pickVariant` falls back to equal shares without
+  one; Rust has no override path. kitstart's `DeclaredExperiment` drops
+  `weights` and `experiments.declared@1` sends one each per variant — the
+  panel contract is unchanged. Migration: delete `weights` from every
+  experiment config; a split that was not equal is set in the panel.
+  Equal-weight picks are unchanged, so existing cookies and hashed subjects
+  keep their arms.
+
 - **`settings` — drift watching is a generated method** (**Breaking**, Rust).
   The new native-only `settings_drift` feature makes every `settings!` struct
   generate `watch_drift() -> Infallible`: it polls the Secret mounted at

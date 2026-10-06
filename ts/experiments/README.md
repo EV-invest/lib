@@ -46,13 +46,16 @@ Define your config once and pass it everywhere:
 import type { ExperimentConfig } from "@evinvest/experiments";
 
 export const experiments = {
-  hero: { variants: ["a", "b"], weights: [0.5, 0.5] },
-  team: { variants: ["a", "b", "c"], weights: [2, 1, 1] },
+  hero: { variants: ["a", "b"] },
+  team: { variants: ["a", "b", "c"] },
   // Optional per experiment: `enabled: false` is a kill switch (everyone gets the
   // control, cookies and forces are ignored); `holdout` pins that share to control.
-  cta: { variants: ["a", "b"], weights: [1, 1], holdout: 0.1 },
+  cta: { variants: ["a", "b"], holdout: 0.1 },
 } as const satisfies ExperimentConfig;
 ```
+
+Every variant gets an equal share; weights are not declared in code. Other
+weights come only from an operator override (`applyOverrides`, below).
 
 ### `.` — core (server-safe, zero-dep)
 
@@ -63,7 +66,7 @@ import {
 import { experiments } from "./experiments";
 
 cookieName("hero");                                   // "ab_hero"
-pickVariant(experiments, "hero");                     // weighted by Math.random
+pickVariant(experiments, "hero");                     // equal shares by Math.random
 pickVariant(experiments, "hero", () => 0.9);          // deterministic (seeded rng)
 pickVariantFor(experiments, "hero", locationId);      // per subject: stable, no cookie
 forcedVariant(experiments, "hero", "b");              // "b"; unknown value → undefined
@@ -97,7 +100,7 @@ Test vectors (pinned in `test/hash.node.test.ts`): `fnv1a32("") = 0x811C9DC5`,
   `resolveVariant` ignores a stored cookie, `forcedVariant` refuses, and the proxy
   assigns nothing. Omitted means enabled.
 - `holdout: h` (clamped to `[0, 1]`) — one draw `u`: `u < h` → control, otherwise
-  `u` is rescaled to `(u - h) / (1 - h)` and walked over the weights. Still one
+  `u` is rescaled to `(u - h) / (1 - h)` and walked over the shares. Still one
   `rng` call, so picks without a holdout are unchanged. Held-out visitors carry
   the control value; they are not distinguishable from the control bucket.
 
@@ -105,7 +108,8 @@ Test vectors (pinned in `test/hash.node.test.ts`): `fnv1a32("") = 0x811C9DC5`,
 
 `applyOverrides(config, overrides)` lays an operator's
 `{ "<key>": { enabled?, weights?, holdout? } }` over the config in code and
-returns a new config (variant unions stay narrow). Each field is taken only if
+returns a new config (variant unions stay narrow) — the one way weights other
+than the equal split reach a pick. Each field is taken only if
 valid — `weights` the same length as the code's variants, each `>= 0`, sum
 `> 0`; `holdout` in `[0, 1)`; `enabled` a boolean — and dropped on its own
 otherwise. Unknown keys are ignored, variants always come from code, and

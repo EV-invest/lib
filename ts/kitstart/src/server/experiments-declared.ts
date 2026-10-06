@@ -6,18 +6,22 @@ import type { LeadWebhook } from "./lead-webhook";
 /**
  * One experiment as the code declares it — the shape of an
  * `@evinvest/experiments` spec, so the brand's `as const` config is passed
- * as is. `variants[0]` is the control.
+ * as is. `variants[0]` is the control. No weights: the code splits equally,
+ * and re-weighting is the panel's override.
  */
 export interface DeclaredExperiment {
   readonly variants: readonly string[];
-  readonly weights: readonly number[];
   readonly enabled?: boolean;
   readonly holdout?: number;
 }
 
 export type ExperimentsDeclaration = Readonly<Record<string, DeclaredExperiment>>;
 
-/** `ExperimentDeclaration` of the panel's `experiments.declared@1`. */
+/**
+ * `ExperimentDeclaration` of the panel's `experiments.declared@1`. `weights`
+ * stays in the contract; the code always sends one each (the equal split it
+ * runs without an override).
+ */
 export interface ExperimentDeclarationV1 {
   key: string;
   variants: string[];
@@ -52,9 +56,6 @@ export function declarationProblem(key: string, spec: DeclaredExperiment, summar
   if (spec.variants.length < 2) return "fewer than two variants";
   if (new Set(spec.variants).size !== spec.variants.length) return "a variant is declared twice";
   if (!spec.variants.every(v => EXPERIMENT_SLUG.test(v))) return "a variant is not a slug ([a-z0-9_-]{1,32})";
-  if (spec.weights.length !== spec.variants.length) return "not one weight per variant";
-  if (!spec.weights.every(w => Number.isFinite(w) && w >= 0)) return "a weight is negative or not a number";
-  if (spec.weights.reduce((sum, w) => sum + w, 0) <= 0) return "the weights sum to zero";
   if (spec.holdout !== undefined && !(Number.isFinite(spec.holdout) && spec.holdout >= 0 && spec.holdout < 1)) return "the holdout is not in [0, 1)";
   if (summary !== undefined && summary.length > MAX_SUMMARY) return `the summary is over ${MAX_SUMMARY} characters`;
   return null;
@@ -104,7 +105,7 @@ export function experimentsDeclaredBody(
     declared.push({
       key,
       variants: [...spec.variants],
-      weights: [...spec.weights],
+      weights: spec.variants.map(() => 1),
       enabled: spec.enabled ?? true,
       ...(spec.holdout !== undefined ? { holdout: spec.holdout } : {}),
       ...(summary !== undefined && summary !== "" ? { summary } : {}),

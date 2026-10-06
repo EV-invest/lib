@@ -34,11 +34,11 @@ is testable without a browser.
 ```rust
 use ev_lib::experiments::{Experiment, pick_variant, resolve_variant, next_variant, cookie_name};
 
-let hero = Experiment::new(["a", "b"], [0.5, 0.5]); // variants[0] is the control
-let team = Experiment::uniform(["a", "b", "c"]);    // equal weights
+let hero = Experiment::new(["a", "b"]);      // variants[0] is the control
+let team = Experiment::new(["a", "b", "c"]); // equal shares, always
 
 cookie_name("hero");                                 // "ab_hero"
-pick_variant(&hero, || 0.9);                         // "b" — weighted draw, rng in [0,1)
+pick_variant(&hero, || 0.9);                         // "b" — equal-share draw, rng in [0,1)
 resolve_variant(&hero, Some("zzz"));                 // "a" — unknown → control
 next_variant(&team, "c", 1);                         // "a" — wraps
 ```
@@ -103,10 +103,11 @@ The Rust crate is the source of truth; the TS package preserves its
 
 | Concept | Rust (`ev_lib::experiments`) | TS (`@evinvest/experiments`) |
 | --- | --- | --- |
-| experiment | `Experiment::new(variants, weights)` / `::uniform` | config entry `{ variants, weights }` (`.`) |
+| experiment | `Experiment::new(variants)` — equal shares | config entry `{ variants }` (`.`) |
+| operator weights | — (no override path in Rust) | `applyOverrides(cfg, overrides)` (`.`) |
 | kill switch · holdout | `.with_enabled(false)` · `.with_holdout(h)` (`enabled`/`holdout` fields) | `enabled` · `holdout` in the config entry (`.`) |
 | cookie name | `cookie_name(key)` → `ab_<key>` | `cookieName(key)` (`.`) |
-| weighted pick | `pick_variant(&exp, rng)` | `pickVariant(cfg, key, rng?)` (`.`) |
+| pick | `pick_variant(&exp, rng)` | `pickVariant(cfg, key, rng?)` (`.`) |
 | control fallback | `resolve_variant(&exp, raw)` | `resolveVariant(cfg, key, raw)` (`.`) |
 | cyclic step | `next_variant(&exp, current, step)` | `nextVariant(cfg, key, current, step)` (`.`) |
 | hash bucketing | `pick_variant_for(&exp, key, subject)` | `pickVariantFor(cfg, key, subject)` (`.`) |

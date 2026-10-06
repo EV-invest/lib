@@ -12,11 +12,12 @@ vi.mock('next/headers', () => ({
 }));
 
 import { abProxy, createAbMiddleware, getVariant } from '../src/next/index';
-import { pickVariantFor, type ExperimentConfig } from '../src/index';
+import { applyOverrides, pickVariantFor, type ExperimentConfig } from '../src/index';
 
-const config = {
-  hero: { variants: ['a', 'b'], weights: [1, 0] }, // weight forces "a"
-} as const satisfies ExperimentConfig;
+// An operator weight override forces "a" for every fresh assignment.
+const config = applyOverrides({ hero: { variants: ['a', 'b'] } } as const satisfies ExperimentConfig, {
+  hero: { weights: [1, 0] },
+});
 
 function makeRequest(cookie?: string, url = 'https://example.com/'): NextRequest {
   const headers = new Headers();
@@ -69,10 +70,13 @@ describe('abProxy', () => {
   });
 
   it('only assigns experiments whose cookie is absent', () => {
-    const multi = {
-      hero: { variants: ['a', 'b'], weights: [1, 0] },
-      team: { variants: ['x', 'y'], weights: [1, 0] },
-    } as const satisfies ExperimentConfig;
+    const multi = applyOverrides(
+      {
+        hero: { variants: ['a', 'b'] },
+        team: { variants: ['x', 'y'] },
+      } as const satisfies ExperimentConfig,
+      { hero: { weights: [1, 0] }, team: { weights: [1, 0] } },
+    );
     // hero already set → untouched; team absent → assigned.
     const request = makeRequest('ab_hero=b');
     const response = abProxy(multi, request);
@@ -104,7 +108,7 @@ describe('getVariant', () => {
 
 describe('abProxy options', () => {
   const split = {
-    hero: { variants: ['a', 'b'], weights: [0.5, 0.5] },
+    hero: { variants: ['a', 'b'] },
   } as const satisfies ExperimentConfig;
 
   it('uses the injected rng for new assignments', () => {
@@ -150,7 +154,7 @@ describe('abProxy options', () => {
 
   it('does not assign a disabled experiment', () => {
     const off = {
-      hero: { variants: ['a', 'b'], weights: [1, 0], enabled: false },
+      hero: { variants: ['a', 'b'], enabled: false },
     } as const satisfies ExperimentConfig;
     const request = makeRequest();
     const response = abProxy(off, request);
@@ -195,7 +199,7 @@ describe('getVariant options', () => {
   afterEach(() => cookieStore.clear());
 
   const split = {
-    hero: { variants: ['a', 'b'], weights: [0.5, 0.5] },
+    hero: { variants: ['a', 'b'] },
   } as const satisfies ExperimentConfig;
 
   it('with a subject ignores the cookie and matches pickVariantFor', async () => {
@@ -218,7 +222,7 @@ describe('getVariant options', () => {
 
   it('returns the control for a disabled experiment despite the cookie', async () => {
     const off = {
-      hero: { variants: ['a', 'b'], weights: [1, 1], enabled: false },
+      hero: { variants: ['a', 'b'], enabled: false },
     } as const satisfies ExperimentConfig;
     cookieStore.set('ab_hero', 'b');
     expect(await getVariant(off, 'hero')).toBe('a');

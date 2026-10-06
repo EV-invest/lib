@@ -77,7 +77,7 @@ pub fn hash_rng(seed: &str) -> impl FnMut() -> f64 + use<> {
 /// # Examples
 /// ```
 /// use ev_lib::experiments::{Experiment, pick_variant_for};
-/// let exp = Experiment::uniform(["a", "b"]);
+/// let exp = Experiment::new(["a", "b"]);
 /// let v = pick_variant_for(&exp, "hero", "loc-1");
 /// assert_eq!(v, pick_variant_for(&exp, "hero", "loc-1"));
 /// assert!(exp.variants.contains(&v));
@@ -197,7 +197,7 @@ mod tests {
 
 	#[test]
 	fn pick_variant_for_equals_pick_variant_with_seeded_rng() {
-		let exp = Experiment::new(["a", "b", "c"], [1.0, 2.0, 3.0]);
+		let exp = Experiment::new(["a", "b", "c"]);
 		for subject in ["loc-1", "loc-2", "héllo", ""] {
 			let expected = pick_variant(&exp, hash_rng(&format!("hero:{subject}")));
 			assert_eq!(pick_variant_for(&exp, "hero", subject), expected, "subject={subject}");
@@ -206,7 +206,7 @@ mod tests {
 
 	#[test]
 	fn pick_variant_for_spreads_subjects_across_variants() {
-		let exp = Experiment::uniform(["a", "b"]);
+		let exp = Experiment::new(["a", "b"]);
 		let a = (0..1_000).filter(|i| pick_variant_for(&exp, "hero", &format!("loc-{i}")) == "a").count();
 		// A fair 50/50 split over 1000 subjects; ±10 % leaves ample slack for a fixed hash.
 		assert!((400..=600).contains(&a), "a={a}");
@@ -214,7 +214,7 @@ mod tests {
 
 	#[test]
 	fn pick_variant_for_empty_experiment_returns_empty_string() {
-		let exp = Experiment::new(Vec::<String>::new(), Vec::<f64>::new());
+		let exp = Experiment::new(Vec::<String>::new());
 		assert_eq!(pick_variant_for(&exp, "hero", "loc-1"), "");
 	}
 
@@ -223,11 +223,11 @@ mod tests {
 		// Same config and literals as the TS `pickVariantFor` holdout test: loc-1
 		// (u ≈ 0.063) exercises the holdout branch, loc-4 (u ≈ 0.348) the rescale —
 		// without the holdout it would land on "b".
-		let exp = Experiment::new(["a", "b", "c"], [1.0, 2.0, 3.0]).with_holdout(0.25);
-		for (subject, expected) in [("loc-1", "a"), ("loc-2", "c"), ("loc-3", "b"), ("loc-4", "a"), ("loc-5", "c"), ("loc-6", "c")] {
+		let exp = Experiment::new(["a", "b", "c"]).with_holdout(0.25);
+		for (subject, expected) in [("loc-1", "a"), ("loc-2", "c"), ("loc-3", "a"), ("loc-4", "a"), ("loc-5", "c"), ("loc-6", "b")] {
 			assert_eq!(pick_variant_for(&exp, "hero", subject), expected, "subject={subject}");
 		}
-		assert_eq!(pick_variant_for(&Experiment::new(["a", "b", "c"], [1.0, 2.0, 3.0]), "hero", "loc-4"), "b");
+		assert_eq!(pick_variant_for(&Experiment::new(["a", "b", "c"]), "hero", "loc-4"), "b");
 	}
 
 	#[test]
