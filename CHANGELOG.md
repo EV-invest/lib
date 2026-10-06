@@ -24,6 +24,19 @@ Rust crate and its TypeScript mirror at once.
 
 ### Added
 
+- **`ToggleGroup` owns its selection** (`ev_lib` `uikit`, #193), as the TS port
+  does: `r#type` (`ToggleGroupType::Single` — the default — or `Multiple`),
+  controlled `value: Vec<String>` / uncontrolled `default_value` and
+  `on_value_change: EventHandler<Vec<String>>`. Both types use a `Vec`; a
+  single group holds at most one entry, and pressing its selected item clears
+  it. `ToggleGroupItem` takes a `value` and reads its pressed state from the
+  group. Source-compatible: an item without a `value` keeps its own
+  `pressed`/`default_pressed`/`on_pressed_change`. Behaviour change: an item's
+  `variant`/`size` are now optional and default to the group's (an explicit
+  one still wins), so items in a `ToggleGroup { variant: Outline }` render
+  outlined where they used to fall back to `Bare`. Migration from hand-driven
+  items: move the selection onto the group and give each item a `value`.
+
 - **Card tables** (`ev_lib` `uikit` and `@evinvest/uikit`, #187): `Table`
   takes `variant` (`TableVariant::Card` — uppercase `text-xs tracking-wide
   text-ink-soft` head, `px-5 py-3` cells, no head-row hover) and `density`
