@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import type { ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -222,5 +222,96 @@ describe("FormSelect after hydration", () => {
     render(form({ disabled: true }));
     expect(screen.getByRole("combobox")).toBeDisabled();
     expect(new FormData(theForm()).get("job")).toBeNull();
+  });
+});
+
+/** A parent holding the value, with a reset button of its own. */
+function Driven({ initial = "leak", ...props }: Partial<FormSelectProps> & { initial?: string }) {
+  const [value, setValue] = useState(initial);
+  return (
+    <>
+      {form({ ...props, value, onValueChange: setValue })}
+      <button type="button" onClick={() => setValue(initial)}>
+        Effacer
+      </button>
+      <output data-testid="held">{value}</output>
+    </>
+  );
+}
+
+describe("FormSelect under a value", () => {
+  it("renders the parent's value on the server, as the native select's choice", () => {
+    const root = document.createElement("div");
+    root.innerHTML = renderToString(form({ value: "boiler", defaultValue: "leak" }));
+    expect(root.querySelector("select")?.value).toBe("boiler");
+    expect(new FormData(root.querySelector("form") ?? undefined).get("job")).toBe("boiler");
+  });
+
+  it("shows and posts the value, not its own pick, until the parent takes it", () => {
+    const onValueChange = vi.fn();
+    const { rerender } = render(form({ value: "leak", onValueChange }));
+    fireEvent.click(screen.getByRole("combobox"));
+    fireEvent.click(screen.getByRole("option", { name: "Chaudière" }));
+    expect(onValueChange).toHaveBeenCalledWith("boiler");
+    expect(screen.getByRole("combobox")).toHaveTextContent("Fuite");
+    expect(new FormData(theForm()).get("job")).toBe("leak");
+    rerender(form({ value: "boiler", onValueChange }));
+    expect(screen.getByRole("combobox")).toHaveTextContent("Chaudière");
+    expect(new FormData(theForm()).get("job")).toBe("boiler");
+  });
+
+  it("is reset by its parent, and to the placeholder by an empty value", () => {
+    render(<Driven placeholder="Choisir" initial="" />);
+    expect(new FormData(theForm()).has("job")).toBe(false);
+    fireEvent.click(screen.getByRole("combobox"));
+    fireEvent.click(screen.getByRole("option", { name: "Chaudière" }));
+    expect(screen.getByTestId("held")).toHaveTextContent("boiler");
+    expect(new FormData(theForm()).get("job")).toBe("boiler");
+    fireEvent.click(screen.getByRole("button", { name: "Effacer" }));
+    expect(screen.getByRole("combobox").querySelector("[data-placeholder]")).toHaveTextContent("Choisir");
+    expect(new FormData(theForm()).has("job")).toBe(false);
+  });
+
+  it("stays on the parent's value through a form reset", () => {
+    render(<Driven defaultValue="leak" />);
+    fireEvent.click(screen.getByRole("combobox"));
+    fireEvent.click(screen.getByRole("option", { name: "Chaudière" }));
+    act(() => theForm().reset());
+    expect(screen.getByRole("combobox")).toHaveTextContent("Chaudière");
+    expect(new FormData(theForm()).get("job")).toBe("boiler");
+  });
+
+  it("reports a choice made in the native select before the script arrived", async () => {
+    const onValueChange = vi.fn();
+    await hydrate(form({ value: "leak", onValueChange }), root => {
+      const select = root.querySelector("select");
+      if (select) select.value = "boiler";
+    });
+    expect(onValueChange).toHaveBeenCalledExactlyOnceWith("boiler");
+  });
+
+  it("hydrates under a value without a mismatch", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const onValueChange = vi.fn();
+    await hydrate(form({ value: "boiler", onValueChange }));
+    expect(errors).not.toHaveBeenCalled();
+    errors.mockRestore();
+    expect(onValueChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("combobox")).toHaveTextContent("Chaudière");
+  });
+
+  // Into control: the new value. Out of it: the last value stays, as an `<input>` keeps its text.
+  it.each([
+    ["uncontrolled to controlled", undefined, "boiler"],
+    ["controlled to uncontrolled", "boiler", undefined],
+  ])("warns once going %s, and keeps working", (mode, before, after) => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { rerender } = render(form({ value: before }));
+    rerender(form({ value: after }));
+    rerender(form({ value: after }));
+    expect(errors).toHaveBeenCalledExactlyOnceWith(expect.stringContaining(mode));
+    errors.mockRestore();
+    expect(screen.getByRole("combobox")).toHaveTextContent("Chaudière");
+    expect(new FormData(theForm()).get("job")).toBe("boiler");
   });
 });

@@ -61,6 +61,13 @@ Rust crate and its TypeScript mirror at once.
   (Home/End stay with the caret; keys from other focusables are left alone). The highlight sits on the first row until the user moves it, so
   results that land after the keystroke put Enter on the top hit. TS only —
   the Rust port still filters and has no keyboard.
+- **`FormSelect` takes a controlled `value`** (`@evinvest/kitstart/react`,
+  #163). Under `value` the prop is what the trigger shows and the form posts;
+  a pick only calls `onValueChange`, so a parent drives and resets it, and a
+  form `reset` leaves it on `value`. Without JavaScript it is still the native
+  select, starting on `value`; a pick made there before hydration is reported
+  through `onValueChange`. Switching between controlled and uncontrolled warns
+  once in development and keeps the last value. `defaultValue` is unchanged.
 
 ### Fixed
 

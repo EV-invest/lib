@@ -41,6 +41,12 @@ export interface FormSelectProps {
   options: readonly FormSelectOption[];
   /** Without it: empty under a `placeholder`, else the first option — a native select's own rule. */
   defaultValue?: string | undefined;
+  /**
+   * Controlled: the value shown and posted, kept until the parent changes it
+   * from `onValueChange` (a form reset leaves it too). `undefined` is
+   * uncontrolled, as on an `<input>`; `""` is the placeholder.
+   */
+  value?: string | undefined;
   /** An empty, unpickable choice shown until one is made. */
   placeholder?: string | undefined;
   required?: boolean | undefined;
@@ -81,7 +87,7 @@ export function FormSelectView({ scripted, ...props }: FormSelectProps & { scrip
   const native = useRef<HTMLSelectElement>(null);
   // The box, not the trigger: `SelectTrigger` keeps its own ref for placing the list.
   const box = useRef<HTMLSpanElement>(null);
-  const state = useFormSelectValue({ initial, native, box, scripted, onValueChange: props.onValueChange });
+  const state = useFormSelectValue({ initial, controlled: props.value, native, box, scripted, onValueChange: props.onValueChange });
   const hint = placeholder !== undefined ? { placeholder } : {};
   const aria = { "aria-describedby": props["aria-describedby"], "aria-invalid": props["aria-invalid"] || state.invalid || undefined };
 
@@ -95,7 +101,9 @@ export function FormSelectView({ scripted, ...props }: FormSelectProps & { scrip
         {...hint}
         required={required}
         disabled={disabled}
-        defaultValue={initial}
+        // Uncontrolled even under `value`: before the script nothing could
+        // follow a change, and a pick made then must survive into the swap.
+        defaultValue={state.value}
         wrapperClassName={cn(BOX, className)}
         className={classNames?.trigger}
         {...aria}
