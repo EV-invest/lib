@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { abAssignments, abReset, abSwitcherVisible, abVariantUrl, cookieValue } from "../src/index";
+import { abAssignments, abReset, abRunning, abSwitcherVisible, abVariantUrl, cookieValue } from "../src/index";
 
 describe("abSwitcherVisible", () => {
   it("hides in production from a visit without the QA cookie", () => {
@@ -83,5 +83,19 @@ describe("abReset", () => {
     const plan = abReset("https://x.test/?force_hero=b&ab_hero=a&force_other=1", ["hero"], "ab_forced", "leave", "force_");
     expect(plan.url).toBe("https://x.test/?ab_hero=a&force_other=1");
     expect(plan.cookies).toEqual([gone("ab_hero"), gone("ab_forced")]);
+  });
+});
+
+describe("abRunning", () => {
+  const assigned = { lead_form: "b", hero: "a" };
+
+  it("leaves out the tests the proxy lists as paused in <qaCookie>_off", () => {
+    expect(abRunning(assigned, "ab__qa=1; ab__qa_off=lead_form", "ab__qa")).toEqual({ hero: "a" });
+    expect(abRunning(assigned, "ab__qa_off=lead_form%2Chero", "ab__qa")).toEqual({});
+  });
+
+  it("keeps everything without the cookie, or for a look-alike name", () => {
+    expect(abRunning(assigned, "ab__qa=1", "ab__qa")).toEqual(assigned);
+    expect(abRunning(assigned, "ab__qa_offx=lead_form", "ab__qa")).toEqual(assigned);
   });
 });
