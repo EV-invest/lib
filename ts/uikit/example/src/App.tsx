@@ -36,6 +36,14 @@ import {
   Spinner,
   Kbd,
   DateTimePicker,
+  Toggle,
+  ToggleGroup,
+  ToggleGroupItem,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
   type ToastPosition,
   type ToastVariant,
 } from "@evinvest/uikit";
@@ -292,6 +300,31 @@ export default function App() {
               </TooltipTrigger>
               <TooltipContent>Floated + animated on open</TooltipContent>
             </Tooltip>
+          </Section>
+
+          <Section title="Toggles & menu" hint="on is the filled role, hover a surface tint; the last menu row is destructive">
+            <ToggleGroup type="multiple" variant="outline" defaultValue={["mon", "tue", "wed", "thu", "fri"]}>
+              {["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map((day) => (
+                <ToggleGroupItem key={day} value={day} aria-label={day}>
+                  {day.slice(0, 2)}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            <Toggle aria-label="Bold" defaultPressed>
+              B
+            </Toggle>
+            <Toggle aria-label="Italic">I</Toggle>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">Actions</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem>Rename</DropdownMenuItem>
+                <DropdownMenuItem>Duplicate</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </Section>
 
           <Section title="Bits & pieces">

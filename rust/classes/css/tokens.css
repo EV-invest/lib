@@ -21,6 +21,8 @@
  *              accent-trace · accent-debug · accent-info · accent-warn · accent-error
  *              primary-ink — the primary role as ink on a surface, where the
  *              fill and the readable value are different colours
+ *              accent-error-ink — the error role as text on its own tint;
+ *              derived from accent-error and ink, a palette may pin it
  *   SCALARS    radius · control-* · display-scale · page-* · shell-* · shadows · fonts
  *   MOTION     ev-ease-* · ev-dur-* · ev-rise · ev-stagger(-section)
  *   CHARTS     chart-1 … chart-5
@@ -37,7 +39,8 @@
  *
  * Accents are ordered by significance, not by meaning; see docs/spec/accents.md.
  * Their values are read outside CSS (gitops mirrors them into Discord embed
- * bars), so they stay plain hex — no color-mix.
+ * bars), so they stay plain hex — no color-mix. `accent-error-ink` is not an
+ * accent but a reading of one, so it lives with the derived tokens.
  */
 
 /*
@@ -579,6 +582,7 @@
   --color-on-accent-warn: var(--on-accent-warn);
   --color-accent-error: var(--accent-error);
   --color-on-accent-error: var(--on-accent-error);
+  --color-accent-error-ink: var(--accent-error-ink);
 
   /* charts — distinguishable hues carrying no significance */
   --color-chart-1: var(--chart-1);
@@ -606,6 +610,12 @@
    * side — ink over white needs ~47% to clear it, dark lands near 4:1. */
   --input: color-mix(in srgb, var(--ink) 48%, transparent);
   --ring: var(--primary-ink);
+  /* the error role as text on its own 10 % tint — a destructive menu row
+   * (lib#166). The fill alone read 3.76:1 there on EV and 2.48:1 on a dark
+   * brand; 30 % of the ink pulls it toward whichever polarity the text needs.
+   * Derived rather than required so a brand file that predates it still
+   * renders; one that misses the floor pins its own (docs/spec/accents.md). */
+  --accent-error-ink: color-mix(in srgb, var(--accent-error) 70%, var(--ink));
 }
 
 /* Geometry. A `[data-brand]` scope is a theme root of its own, so it restarts
@@ -754,8 +764,10 @@
   --accent-warn: #f2c94c;
   --on-accent-warn: #070d18;
   /* lifted off the brand red #da251d, which failed AA on a card. This one value
-   * carries both the fill and the text; the vivid brand red is a gitops
-   * constant, not a UI token. */
+   * is the fill and the text on a bare surface; on its own 10 % tint (a
+   * destructive menu row) the text is the derived --accent-error-ink, which
+   * EV leaves to the contract: #ec8379, 4.83:1 on that tint over popover. The
+   * vivid brand red is a gitops constant, not a UI token. */
   --accent-error: #ef5b52;
   --on-accent-error: #070d18;
 

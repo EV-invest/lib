@@ -538,6 +538,7 @@
   --color-on-accent-warn: var(--on-accent-warn);
   --color-accent-error: var(--accent-error);
   --color-on-accent-error: var(--on-accent-error);
+  --color-accent-error-ink: var(--accent-error-ink);
 
   /* charts — distinguishable hues carrying no significance */
   --color-chart-1: var(--chart-1);
@@ -565,6 +566,12 @@
    * side — ink over white needs ~47% to clear it, dark lands near 4:1. */
   --input: color-mix(in srgb, var(--ink) 48%, transparent);
   --ring: var(--primary-ink);
+  /* the error role as text on its own 10 % tint — a destructive menu row
+   * (lib#166). The fill alone read 3.76:1 there on EV and 2.48:1 on a dark
+   * brand; 30 % of the ink pulls it toward whichever polarity the text needs.
+   * Derived rather than required so a brand file that predates it still
+   * renders; one that misses the floor pins its own (docs/spec/accents.md). */
+  --accent-error-ink: color-mix(in srgb, var(--accent-error) 70%, var(--ink));
 }
 
 /* Geometry. A `[data-brand]` scope is a theme root of its own, so it restarts
