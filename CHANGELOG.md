@@ -24,6 +24,15 @@ Rust crate and its TypeScript mirror at once.
 
 ### Added
 
+- **A test visit's analytics say so** (`@evinvest/kitstart/react`):
+  `AnalyticsBoundary` takes an optional `qaCookie` — pass `AbSwitcher`'s. With
+  that cookie set (non-empty), `location_page_view` and both
+  `contact_intent_click` paths carry `forced: true`, so the QA menu's reloads
+  stop counting as a place's traffic; `forced` joins `ALLOWED_PROPS`. Read in
+  the browser per event; without the prop or the cookie the events are
+  unchanged, no `forced` key. About 50 B gz of first load on the template,
+  which passes `ab__qa`.
+
 - **`ToggleGroup` owns its selection** (`ev_lib` `uikit`, #193), as the TS port
   does: `r#type` (`ToggleGroupType::Single` — the default — or `Multiple`),
   controlled `value: Vec<String>` / uncontrolled `default_value` and
