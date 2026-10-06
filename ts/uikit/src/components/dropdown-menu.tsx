@@ -117,7 +117,7 @@ export function DropdownMenuContent({
       contentRef.current?.querySelectorAll<HTMLElement>("[role^='menuitem']") ?? [],
     ).filter((el) => el.getAttribute("data-disabled") === null);
   const { activeIndex, onKeyDown: rovingKeyDown } = useRovingFocus({
-    count: 64,
+    count: () => items().length,
     orientation: "vertical",
     loop: true,
   });

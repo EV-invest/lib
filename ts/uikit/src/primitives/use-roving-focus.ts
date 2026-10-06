@@ -8,10 +8,15 @@ import * as React from "react";
  * Returns an `onKeyDown` to spread on the container and the active index; items
  * should set `tabIndex={index === activeIndex ? 0 : -1}`.
  *
+ * `count` may be a getter: containers whose items are only known from the DOM
+ * (menus with conditionally rendered or disabled items, inline sub-menus) pass
+ * one so the bound is read at keydown time — never during render, which keeps
+ * the hook safe under SSR.
+ *
  * Mirrors the keyboard navigation Rust drives with a focused-index signal.
  */
 export function useRovingFocus(opts: {
-  count: number;
+  count: number | (() => number);
   orientation?: "horizontal" | "vertical" | "both";
   loop?: boolean;
   initial?: number;
@@ -23,13 +28,19 @@ export function useRovingFocus(opts: {
   const { count, orientation = "vertical", loop = true, initial = 0 } = opts;
   const [activeIndex, setActiveIndex] = React.useState(initial);
 
-  const next = (dir: 1 | -1) =>
+  const resolveCount = () => (typeof count === "function" ? count() : count);
+
+  const next = (dir: 1 | -1) => {
+    const total = resolveCount();
+    if (total <= 0) return;
     setActiveIndex((i) => {
-      let n = i + dir;
-      if (n < 0) n = loop ? count - 1 : 0;
-      else if (n >= count) n = loop ? 0 : count - 1;
+      // Clamp first: the item set may have shrunk since the index was set.
+      let n = Math.min(Math.max(i, 0), total - 1) + dir;
+      if (n < 0) n = loop ? total - 1 : 0;
+      else if (n >= total) n = loop ? 0 : total - 1;
       return n;
     });
+  };
 
   const onKeyDown = (event: React.KeyboardEvent) => {
     const horiz = orientation === "horizontal" || orientation === "both";
@@ -51,7 +62,8 @@ export function useRovingFocus(opts: {
       setActiveIndex(0);
     } else if (event.key === "End") {
       event.preventDefault();
-      setActiveIndex(count - 1);
+      const total = resolveCount();
+      if (total > 0) setActiveIndex(total - 1);
     }
   };
 
