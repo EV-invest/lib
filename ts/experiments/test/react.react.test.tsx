@@ -202,8 +202,8 @@ describe('readCookie / writeVariant', () => {
 
 describe('DevAbPanel', () => {
   const config = {
-    hero: { variants: ['a', 'b'], weights: [1, 1] },
-    team: { variants: ['x', 'y', 'z'], weights: [1, 1, 1] },
+    hero: { variants: ['a', 'b'] },
+    team: { variants: ['x', 'y', 'z'] },
   } as const satisfies ExperimentConfig;
 
   const prevEnv = process.env['NODE_ENV'];

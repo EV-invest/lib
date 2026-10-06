@@ -1,7 +1,7 @@
 /**
  * @module @evinvest/experiments
  *
- * Zero-dependency, server-safe core for weighted A/B experiments. No React, no
+ * Zero-dependency, server-safe core for A/B experiments. No React, no
  * Next.js, no DOM — just pure functions over a caller-supplied config. The
  * package never hard-codes experiment keys: every helper is generic over a
  * {@link ExperimentConfig} you pass in, ideally `as const` so the variant
@@ -9,7 +9,7 @@
  *
  * This is the TypeScript mirror of the `experiments` Cargo feature of the
  * [`ev`](https://github.com/EV-invest/lib) Rust crate; it preserves the
- * _semantics_ (cookie shape, weighted pick, control fallback) while reading
+ * _semantics_ (cookie shape, equal-share pick, control fallback) while reading
  * like idiomatic TS.
  *
  * The package emits exposure / interaction events through an **injected sink**
@@ -19,6 +19,7 @@
 
 import { DEFAULT_COOKIE_PREFIX } from './generated/contract';
 import { hashRng } from './hash';
+import { overrideWeights } from './overrides';
 
 /** The default cookie-name prefix, `ab_` (the Rust `cookie_name` contract). */
 export { DEFAULT_COOKIE_PREFIX } from './generated/contract';
@@ -33,19 +34,20 @@ export {
 
 /**
  * Shape of an experiments config: a map from experiment key to its declared
- * `variants` and their relative `weights`. Declare it `as const` so the variant
- * strings narrow to literal unions and the generic helpers can infer
- * {@link ExperimentKey} / {@link Variant} precisely.
+ * `variants`. Declare it `as const` so the variant strings narrow to literal
+ * unions and the generic helpers can infer {@link ExperimentKey} /
+ * {@link Variant} precisely.
  *
- * `variants` and `weights` are positional: `weights[i]` is the relative weight
- * of `variants[i]`. Weights need not sum to 1 — {@link pickVariant} normalizes
- * them by their total.
+ * There are no weights to declare: every variant gets an equal share. A split
+ * set by hand at the declaration point is a guess; re-weighting is an
+ * operator's decision, made in the panel and laid over the config by
+ * {@link applyOverrides}.
  *
  * @example
  * ```ts
  * const config = {
- *   hero: { variants: ["a", "b"], weights: [0.5, 0.5] },
- *   team: { variants: ["a", "b", "c"], weights: [2, 1, 1] },
+ *   hero: { variants: ["a", "b"] },
+ *   team: { variants: ["a", "b", "c"] },
  * } as const satisfies ExperimentConfig;
  * ```
  */
@@ -58,12 +60,11 @@ export type ExperimentConfig = Record<string, ExperimentSpec>;
  *   {@link pickVariant} draws nothing, {@link resolveVariant} ignores a stored
  *   cookie, and a force ({@link forcedVariant}) is refused. Omitted = enabled.
  * - `holdout` — the share in `[0, 1]` of assignments pinned to the control
- *   before the weighted split (values outside the range are clamped, `NaN` is
+ *   before the split (values outside the range are clamped, `NaN` is
  *   0). Omitted = no holdout.
  */
 export type ExperimentSpec = {
   readonly variants: readonly string[];
-  readonly weights: readonly number[];
   readonly enabled?: boolean;
   readonly holdout?: number;
 };
@@ -135,9 +136,11 @@ export type AbCookieOptions = {
 };
 
 /**
- * Weighted per-device variant pick. Weights need not sum to 1 — they are
- * normalized by their total — and the loop falls through to the last variant,
- * so floating-point drift can never return `undefined`.
+ * Per-device variant pick. Every variant gets an equal share unless
+ * {@link applyOverrides} laid the panel's weights over the spec; those are
+ * relative (normalized by their total). A `weights` field written into the
+ * config itself is ignored. The loop falls through to the last
+ * variant, so floating-point drift can never return `undefined`.
  *
  * The randomness source is injectable: pass a deterministic `rng` (a function
  * returning a number in `[0, 1)`) in tests to make picks reproducible, or
@@ -147,18 +150,18 @@ export type AbCookieOptions = {
  * A disabled experiment (`enabled: false`) returns the control without calling
  * `rng`. Otherwise `rng` is called exactly once: with a `holdout` of `h`, a draw
  * below `h` returns the control and the rest is rescaled to `(u - h) / (1 - h)`
- * before the weighted walk.
+ * before the walk.
  *
  * @typeParam C - The {@link ExperimentConfig}.
  * @typeParam K - The experiment key.
- * @param config - The experiments config.
+ * @param config - The experiments config, or its {@link applyOverrides} result.
  * @param key    - The experiment key to pick a variant for.
  * @param rng    - Source of randomness in `[0, 1)`. Defaults to `Math.random`.
  * @returns The picked variant string, narrowed to {@link Variant}.
  *
  * @example
  * ```ts
- * pickVariant(config, "hero");               // weighted by Math.random
+ * pickVariant(config, "hero");               // equal shares by Math.random
  * pickVariant(config, "hero", () => 0.99);   // deterministic in tests
  * ```
  */
@@ -167,11 +170,16 @@ export function pickVariant<C extends ExperimentConfig, K extends ExperimentKey<
   key: K,
   rng: () => number = Math.random,
 ): Variant<C, K> {
-  const { variants, weights, enabled, holdout } = config[key] as C[K];
+  const spec = config[key] as C[K];
+  const { variants, enabled, holdout } = spec;
   if (enabled === false) return variants[0] as Variant<C, K>;
-  // Only positive weights contribute, mirroring the Rust core. A non-positive
-  // total (no weight at all) falls back to the control (variants[0]) instead of
-  // the last variant, so a zero-weight experiment is deterministically control.
+  // Weights exist only as an operator override that `applyOverrides` laid
+  // over the spec; a `weights` field on the spec itself is ignored. Without
+  // one every variant weighs 1, which is exactly the Rust core's walk.
+  const weights = overrideWeights(spec) ?? variants.map(() => 1);
+  // Only positive weights contribute. A non-positive total (no variants, or an
+  // override that `applyOverrides` would have rejected) falls back to the
+  // control instead of the last variant.
   const total = weights.reduce((sum, w) => (w > 0 ? sum + w : sum), 0);
   if (total <= 0) return variants[0] as Variant<C, K>;
   let u = rng();
@@ -192,7 +200,7 @@ export function pickVariant<C extends ExperimentConfig, K extends ExperimentKey<
 }
 
 /**
- * Deterministic weighted pick for a stable `subject` — e.g. a location id, so
+ * Deterministic pick for a stable `subject` — e.g. a location id, so
  * the split is per location rather than per visitor. Equivalent to
  * `pickVariant(config, key, hashRng(`${key}:${subject}`))`: the same subject
  * always gets the same variant, no cookie is read, and pages can stay static.

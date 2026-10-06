@@ -28,7 +28,7 @@ pub fn write_variant(key: &str, value: &str) {
 pub fn current_variant(exp: &Experiment, key: &str) -> String {
 	resolve_variant(exp, read_cookie(&cookie_name(key)).as_deref())
 }
-/// Returns the sticky variant for `key`, assigning (weighted random) and writing
+/// Returns the sticky variant for `key`, assigning (equal-share random) and writing
 /// the cookie on first visit. Mirrors the TS proxy's per-device bucketing: an
 /// existing `ab_<key>` cookie is never re-drawn or rewritten, and a value that is
 /// no longer in `exp.variants` resolves to the control — so a visitor whose

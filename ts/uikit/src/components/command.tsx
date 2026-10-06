@@ -3,7 +3,9 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
+import { useDismissableLayer } from "../primitives/dismissable-layer";
 import { useFocusScope } from "../primitives/focus-scope";
+import { mergeRefs } from "../primitives/merge-refs";
 import { Portal } from "../primitives/portal";
 import {
   COMMAND_DIALOG_COMMAND,
@@ -24,8 +26,9 @@ interface CommandContextValue {
   search: string;
   setSearch: (next: string) => void;
   /// Registers a `CommandItem`'s value so `CommandEmpty` can tell "nothing
-  /// matched" from "nothing is here". Items register even while filtered out.
-  registerItem: (id: string, value: string) => void;
+  /// matched" from "nothing is here", and its select handler so Enter can fire
+  /// it. Items register even while filtered out.
+  registerItem: (id: string, value: string, select: () => void) => void;
   unregisterItem: (id: string) => void;
   /// The active query: trimmed, so blank input is not a search, and lowercased.
   /// Shared by the item filter and the empty-state gate so the two can never
@@ -33,6 +36,12 @@ interface CommandContextValue {
   query: string;
   matches: (value: string) => boolean;
   hasMatches: boolean;
+  listId: string;
+  /// DOM id of the highlighted item. Focus stays in the input and points here
+  /// through `aria-activedescendant` (the ARIA combobox pattern), so items
+  /// never need to be tabbable.
+  activeId: string | null;
+  activate: (id: string) => void;
 }
 
 const CommandContext = React.createContext<CommandContextValue | null>(null);
@@ -47,6 +56,99 @@ export interface CommandProps extends React.ComponentProps<"div"> {
   search?: string;
   defaultSearch?: string;
   onSearchChange?: (search: string) => void;
+  /// `false` hands filtering to the caller (e.g. rows that are a server
+  /// response to the query): every mounted item renders, in the caller's
+  /// order, and `CommandEmpty` counts mounted items. Defaults to `true`.
+  shouldFilter?: boolean;
+}
+
+const ITEM_SELECTOR = '[data-slot="command-item"]:not([aria-disabled="true"])';
+
+/// Keyboard highlight over the items currently in the DOM, in DOM order, so it
+/// follows whatever the filter (or the caller) rendered rather than the order
+/// items happened to register in.
+function useCommandNavigation(
+  query: string,
+  handlers: React.RefObject<Map<string, () => void>>,
+) {
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  const [activeId, setActiveId] = React.useState<string | null>(null);
+  // Until the user moves the highlight it tracks the first row, so results
+  // that arrive after the keystroke (or reorder under it) put Enter on the top
+  // hit. Once moved, it sticks for as long as that row stays.
+  const userMoved = React.useRef(false);
+
+  const enabledItems = React.useCallback((): HTMLElement[] => {
+    const root = rootRef.current;
+    if (!root) return [];
+    return [...root.querySelectorAll<HTMLElement>(ITEM_SELECTOR)].filter(
+      (el) => el.closest('[data-slot="command"]') === root,
+    );
+  }, []);
+
+  React.useEffect(() => {
+    userMoved.current = false;
+  }, [query]);
+
+  // No deps on purpose: the caller can change the rendered rows on any render;
+  // setting an unchanged id bails out without re-rendering.
+  React.useEffect(() => {
+    const els = enabledItems();
+    const moved = userMoved.current;
+    setActiveId((prev) =>
+      moved && prev !== null && els.some((el) => el.id === prev)
+        ? prev
+        : (els[0]?.id ?? null),
+    );
+  });
+
+  const activate = React.useCallback((id: string) => {
+    userMoved.current = true;
+    setActiveId(id);
+  }, []);
+
+  const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.nativeEvent.isComposing) return;
+    // Only the search field drives the list: Enter or an arrow on a button
+    // inside Command (an action in `CommandEmpty`, a footer) stays its own.
+    const field = event.target as HTMLElement;
+    if (field.dataset["slot"] !== "command-input") return;
+    const els = enabledItems();
+    const current = els.findIndex((el) => el.id === activeId);
+    const last = els.length - 1;
+    let next: number;
+    switch (event.key) {
+      case "ArrowDown":
+        next = current < 0 ? 0 : Math.min(current + 1, last);
+        break;
+      case "ArrowUp":
+        next = current < 0 ? last : Math.max(current - 1, 0);
+        break;
+      // Home / End are left to the caret: the field is editable (ARIA APG
+      // editable combobox).
+      case "Enter": {
+        const select =
+          activeId !== null && current >= 0
+            ? handlers.current.get(activeId)
+            : undefined;
+        if (select) {
+          event.preventDefault();
+          select();
+        }
+        return;
+      }
+      default:
+        return;
+    }
+    const target = els[next];
+    if (!target) return;
+    event.preventDefault();
+    activate(target.id);
+    // Optional call: jsdom implements no `scrollIntoView`.
+    target.scrollIntoView?.({ block: "nearest" });
+  };
+
+  return { rootRef, activeId, activate, onKeyDown };
 }
 
 export function Command({
@@ -54,7 +156,10 @@ export function Command({
   search,
   defaultSearch = "",
   onSearchChange,
+  shouldFilter = true,
   children,
+  ref,
+  onKeyDown,
   ...props
 }: CommandProps) {
   const [currentSearch, setSearch] = useControllableState<string>({
@@ -66,15 +171,21 @@ export function Command({
   const [items, setItems] = React.useState<ReadonlyMap<string, string>>(
     () => new Map(),
   );
-  const registerItem = React.useCallback((id: string, value: string) => {
-    setItems((prev) => {
-      if (prev.get(id) === value) return prev;
-      const next = new Map(prev);
-      next.set(id, value);
-      return next;
-    });
-  }, []);
+  const handlers = React.useRef(new Map<string, () => void>());
+  const registerItem = React.useCallback(
+    (id: string, value: string, select: () => void) => {
+      handlers.current.set(id, select);
+      setItems((prev) => {
+        if (prev.get(id) === value) return prev;
+        const next = new Map(prev);
+        next.set(id, value);
+        return next;
+      });
+    },
+    [],
+  );
   const unregisterItem = React.useCallback((id: string) => {
+    handlers.current.delete(id);
     setItems((prev) => {
       if (!prev.has(id)) return prev;
       const next = new Map(prev);
@@ -85,13 +196,17 @@ export function Command({
 
   const query = currentSearch.trim().toLowerCase();
   const matches = React.useCallback(
-    (value: string) => query === "" || value.toLowerCase().includes(query),
-    [query],
+    (value: string) =>
+      !shouldFilter || query === "" || value.toLowerCase().includes(query),
+    [query, shouldFilter],
   );
   const hasMatches = React.useMemo(
     () => [...items.values()].some(matches),
     [items, matches],
   );
+
+  const listId = React.useId();
+  const nav = useCommandNavigation(query, handlers);
 
   return (
     <CommandContext.Provider
@@ -103,11 +218,19 @@ export function Command({
         query,
         matches,
         hasMatches,
+        listId,
+        activeId: nav.activeId,
+        activate: nav.activate,
       }}
     >
       <div
         data-slot="command"
+        ref={mergeRefs(nav.rootRef, ref)}
         className={cn(COMMAND_ROOT, className)}
+        onKeyDown={(e) => {
+          onKeyDown?.(e);
+          if (!e.defaultPrevented) nav.onKeyDown(e);
+        }}
         {...props}
       >
         {children}
@@ -120,6 +243,8 @@ export interface CommandDialogProps {
   open?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /// See `CommandProps.shouldFilter`.
+  shouldFilter?: boolean;
   className?: string;
   children?: React.ReactNode;
 }
@@ -128,6 +253,7 @@ export function CommandDialog({
   open,
   defaultOpen = false,
   onOpenChange,
+  shouldFilter = true,
   className,
   children,
 }: CommandDialogProps) {
@@ -137,6 +263,12 @@ export function CommandDialog({
     ...(onOpenChange ? { onChange: onOpenChange } : {}),
   });
   const scopeRef = useFocusScope(isOpen);
+  // Outside clicks stay with the overlay, as in Drawer: it is what "outside" means.
+  const dismissRef = useDismissableLayer({
+    enabled: isOpen,
+    onDismiss: () => setOpen(false),
+    pointerOutside: false,
+  });
   if (!isOpen) return null;
   return (
     <Portal>
@@ -149,13 +281,10 @@ export function CommandDialog({
         role="dialog"
         aria-modal="true"
         data-slot="command-dialog"
-        ref={scopeRef}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") setOpen(false);
-        }}
+        ref={mergeRefs(scopeRef, dismissRef)}
         className={cn(COMMAND_DIALOG_CONTENT, className)}
       >
-        <Command className={COMMAND_DIALOG_COMMAND}>
+        <Command className={COMMAND_DIALOG_COMMAND} shouldFilter={shouldFilter}>
           {children}
         </Command>
       </div>
@@ -167,7 +296,7 @@ export function CommandInput({
   className,
   ...props
 }: React.ComponentProps<"input">) {
-  const { search, setSearch } = useCommand();
+  const { search, setSearch, listId, activeId } = useCommand();
   return (
     <div className={COMMAND_INPUT_WRAPPER} data-slot="command-input-wrapper">
       <svg
@@ -190,6 +319,11 @@ export function CommandInput({
         type="text"
         role="combobox"
         data-slot="command-input"
+        aria-autocomplete="list"
+        aria-expanded={true}
+        aria-controls={listId}
+        aria-activedescendant={activeId ?? undefined}
+        autoComplete="off"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className={cn(COMMAND_INPUT, className)}
@@ -200,9 +334,11 @@ export function CommandInput({
 }
 
 export function CommandList({ className, ...props }: React.ComponentProps<"div">) {
+  const { listId } = useCommand();
   return (
     <div
       role="listbox"
+      id={listId}
       data-slot="command-list"
       className={cn(COMMAND_LIST, className)}
       {...props}
@@ -211,7 +347,8 @@ export function CommandList({ className, ...props }: React.ComponentProps<"div">
 }
 
 /// Renders only when a search is under way and no item matched it — never next
-/// to results, and never before the user has typed.
+/// to results, and never before the user has typed. With `shouldFilter={false}`
+/// "matched" means "is mounted": the caller's rows are the results.
 export function CommandEmpty({ className, children, ...props }: React.ComponentProps<"div">) {
   const { query, hasMatches } = useCommand();
   if (query === "" || hasMatches) return null;
@@ -256,28 +393,46 @@ export function CommandItem({
   value,
   disabled = false,
   onSelect,
+  id: idProp,
+  onPointerMove,
   children,
   ...props
 }: CommandItemProps) {
-  const { registerItem, unregisterItem, matches } = useCommand();
-  const id = React.useId();
+  const { registerItem, unregisterItem, matches, activeId, activate } = useCommand();
+  const reactId = React.useId();
+  // The DOM id is what `aria-activedescendant` points at, so a caller's own id
+  // has to be the one registered.
+  const id = idProp ?? reactId;
+  // Read at select time, so an inline `onSelect` doesn't re-register every render.
+  const onSelectRef = React.useRef(onSelect);
+  React.useEffect(() => {
+    onSelectRef.current = onSelect;
+  });
   // Registered whether or not this item survives the filter below, so
   // `CommandEmpty` gates on the search, not on who happens to be mounted.
   React.useEffect(() => {
-    registerItem(id, value);
+    registerItem(id, value, () => onSelectRef.current?.(value));
     return () => unregisterItem(id);
   }, [id, value, registerItem, unregisterItem]);
 
   if (!matches(value)) return null;
+  const selected = activeId === id;
   return (
     <div
       role="option"
+      id={id}
       data-slot="command-item"
       data-disabled={disabled}
+      data-selected={selected}
+      aria-selected={selected}
       aria-disabled={disabled || undefined}
       tabIndex={-1}
       onClick={() => {
         if (!disabled) onSelect?.(value);
+      }}
+      onPointerMove={(e) => {
+        onPointerMove?.(e);
+        if (!disabled && !selected) activate(id);
       }}
       className={cn(COMMAND_ITEM, className)}
       {...props}

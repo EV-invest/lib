@@ -122,7 +122,7 @@ export function ToggleGroupItem({
         toggleVariants({ variant: resolvedVariant, size: resolvedSize }),
         // `flex-auto`, not shadcn's `flex-1`: the group is `w-fit`, and basis-0 items
         // make Chrome split it into equal columns, so a longer label overflows its cell.
-        "min-w-0 flex-auto shrink-0 rounded-none shadow-none first:rounded-l-md last:rounded-r-md focus:z-10 focus-visible:z-10 data-[variant=outline]:border-l-0 data-[variant=outline]:first:border-l",
+        "min-w-0 flex-auto shrink-0 rounded-none shadow-none first:rounded-l-md last:rounded-r-md focus:z-10 focus-visible:z-10 data-[variant=outline]:-ml-px data-[variant=outline]:first:ml-0 data-[state=on]:z-10",
         className,
       )}
       onClick={(e) => {

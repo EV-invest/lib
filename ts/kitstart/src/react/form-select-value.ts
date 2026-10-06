@@ -2,30 +2,52 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type InvalidEvent, type RefObject } from "react";
 
+const DEV = typeof process !== "undefined" && process.env.NODE_ENV !== "production";
+
 /**
  * The value `FormSelect` posts, across the swap from the native select and
  * through the form's own life: a reset, and a required check that points at
  * the kit's trigger instead of an input nobody sees.
+ *
+ * `controlled` (a `value` prop) follows React's input idiom: the prop is the
+ * value, a choice reaches the parent only through `onValueChange`, and a reset
+ * leaves it where the parent holds it. The own state still follows the prop,
+ * so a switch back to uncontrolled keeps the last value, as an `<input>` does.
  */
 export function useFormSelectValue(opts: {
   initial: string;
+  controlled: string | undefined;
   native: RefObject<HTMLSelectElement | null>;
   box: RefObject<HTMLElement | null>;
   scripted: boolean;
   onValueChange: ((value: string) => void) | undefined;
 }) {
-  const { initial, native, box, scripted, onValueChange } = opts;
-  const [value, setValue] = useState(initial);
+  const { initial, controlled, native, box, scripted, onValueChange } = opts;
+  const [own, setOwn] = useState(controlled ?? initial);
   const [invalid, setInvalid] = useState(false);
   const [open, setOpen] = useState(false);
-  const initialRef = useRef(initial);
-  initialRef.current = initial;
+  const isControlled = controlled !== undefined;
+  if (isControlled && own !== controlled) setOwn(controlled);
+  const value = isControlled ? controlled : own;
+  useModeWarning(isControlled);
+
+  // The effects below run once or on a form event: they read the latest props here.
+  const latest = useRef({ initial, isControlled, value, onValueChange });
+  latest.current = { initial, isControlled, value, onValueChange };
 
   // A choice made in the native select before the script arrived survives the
   // swap: read in the hydration commit, before the scripted render. Once —
-  // later renders never hold the native select.
+  // later renders never hold the native select. Under a `value` it is the
+  // parent's to take, so it is reported instead of kept — and only a real
+  // pick: a `value` no option carries leaves the browser on its own default,
+  // which is no choice of the visitor's.
   useLayoutEffect(() => {
-    if (native.current) setValue(native.current.value);
+    const select = native.current;
+    if (!select) return;
+    const picked = select.value;
+    const { isControlled: held, value: shown, onValueChange: report } = latest.current;
+    if (!held) setOwn(picked);
+    else if (picked !== shown && picked !== untouched(select)) report?.(picked);
   }, [native]);
 
   // A form reset puts a native select back on its default; so does this.
@@ -35,7 +57,9 @@ export function useFormSelectValue(opts: {
   useEffect(() => {
     const form = box.current?.closest("form");
     if (!scripted || !form) return;
-    const reset = () => setValue(initialRef.current);
+    const reset = () => {
+      if (!latest.current.isControlled) setOwn(latest.current.initial);
+    };
     // On the document, not the form: a submit button may sit outside it
     // (`form="…"`), and the click may land on an icon inside the button.
     const submit = (e: Event) => {
@@ -55,7 +79,7 @@ export function useFormSelectValue(opts: {
   }, [box, scripted]);
 
   const choose = (next: string) => {
-    setValue(next);
+    if (!isControlled) setOwn(next);
     setInvalid(false);
     onValueChange?.(next);
   };
@@ -77,4 +101,26 @@ export function useFormSelectValue(opts: {
   };
 
   return { value, choose, invalid, open, setOpen, onInvalid };
+}
+
+/**
+ * What a single select shows before anyone touches it: the option marked
+ * `selected` in the markup, else the first enabled one (HTML's selectedness
+ * setting). A pick of that same option is indistinguishable, and harmless.
+ */
+function untouched(select: HTMLSelectElement): string | undefined {
+  const options = Array.from(select.options);
+  return (options.find(o => o.defaultSelected) ?? options.find(o => !o.disabled))?.value;
+}
+
+/** React's warning for an `<input>` that changes mode: once, and nothing else changes. */
+function useModeWarning(isControlled: boolean) {
+  const first = useRef(isControlled);
+  const warned = useRef(false);
+  if (!DEV || warned.current || first.current === isControlled) return;
+  warned.current = true;
+  console.error(
+    `@evinvest/kitstart: a FormSelect is changing from ${first.current ? "controlled to uncontrolled" : "uncontrolled to controlled"}. ` +
+      "Keep one of `value` and `defaultValue` for its lifetime; `value={undefined}` makes it uncontrolled.",
+  );
 }

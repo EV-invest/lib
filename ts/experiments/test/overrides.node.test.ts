@@ -7,10 +7,11 @@ import {
   type ExperimentOverrides,
   type Variant,
 } from '../src/index';
+import { OVERRIDE_WEIGHTS, overrideWeights } from '../src/overrides';
 
 const config = {
-  hero: { variants: ['a', 'b'], weights: [1, 1] },
-  team: { variants: ['a', 'b', 'c'], weights: [2, 1, 1], holdout: 0.1 },
+  hero: { variants: ['a', 'b'] },
+  team: { variants: ['a', 'b', 'c'], holdout: 0.1 },
 } as const satisfies ExperimentConfig;
 
 /** Network data in a test: the shape the panel must not send, passed through the typed door. */
@@ -25,7 +26,11 @@ describe('applyOverrides', () => {
 
   it('applies every valid field', () => {
     const live = applyOverrides(config, { hero: { weights: [0, 3], enabled: false, holdout: 0.25 } });
-    expect(live.hero).toEqual({ variants: ['a', 'b'], weights: [0, 3], enabled: false, holdout: 0.25 });
+    // `toEqual` compares symbol keys too: the weights sit under the private key only.
+    expect(live.hero).toEqual({ variants: ['a', 'b'], enabled: false, holdout: 0.25, [OVERRIDE_WEIGHTS]: [0, 3] });
+    expect(overrideWeights(live.hero)).toEqual([0, 3]);
+    // The panel's weights are not a public field.
+    expect(live.hero).not.toHaveProperty('weights');
     expect(live.team).toEqual(config.team);
   });
 
@@ -36,7 +41,13 @@ describe('applyOverrides', () => {
 
   it('does not modify the config it was given', () => {
     applyOverrides(config, { hero: { weights: [0, 1] } });
-    expect(config.hero.weights).toEqual([1, 1]);
+    expect(config.hero).toEqual({ variants: ['a', 'b'] });
+  });
+
+  it('adds no weights without a valid weights override', () => {
+    const live = applyOverrides(config, { hero: { enabled: true }, team: { holdout: 0.2 } });
+    expect(overrideWeights(live.hero)).toBeUndefined();
+    expect(overrideWeights(live.team)).toBeUndefined();
   });
 
   describe('drops an invalid field and keeps the valid ones', () => {
@@ -53,7 +64,7 @@ describe('applyOverrides', () => {
     ];
     it.each(cases)('weights: %s', (_, weights) => {
       const live = applyOverrides(config, raw({ hero: { weights, enabled: false } }));
-      expect(live.hero.weights).toEqual([1, 1]);
+      expect(overrideWeights(live.hero)).toBeUndefined();
       expect(live.hero.enabled).toBe(false);
     });
 
@@ -68,7 +79,7 @@ describe('applyOverrides', () => {
     it.each(holdouts)('holdout: %s', (_, holdout) => {
       const live = applyOverrides(config, raw({ team: { holdout, weights: [1, 1, 1] } }));
       expect(live.team.holdout).toBe(0.1);
-      expect(live.team.weights).toEqual([1, 1, 1]);
+      expect(overrideWeights(live.team)).toEqual([1, 1, 1]);
     });
 
     const flags: [string, unknown][] = [
@@ -91,7 +102,7 @@ describe('applyOverrides', () => {
   it('never takes variants from the overrides', () => {
     const live = applyOverrides(config, raw({ hero: { variants: ['x', 'y'], weights: [1, 2] } }));
     expect(live.hero.variants).toEqual(['a', 'b']);
-    expect(live.hero.weights).toEqual([1, 2]);
+    expect(overrideWeights(live.hero)).toEqual([1, 2]);
   });
 
   it('ignores an override that is not an object', () => {
@@ -110,6 +121,8 @@ describe('applyOverrides', () => {
   });
 
   it('feeds the pickers: a kill switch and re-weighting take effect', () => {
+    // Without an override the split is equal: u = 0 is the control.
+    expect(pickVariant(applyOverrides(config, {}), 'hero', () => 0)).toBe('a');
     const off = applyOverrides(config, { hero: { enabled: false } });
     expect(pickVariant(off, 'hero', () => 0.99)).toBe('a');
     expect(resolveVariant(off, 'hero', 'b')).toBe('a');

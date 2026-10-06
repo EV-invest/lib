@@ -36,13 +36,24 @@ import {
   Spinner,
   Kbd,
   DateTimePicker,
+  Toggle,
+  ToggleGroup,
+  ToggleGroupItem,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
   type ToastPosition,
   type ToastVariant,
 } from "@evinvest/uikit";
 import { TerminalDemo } from "./TerminalDemo";
 import { DrawerDemo } from "./DrawerDemo";
+import { LayersDemo } from "./LayersDemo";
 import { BrandsDemo } from "./BrandsDemo";
 import { ShellDemo } from "./ShellDemo";
+import { TablesDemo } from "./TablesDemo";
+import { CommandDemo } from "./CommandDemo";
 
 const POSITIONS: ToastPosition[] = [
   "top-left",
@@ -279,6 +290,10 @@ export default function App() {
             </Tabs>
           </Section>
 
+          <Section title="Command" hint="server-driven: rows arrive 600ms after typing; arrows + Enter pick">
+            <CommandDemo />
+          </Section>
+
           <Section title="Tooltip">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -286,6 +301,31 @@ export default function App() {
               </TooltipTrigger>
               <TooltipContent>Floated + animated on open</TooltipContent>
             </Tooltip>
+          </Section>
+
+          <Section title="Toggles & menu" hint="on is the filled role, hover a surface tint; the last menu row is destructive">
+            <ToggleGroup type="multiple" variant="outline" defaultValue={["mon", "tue", "wed", "thu", "fri"]}>
+              {["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map((day) => (
+                <ToggleGroupItem key={day} value={day} aria-label={day}>
+                  {day.slice(0, 2)}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            <Toggle aria-label="Bold" defaultPressed>
+              B
+            </Toggle>
+            <Toggle aria-label="Italic">I</Toggle>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">Actions</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem>Rename</DropdownMenuItem>
+                <DropdownMenuItem>Duplicate</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </Section>
 
           <Section title="Bits & pieces">
@@ -317,8 +357,16 @@ export default function App() {
             </span>
           </Section>
 
+          <Section title="Tables" hint="card list in a TableCard, its phone form as ListRows, and a compact ledger">
+            <TablesDemo />
+          </Section>
+
           <Section title="Drawer" hint="swipe towards the edge to dismiss; the body scrolls, the panel drags from its top">
             <DrawerDemo />
+          </Section>
+
+          <Section title="Nested overlays" hint="each Escape closes one layer, the top one; a click in the panel closes only the list">
+            <LayersDemo />
           </Section>
 
           <Section title="Terminal" hint="fake data; the chart host is empty on purpose">

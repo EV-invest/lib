@@ -99,11 +99,15 @@ export function ContextMenuContent({ className, children, ...props }: React.Comp
     Array.from(
       contentRef.current?.querySelectorAll<HTMLElement>("[role^='menuitem']") ?? [],
     ).filter((el) => el.getAttribute("data-disabled") === null);
-  const { activeIndex, onKeyDown: rovingKeyDown } = useRovingFocus({
-    count: 64,
+  const { activeIndex, setActiveIndex, onKeyDown: rovingKeyDown } = useRovingFocus({
+    count: () => items().length,
     orientation: "vertical",
     loop: true,
   });
+  // Reset on close: reopen on the first item, never on an index past the end.
+  React.useEffect(() => {
+    if (!open) setActiveIndex(0);
+  }, [open, setActiveIndex]);
   React.useEffect(() => {
     if (!open) return;
     items()[activeIndex]?.focus();
@@ -119,10 +123,9 @@ export function ContextMenuContent({ className, children, ...props }: React.Comp
           data-side="bottom"
           role="menu"
           tabIndex={-1}
-          onKeyDown={(e) => {
-            rovingKeyDown(e);
-            if (e.key === "Escape") setOpen(false);
-          }}
+          // Escape is the stack's (useDismissableLayer): it closes this menu
+          // only while it is the top layer.
+          onKeyDown={rovingKeyDown}
           ref={mergeRefs(dismissRef, presRef, contentRef)}
           style={{ position: "fixed", top: point.y, left: point.x }}
           className={cn(

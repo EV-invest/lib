@@ -44,6 +44,7 @@ pub fn PaginationLink(
 	#[props(default)] class: String,
 	href: Option<String>,
 	onclick: Option<EventHandler<MouseEvent>>,
+	aria_label: Option<String>,
 	children: Element,
 ) -> Element {
 	let variant = if is_active { ButtonVariant::Outline } else { ButtonVariant::Ghost };
@@ -51,6 +52,7 @@ pub fn PaginationLink(
 	rsx! {
 		a {
 			"aria-current": if is_active { "page" },
+			"aria-label": aria_label,
 			"data-slot": "pagination-link",
 			"data-active": is_active,
 			class: cls,
@@ -68,6 +70,7 @@ pub fn PaginationPrevious(#[props(default)] class: String, href: Option<String>,
 		PaginationLink {
 			is_active: false,
 			icon: false,
+			aria_label: "Go to previous page",
 			class: cls,
 			href,
 			onclick: move |e| { if let Some(h) = onclick { h.call(e); } },
@@ -90,6 +93,7 @@ pub fn PaginationNext(#[props(default)] class: String, href: Option<String>, onc
 		PaginationLink {
 			is_active: false,
 			icon: false,
+			aria_label: "Go to next page",
 			class: cls,
 			href,
 			onclick: move |e| { if let Some(h) = onclick { h.call(e); } },
@@ -171,6 +175,35 @@ mod tests {
 		let html = render(app);
 		assert!(html.contains("m15 18-6-6 6-6"), "{html}");
 		assert!(html.contains("Previous"));
+	}
+
+	#[test]
+	fn previous_and_next_are_named_at_every_width() {
+		fn app() -> Element {
+			rsx! {
+				PaginationPrevious {}
+				PaginationNext {}
+			}
+		}
+		let html = render(app);
+		assert!(html.contains("aria-label=\"Go to previous page\""), "{html}");
+		assert!(html.contains("aria-label=\"Go to next page\""), "{html}");
+	}
+
+	#[test]
+	fn link_aria_label_is_optional() {
+		fn named() -> Element {
+			rsx! {
+				PaginationLink { aria_label: "Page 2", "2" }
+			}
+		}
+		assert!(render(named).contains("aria-label=\"Page 2\""), "{}", render(named));
+		fn unnamed() -> Element {
+			rsx! {
+				PaginationLink { "2" }
+			}
+		}
+		assert!(!render(unnamed).contains("aria-label"), "{}", render(unnamed));
 	}
 
 	#[test]

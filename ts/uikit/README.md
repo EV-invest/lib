@@ -63,7 +63,7 @@ your Tailwind v4 entrypoint — this is the load-bearing part of the kit:
 | surfaces | `background` `card` `popover` `muted` `hover` |
 | ink | `ink` `ink-mid` `ink-soft` — hierarchy, loudest first |
 | lines | `border` `input` `ring` |
-| roles | `brand` `primary` `secondary` `positive` `accent-trace` `accent-debug` `accent-info` `accent-warn` `accent-error`, each with `on-*` where it gets filled; `primary-ink` — the primary role as ink on a surface (`#128377` fill under a white `on-primary`, `#2a9d8f` ink) |
+| roles | `brand` `primary` `secondary` `positive` `accent-trace` `accent-debug` `accent-info` `accent-warn` `accent-error`, each with `on-*` where it gets filled; `primary-ink` — the primary role as ink on a surface (`#128377` fill under a white `on-primary`, `#2a9d8f` ink); `accent-error-ink` — the error role as text on its own tint (derived, a palette may pin it) |
 | scalars | `radius` `control-radius` `control-py` `display-scale` `band-py` `page-max` `page-px` `shell-rail-w` `shell-tab-bar-h` `shadow-*` `font-*` |
 | motion | `ev-ease-out` `ev-ease-in-out` `ev-dur-fast` `ev-dur-base` `ev-dur-slow` `ev-rise` `ev-stagger` `ev-stagger-section` |
 | charts | `chart-1` … `chart-5` |
@@ -106,7 +106,8 @@ It has two halves, each also shipped as a flat sheet of its own —
 
 - **the contract** — the `@theme inline` mapping, the geometry, and the tokens
   *derived* from a palette (`hover`, `ink-mid`, `ink-soft`, `border`, `input`
-  from `ink`; `ring` from `primary-ink`). The derived ones are redeclared on
+  from `ink`; `ring` from `primary-ink`; `accent-error-ink` from `accent-error`
+  and `ink`). The derived ones are redeclared on
   `:root`, `[data-brand]`, `.light` and `.dark` at zero specificity, so a brand
   scope gets its own borders, hover and focus ring rather than inheriting the
   root's, and a palette may still pin any of them outright. The geometry
@@ -468,6 +469,90 @@ cn("p-4", "p-2"); // "p-2" — tailwind-merge resolves the conflict, rightmost w
 `cn` (clsx + tailwind-merge) is the mirror of the Rust `cn!` macro
 (`tailwind_fuse::tw_merge!`). A caller's `className`, passed last, beats the base.
 
+### Tables
+
+```tsx
+import { Table, TableBody, TableCard, TableCell, TableHead, TableHeader, TableRow } from "@evinvest/uikit";
+
+<TableCard>
+  <Table variant="card" density="compact">
+    <TableHeader>
+      <TableRow>
+        <TableHead>Key</TableHead>
+        <TableHead align="end">Amount</TableHead>
+      </TableRow>
+    </TableHeader>
+    <TableBody>
+      <TableRow>
+        <TableCell>sk_live_7f3a</TableCell>
+        <TableCell align="end">1,250.00</TableCell>
+      </TableRow>
+    </TableBody>
+  </Table>
+</TableCard>
+```
+
+- `variant="card"` — uppercase `text-xs tracking-wide text-ink-soft` head,
+  `px-5 py-3` cells, no hover on the head row. Meant to sit edge to edge in a
+  `TableCard`, the paddingless card surface.
+- `density="compact"` — shorter head and rows; combines with either variant.
+- `align="start" | "end"` on `TableHead` / `TableCell` — `end` right-aligns
+  with tabular numerals for figures. It replaces the obsolete HTML `align`
+  attribute on those two.
+- `Table` sets no context: `variant` and `density` are inherited `--table-*`
+  custom properties the heads and cells read. `Table` stays a Server
+  Component, and a cell's own `className` (`px-0`, `text-center`) still wins.
+- **`ListRows` / `ListRow` (TS-only)** — a table's phone form: label/value rows
+  split by hairlines, so the trailing columns are not scrolled off-screen.
+  `variant="card"` pads the rows for a `TableCard`; `ListRowLabel` /
+  `ListRowValue` compose a row by hand.
+
+```tsx
+<TableCard className="sm:hidden">
+  <ListRows variant="card">
+    <ListRow label="sk_live_7f3a" description="api · aquafix" value="2026-09-30" />
+  </ListRows>
+</TableCard>
+```
+### Command
+
+By default `Command` filters its items on the client: a case-insensitive
+substring match of the typed query against each `CommandItem`'s `value`. When the
+rows are already the answer to the query — a search endpoint, a ranking of your
+own — pass `shouldFilter={false}` and own the query state:
+
+```tsx
+const [query, setQuery] = useState("");
+const { rows, loading } = useInvestorSearch(query); // your fetch, debounced or not
+
+<Command shouldFilter={false} search={query} onSearchChange={setQuery}>
+  <CommandInput placeholder="Search investors…" />
+  <CommandList>
+    {loading ? <Spinner /> : <CommandEmpty>No investors found.</CommandEmpty>}
+    {rows.map((r) => (
+      <CommandItem key={r.id} value={r.id} onSelect={pick}>
+        {r.name}
+      </CommandItem>
+    ))}
+  </CommandList>
+</Command>
+```
+
+Then nothing is hidden or reordered: every mounted item renders in your order,
+and `CommandEmpty` shows once a query is typed and no item is mounted. `value`
+is then just what `onSelect` receives.
+
+Keyboard works the same in both modes, as an ARIA combobox: focus stays in
+`CommandInput`, which points at the highlighted row via
+`aria-activedescendant`; ArrowUp / ArrowDown move the highlight (clamped,
+disabled rows skipped), Enter fires the row's `onSelect`, and hover moves it
+too. Home / End stay with the caret, and keys from any other focusable inside
+Command (a button in `CommandEmpty`) are left alone. Rows stay out of the Tab order on purpose. The highlight sits on
+the first row until the user moves it, so results that arrive after the
+keystroke put Enter on the top hit. Without a `CommandInput` there is nothing to
+hold focus, so a bare list is pointer-only. The live demo is `CommandDemo` in
+`example/`.
+
 ## Rust ↔ TS parity
 
 The Rust crate is the source of truth; this package preserves its _semantics_
@@ -536,6 +621,21 @@ measuring needs host-only `web-sys`). Known gaps:
   no viewport-measured floating, native focus order (no trap). TS overlays use a
   real `Portal`, single-flip `useFloating` (absolute in the document, so it
   scrolls with the page natively), `useDismissableLayer`, and `useFocusScope`.
+- **overlay layers (TS):** every TS overlay is on one dismissable-layer stack,
+  in the order the layers opened. Escape closes the layer that was on top when
+  it was pressed — a menu, `Select` or `Popover` inside a `Dialog`, `Sheet` or
+  `Drawer` closes first, the modal on the next Escape — and a press inside a
+  layer above is not "outside" the ones below. `Drawer` and `CommandDialog`
+  are on the stack for Escape but close on a click on their own scrim, not on
+  any outside pointer-down. Toasts are not layers: they never take Escape. Not
+  yet handled (#162, step 2):
+  - a layer opened in the same commit as its parent (`defaultOpen` on both, or
+    one shared `open` state) sits *below* it — Escape closes the parent first;
+  - a modal's backdrop is not part of the modal: a click on the backdrop of an
+    `AlertDialog`, `Sheet` or `Drawer` opened over a `Dialog` closes both, and
+    a click on a toast closes an open `Dialog`;
+  - the stack is per module copy: a micro-frontend bundling its own uikit has
+    its own stack, blind to the host's layers.
 - **chart:** the recharts plotting engine is not bundled. `ChartContainer` is a
   themed SVG host (emits `--color-*` from its config); `ChartTooltipContent` /
   `ChartLegendContent` are presentational and take explicit items. Draw series
@@ -605,7 +705,7 @@ measuring needs host-only `web-sys`). Known gaps:
   The lock-up is composed from `mark` + `brand` (display family) + `tagline`,
   or passed whole as `lockup`. Brand-coloured text reads `primary-ink`.
 - **TS-only for now:** `NativeSelect`, the `Field` id hand-off,
-  `SelectValue` labels, and the whole [app shell](#app-shell) (`AppShell`,
+  `SelectValue` labels, `ListRows` / `ListRow` (a table's phone form), and the whole [app shell](#app-shell) (`AppShell`,
   `ShellNav`, `BottomTabBar`, `NavBadge` / `NavDot`, `MobileAppBar`, `PageFrame` /
   `PageHeading` / `SectionLabel`, `SectionNav`, `ResourceError`, `SystemBanner`,
   `Settled`) — no Dioxus twin. Its CSS (the entrances, the markers, the motion

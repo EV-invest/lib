@@ -43,9 +43,28 @@ the link and eyebrow colour on a card. Hence `primary` / `primary-ink`, the
 same hue and chroma one step apart in lightness; a role whose two values ever
 diverge names its ink the same way, `{role}-ink`.
 
+**`accent-error-ink` is the second.** The error fill reads as ink on a bare
+surface, but not on its own 10 % tint — a destructive menu row (`DropdownMenu`,
+`ContextMenu`, `Menubar`) measured 3.76:1 on EV and 2.48:1 on a dark brand
+(lib#166). So that row's text and icon wear `accent-error-ink`. Unlike
+`primary-ink` it is derived, not required: the contract mixes 70 % of
+`accent-error` with 30 % of `ink`, which moves it toward whichever polarity
+the text needs — EV's lands at `#ec8379`, 4.83:1 on the tint over `popover`
+and 5.36:1 on `popover` itself — so a brand file written before it still
+renders. A palette whose mix misses the floor pins its own value, as the
+test fixture's dark side does. EV does not pin it: a palette that sits on
+`:root` alone would be overridden by the derived rule inside every `.light`
+/ `.dark` subtree, so EV's value is the formula's.
+
+**Label polarity is deliberately split.** White on a fill marks the one call to
+action, so it belongs to `primary` alone; `destructive`, `positive` and the five
+accents keep the dark `on-*` label. A Primary and a Destructive button side by
+side in a dialog footer read as two polarities on purpose — do not "fix" it by
+whitening the semantic fills.
+
 **What is the fill and what is the ink.** `bg-primary`, `text-on-primary`, the
-checked state of a Checkbox and a Switch, a selected Calendar day and the
-`Primary` band are the fill. A link, an eyebrow, a checked Field outline, the
+checked state of a Checkbox and a Switch, a selected Calendar day, a Toggle
+that is on and the `Primary` band are the fill. A link, an eyebrow, a checked Field outline, the
 focus `ring`, a radio dot, a Slider range and a Progress indicator are the ink.
 The radio dot, range and indicator are ink although they are painted shapes
 because a shape with no label is identified by contrast alone, and the ink
@@ -79,3 +98,5 @@ ink: `border-primary-ink` on a checked Field.
 `ts/uikit/test/tokens.test.ts`, so a retune of one value cannot quietly move
 the other. `card` is pinned from both sides — the surface ladder below it and
 the 3.39:1 the fill needs above it — so lifting card one step breaks the test.
+The destructive row's ink is held at 4.5:1 on its tint and on `popover`, and
+a Toggle's on-vs-off at the fill's 3:1, for every palette the test measures.

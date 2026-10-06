@@ -3,6 +3,7 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
+import { useDismissableLayer } from "../primitives/dismissable-layer";
 import { useFocusScope } from "../primitives/focus-scope";
 import { mergeRefs } from "../primitives/merge-refs";
 import { Portal } from "../primitives/portal";
@@ -384,6 +385,16 @@ export function DrawerContent({ className, children, ...props }: React.Component
     onClose: () => setOpen(false),
   });
 
+  // On the stack for Escape and so the layers below take a press in the panel
+  // as inside. Outside clicks stay with the scrim: it covers everything but
+  // the layers above, so a press on a toast or a nested Dialog's backdrop is
+  // not a click away from the Drawer.
+  const dismissRef = useDismissableLayer({
+    enabled: open,
+    onDismiss: () => setOpen(false),
+    pointerOutside: false,
+  });
+
   if (!present) return null;
   const state = closing ? "closed" : "open";
   return (
@@ -401,10 +412,7 @@ export function DrawerContent({ className, children, ...props }: React.Component
         data-slot="drawer-content"
         data-state={state}
         data-vaul-drawer-direction={direction}
-        ref={mergeRefs(scopeRef, panelRef)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") setOpen(false);
-        }}
+        ref={mergeRefs(scopeRef, panelRef, dismissRef)}
         // transitionend bubbles from children (a hover on a button inside),
         // so pin it to the panel's own exit transform
         onTransitionEnd={(e) => {

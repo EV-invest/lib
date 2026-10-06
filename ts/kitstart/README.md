@@ -166,6 +166,7 @@ which CI runs: `npm run check:template -- --e2e`).
 |---|---|
 | `name`, `options: { value, label }[]` | the posted field and its choices (labels are text) |
 | `defaultValue` | without it: empty under a `placeholder`, else the first option — the native rule |
+| `value` | controlled: shown and posted until the parent changes it from `onValueChange`; `""` is the placeholder, `undefined` uncontrolled |
 | `placeholder` | an empty, unpickable choice shown until one is made |
 | `required`, `disabled` | as on a `<select>`: required refuses the submit, disabled posts nothing |
 | `size` | `sm` · `md` · `lg` (the landing's) — the kit's form scale |
@@ -175,7 +176,7 @@ which CI runs: `npm run check:template -- --e2e`).
 
 - **The value survives the swap.** A choice made in the native select before
   the script arrived is read in the hydration commit; a form `reset` puts the
-  default back in both states. With nothing chosen (under a `placeholder`) it
+  default back in both states (uncontrolled; under `value`, see below). With nothing chosen (under a `placeholder`) it
   posts nothing, as a native select on its disabled placeholder does.
 - **`required` still refuses the submit.** A `type="hidden"` input is never
   validated, so under `required` the value rides in a transparent input under
@@ -192,6 +193,19 @@ which CI runs: `npm run check:template -- --e2e`).
 - **Weight.** It is a client module and pulls the kit's `Select` into the
   page: 3.8 KB gz of first-load JS on the template's place page (152,774 →
   156,565 B of its 158,000 B budget).
+- **Controlled, as an `<input>`.** Under `value` the prop is the value: a
+  pick only calls `onValueChange`, and the parent's state (or a reset of its
+  own, `setSubject("")` back to the placeholder) is what moves it. A form
+  `reset` leaves it on `value` — clear the parent's state from the form's
+  `onReset` if it should follow. Without JavaScript it is still the native
+  select, starting on `value`; a pick made there before hydration is reported
+  through `onValueChange`. Switching between `value` and `undefined` warns
+  once in development, as React does for an input, and keeps the last value.
+
+```tsx
+const [subject, setSubject] = useState<string>(LEAD.subjects[0]);
+<FormSelect name={LEAD.wire.subject} size="lg" value={subject} onValueChange={setSubject} options={subjects} />
+```
 
 ### `LeadCapture`: the lead form every brand shares
 
@@ -837,8 +851,9 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavai
 
 ## Experiments from the panel
 
-The experiments live in code (`@evinvest/experiments`, one `as const` config);
-the panel decides their weights and kill switch, and PostHog counts them.
+The experiments live in code (`@evinvest/experiments`, one `as const` config
+of variants, split equally); the panel decides any other weights and the kill
+switch, and PostHog counts them.
 
 **Overrides** (`createExperimentsSource`): `GET <base>/experiments`, the same
 base as the place source, `{ "experiments": { "<key>": { enabled?, weights?,
@@ -862,7 +877,8 @@ declared length, holdout in `[0, 1)`) is `applyOverrides`' call.
 
 **Declaration** (`declareExperiments`): at every start the landing tells the
 panel which experiments this build runs — `experiments.declared@1`, one event
-with every experiment's key, variants, weights, `enabled`, `holdout` and an
+with every experiment's key, variants, weights (always one each — the code's
+equal split), `enabled`, `holdout` and an
 optional one-line `summary`, under a fresh UUIDv7. It goes through the lead
 webhook's outbox, signed and retried like a lead (so it needs the same
 `LEAD_WEBHOOK_URL` and sqlite lead store), and the panel keeps the latest by
@@ -879,8 +895,8 @@ export async function register() {
 It never throws and never holds the start: no webhook, one that cannot be
 built, or a queue that refuses the row is logged and skipped — the panel keeps
 the last declaration. An experiment the panel would refuse (key not
-`[a-z0-9_]{1,64}`, fewer than two unique slug variants, weights not one per
-variant, negative or summing to zero, holdout outside `[0, 1)`, summary over
+`[a-z0-9_]{1,64}`, fewer than two unique slug variants, holdout outside
+`[0, 1)`, summary over
 200 characters) is left out and logged, since the panel judges the event whole.
 
 ### The QA switcher: `AbSwitcher`

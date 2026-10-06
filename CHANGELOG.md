@@ -24,6 +24,23 @@ Rust crate and its TypeScript mirror at once.
 
 ### Added
 
+- **Card tables** (`ev_lib` `uikit` and `@evinvest/uikit`, #187): `Table`
+  takes `variant` (`TableVariant::Card` — uppercase `text-xs tracking-wide
+  text-ink-soft` head, `px-5 py-3` cells, no head-row hover) and `density`
+  (`TableDensity::Compact`); `TableHead`/`TableCell` take `align`
+  (`TableAlign::End` — right-aligned, tabular numerals); `TableCard` is the
+  paddingless card such a table sits in. The table only sets inherited
+  `--table-*` custom properties that the cells read, so a cell's own `class`
+  still wins. Generated TS: `tableVariants`, `tableDensities`, `tableAligns`,
+  `TABLE_CARD`. Default tables render as before; `TABLE_HEAD` aligns
+  `text-start` instead of `text-left`. TS: the props are `variant`, `density`
+  and `align` (`"start" | "end"`, replacing the obsolete HTML `align` on
+  `TableHead`/`TableCell`); `Table` stays a Server Component and sets
+  `data-variant`/`data-density`; exported `TableCard`, the types
+  `TableVariant`/`TableDensity`/`TableAlign`/`TableProps`/`TableHeadProps`/
+  `TableCellProps`, and the TS-only `ListRows`/`ListRow`/`ListRowLabel`/
+  `ListRowValue` (a table's phone form; shipped in 0.26.0's `dist/` but not
+  reachable from the barrel). The example app mounts a Tables section.
 - **`AbSwitcher`, the QA menu for A/B variants** (`@evinvest/kitstart/react`).
   A chip in a corner (`data-ab-switcher`, placed by `className`) whose panel
   lists each experiment's variants, the current one pressed; a tap is the
@@ -63,8 +80,90 @@ Rust crate and its TypeScript mirror at once.
   type-checked against the Rust presets' variable names. Exports unchanged.
   New Rust consts: `experiments::{FNV_OFFSET_BASIS, FNV_PRIME, COOKIE_PREFIX,
   COOKIE_MAX_AGE_SECS}`; `ts_gen::Ts::Union`.
+- **`Command` takes server-driven results** (`@evinvest/uikit`, #107).
+  `shouldFilter={false}` (on `Command` and `CommandDialog`; default `true`, as
+  in cmdk) turns the client filter off: every mounted `CommandItem` renders in
+  the caller's order and `CommandEmpty` counts mounted rows. The kit also gains
+  the keyboard it never had: focus stays in `CommandInput`, which points at the
+  highlighted row through `aria-activedescendant`; ArrowUp/ArrowDown move it
+  past disabled rows, Enter fires that row's `onSelect`, hover moves it too
+  (Home/End stay with the caret; keys from other focusables are left alone). The highlight sits on the first row until the user moves it, so
+  results that land after the keystroke put Enter on the top hit. TS only —
+  the Rust port still filters and has no keyboard.
+- **`FormSelect` takes a controlled `value`** (`@evinvest/kitstart/react`,
+  #163). Under `value` the prop is what the trigger shows and the form posts;
+  a pick only calls `onValueChange`, so a parent drives and resets it, and a
+  form `reset` leaves it on `value`. Without JavaScript it is still the native
+  select, starting on `value`; a pick made there before hydration is reported
+  through `onValueChange`. Switching between controlled and uncontrolled warns
+  once in development and keeps the last value. `defaultValue` is unchanged.
 
 ### Fixed
+
+- **Menu arrow keys stay on the real items** (`@evinvest/uikit`, #209).
+  `DropdownMenu` and `ContextMenu` bounded their roving focus by a hardcoded
+  64, so End moved to a non-existent item and ArrowDown past the last item
+  piled up a hidden index that later ArrowUp presses had to walk back. The
+  bound is now the number of mounted, enabled menu items, read at keydown, so
+  End lands on the last item, arrows wrap and disabled items are skipped.
+  `MenubarContent` counted its children (separators and labels included) and
+  never moved focus; it now focuses items the same way. `useRovingFocus`
+  accepts `count` as a getter (`() => number`) read only on keydown, and
+  clamps a stale index when the item set shrinks.
+
+- **Escape and outside clicks reach only the top overlay layer**
+  (`@evinvest/uikit`, #162 step 1). `Drawer` and `CommandDialog` join the
+  dismissable-layer stack: an Escape in a `Popover`, `Select`, menu or
+  `Command` search inside a Drawer closes that layer, not the panel, and a
+  press inside a Drawer or a `CommandDialog` opened above a `Dialog` no
+  longer closes the Dialog; their outside click is still the scrim's.
+  `DropdownMenu` and `ContextMenu` close on Escape through the stack only (no
+  second React `onKeyDown` path). An Escape belongs to the layer that was on
+  top when it was pressed, so a handler on its way that closes that layer
+  first no longer hands the same key to the layer below. A toast takes no
+  Escape: it still closes the Dialog under it. `useDismissableLayer` takes
+  `pointerOutside: false` for an overlay whose scrim decides outside clicks.
+
+- **`uikit::Slider` drag no longer sticks off the web** (`ev_lib`, #47).
+  Without pointer capture (desktop/native renderers) a release outside the
+  slider never reached `onpointerup`, so the value kept following the bare
+  cursor. A `pointermove` with no button held now ends the drag, as do
+  `pointerleave` and `pointercancel`; the web build keeps its pointer capture.
+- **`uikit::Calendar` opens on the current month** (`ev_lib`, #48). The
+  uncontrolled month was hardcoded to June 2026; `default_month` (now
+  `Option`) and `today` default to the host date like the TS `new Date()` —
+  the browser's local date on `wasm`, the UTC date from `SystemTime` natively.
+  New `CalendarDate::today()`. `DateTimePicker`'s `today` follows suit.
+- **`uikit::FormItem` and `InfoTip` ids survive hydration** (`ev_lib`, #49).
+  Their ids came from process-global counters, so a long-lived SSR server and a
+  fresh client disagreed. They now derive from the component's place in the
+  tree (new `primitives::use_stable_id`, the analogue of React's `useId`).
+- **A `Toggle` that is on is the primary fill** (both ports, #175). It wore
+  `bg-hover` — ~1.2:1 against the surface and the very tint an outline toggle
+  wore on hover, so in a weekday `ToggleGroup` the selected days could not be
+  told from a pointed-at one. On is now `bg-primary text-on-primary` (≥ 3:1
+  against `background`, `secondary`, `card` and `popover`; the outline variant
+  also takes `border-primary`), hover stays a surface tint, and the toggle
+  wears the offset `FILLED_FOCUS_RING` instead of the halo. A consumer that
+  styled the old on-state with its own classes should drop them.
+- **Destructive menu rows read at AA** (both ports, #166). The row's text and
+  icon move from `text-accent-error` to a new derived token,
+  `--accent-error-ink` (`color-mix(in srgb, var(--accent-error) 70%,
+  var(--ink))`; EV `#ec8379`): 4.83:1 on the row's `accent-error/10` tint over
+  `popover` (was 3.76:1), 5.36:1 on `popover`. Derived, so an existing brand
+  file keeps rendering; one whose mix misses 4.5:1 pins `accent-error-ink` in
+  its `[colors.*]`. See `docs/spec/accents.md`.
+- **`ev_lib::uikit` a11y and markup parity with the TS port** (`ev_lib`,
+  #45 #46 #50 #51 #52). `FormMessage` renders nothing without children (an
+  empty string included), so a valid field no longer carries an empty `<p>`
+  and a spurious grid gap. `FieldSeparator` sets `data-content` from its
+  children and omits the content span when it has none, so a bare divider is
+  no longer notched. `Slider`'s `aria_label` now names the `role="slider"`
+  thumb instead of the role-less root. `PaginationLink` takes an optional
+  `aria_label` (additive, not breaking); `PaginationPrevious`/`PaginationNext`
+  pass "Go to previous page"/"Go to next page", so they stay named below `sm`
+  where the visible text is hidden. `CommandDialog` and `DrawerContent` set
+  `aria-modal="true"` like `Dialog`/`AlertDialog`/`Sheet`.
 
 - **`Calendar` weekday headers stay on one line in `vi` and `he`**
   (`@evinvest/uikit`, #122). CLDR spells the Vietnamese short weekday as two
@@ -106,6 +205,23 @@ Rust crate and its TypeScript mirror at once.
   grows a close button (`labels.close`) beside Clear, both ports.
 
 ### Changed
+
+- **`experiments` — weights are equal unless overridden** (**Breaking**, both
+  ports; #16; a major for `@evinvest/experiments`). Weights are no longer
+  declared in code: every variant gets an equal share. `weights` is gone from
+  the TS `ExperimentSpec` (`satisfies ExperimentConfig` rejects it) and from
+  the Rust `Experiment`; `Experiment::new(variants, weights)` is now
+  `Experiment::new(variants)`, and `Experiment::uniform` is removed — use
+  `Experiment::new`. Manual weights come only from an operator override in the
+  panel: `applyOverrides` lays them over the config under a package-private
+  key, and `pickVariant` reads only that — a `weights` field left in a config
+  (one without `satisfies`) is ignored and not carried over — falling back to
+  equal shares; Rust has no override path. kitstart's `DeclaredExperiment` drops
+  `weights` and `experiments.declared@1` sends one each per variant — the
+  panel contract is unchanged. Migration: delete `weights` from every
+  experiment config; a split that was not equal is set in the panel.
+  Equal-weight picks are unchanged, so existing cookies and hashed subjects
+  keep their arms.
 
 - **`settings` — drift watching is a generated method** (**Breaking**, Rust).
   The new native-only `settings_drift` feature makes every `settings!` struct

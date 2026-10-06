@@ -59,8 +59,10 @@
   --accent-warn: #f2c94c;
   --on-accent-warn: #070d18;
   /* lifted off the brand red #da251d, which failed AA on a card. This one value
-   * carries both the fill and the text; the vivid brand red is a gitops
-   * constant, not a UI token. */
+   * is the fill and the text on a bare surface; on its own 10 % tint (a
+   * destructive menu row) the text is the derived --accent-error-ink, which
+   * EV leaves to the contract: #ec8379, 4.83:1 on that tint over popover. The
+   * vivid brand red is a gitops constant, not a UI token. */
   --accent-error: #ef5b52;
   --on-accent-error: #070d18;
 

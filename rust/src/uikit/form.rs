@@ -3,7 +3,7 @@
 //! `aria-describedby` and `id` line up) but drops `react-hook-form`'s state
 //! engine: validation and field state are the consumer's job.
 //!
-//! [`FormItem`] mints an id and provides it via context; [`FormLabel`],
+//! [`FormItem`] derives an id from its place in the tree and provides it via context; [`FormLabel`],
 //! [`FormDescription`] and [`FormMessage`] read it. Unlike the TS port there is
 //! no `Slot`, so [`FormControl`] cannot inject `id`/`aria-*` onto an arbitrary
 //! child; it publishes them as [`FormControlContext`] instead, and the kit's own
@@ -11,13 +11,15 @@
 //! consume it and apply them to themselves. Wrapping a bare element is the one
 //! case the consumer still wires by hand.
 
-use std::sync::atomic::{AtomicUsize, Ordering};
-
 use dioxus::prelude::*;
 
 use crate::{
 	cn,
-	uikit::{FORM_DESCRIPTION, FORM_ITEM, FORM_LABEL, FORM_MESSAGE, label::Label},
+	uikit::{
+		FORM_DESCRIPTION, FORM_ITEM, FORM_LABEL, FORM_MESSAGE,
+		label::Label,
+		primitives::{has_content, use_stable_id},
+	},
 };
 
 /// What [`FormControl`] hands down to the control beneath it. Provided as a
@@ -67,11 +69,12 @@ pub fn Form(#[props(default)] class: String, children: Element) -> Element {
 		form { class, "data-slot": "form", {children} }
 	}
 }
-/// Provides a generated id via context so the label/control/description/message
-/// underneath share `aria-describedby`/`id`.
+/// Provides an id via context so the label/control/description/message
+/// underneath share `aria-describedby`/`id`. The id follows the item's place in
+/// the tree ([`use_stable_id`]), so it matches across SSR and hydration.
 #[component]
 pub fn FormItem(#[props(default)] class: String, children: Element) -> Element {
-	let id = use_hook(|| format!("form-item-{}", NEXT_ID.fetch_add(1, Ordering::Relaxed)));
+	let id = use_stable_id("form-item");
 	use_context_provider(|| FormItemContext { id });
 	let cls = cn!(FORM_ITEM, class);
 	rsx! {
@@ -135,16 +138,19 @@ pub fn FormDescription(#[props(default)] class: String, children: Element) -> El
 		p { class: cls, "data-slot": "form-description", id: ctx.form_description_id(), {children} }
 	}
 }
-/// Error/validation text. Renders only when it has children.
+/// Error/validation text. Renders only when it has children, so a permanently
+/// mounted message on a valid field leaves no empty row in the item's grid.
 #[component]
 pub fn FormMessage(#[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<FormItemContext>();
+	if !has_content(&children) {
+		return rsx! {};
+	}
 	let cls = cn!(FORM_MESSAGE, class);
 	rsx! {
 		p { class: cls, "data-slot": "form-message", id: ctx.form_message_id(), {children} }
 	}
 }
-static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
 
 #[cfg(test)]
 mod tests {
@@ -182,6 +188,35 @@ mod tests {
 		// label's `for` matches the control id derived from the item id.
 		assert!(html.contains("-form-item\""), "{html}");
 		assert!(html.contains("-form-item-description\""), "{html}");
+	}
+
+	#[test]
+	fn ids_are_stable_across_renders_and_unique_per_item() {
+		fn app() -> Element {
+			rsx! {
+				FormItem {
+					FormLabel { "Email" }
+					FormControl { Input {} }
+				}
+				FormItem {
+					FormLabel { "Name" }
+					FormControl { Input {} }
+				}
+			}
+		}
+		// Two fresh renders stand in for the server render and the client's
+		// hydrating one. A process-global counter advanced between them, so the
+		// second came out with different ids than the first.
+		let server = render(app);
+		let client = render(app);
+		assert_eq!(server, client);
+
+		let labels: Vec<&str> = server.split("for=\"").skip(1).filter_map(|rest| rest.split('"').next()).collect();
+		assert_eq!(labels.len(), 2, "{server}");
+		assert_ne!(labels[0], labels[1], "each item needs its own id: {server}");
+		for id in labels {
+			assert!(server.contains(&format!("id=\"{id}\"")), "label for={id} must reach a control: {server}");
+		}
 	}
 
 	#[test]
@@ -307,5 +342,29 @@ mod tests {
 		assert!(html.contains("data-slot=\"form-message\""), "{html}");
 		assert!(html.contains("text-accent-error"), "{html}");
 		assert!(html.contains("required"), "{html}");
+	}
+
+	#[test]
+	fn message_without_children_renders_nothing() {
+		fn absent() -> Element {
+			rsx! {
+				FormItem {
+					FormMessage {}
+				}
+			}
+		}
+		fn blank() -> Element {
+			let error_text = String::new();
+			rsx! {
+				FormItem {
+					FormMessage { {error_text} }
+				}
+			}
+		}
+		for app in [absent, blank] {
+			let html = render(app);
+			assert!(!html.contains("form-message"), "{html}");
+			assert!(!html.contains("<p"), "{html}");
+		}
 	}
 }
