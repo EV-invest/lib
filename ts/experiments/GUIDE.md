@@ -24,13 +24,15 @@ The `as const` is what narrows the variant strings to literal unions, so
 import type { ExperimentConfig } from "@evinvest/experiments";
 
 export const experiments = {
-  hero: { variants: ["a", "b"], weights: [0.5, 0.5] },
-  team: { variants: ["a", "b", "c"], weights: [2, 1, 1] },
+  hero: { variants: ["a", "b"] },
+  team: { variants: ["a", "b", "c"] },
 } as const satisfies ExperimentConfig;
 ```
 
-`weights[i]` is the relative weight of `variants[i]`. They need not sum to 1 —
-`pickVariant` normalizes by their total (so `[2, 1, 1]` means 50% / 25% / 25%).
+There are no weights to declare: every variant gets an equal share (`team` is a
+third each). A split chosen at the declaration point is a guess; re-weighting is
+an operator's call, made without a deploy through overrides (below) — the only
+way weights reach a pick. `satisfies ExperimentConfig` rejects a `weights` key.
 
 ## 2. Assign variants in a Next proxy
 
@@ -95,7 +97,7 @@ config itself.
 
 ### Weights and the kill switch from outside the code
 
-The config in code is the declaration — keys, variants, default weights. An
+The config in code is the declaration — keys and variants, split equally. An
 operator can re-weight an experiment or switch it off without a deploy by
 serving overrides (`{ "<key>": { enabled?, weights?, holdout? } }`), which the
 proxy lays over the declaration on every request with `applyOverrides`:

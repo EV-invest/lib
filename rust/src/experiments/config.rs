@@ -5,11 +5,13 @@
 
 use std::collections::BTreeMap;
 
-/// One experiment: an ordered set of `variants` with matching `weights`.
+/// One experiment: an ordered set of `variants`, each drawn with an equal share.
 ///
 /// `variants[0]` is the control — [`resolve_variant`] falls back to it when a
-/// cookie is missing or invalid. `weights` are relative (they need not sum to 1);
-/// [`pick_variant`] normalises by their total.
+/// cookie is missing or invalid. There are no weights to declare: a split set
+/// by hand is a guess made at the declaration point, so every variant gets the
+/// same share. Re-weighting is an operator's override, and it lives on the TS
+/// side (`applyOverrides` of `@evinvest/experiments`, fed by the panel).
 ///
 /// `enabled` and `holdout` mirror the optional TS `ExperimentSpec` fields: `None`
 /// means "enabled" and "no holdout", so an experiment built without them behaves
@@ -18,49 +20,27 @@ use std::collections::BTreeMap;
 pub struct Experiment {
 	/// Variant keys, control first. Stable: these are the dashboard contract.
 	pub variants: Vec<String>,
-	/// Relative weights, one per variant. Normalised by their sum on assignment.
-	pub weights: Vec<f64>,
 	/// Kill switch. `Some(false)` makes every helper return the control:
 	/// [`pick_variant`] draws nothing and [`resolve_variant`] ignores a stored
 	/// cookie. `None` = enabled.
 	pub enabled: Option<bool>,
-	/// Share in `[0, 1]` of assignments pinned to the control before the weighted
+	/// Share in `[0, 1]` of assignments pinned to the control before the equal
 	/// split; out-of-range values are clamped, `NaN` is 0. `None` = no holdout.
 	pub holdout: Option<f64>,
 }
 
 impl Experiment {
-	/// Builds an experiment from explicit variants and relative weights.
+	/// Builds an experiment with an equal share for every variant.
 	///
 	/// # Examples
 	/// ```
 	/// use ev_lib::experiments::Experiment;
-	/// let hero = Experiment::new(["a", "b"], [0.5, 0.5]);
-	/// assert_eq!(hero.variants.len(), 2);
+	/// let team = Experiment::new(["a", "b", "c"]);
+	/// assert_eq!(team.variants, ["a", "b", "c"]);
 	/// ```
-	pub fn new(variants: impl IntoIterator<Item = impl Into<String>>, weights: impl IntoIterator<Item = f64>) -> Self {
+	pub fn new(variants: impl IntoIterator<Item = impl Into<String>>) -> Self {
 		Self {
 			variants: variants.into_iter().map(Into::into).collect(),
-			weights: weights.into_iter().collect(),
-			enabled: None,
-			holdout: None,
-		}
-	}
-
-	/// Builds an experiment with equal weight on every variant.
-	///
-	/// # Examples
-	/// ```
-	/// use ev_lib::experiments::Experiment;
-	/// let team = Experiment::uniform(["a", "b", "c"]);
-	/// assert_eq!(team.weights, vec![1.0, 1.0, 1.0]);
-	/// ```
-	pub fn uniform(variants: impl IntoIterator<Item = impl Into<String>>) -> Self {
-		let variants: Vec<String> = variants.into_iter().map(Into::into).collect();
-		let weights = vec![1.0; variants.len()];
-		Self {
-			variants,
-			weights,
 			enabled: None,
 			holdout: None,
 		}
@@ -71,7 +51,7 @@ impl Experiment {
 	/// # Examples
 	/// ```
 	/// use ev_lib::experiments::{Experiment, pick_variant};
-	/// let off = Experiment::new(["a", "b"], [0.0, 1.0]).with_enabled(false);
+	/// let off = Experiment::new(["a", "b"]).with_enabled(false);
 	/// assert_eq!(pick_variant(&off, || unreachable!("a disabled experiment draws nothing")), "a");
 	/// ```
 	#[must_use]
@@ -85,9 +65,10 @@ impl Experiment {
 	/// # Examples
 	/// ```
 	/// use ev_lib::experiments::{Experiment, pick_variant};
-	/// let exp = Experiment::new(["a", "b"], [0.0, 1.0]).with_holdout(0.2);
+	/// let exp = Experiment::new(["a", "b"]).with_holdout(0.2);
 	/// assert_eq!(pick_variant(&exp, || 0.1), "a"); // inside the holdout → control
-	/// assert_eq!(pick_variant(&exp, || 0.5), "b");
+	/// assert_eq!(pick_variant(&exp, || 0.5), "a"); // rescaled to 0.375 → first half
+	/// assert_eq!(pick_variant(&exp, || 0.9), "b"); // rescaled to 0.875 → second half
 	/// ```
 	#[must_use]
 	pub fn with_holdout(mut self, holdout: f64) -> Self {
@@ -125,35 +106,30 @@ pub fn cookie_name(key: &str) -> String {
 	format!("{COOKIE_PREFIX}{key}")
 }
 
-/// Picks a variant by weighted random draw, mirroring the TS `pickVariant`:
-/// normalise by the total weight, draw `rng() * total`, walk the cumulative
-/// weights, and fall through to the last variant on rounding. `rng` must yield a
-/// value in `[0, 1)`; inject a deterministic closure in tests and
+/// Picks a variant by an equal-share random draw, mirroring the TS `pickVariant`
+/// of an experiment without weights: draw `rng() * n`, walk the variants one
+/// unit at a time, and fall through to the last variant on rounding. `rng` must
+/// yield a value in `[0, 1)`; inject a deterministic closure in tests and
 /// `js_sys::Math::random` in the browser.
 ///
 /// A disabled experiment returns the control without calling `rng`. Otherwise
 /// `rng` is called exactly once: with a holdout of `h`, a draw below `h` returns
-/// the control and the rest is rescaled to `(u - h) / (1 - h)` before the
-/// weighted walk.
+/// the control and the rest is rescaled to `(u - h) / (1 - h)` before the walk.
 ///
 /// Returns an empty string only when the experiment has no variants.
 ///
 /// # Examples
 /// ```
 /// use ev_lib::experiments::Experiment;
-/// let exp = Experiment::new(["a", "b"], [0.5, 0.5]);
-/// // A draw below the first weight lands on the control.
+/// let exp = Experiment::new(["a", "b"]);
+/// // A draw in the first half lands on the control.
 /// assert_eq!(ev_lib::experiments::pick_variant(&exp, || 0.1), "a");
-/// // A draw above it lands on the second variant.
+/// // A draw in the second half lands on the second variant.
 /// assert_eq!(ev_lib::experiments::pick_variant(&exp, || 0.9), "b");
 /// ```
 pub fn pick_variant(exp: &Experiment, mut rng: impl FnMut() -> f64) -> String {
 	let control = || exp.variants.first().cloned().unwrap_or_default();
-	if exp.is_disabled() {
-		return control();
-	}
-	let total: f64 = exp.weights.iter().copied().filter(|w| *w > 0.0).sum();
-	if total <= 0.0 || exp.variants.is_empty() {
+	if exp.is_disabled() || exp.variants.is_empty() {
 		return control();
 	}
 	let mut u = rng();
@@ -168,13 +144,14 @@ pub fn pick_variant(exp: &Experiment, mut rng: impl FnMut() -> f64) -> String {
 		}
 		u = (u - h) / (1.0 - h);
 	}
-	let mut threshold = u * total;
-	for (i, weight) in exp.weights.iter().enumerate() {
-		threshold -= weight;
-		if threshold < 0.0
-			&& let Some(v) = exp.variants.get(i)
-		{
-			return v.clone();
+	// The same unit-by-unit walk the TS core runs over weights of 1, not
+	// `floor(u * n)`: they agree on every finite draw, and the walk also keeps
+	// the TS answer (the last variant) for an out-of-contract `NaN`.
+	let mut threshold = u * exp.variants.len() as f64;
+	for variant in &exp.variants {
+		threshold -= 1.0;
+		if threshold < 0.0 {
+			return variant.clone();
 		}
 	}
 	exp.variants.last().cloned().unwrap_or_default()
@@ -188,7 +165,7 @@ pub fn pick_variant(exp: &Experiment, mut rng: impl FnMut() -> f64) -> String {
 /// # Examples
 /// ```
 /// use ev_lib::experiments::{Experiment, resolve_variant};
-/// let exp = Experiment::new(["a", "b"], [0.5, 0.5]);
+/// let exp = Experiment::new(["a", "b"]);
 /// assert_eq!(resolve_variant(&exp, Some("b")), "b");
 /// assert_eq!(resolve_variant(&exp, Some("zzz")), "a");
 /// assert_eq!(resolve_variant(&exp, None), "a");
@@ -240,7 +217,7 @@ impl Assignment {
 /// # Examples
 /// ```
 /// use ev_lib::experiments::{Assignment, Experiment, plan_assignment};
-/// let exp = Experiment::new(["a", "b"], [0.0, 1.0]);
+/// let exp = Experiment::new(["a", "b"]);
 /// assert_eq!(plan_assignment(&exp, None, || 0.5), Assignment::New("b".into()));
 /// assert_eq!(plan_assignment(&exp, Some("a"), || 0.5), Assignment::Sticky("a".into()));
 /// let off = exp.with_enabled(false);
@@ -263,7 +240,7 @@ pub fn plan_assignment(exp: &Experiment, existing: Option<&str>, rng: impl FnMut
 /// # Examples
 /// ```
 /// use ev_lib::experiments::{Experiment, next_variant};
-/// let exp = Experiment::new(["a", "b", "c"], [1.0, 1.0, 1.0]);
+/// let exp = Experiment::new(["a", "b", "c"]);
 /// assert_eq!(next_variant(&exp, "a", 1), "b");
 /// assert_eq!(next_variant(&exp, "c", 1), "a");
 /// assert_eq!(next_variant(&exp, "a", -1), "c");
@@ -351,84 +328,55 @@ mod tests {
 	}
 
 	#[test]
-	fn experiment_new_keeps_variants_and_weights() {
-		let exp = Experiment::new(["a", "b"], [0.5, 0.5]);
+	fn experiment_new_keeps_variants_in_order() {
+		let exp = Experiment::new(["a", "b"]);
 		assert_eq!(exp.variants, vec!["a".to_string(), "b".to_string()]);
-		assert_eq!(exp.weights, vec![0.5, 0.5]);
 	}
 
 	#[test]
 	fn experiment_new_empty_is_empty() {
-		let exp = Experiment::new(Vec::<String>::new(), Vec::<f64>::new());
+		let exp = Experiment::new(Vec::<String>::new());
 		assert!(exp.variants.is_empty());
-		assert!(exp.weights.is_empty());
 	}
 
 	#[test]
-	fn experiment_uniform_matches_variant_count() {
-		let exp = Experiment::uniform(["a", "b", "c"]);
-		assert_eq!(exp.weights, vec![1.0, 1.0, 1.0]);
-		assert_eq!(exp.weights.len(), exp.variants.len());
-	}
-
-	#[test]
-	fn experiment_uniform_empty_has_no_weights() {
-		let exp = Experiment::uniform(Vec::<String>::new());
-		assert!(exp.variants.is_empty());
-		assert!(exp.weights.is_empty());
-	}
-
-	#[test]
-	fn pick_variant_respects_weight_boundaries() {
-		let exp = Experiment::new(["a", "b"], [0.3, 0.7]);
-		// draw just under 0.3 of the total → control
+	fn pick_variant_splits_two_variants_in_halves() {
+		let exp = Experiment::new(["a", "b"]);
 		assert_eq!(pick_variant(&exp, fixed(0.0)), "a");
-		assert_eq!(pick_variant(&exp, fixed(0.29)), "a");
-		// draw above the first weight → second variant
-		assert_eq!(pick_variant(&exp, fixed(0.31)), "b");
+		assert_eq!(pick_variant(&exp, fixed(0.49)), "a");
+		assert_eq!(pick_variant(&exp, fixed(0.51)), "b");
 		assert_eq!(pick_variant(&exp, fixed(0.999)), "b");
 	}
 
 	#[test]
-	fn pick_variant_at_exact_cumulative_boundary_lands_on_next() {
-		// total 1.0, control weight 0.3. r = 0.3 exactly: 0.3 - 0.3 = 0.0, which is
-		// NOT < 0, so the boundary belongs to the second variant.
-		let exp = Experiment::new(["a", "b"], [0.3, 0.7]);
-		assert_eq!(pick_variant(&exp, fixed(0.3)), "b");
-		// Just below the boundary stays on the control.
-		assert_eq!(pick_variant(&exp, fixed(0.2999)), "a");
+	fn pick_variant_at_exact_share_boundary_lands_on_next() {
+		// r = 0.5 with two variants: 0.5 * 2 - 1 = 0.0, which is NOT < 0, so the
+		// boundary belongs to the second variant (TS parity).
+		let exp = Experiment::new(["a", "b"]);
+		assert_eq!(pick_variant(&exp, fixed(0.5)), "b");
+		assert_eq!(pick_variant(&exp, fixed(0.4999)), "a");
 	}
 
 	#[test]
 	fn pick_variant_rng_one_falls_through_to_last() {
-		// rng() -> 1.0 makes threshold == total, so the cumulative walk never trips
-		// `< 0`; the fall-through must return the last variant, never "".
-		let exp = Experiment::new(["a", "b", "c"], [1.0, 1.0, 1.0]);
+		// rng() -> 1.0 makes threshold == n, so the walk never trips `< 0`; the
+		// fall-through must return the last variant, never "".
+		let exp = Experiment::new(["a", "b", "c"]);
 		assert_eq!(pick_variant(&exp, fixed(1.0)), "c");
 	}
 
 	#[test]
-	fn pick_variant_normalises_unnormalised_weights() {
-		let exp = Experiment::new(["a", "b", "c"], [1.0, 1.0, 2.0]);
-		// total 4: [0,0.25)→a, [0.25,0.5)→b, [0.5,1)→c
-		assert_eq!(pick_variant(&exp, fixed(0.1)), "a");
-		assert_eq!(pick_variant(&exp, fixed(0.3)), "b");
-		assert_eq!(pick_variant(&exp, fixed(0.6)), "c");
-	}
-
-	#[test]
-	fn pick_variant_maps_each_subinterval_to_its_variant() {
-		// Property-style: a handful of rng points across [0,1) land on the variant
-		// whose cumulative sub-interval contains them. total 4 → a [0,.5) b [.5,.75) c [.75,1).
-		let exp = Experiment::new(["a", "b", "c"], [2.0, 1.0, 1.0]);
-		for (r, expected) in [(0.0, "a"), (0.49, "a"), (0.5, "b"), (0.74, "b"), (0.75, "c"), (0.99, "c")] {
+	fn pick_variant_maps_each_third_to_its_variant() {
+		// Three variants → a [0,1/3) b [1/3,2/3) c [2/3,1).
+		let exp = Experiment::new(["a", "b", "c"]);
+		for (r, expected) in [(0.0, "a"), (0.33, "a"), (0.34, "b"), (0.66, "b"), (0.67, "c"), (0.99, "c")] {
 			assert_eq!(pick_variant(&exp, fixed(r)), expected, "rng={r}");
 		}
 	}
 
 	#[test]
 	fn pick_variant_single_variant_always_picks_it() {
-		let exp = Experiment::new(["only"], [1.0]);
+		let exp = Experiment::new(["only"]);
 		assert_eq!(pick_variant(&exp, fixed(0.0)), "only");
 		assert_eq!(pick_variant(&exp, fixed(0.5)), "only");
 		assert_eq!(pick_variant(&exp, fixed(1.0)), "only");
@@ -436,57 +384,24 @@ mod tests {
 
 	#[test]
 	fn pick_variant_empty_experiment_returns_empty_string() {
-		let exp = Experiment::new(Vec::<String>::new(), Vec::<f64>::new());
+		let exp = Experiment::new(Vec::<String>::new());
 		assert_eq!(pick_variant(&exp, fixed(0.5)), "");
 	}
 
 	#[test]
-	fn pick_variant_falls_back_when_no_weight() {
-		let exp = Experiment::new(["a", "b"], [0.0, 0.0]);
-		assert_eq!(pick_variant(&exp, fixed(0.5)), "a");
+	fn pick_variant_empty_experiment_draws_nothing() {
+		let exp = Experiment::new(Vec::<String>::new()).with_holdout(0.5);
+		assert_eq!(pick_variant(&exp, never), "");
 	}
 
 	#[test]
-	fn pick_variant_zero_total_falls_back_to_control() {
-		// Zero total weight must fall back to the control (variants[0]), regardless of rng.
-		let exp = Experiment::new(["control", "b", "c"], [0.0, 0.0, 0.0]);
-		assert_eq!(pick_variant(&exp, fixed(0.0)), "control");
-		assert_eq!(pick_variant(&exp, fixed(0.99)), "control");
+	fn pick_variant_nan_draw_falls_through_to_last() {
+		// Out of contract, but must match the TS walk (every `NaN < 0` is false).
+		let exp = Experiment::new(["a", "b", "c"]);
+		assert_eq!(pick_variant(&exp, fixed(f64::NAN)), "c");
 	}
 
-	#[test]
-	fn pick_variant_negative_weights_are_ignored_in_total() {
-		// Negative weights are filtered out of the total; the positive variant wins.
-		let exp = Experiment::new(["a", "b"], [-1.0, 1.0]);
-		assert_eq!(pick_variant(&exp, fixed(0.5)), "b");
-	}
-
-	#[test]
-	fn pick_variant_more_variants_than_weights_stays_valid() {
-		// Missing weights are treated as 0; must never panic and must return a real variant.
-		let exp = Experiment::new(["a", "b", "c"], [1.0]);
-		// Only "a" carries weight, so every draw lands on it.
-		assert_eq!(pick_variant(&exp, fixed(0.0)), "a");
-		assert_eq!(pick_variant(&exp, fixed(0.99)), "a");
-		assert!(exp.variants.contains(&pick_variant(&exp, fixed(0.5))));
-	}
-
-	#[test]
-	fn pick_variant_more_weights_than_variants_stays_valid() {
-		// Extra weights have no variant to map to; the walk must not panic and must
-		// fall through to a real variant rather than "".
-		let exp = Experiment::new(["a"], [1.0, 1.0]);
-		assert_eq!(pick_variant(&exp, fixed(0.0)), "a");
-		assert_eq!(pick_variant(&exp, fixed(0.9)), "a");
-		let exp2 = Experiment::new(["a", "b"], [1.0, 1.0, 1.0]);
-		// total 3 → a [0,1/3) b [1/3,2/3); the surplus third weight maps to no variant
-		// and falls through to the last real variant.
-		assert_eq!(pick_variant(&exp2, fixed(0.1)), "a");
-		assert_eq!(pick_variant(&exp2, fixed(0.5)), "b");
-		assert_eq!(pick_variant(&exp2, fixed(0.9)), "b");
-	}
-
-	/// An rng that fails the test if called: a disabled or zero-weight
+	/// An rng that fails the test if called: a disabled or empty
 	/// experiment must decide without drawing (TS parity: `rng` is not called).
 	fn never() -> f64 {
 		panic!("rng must not be called")
@@ -494,41 +409,33 @@ mod tests {
 
 	#[test]
 	fn experiment_defaults_to_enabled_without_holdout() {
-		let exp = Experiment::new(["a", "b"], [1.0, 1.0]);
+		let exp = Experiment::new(["a", "b"]);
 		assert_eq!((exp.enabled, exp.holdout), (None, None));
-		let uni = Experiment::uniform(["a", "b"]);
-		assert_eq!((uni.enabled, uni.holdout), (None, None));
 	}
 
 	#[test]
 	fn disabled_experiment_picks_control_without_drawing() {
-		let off = Experiment::new(["a", "b"], [0.0, 1.0]).with_enabled(false);
+		let off = Experiment::new(["a", "b"]).with_enabled(false);
 		assert_eq!(pick_variant(&off, never), "a");
 	}
 
 	#[test]
-	fn zero_total_weight_picks_control_without_drawing() {
-		let exp = Experiment::new(["a", "b"], [0.0, -1.0]).with_holdout(0.5);
-		assert_eq!(pick_variant(&exp, never), "a");
-	}
-
-	#[test]
 	fn enabled_true_behaves_like_omitted() {
-		let on = Experiment::new(["a", "b"], [0.0, 1.0]).with_enabled(true);
+		let on = Experiment::new(["a", "b"]).with_enabled(true);
 		assert_eq!(pick_variant(&on, fixed(0.5)), "b");
 		assert_eq!(resolve_variant(&on, Some("b")), "b");
 	}
 
 	#[test]
 	fn disabled_experiment_resolves_valid_cookie_to_control() {
-		let off = Experiment::new(["a", "b"], [1.0, 1.0]).with_enabled(false);
+		let off = Experiment::new(["a", "b"]).with_enabled(false);
 		assert_eq!(resolve_variant(&off, Some("b")), "a");
 		assert_eq!(resolve_variant(&off, None), "a");
 	}
 
 	#[test]
 	fn rng_is_drawn_exactly_once_with_holdout() {
-		let exp = Experiment::new(["a", "b"], [1.0, 1.0]).with_holdout(0.3);
+		let exp = Experiment::new(["a", "b"]).with_holdout(0.3);
 		let mut calls = 0;
 		pick_variant(&exp, || {
 			calls += 1;
@@ -539,8 +446,8 @@ mod tests {
 
 	#[test]
 	fn holdout_pins_low_draws_and_rescales_the_rest() {
-		// h = 0.5, weights 50/50: [0,.5) holdout → a; [.5,.75) → a; [.75,1) → b.
-		let exp = Experiment::new(["a", "b"], [0.5, 0.5]).with_holdout(0.5);
+		// h = 0.5, two equal shares: [0,.5) holdout → a; [.5,.75) → a; [.75,1) → b.
+		let exp = Experiment::new(["a", "b"]).with_holdout(0.5);
 		for (r, expected) in [(0.0, "a"), (0.49, "a"), (0.5, "a"), (0.74, "a"), (0.75, "b"), (0.99, "b")] {
 			assert_eq!(pick_variant(&exp, fixed(r)), expected, "rng={r}");
 		}
@@ -548,7 +455,7 @@ mod tests {
 
 	#[test]
 	fn holdout_zero_is_bit_identical_to_no_holdout() {
-		let plain = Experiment::new(["a", "b", "c"], [1.0, 2.0, 3.0]);
+		let plain = Experiment::new(["a", "b", "c"]);
 		let zero = plain.clone().with_holdout(0.0);
 		let neg = plain.clone().with_holdout(-3.0);
 		let nan = plain.clone().with_holdout(f64::NAN);
@@ -563,8 +470,8 @@ mod tests {
 
 	#[test]
 	fn holdout_is_clamped_to_one() {
-		let all = Experiment::new(["a", "b"], [0.0, 1.0]).with_holdout(1.0);
-		let over = Experiment::new(["a", "b"], [0.0, 1.0]).with_holdout(7.0);
+		let all = Experiment::new(["a", "b"]).with_holdout(1.0);
+		let over = Experiment::new(["a", "b"]).with_holdout(7.0);
 		for r in [0.0, 0.5, 0.999] {
 			assert_eq!(pick_variant(&all, fixed(r)), "a");
 			assert_eq!(pick_variant(&over, fixed(r)), "a");
@@ -573,7 +480,7 @@ mod tests {
 
 	#[test]
 	fn plan_assignment_paused_writes_nothing_and_ignores_cookie() {
-		let off = Experiment::new(["a", "b"], [0.0, 1.0]).with_enabled(false);
+		let off = Experiment::new(["a", "b"]).with_enabled(false);
 		for existing in [None, Some("b"), Some("zzz")] {
 			let plan = plan_assignment(&off, existing, never);
 			assert_eq!(plan, Assignment::Paused("a".to_string()), "existing={existing:?}");
@@ -584,7 +491,7 @@ mod tests {
 
 	#[test]
 	fn plan_assignment_new_visit_draws_and_persists() {
-		let exp = Experiment::new(["a", "b"], [0.0, 1.0]);
+		let exp = Experiment::new(["a", "b"]);
 		let plan = plan_assignment(&exp, None, fixed(0.5));
 		assert_eq!(plan, Assignment::New("b".to_string()));
 		assert!(plan.persist());
@@ -592,7 +499,7 @@ mod tests {
 
 	#[test]
 	fn plan_assignment_existing_cookie_is_sticky_without_drawing() {
-		let exp = Experiment::new(["a", "b"], [0.0, 1.0]);
+		let exp = Experiment::new(["a", "b"]);
 		let kept = plan_assignment(&exp, Some("a"), never);
 		assert_eq!(kept, Assignment::Sticky("a".to_string()));
 		assert!(!kept.persist());
@@ -604,7 +511,7 @@ mod tests {
 	fn plan_assignment_after_re_enable_draws_fresh_for_unpinned_visitors() {
 		// A visitor first seen during the pause got no cookie, so once the
 		// experiment is back on they are bucketed normally, not stuck on control.
-		let exp = Experiment::new(["a", "b"], [0.0, 1.0]);
+		let exp = Experiment::new(["a", "b"]);
 		let paused = plan_assignment(&exp.clone().with_enabled(false), None, never);
 		assert!(!paused.persist());
 		assert_eq!(plan_assignment(&exp.with_enabled(true), None, fixed(0.5)), Assignment::New("b".to_string()));
@@ -612,20 +519,20 @@ mod tests {
 
 	#[test]
 	fn resolve_variant_valid_unknown_none_and_empty() {
-		let exp = Experiment::new(["a", "b"], [0.5, 0.5]);
+		let exp = Experiment::new(["a", "b"]);
 		assert_eq!(resolve_variant(&exp, Some("b")), "b");
 		assert_eq!(resolve_variant(&exp, Some("garbage")), "a");
 		assert_eq!(resolve_variant(&exp, Some("")), "a");
 		assert_eq!(resolve_variant(&exp, None), "a");
 
-		let empty = Experiment::new(Vec::<String>::new(), Vec::<f64>::new());
+		let empty = Experiment::new(Vec::<String>::new());
 		assert_eq!(resolve_variant(&empty, Some("anything")), "");
 		assert_eq!(resolve_variant(&empty, None), "");
 	}
 
 	#[test]
 	fn next_variant_wraps_both_directions() {
-		let exp = Experiment::new(["a", "b", "c"], [1.0, 1.0, 1.0]);
+		let exp = Experiment::new(["a", "b", "c"]);
 		assert_eq!(next_variant(&exp, "a", 1), "b");
 		assert_eq!(next_variant(&exp, "c", 1), "a");
 		assert_eq!(next_variant(&exp, "a", -1), "c");
@@ -634,7 +541,7 @@ mod tests {
 
 	#[test]
 	fn next_variant_step_zero_is_identity() {
-		let exp = Experiment::new(["a", "b", "c"], [1.0, 1.0, 1.0]);
+		let exp = Experiment::new(["a", "b", "c"]);
 		assert_eq!(next_variant(&exp, "b", 0), "b");
 		// Unknown current with step 0 falls to the control (index 0).
 		assert_eq!(next_variant(&exp, "unknown", 0), "a");
@@ -642,7 +549,7 @@ mod tests {
 
 	#[test]
 	fn next_variant_large_steps_wrap_via_modulo() {
-		let exp = Experiment::new(["a", "b", "c"], [1.0, 1.0, 1.0]);
+		let exp = Experiment::new(["a", "b", "c"]);
 		// |step| > len: 5 % 3 == 2, so from "a" we land two ahead → "c".
 		assert_eq!(next_variant(&exp, "a", 5), "c");
 		// Negative big step: from "a" stepping back 5 (== back 2) → "b".
@@ -654,7 +561,7 @@ mod tests {
 
 	#[test]
 	fn next_variant_single_variant_is_always_itself() {
-		let exp = Experiment::new(["only"], [1.0]);
+		let exp = Experiment::new(["only"]);
 		assert_eq!(next_variant(&exp, "only", 1), "only");
 		assert_eq!(next_variant(&exp, "only", -1), "only");
 		assert_eq!(next_variant(&exp, "unknown", 3), "only");
@@ -662,7 +569,7 @@ mod tests {
 
 	#[test]
 	fn next_variant_empty_experiment_returns_empty_string() {
-		let exp = Experiment::new(Vec::<String>::new(), Vec::<f64>::new());
+		let exp = Experiment::new(Vec::<String>::new());
 		assert_eq!(next_variant(&exp, "a", 1), "");
 		assert_eq!(next_variant(&exp, "", 0), "");
 	}

@@ -34,23 +34,24 @@ whatever capture it uses.
 
 ## Define experiments
 
-`variants[0]` is the control. Weights are relative (they need not sum to 1) —
-`pick_variant` normalises by their total. Keep variant keys stable: they are the
-dashboard contract.
+`variants[0]` is the control. Every variant gets an equal share: there are no
+weights to declare, because a split chosen at the declaration point is a guess.
+Re-weighting is an operator's override, and only the TS side has it
+(`applyOverrides` of `@evinvest/experiments`). Keep variant keys stable: they
+are the dashboard contract.
 
 ```rust
 use ev_lib::experiments::Experiment;
 
-let hero = Experiment::new(["a", "b"], [0.5, 0.5]);
-let team = Experiment::new(["a", "b", "c"], [2.0, 1.0, 1.0]); // 50% / 25% / 25%
-let nav = Experiment::uniform(["a", "b"]);                    // equal weights
+let hero = Experiment::new(["a", "b"]);      // 50% / 50%
+let team = Experiment::new(["a", "b", "c"]); // a third each
 ```
 
 Two optional knobs mirror the TS `ExperimentSpec`:
 
 ```rust
-let paused = Experiment::uniform(["a", "b"]).with_enabled(false); // kill switch
-let held = Experiment::new(["a", "b"], [0.5, 0.5]).with_holdout(0.1); // 10% pinned to control
+let paused = Experiment::new(["a", "b"]).with_enabled(false); // kill switch
+let held = Experiment::new(["a", "b"]).with_holdout(0.1);     // 10% pinned to control
 ```
 
 - `enabled: Some(false)` returns the control everywhere: `pick_variant` draws
@@ -58,7 +59,7 @@ let held = Experiment::new(["a", "b"], [0.5, 0.5]).with_holdout(0.1); // 10% pin
   experiment off takes effect for visitors already bucketed.
 - `holdout` (clamped to `[0, 1]`, `NaN` → 0) reuses the single draw: `u < h` is
   the control, otherwise `u` is rescaled to `(u - h) / (1 - h)` before the
-  weighted walk. A zero holdout leaves every pick bit-identical to no holdout.
+  equal-share walk. A zero holdout leaves every pick bit-identical to no holdout.
 - While an experiment is disabled, [`assign_variant`] serves the control and
   **writes no cookie** (the pure decision is [`plan_assignment`]). So after you
   re-enable it, no cookies from the pause are left pinning visitors to the
@@ -69,7 +70,7 @@ let held = Experiment::new(["a", "b"], [0.5, 0.5]).with_holdout(0.1); // 10% pin
 
 On the browser, assign once per device. [`assign_variant`] reads `ab_<key>`; if
 the cookie is set it resolves it (unknown values fall back to the control) and
-leaves it alone, otherwise it draws a weighted variant (via `js_sys::Math::random`)
+leaves it alone, otherwise it draws a variant at equal shares (via `js_sys::Math::random`)
 and writes the sticky cookie:
 
 ```rust
@@ -257,9 +258,9 @@ no browser — inject a closure instead of `Math::random`:
 ```rust
 use ev_lib::experiments::{Experiment, next_variant, pick_variant, resolve_variant};
 
-let exp = Experiment::new(["a", "b"], [0.5, 0.5]);
-assert_eq!(pick_variant(&exp, || 0.1), "a");        // below the first weight → control
-assert_eq!(pick_variant(&exp, || 0.9), "b");        // above it → second variant
+let exp = Experiment::new(["a", "b"]);
+assert_eq!(pick_variant(&exp, || 0.1), "a");        // first half → control
+assert_eq!(pick_variant(&exp, || 0.9), "b");        // second half → second variant
 assert_eq!(resolve_variant(&exp, Some("zzz")), "a"); // unknown → control
 assert_eq!(next_variant(&exp, "b", 1), "a");         // wraps
 ```
@@ -283,9 +284,9 @@ context (see the tests in `ui.rs`). To assert emitted events, pass an
   Seeding `rng` only makes a single pick deterministic; cross-visit consistency
   comes from the 30-day `ab_<key>` cookie. [`pick_variant_for`] is the exception:
   the hash of `(key, subject)` *is* the assignment.
-- **Changing the weights, the variant list, or the `key` of a hashed experiment
-  reshuffles subjects.** The hash only fixes the draw in `[0, 1)`; which variant
-  that draw lands on depends on the weights.
+- **Changing the variant list or the `key` of a hashed experiment reshuffles
+  subjects.** The hash only fixes the draw in `[0, 1)`; which variant that draw
+  lands on depends on how many variants share it.
 - **The cookie helpers are `wasm32`-only.** `assign_variant`, `current_variant`,
   `read_cookie`, and `write_variant` touch `document.cookie`; on native, use the
   pure core (`resolve_variant`, `pick_variant`).

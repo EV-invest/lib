@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyOverrides,
   cookieName,
   nextVariant,
   pickVariant,
@@ -10,10 +11,18 @@ import {
 } from '../src/index';
 
 const config = {
-  hero: { variants: ['a', 'b'], weights: [0.5, 0.5] },
-  // Unnormalized, three-way weights: total 4, boundaries at 0.5, 0.75, 1.0.
-  team: { variants: ['a', 'b', 'c'], weights: [2, 1, 1] },
+  hero: { variants: ['a', 'b'] },
+  // Three equal shares: boundaries at 1/3, 2/3, 1.
+  team: { variants: ['a', 'b', 'c'] },
 } as const satisfies ExperimentConfig;
+
+/**
+ * A spec carrying weights `applyOverrides` would reject — the shape a caller
+ * could still hand-build — to pin that `pickVariant` itself stays total on it.
+ */
+function unchecked(variants: readonly string[], weights: readonly number[]) {
+  return { flag: { variants, weights } };
+}
 
 describe('cookieName', () => {
   it('is `ab_<key>`', () => {
@@ -24,40 +33,48 @@ describe('cookieName', () => {
 });
 
 describe('pickVariant', () => {
-  it('is deterministic given a seeded rng and respects weight boundaries (50/50)', () => {
-    // r = rng() * total(1). Boundary at 0.5: r < 0.5 → "a", else "b".
+  it('splits two variants in equal halves with a seeded rng', () => {
+    // r = rng() * 2. Boundary at 0.5: below → "a", from it on → "b".
     expect(pickVariant(config, 'hero', () => 0)).toBe('a');
     expect(pickVariant(config, 'hero', () => 0.4999)).toBe('a');
     expect(pickVariant(config, 'hero', () => 0.5)).toBe('b');
     expect(pickVariant(config, 'hero', () => 0.999)).toBe('b');
   });
 
-  it('normalizes unnormalized weights and straddles every boundary', () => {
-    // total 4 → r = rng()*4. Cumulative: a [0,2), b [2,3), c [3,4).
-    // rng maps via *4: a for rng<0.5, b for [0.5,0.75), c for [0.75,1).
-    expect(pickVariant(config, 'team', () => 0)).toBe('a');
-    expect(pickVariant(config, 'team', () => 0.49)).toBe('a');
-    expect(pickVariant(config, 'team', () => 0.5)).toBe('b');
-    expect(pickVariant(config, 'team', () => 0.74)).toBe('b');
-    expect(pickVariant(config, 'team', () => 0.75)).toBe('c');
-    expect(pickVariant(config, 'team', () => 0.99)).toBe('c');
-  });
-
-  it('maps each rng sub-interval to the correct variant (property-style)', () => {
-    // Walk a handful of rng points; each must land in its cumulative sub-interval.
+  it('maps each third to its variant without declared weights', () => {
     const points: Array<[number, 'a' | 'b' | 'c']> = [
       [0, 'a'],
-      [0.25, 'a'],
-      [0.4999, 'a'],
-      [0.5, 'b'],
-      [0.6, 'b'],
-      [0.7499, 'b'],
-      [0.75, 'c'],
-      [0.9, 'c'],
+      [0.33, 'a'],
+      [0.34, 'b'],
+      [0.66, 'b'],
+      [0.67, 'c'],
+      [0.99, 'c'],
     ];
     for (const [r, expected] of points) {
       expect(pickVariant(config, 'team', () => r)).toBe(expected);
     }
+  });
+
+  it('walks operator weights laid over by applyOverrides, normalized by their total', () => {
+    // Override 2:1:1 → total 4: a [0,.5), b [.5,.75), c [.75,1).
+    const live = applyOverrides(config, { team: { weights: [2, 1, 1] } });
+    const points: Array<[number, 'a' | 'b' | 'c']> = [
+      [0, 'a'],
+      [0.4999, 'a'],
+      [0.5, 'b'],
+      [0.7499, 'b'],
+      [0.75, 'c'],
+      [0.99, 'c'],
+    ];
+    for (const [r, expected] of points) {
+      expect(pickVariant(live, 'team', () => r)).toBe(expected);
+    }
+  });
+
+  it('keeps equal shares for an experiment the override does not touch', () => {
+    const live = applyOverrides(config, { team: { weights: [2, 1, 1] } });
+    expect(live.hero).not.toHaveProperty('weights');
+    expect(pickVariant(live, 'hero', () => 0.5)).toBe('b');
   });
 
   it('falls through to the last variant at the top of the range (fp drift safety)', () => {
@@ -69,44 +86,34 @@ describe('pickVariant', () => {
 
   it('always picks the only variant of a single-variant experiment', () => {
     const single = {
-      solo: { variants: ['only'], weights: [1] },
+      solo: { variants: ['only'] },
     } as const satisfies ExperimentConfig;
     expect(pickVariant(single, 'solo', () => 0)).toBe('only');
     expect(pickVariant(single, 'solo', () => 0.5)).toBe('only');
     expect(pickVariant(single, 'solo', () => 1)).toBe('only');
   });
 
-  it('falls back to the control (variants[0]) when the total weight is zero', () => {
-    // Mirrors the Rust core: a non-positive total is deterministically the control.
-    const zero = {
-      flag: { variants: ['control', 'b'], weights: [0, 0] },
-    } as const satisfies ExperimentConfig;
+  it('falls back to the control (variants[0]) when hand-built weights total zero', () => {
+    const zero = unchecked(['control', 'b'], [0, 0]);
     expect(pickVariant(zero, 'flag', () => 0)).toBe('control');
     expect(pickVariant(zero, 'flag', () => 0.99)).toBe('control');
   });
 
-  it('ignores negative weights in the total', () => {
-    const neg = {
-      flag: { variants: ['a', 'b'], weights: [-1, 1] },
-    } as const satisfies ExperimentConfig;
-    expect(pickVariant(neg, 'flag', () => 0.5)).toBe('b');
+  it('ignores negative hand-built weights in the total', () => {
+    expect(pickVariant(unchecked(['a', 'b'], [-1, 1]), 'flag', () => 0.5)).toBe('b');
   });
 
-  it('stays valid when there are fewer weights than variants', () => {
-    // Missing weights default to 0, so only "a" carries weight.
-    const short = {
-      flag: { variants: ['a', 'b', 'c'], weights: [1] },
-    } as const satisfies ExperimentConfig;
+  it('stays valid when hand-built weights are fewer than the variants', () => {
+    // Missing weights count as 0, so only "a" carries weight.
+    const short = unchecked(['a', 'b', 'c'], [1]);
     expect(pickVariant(short, 'flag', () => 0)).toBe('a');
     expect(pickVariant(short, 'flag', () => 0.99)).toBe('a');
   });
 
-  it('stays valid when there are more weights than variants', () => {
+  it('stays valid when hand-built weights outnumber the variants', () => {
     // total 3 → a [0,1/3) b [1/3,2/3); the surplus weight maps to no variant and
     // falls through to the last real variant.
-    const long = {
-      flag: { variants: ['a', 'b'], weights: [1, 1, 1] },
-    } as const satisfies ExperimentConfig;
+    const long = unchecked(['a', 'b'], [1, 1, 1]);
     expect(pickVariant(long, 'flag', () => 0.1)).toBe('a');
     expect(pickVariant(long, 'flag', () => 0.5)).toBe('b');
     expect(pickVariant(long, 'flag', () => 0.9)).toBe('b');
@@ -170,7 +177,7 @@ describe('nextVariant', () => {
 
   it('always lands on the only variant of a single-variant experiment', () => {
     const single = {
-      solo: { variants: ['only'], weights: [1] },
+      solo: { variants: ['only'] },
     } as const satisfies ExperimentConfig;
     expect(nextVariant(single, 'solo', 'only', 1)).toBe('only');
     expect(nextVariant(single, 'solo', 'only', -1)).toBe('only');
@@ -199,6 +206,14 @@ describe('select', () => {
 });
 
 describe('Variant<C, K> narrowing', () => {
+  it('rejects declared weights (type-level)', () => {
+    const declared = {
+      // @ts-expect-error — weights are not declared in code; the panel overrides them.
+      hero: { variants: ['a', 'b'], weights: [1, 1] },
+    } as const satisfies ExperimentConfig;
+    void declared;
+  });
+
   it('narrows variants to the declared literal union (type-level)', () => {
     // Assigning a valid literal is fine.
     const ok: Variant<typeof config, 'hero'> = 'a';

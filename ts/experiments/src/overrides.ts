@@ -16,12 +16,14 @@ export type ExperimentOverrides = Readonly<Record<string, ExperimentOverride>>;
 
 /**
  * The config {@link applyOverrides} returns: the variants keep their declared
- * (literal) types, while `weights`, `enabled` and `holdout` are whatever the
- * operator set, so they widen to plain values.
+ * (literal) types, while `enabled` and `holdout` are whatever the operator set,
+ * so they widen to plain values. `weights` is present only when the operator
+ * set valid ones — the config in code never declares weights, so without an
+ * override every variant gets an equal share.
  */
 export type OverriddenConfig<C extends ExperimentConfig> = {
-  readonly [K in keyof C]: Omit<C[K], 'weights' | 'enabled' | 'holdout'> & {
-    readonly weights: readonly number[];
+  readonly [K in keyof C]: Omit<C[K], 'enabled' | 'holdout'> & {
+    readonly weights?: readonly number[];
     readonly enabled?: boolean;
     readonly holdout?: number;
   };

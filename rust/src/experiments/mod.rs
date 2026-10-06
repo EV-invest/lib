@@ -1,6 +1,6 @@
 //! `experiments` — frontend-only A/B testing (mirrors `@evinvest/experiments`).
 //!
-//! Cookie-bucketed weighted variant assignment for Dioxus, plus deterministic
+//! Cookie-bucketed equal-share variant assignment for Dioxus, plus deterministic
 //! hash bucketing ([`pick_variant_for`]) for cookie-free, per-subject splits.
 //! The bucketing core ([`config`]) is pure and `wasm32`-safe; the browser
 //! cookie helpers ([`assign_variant`], [`read_cookie`]) are `wasm32`-only.

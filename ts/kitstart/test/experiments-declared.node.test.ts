@@ -8,8 +8,8 @@ const AT = new Date("2026-10-04T10:00:00.000Z");
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 const experiments = {
-  lead_layout: { variants: ["a", "b"], weights: [1, 1] },
-  hero: { variants: ["control", "short", "long"], weights: [2, 1, 1], enabled: false, holdout: 0.1 },
+  lead_layout: { variants: ["a", "b"] },
+  hero: { variants: ["control", "short", "long"], enabled: false, holdout: 0.1 },
 } as const;
 
 const opened: WebhookOutbox[] = [];
@@ -52,7 +52,7 @@ describe("experiments.declared@1", () => {
       properties: {
         experiments: [
           { key: "lead_layout", variants: ["a", "b"], weights: [1, 1], enabled: true },
-          { key: "hero", variants: ["control", "short", "long"], weights: [2, 1, 1], enabled: false, holdout: 0.1, summary: "A shorter hero converts better" },
+          { key: "hero", variants: ["control", "short", "long"], weights: [1, 1, 1], enabled: false, holdout: 0.1, summary: "A shorter hero converts better" },
         ],
       },
     });
@@ -67,19 +67,15 @@ describe("experiments.declared@1", () => {
   });
 
   it.each([
-    ["Lead-Layout", { variants: ["a", "b"], weights: [1, 1] }, undefined, /key/],
-    ["k", { variants: ["a"], weights: [1] }, undefined, /two variants/],
-    ["k", { variants: ["a", "a"], weights: [1, 1] }, undefined, /twice/],
-    ["k", { variants: ["a", "B c"], weights: [1, 1] }, undefined, /slug/],
-    ["k", { variants: ["a", "b"], weights: [1] }, undefined, /one weight per variant/],
-    ["k", { variants: ["a", "b"], weights: [1, -1] }, undefined, /negative/],
-    ["k", { variants: ["a", "b"], weights: [1, Number.NaN] }, undefined, /negative/],
-    ["k", { variants: ["a", "b"], weights: [0, 0] }, undefined, /zero/],
-    ["k", { variants: ["a", "b"], weights: [1, 1], holdout: 1 }, undefined, /holdout/],
-    ["k", { variants: ["a", "b"], weights: [1, 1] }, "x".repeat(201), /summary/],
+    ["Lead-Layout", { variants: ["a", "b"] }, undefined, /key/],
+    ["k", { variants: ["a"] }, undefined, /two variants/],
+    ["k", { variants: ["a", "a"] }, undefined, /twice/],
+    ["k", { variants: ["a", "B c"] }, undefined, /slug/],
+    ["k", { variants: ["a", "b"], holdout: 1 }, undefined, /holdout/],
+    ["k", { variants: ["a", "b"] }, "x".repeat(201), /summary/],
   ])("leaves out %s: %j", (key, spec, summary, why) => {
     expect(declarationProblem(key, spec, summary)).toMatch(why);
-    const { body, skipped } = experimentsDeclaredBody({ [key]: spec, ok: { variants: ["a", "b"], weights: [1, 1] } }, { brandId: "aquafix", sourceId: "s", at: AT, ...(summary ? { summaries: { [key]: summary } } : {}) });
+    const { body, skipped } = experimentsDeclaredBody({ [key]: spec, ok: { variants: ["a", "b"] } }, { brandId: "aquafix", sourceId: "s", at: AT, ...(summary ? { summaries: { [key]: summary } } : {}) });
     expect(body.events[0].properties.experiments.map(e => e.key)).toEqual(["ok"]);
     expect(skipped).toEqual([{ key, why: expect.stringMatching(why) }]);
   });
@@ -103,7 +99,7 @@ describe("declareExperiments", () => {
   it("logs what it left out and declares the rest", () => {
     const { hook } = wired();
     const log = { warn: vi.fn(), error: vi.fn() };
-    const outcome = declareExperiments(() => hook, { ...experiments, Bad: { variants: ["a", "b"], weights: [1, 1] } }, { log });
+    const outcome = declareExperiments(() => hook, { ...experiments, Bad: { variants: ["a", "b"] } }, { log });
     expect(outcome).toMatchObject({ kind: "queued", skipped: [{ key: "Bad" }] });
     expect(log.error).toHaveBeenCalledWith(expect.stringContaining("Bad is not declared"));
   });

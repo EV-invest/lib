@@ -837,8 +837,9 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavai
 
 ## Experiments from the panel
 
-The experiments live in code (`@evinvest/experiments`, one `as const` config);
-the panel decides their weights and kill switch, and PostHog counts them.
+The experiments live in code (`@evinvest/experiments`, one `as const` config
+of variants, split equally); the panel decides any other weights and the kill
+switch, and PostHog counts them.
 
 **Overrides** (`createExperimentsSource`): `GET <base>/experiments`, the same
 base as the place source, `{ "experiments": { "<key>": { enabled?, weights?,
@@ -862,7 +863,8 @@ declared length, holdout in `[0, 1)`) is `applyOverrides`' call.
 
 **Declaration** (`declareExperiments`): at every start the landing tells the
 panel which experiments this build runs — `experiments.declared@1`, one event
-with every experiment's key, variants, weights, `enabled`, `holdout` and an
+with every experiment's key, variants, weights (always one each — the code's
+equal split), `enabled`, `holdout` and an
 optional one-line `summary`, under a fresh UUIDv7. It goes through the lead
 webhook's outbox, signed and retried like a lead (so it needs the same
 `LEAD_WEBHOOK_URL` and sqlite lead store), and the panel keeps the latest by
@@ -879,8 +881,8 @@ export async function register() {
 It never throws and never holds the start: no webhook, one that cannot be
 built, or a queue that refuses the row is logged and skipped — the panel keeps
 the last declaration. An experiment the panel would refuse (key not
-`[a-z0-9_]{1,64}`, fewer than two unique slug variants, weights not one per
-variant, negative or summing to zero, holdout outside `[0, 1)`, summary over
+`[a-z0-9_]{1,64}`, fewer than two unique slug variants, holdout outside
+`[0, 1)`, summary over
 200 characters) is left out and logged, since the panel judges the event whole.
 
 ## The site
