@@ -60,6 +60,11 @@
           rs = v_flakes.rs {
             inherit pkgs rust;
             build.enable = false;
+            # No `codestyle rust format` in pre-commit: it ran over the whole tree,
+            # left its rewrites unstaged, and upgraded itself from crates.io on every
+            # commit, so each commit dirtied the checkout with item reorders that
+            # detach doc comments. CI never enforced it; rustfmt via treefmt stays.
+            style.format = false;
           };
 
           github = v_flakes.github {
