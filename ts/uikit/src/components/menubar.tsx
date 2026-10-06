@@ -121,10 +121,14 @@ export function MenubarContent({
     Array.from(
       contentRef.current?.querySelectorAll<HTMLElement>("[role^='menuitem']") ?? [],
     ).filter((el) => el.getAttribute("data-disabled") === null);
-  const { activeIndex, onKeyDown } = useRovingFocus({
+  const { activeIndex, setActiveIndex, onKeyDown } = useRovingFocus({
     count: () => items().length,
     orientation: "vertical",
   });
+  // Reset on close: reopen on the first item, never on an index past the end.
+  React.useEffect(() => {
+    if (!open) setActiveIndex(0);
+  }, [open, setActiveIndex]);
   React.useEffect(() => {
     if (!open) return;
     items()[activeIndex]?.focus();
