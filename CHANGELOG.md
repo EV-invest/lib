@@ -38,6 +38,21 @@ Rust crate and its TypeScript mirror at once.
 
 ### Fixed
 
+- **A `Toggle` that is on is the primary fill** (both ports, #175). It wore
+  `bg-hover` — ~1.2:1 against the surface and the very tint an outline toggle
+  wore on hover, so in a weekday `ToggleGroup` the selected days could not be
+  told from a pointed-at one. On is now `bg-primary text-on-primary` (≥ 3:1
+  against `background`, `secondary`, `card` and `popover`; the outline variant
+  also takes `border-primary`), hover stays a surface tint, and the toggle
+  wears the offset `FILLED_FOCUS_RING` instead of the halo. A consumer that
+  styled the old on-state with its own classes should drop them.
+- **Destructive menu rows read at AA** (both ports, #166). The row's text and
+  icon move from `text-accent-error` to a new derived token,
+  `--accent-error-ink` (`color-mix(in srgb, var(--accent-error) 70%,
+  var(--ink))`; EV `#ec8379`): 4.83:1 on the row's `accent-error/10` tint over
+  `popover` (was 3.76:1), 5.36:1 on `popover`. Derived, so an existing brand
+  file keeps rendering; one whose mix misses 4.5:1 pins `accent-error-ink` in
+  its `[colors.*]`. See `docs/spec/accents.md`.
 - **`Calendar` weekday headers stay on one line in `vi` and `he`**
   (`@evinvest/uikit`, #122). CLDR spells the Vietnamese short weekday as two
   words ("Thứ 2"), which wrapped inside the fixed 36px column and grew the

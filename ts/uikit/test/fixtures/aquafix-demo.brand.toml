@@ -8,6 +8,8 @@
 #   light muted  #edf1f5 → #d2dbe6 — a slider track on card needs ~1.3:1, was 1.07
 #   dark  primary-ink  (new)       #e08f5c — 6.11:1 on card (was 4.20 as copper)
 #   chart-1 … chart-5  (new)       the accents, which are already distinguishable
+#   dark  accent-error-ink  (new)  #f4958d — the contract's mix lands at 3.83:1 on
+#                                  the destructive row's tint; this reads 5.28:1
 #   the derived tokens (hover, ink-*, border, input, ring) are left to the
 #   contract, so they follow this ink instead of being pinned by hand.
 
@@ -69,6 +71,7 @@ accent-warn = "#e08a3c"
 on-accent-warn = "#051726"
 accent-error = "#d8362a"
 on-accent-error = "#ffffff"
+accent-error-ink = "#f4958d"
 chart-1 = "#e08f5c"
 chart-2 = "#1e9e6a"
 chart-3 = "#e08a3c"

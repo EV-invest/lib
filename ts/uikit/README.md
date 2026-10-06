@@ -63,7 +63,7 @@ your Tailwind v4 entrypoint — this is the load-bearing part of the kit:
 | surfaces | `background` `card` `popover` `muted` `hover` |
 | ink | `ink` `ink-mid` `ink-soft` — hierarchy, loudest first |
 | lines | `border` `input` `ring` |
-| roles | `brand` `primary` `secondary` `positive` `accent-trace` `accent-debug` `accent-info` `accent-warn` `accent-error`, each with `on-*` where it gets filled; `primary-ink` — the primary role as ink on a surface (`#128377` fill under a white `on-primary`, `#2a9d8f` ink) |
+| roles | `brand` `primary` `secondary` `positive` `accent-trace` `accent-debug` `accent-info` `accent-warn` `accent-error`, each with `on-*` where it gets filled; `primary-ink` — the primary role as ink on a surface (`#128377` fill under a white `on-primary`, `#2a9d8f` ink); `accent-error-ink` — the error role as text on its own tint (derived, a palette may pin it) |
 | scalars | `radius` `control-radius` `control-py` `display-scale` `band-py` `page-max` `page-px` `shell-rail-w` `shell-tab-bar-h` `shadow-*` `font-*` |
 | motion | `ev-ease-out` `ev-ease-in-out` `ev-dur-fast` `ev-dur-base` `ev-dur-slow` `ev-rise` `ev-stagger` `ev-stagger-section` |
 | charts | `chart-1` … `chart-5` |
@@ -106,7 +106,8 @@ It has two halves, each also shipped as a flat sheet of its own —
 
 - **the contract** — the `@theme inline` mapping, the geometry, and the tokens
   *derived* from a palette (`hover`, `ink-mid`, `ink-soft`, `border`, `input`
-  from `ink`; `ring` from `primary-ink`). The derived ones are redeclared on
+  from `ink`; `ring` from `primary-ink`; `accent-error-ink` from `accent-error`
+  and `ink`). The derived ones are redeclared on
   `:root`, `[data-brand]`, `.light` and `.dark` at zero specificity, so a brand
   scope gets its own borders, hover and focus ring rather than inheriting the
   root's, and a palette may still pin any of them outright. The geometry

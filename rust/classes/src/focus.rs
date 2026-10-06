@@ -21,8 +21,8 @@ pub(crate) use filled_focus_ring;
 /// leaves the outline style at `none`, and a width alone would paint nothing.
 ///
 /// Every table that paints a fill already carries it: the filled button and
-/// badge variants, [`accent_fill_class`](crate::accent_fill_class), the switch
-/// and the checkbox. It is exported for a consumer's own filled control.
+/// badge variants, [`accent_fill_class`](crate::accent_fill_class), the switch,
+/// the checkbox and the toggle. It is exported for a consumer's own filled control.
 pub const FILLED_FOCUS_RING: &str = filled_focus_ring!();
 
 /// A macro for the same reason as [`filled_focus_ring!`]: the item tables
@@ -54,7 +54,7 @@ mod tests {
 	use super::{FILLED_FOCUS_RING, OPTION_FOCUS_RING};
 	use crate::{
 		Accent, BadgeVariant, ButtonVariant, CHECKBOX_BASE, CONTEXT_MENU_CHECK_ITEM, CONTEXT_MENU_ITEM, CONTEXT_MENU_SUB_TRIGGER, DROPDOWN_MENU_CHECK_ITEM, DROPDOWN_MENU_ITEM,
-		DROPDOWN_MENU_SUB_TRIGGER, MENUBAR_CHECKBOX_ITEM, MENUBAR_ITEM, MENUBAR_RADIO_ITEM, MENUBAR_SUB_TRIGGER, MENUBAR_TRIGGER, SELECT_ITEM, SWITCH_BASE, accent_fill_class,
+		DROPDOWN_MENU_SUB_TRIGGER, MENUBAR_CHECKBOX_ITEM, MENUBAR_ITEM, MENUBAR_RADIO_ITEM, MENUBAR_SUB_TRIGGER, MENUBAR_TRIGGER, SELECT_ITEM, SWITCH_BASE, TOGGLE_BASE, accent_fill_class,
 		accent_outline_class,
 	};
 
@@ -105,8 +105,8 @@ mod tests {
 	}
 
 	#[test]
-	fn switch_and_checkbox_carry_the_ring_without_the_halo() {
-		for base in [SWITCH_BASE, CHECKBOX_BASE] {
+	fn switch_checkbox_and_toggle_carry_the_ring_without_the_halo() {
+		for base in [SWITCH_BASE, CHECKBOX_BASE, TOGGLE_BASE] {
 			assert!(base.ends_with(FILLED_FOCUS_RING), "{base}");
 			assert!(!base.contains("ring-[3px]"), "{base}");
 		}
