@@ -48,6 +48,8 @@ test("a new visitor gets no menu and never fetches its panel; a test visit gets 
 
 test("a variant's tap forces it by the URL; the reset drops the force and keeps the visit a test", async ({ page, context, baseURL }) => {
   await asTester(context, baseURL);
+  // Assigned `a`, as a brand's proxy assigns every running experiment: one without a cookie is off in the menu.
+  await context.addCookies([{ name: "ab_lead_form", value: "a", url: baseURL ?? "" }]);
   await page.goto("/fr?utm_source=qa");
   await chip(page).click();
   await panel(page).getByRole("button", { name: "Steps" }).click();

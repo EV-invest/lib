@@ -11,14 +11,16 @@ const TEXT: AbSwitcherText = {
   leave: "Leave test",
   minimize: "Minimize",
   hide: "Hide",
-  unassigned: "not assigned",
+  unassigned: "not running",
 };
 
 /**
  * The QA menu itself, loaded only when `AbSwitcher` lets it: a chip in a
  * corner and, on a tap, each experiment's variants. A tap on a variant is the
  * brand's own force parameter — no other way in. Minimized and hidden live in
- * memory only: a reload brings the chip back.
+ * memory only: a reload brings the chip back. An experiment no cookie assigns
+ * is off: the proxy assigns every running one on the page the menu mounts on,
+ * and would refuse a force for it, so its variants are disabled.
  */
 export function AbSwitcherPanel({ experiments, qaCookie, current, forceParam = AB_FORCE_PARAM, className, text }: AbSwitcherProps) {
   const t = { ...TEXT, ...text };
@@ -41,16 +43,18 @@ export function AbSwitcherPanel({ experiments, qaCookie, current, forceParam = A
     location.replace(plan.url);
   };
 
+  // The first choice a tap can take gets the focus; with none, the reset.
+  const live = experiments.findIndex(e => assigned[e.key] !== undefined);
   if (hidden) return null;
   return (
     <div data-ab-switcher="" ref={root} className={cn("fixed right-4 bottom-4 z-40", className)}>
       {open && (
         <div role="dialog" aria-label={t.title} className="absolute right-0 bottom-full mb-2 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-4 rounded-md border border-border bg-popover p-3 text-ink shadow-md">
           {experiments.map((e, i) => (
-            <ExperimentRow key={e.key} experiment={e} value={assigned[e.key]} unassigned={t.unassigned} autoFocus={i === 0} onPick={v => location.assign(abVariantUrl(location.href, e.key, v, forceParam))} />
+            <ExperimentRow key={e.key} experiment={e} value={assigned[e.key]} unassigned={t.unassigned} autoFocus={i === live} onPick={v => location.assign(abVariantUrl(location.href, e.key, v, forceParam))} />
           ))}
           <div className="flex flex-wrap gap-2">
-            <Button variant="primary" size="touch" className="flex-1" onClick={() => reset("reassign")}>{t.reset}</Button>
+            <Button variant="primary" size="touch" autoFocus={live < 0} className="flex-1" onClick={() => reset("reassign")}>{t.reset}</Button>
             <Button variant="outline" size="touch" className="flex-1" onClick={() => reset("leave")}>{t.leave}</Button>
           </div>
           <div className="flex gap-2">
@@ -109,7 +113,7 @@ function ExperimentRow({ experiment: e, value, unassigned, autoFocus, onPick }: 
         {e.variants.map((v, i) => {
           const on = v.value === value;
           return (
-            <Button key={v.value} variant={on ? "primary" : "outline"} size="touch" aria-pressed={on} autoFocus={autoFocus && i === 0} className="flex-1" onClick={() => onPick(v.value)}>
+            <Button key={v.value} variant={on ? "primary" : "outline"} size="touch" aria-pressed={on} disabled={value === undefined} autoFocus={autoFocus && i === 0} className="flex-1" onClick={() => onPick(v.value)}>
               {v.label}
             </Button>
           );

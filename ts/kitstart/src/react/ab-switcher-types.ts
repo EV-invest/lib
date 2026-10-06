@@ -21,7 +21,7 @@ export interface AbSwitcherText {
   leave: string;
   minimize: string;
   hide: string;
-  /** Shown for an experiment no cookie assigns yet. */
+  /** Shown for an experiment no cookie assigns — one that is off; `not running` by default. */
   unassigned: string;
 }
 

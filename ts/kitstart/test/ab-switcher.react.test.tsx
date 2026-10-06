@@ -94,7 +94,34 @@ describe("AbSwitcherPanel", () => {
     const panel = screen.getByRole("dialog", { name: "A/B test switcher" });
     expect(within(panel).getByRole("button", { name: "Steps" })).toHaveAttribute("aria-pressed", "true");
     expect(within(panel).getByRole("button", { name: "Compact" })).toHaveAttribute("aria-pressed", "false");
-    expect(within(panel).getByRole("group", { name: "hero" })).toHaveTextContent("not assigned");
+    expect(within(panel).getByRole("group", { name: "hero" })).toHaveTextContent("not running");
+  });
+
+  it("shows an experiment no cookie assigns as off: its variants disabled, the assigned one's live", async () => {
+    document.cookie = "ab_lead_form=a; path=/";
+    const { AbSwitcherPanel } = await import("../src/react/AbSwitcherPanel");
+    render(<AbSwitcherPanel experiments={experiments} qaCookie="ab__qa" />);
+    expect(chip()).toHaveTextContent("A/Ba–");
+    fireEvent.click(chip());
+    const hero = screen.getByRole("group", { name: "hero" });
+    expect(hero).toHaveTextContent("not running");
+    for (const name of ["Plain", "Photo"]) expect(within(hero).getByRole("button", { name })).toBeDisabled();
+    fireEvent.click(within(hero).getByRole("button", { name: "Photo" }));
+    expect(nav.assign).not.toHaveBeenCalled();
+    const form = screen.getByRole("group", { name: "Lead form" });
+    expect(form).not.toHaveTextContent("not running");
+    for (const name of ["Compact", "Steps"]) expect(within(form).getByRole("button", { name })).toBeEnabled();
+    expect(within(form).getByRole("button", { name: "Compact" })).toHaveFocus();
+  });
+
+  it("takes the assignments from current when given, disabling only what it leaves out", async () => {
+    document.cookie = "ab_hero=b; path=/";
+    const { AbSwitcherPanel } = await import("../src/react/AbSwitcherPanel");
+    render(<AbSwitcherPanel experiments={experiments} qaCookie="ab__qa" current={{ lead_form: "b" }} text={{ unassigned: "à l’arrêt" }} />);
+    fireEvent.click(chip());
+    expect(screen.getByRole("button", { name: "Steps" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Photo" })).toBeDisabled();
+    expect(screen.getByRole("group", { name: "hero" })).toHaveTextContent("à l’arrêt");
   });
 
   it("forces a variant through the brand's parameter, keeping the page's own", async () => {
@@ -123,7 +150,8 @@ describe("AbSwitcherPanel", () => {
     const { AbSwitcherPanel } = await import("../src/react/AbSwitcherPanel");
     const { container } = render(<AbSwitcherPanel experiments={experiments} qaCookie="ab__qa" text={{ hide: "Masquer" }} />);
     fireEvent.click(chip());
-    expect(screen.getByRole("button", { name: "Compact" })).toHaveFocus();
+    // No cookie assigns either experiment: nothing to pick, so the reset takes the focus.
+    expect(screen.getByRole("button", { name: "Reset" })).toHaveFocus();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(chip()).toHaveFocus();
