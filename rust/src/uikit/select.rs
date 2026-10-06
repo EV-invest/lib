@@ -199,10 +199,8 @@ pub fn SelectItem(
 	let on_focus = {
 		let value = value.clone();
 		move |_| {
-			// A click on a disabled row still focuses it; Enter must not then choose it.
-			if disabled {
-				return;
-			}
+			// A disabled row takes focus from a click too: it becomes active, so
+			// the arrows go on from it, and Enter or Space on it does nothing.
 			let mut active = ctx.active;
 			if active.peek().as_deref() != Some(value.as_str()) {
 				active.set(Some(value.clone()));
@@ -299,10 +297,21 @@ impl SelectCtx {
 	/// The options the keys can reach, as `(value, lowercased label)`, in the
 	/// order on screen.
 	fn reachable(&self) -> Vec<(String, String)> {
+		self.on_screen().into_iter().filter(|o| !o.disabled).map(|o| (o.value, o.label)).collect()
+	}
+
+	/// Every option, disabled ones too, in the order on screen; labels lowercased.
+	fn on_screen(&self) -> Vec<ListedOption> {
 		let options = self.options.peek();
-		let mut reachable: Vec<&SelectOption> = options.values().filter(|o| !o.disabled).collect();
-		sort_into_document_order(&mut reachable, |o| o.el.as_ref());
-		reachable.into_iter().map(|o| (o.value.clone(), o.label.to_lowercase())).collect()
+		let mut all: Vec<&SelectOption> = options.values().collect();
+		sort_into_document_order(&mut all, |o| o.el.as_ref());
+		all.into_iter()
+			.map(|o| ListedOption {
+				value: o.value.clone(),
+				label: o.label.to_lowercase(),
+				disabled: o.disabled,
+			})
+			.collect()
 	}
 
 	fn enabled(&self) -> Vec<String> {
@@ -342,17 +351,53 @@ impl SelectCtx {
 	/// Arrows, Home, End, Enter, Space, Tab and type-ahead on the open list.
 	fn on_list_key(&self, e: &KeyboardEvent) {
 		let key = e.key();
-		let (enabled, labels): (Vec<String>, Vec<String>) = self.reachable().into_iter().unzip();
+		let all = self.on_screen();
+		let (enabled, labels): (Vec<String>, Vec<String>) = all.iter().filter(|o| !o.disabled).map(|o| (o.value.clone(), o.label.clone())).unzip();
 		let current = self.active.peek().clone().or_else(|| self.landing());
 		let at = current.as_ref().and_then(|c| enabled.iter().position(|v| v == c));
-		// Only an option the keys can reach is chosen — never a disabled one.
+		// On a focused disabled option: how many reachable options come before it,
+		// so the arrows and the type-ahead go on from where it sits.
+		let before = match (at, &current) {
+			(None, Some(c)) => all.iter().position(|o| o.value == *c).map(|i| all[..i].iter().filter(|o| !o.disabled).count()),
+			_ => None,
+		};
+		// Only an option the keys can reach is chosen — never a disabled one,
+		// not even the previous active one behind it.
 		let chosen = at.map(|at| enabled[at].clone());
 		let now = now_ms();
 		let typing = self.typed.peek().is_typing(now);
 		let last = enabled.len().checked_sub(1);
 		let to = match (&key, last) {
-			(Key::ArrowDown, Some(last)) => Some(at.map_or(0, |at| if at == last { 0 } else { at + 1 })),
-			(Key::ArrowUp, Some(last)) => Some(at.map_or(last, |at| if at == 0 { last } else { at - 1 })),
+			(Key::ArrowDown, Some(last)) => Some(match (at, before) {
+				(Some(at), _) =>
+					if at == last {
+						0
+					} else {
+						at + 1
+					},
+				(None, Some(before)) =>
+					if before > last {
+						0
+					} else {
+						before
+					},
+				(None, None) => 0,
+			}),
+			(Key::ArrowUp, Some(last)) => Some(match (at, before) {
+				(Some(at), _) =>
+					if at == 0 {
+						last
+					} else {
+						at - 1
+					},
+				(None, Some(before)) =>
+					if before == 0 {
+						last
+					} else {
+						before - 1
+					},
+				(None, None) => last,
+			}),
 			(Key::Home, Some(_)) => Some(0),
 			(Key::End, Some(last)) => Some(last),
 			(Key::Enter, _) => {
@@ -386,7 +431,7 @@ impl SelectCtx {
 				e.prevent_default();
 				let mut typed = self.typed;
 				let query = typed.write().push(ch, now);
-				typeahead_match(&labels, at, &query)
+				typeahead_match(&labels, at.or_else(|| before.and_then(|b| b.checked_sub(1))), &query)
 			}
 			_ => return,
 		};
@@ -395,6 +440,12 @@ impl SelectCtx {
 			self.move_to(enabled[to].clone());
 		}
 	}
+}
+
+struct ListedOption {
+	value: String,
+	label: String,
+	disabled: bool,
 }
 
 struct SelectOption {
@@ -828,10 +879,34 @@ mod tests {
 			}
 		}
 		// A click on a disabled row still focuses it; the sweep focuses it last.
-		let html = render_after_steps(app, &[Step::Focus, Step::Key(Key::Enter)]);
-		assert_eq!(shown(&html), "apple", "{html}");
-		let html = render_after_steps(app, &[Step::Focus, Step::Key(ch(" "))]);
-		assert_eq!(shown(&html), "apple", "{html}");
+		for key in [Key::Enter, ch(" ")] {
+			let html = render_after_steps(app, &[Step::Focus, Step::Key(key)]);
+			assert_eq!(shown(&html), "Pick", "nothing is chosen, not even the option focused before: {html}");
+			assert!(html.contains("role=\"listbox\""), "the list stays open: {html}");
+		}
+	}
+
+	#[test]
+	fn arrows_go_on_from_a_focused_disabled_option() {
+		fn app() -> Element {
+			rsx! {
+				Select { default_open: true,
+					SelectTrigger {
+						SelectValue { placeholder: "Pick".to_string() }
+					}
+					SelectContent {
+						SelectItem { value: "apple", "Apple" }
+						SelectItem { value: "cherry", "Cherry" }
+						SelectItem { value: "banana", disabled: true, "Banana" }
+					}
+				}
+			}
+		}
+		// The sweep focuses Cherry, then the disabled Banana last.
+		let html = render_after_steps(app, &[Step::Focus, Step::Key(Key::ArrowUp), Step::Key(Key::Enter)]);
+		assert_eq!(shown(&html), "cherry", "up from Banana is Cherry: {html}");
+		let html = render_after_steps(app, &[Step::Focus, Step::Key(Key::ArrowDown), Step::Key(Key::Enter)]);
+		assert_eq!(shown(&html), "apple", "down from the last wraps: {html}");
 	}
 
 	#[test]
