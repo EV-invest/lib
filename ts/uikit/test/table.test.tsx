@@ -98,12 +98,14 @@ function tableOf(props: React.ComponentProps<typeof Table>) {
 }
 
 describe("Table variant and density", () => {
-  it("defaults set no geometry and say so in data attributes", () => {
+  it("defaults reset the inherited geometry and say so in data attributes", () => {
     const { container } = tableOf({});
     const table = container.querySelector('[data-slot="table"]')!;
     expect(table).toHaveAttribute("data-variant", "default");
     expect(table).toHaveAttribute("data-density", "default");
-    expect(table.className).not.toContain("--table-");
+    // Nested in a card table, a default one must not wear the card geometry.
+    expect(table).toHaveClass("[--table-px:initial]", "[--table-head-case:initial]", "[--table-dense-py:initial]");
+    expect(table.className).not.toContain("calc(var(--spacing)*5)");
   });
 
   it("card sets the head and cell properties and drops the head-row hover", () => {
@@ -114,7 +116,7 @@ describe("Table variant and density", () => {
       "[--table-px:calc(var(--spacing)*5)]",
       "[--table-py:calc(var(--spacing)*3)]",
       "[--table-head-case:uppercase]",
-      "[&_thead_tr:hover]:bg-transparent",
+      "[&>thead>tr:hover]:bg-transparent",
     );
   });
 

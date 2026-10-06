@@ -15,11 +15,14 @@
 [&_[data-slot=command-input-wrapper]]:h-12 [&_[data-slot=command-input]]:h-12
 [&_tr:last-child]:border-0
 [&_tr]:border-b
-[--table-
 [--table-dense-py:calc(var(--spacing)*1.5)]
 [--table-dense-py:calc(var(--spacing)*1.5)] [--table-head-h:calc(var(--spacing)*8)]
+[--table-dense-py:initial]
+[--table-dense-py:initial] [--table-head-h:initial]
 [--table-head-case:uppercase]
-[--table-px:calc(var(--spacing)*5)] [--table-py:calc(var(--spacing)*3)] [--table-head-ink:var(--ink-soft)] [--table-head-text:var(--text-xs)] [--table-head-tracking:var(--tracking-wide)] [--table-head-case:uppercase] [&_thead_tr:hover]:bg-transparent
+[--table-px:calc(var(--spacing)*5)] [--table-py:calc(var(--spacing)*3)] [--table-head-ink:var(--ink-soft)] [--table-head-text:var(--text-xs)] [--table-head-tracking:var(--tracking-wide)] [--table-head-case:uppercase] [&>thead>tr:hover]:bg-transparent
+[--table-px:initial]
+[--table-px:initial] [--table-py:initial] [--table-head-ink:initial] [--table-head-text:initial] [--table-head-tracking:initial] [--table-head-case:initial]
 [.border-t]:pt-6
 [data-chart=chart-x]
 [overflow-wrap:anywhere]
@@ -203,6 +206,7 @@ breadcrumb-page
 breadcrumb-separator
 button-group
 button-group-separator
+calc(var(--spacing)*5)
 calendar-caption
 calendar-day
 card-action
@@ -896,6 +900,7 @@ top-4 left-1/2 -translate-x-1/2
 top-4 left-4
 top-4 right-4
 top-left
+tr:hover]:bg-transparent
 trades-tape-row
 transform: translateX(-{}%)
 translateX(-100%)

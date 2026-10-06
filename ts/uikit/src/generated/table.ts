@@ -5,13 +5,13 @@ export const TABLE_CONTAINER = "relative w-full overflow-x-auto";
 export const TABLE = "w-full caption-bottom text-sm";
 
 export const tableVariants = {
-  "default": "",
-  "card": "[--table-px:calc(var(--spacing)*5)] [--table-py:calc(var(--spacing)*3)] [--table-head-ink:var(--ink-soft)] [--table-head-text:var(--text-xs)] [--table-head-tracking:var(--tracking-wide)] [--table-head-case:uppercase] [&_thead_tr:hover]:bg-transparent",
+  "default": "[--table-px:initial] [--table-py:initial] [--table-head-ink:initial] [--table-head-text:initial] [--table-head-tracking:initial] [--table-head-case:initial]",
+  "card": "[--table-px:calc(var(--spacing)*5)] [--table-py:calc(var(--spacing)*3)] [--table-head-ink:var(--ink-soft)] [--table-head-text:var(--text-xs)] [--table-head-tracking:var(--tracking-wide)] [--table-head-case:uppercase] [&>thead>tr:hover]:bg-transparent",
 } as const;
 export type TableVariant = keyof typeof tableVariants;
 
 export const tableDensities = {
-  "default": "",
+  "default": "[--table-dense-py:initial] [--table-head-h:initial]",
   "compact": "[--table-dense-py:calc(var(--spacing)*1.5)] [--table-head-h:calc(var(--spacing)*8)]",
 } as const;
 export type TableDensity = keyof typeof tableDensities;

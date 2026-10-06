@@ -15,15 +15,22 @@ pub const TABLE: &str = "w-full caption-bottom text-sm";
 #[derive(Debug, PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum TableVariant {
-	// Empty on purpose: the cells' `var()` fallbacks are the default look, so a
-	// bare `TableCell` outside any `Table` still renders it.
-	#[tw(default, class = "")]
+	// The cells' `var()` fallbacks are the default look, so a bare `TableCell`
+	// outside any `Table` still renders it. The properties inherit, so a default
+	// table nested in a `card` one resets them to `initial` (= unset, the
+	// fallbacks apply) instead of wearing its parent's geometry.
+	#[tw(
+		default,
+		class = "[--table-px:initial] [--table-py:initial] [--table-head-ink:initial] [--table-head-text:initial] \
+		                   [--table-head-tracking:initial] [--table-head-case:initial]"
+	)]
 	Default,
 	// Padding big enough that a figure does not read as clipped against the
-	// card edge. The head row loses its hover: it is not a row you act on.
+	// card edge. The head row loses its hover: it is not a row you act on —
+	// its own head only (`>`), not a nested table's.
 	#[tw(class = "[--table-px:calc(var(--spacing)*5)] [--table-py:calc(var(--spacing)*3)] [--table-head-ink:var(--ink-soft)] \
 		         [--table-head-text:var(--text-xs)] [--table-head-tracking:var(--tracking-wide)] [--table-head-case:uppercase] \
-		         [&_thead_tr:hover]:bg-transparent")]
+		         [&>thead>tr:hover]:bg-transparent")]
 	Card,
 }
 
@@ -33,7 +40,7 @@ pub enum TableVariant {
 #[derive(Debug, PartialEq, TwVariant, strum::AsRefStr, strum::EnumIter)]
 #[strum(serialize_all = "kebab-case")]
 pub enum TableDensity {
-	#[tw(default, class = "")]
+	#[tw(default, class = "[--table-dense-py:initial] [--table-head-h:initial]")]
 	Default,
 	#[tw(class = "[--table-dense-py:calc(var(--spacing)*1.5)] [--table-head-h:calc(var(--spacing)*8)]")]
 	Compact,
@@ -116,12 +123,26 @@ mod tests {
 		for prop in ["--table-px:", "--table-py:", "--table-head-case:uppercase", "--table-dense-py:", "--table-head-h:"] {
 			assert!(both.contains(prop), "{prop} missing from {both}");
 		}
-		assert!(both.contains("[&_thead_tr:hover]:bg-transparent"), "{both}");
+		assert!(both.contains("[&>thead>tr:hover]:bg-transparent"), "{both}");
 	}
 
+	/// A default table nested in a card one must not inherit the card geometry:
+	/// it resets every property the variants and densities write.
 	#[test]
-	fn default_table_is_the_bare_base() {
-		assert_eq!(table(TableVariant::Default, TableDensity::Default), TABLE);
+	fn default_table_resets_inherited_geometry() {
+		let plain = table(TableVariant::Default, TableDensity::Default);
+		for prop in [
+			"--table-px:",
+			"--table-py:",
+			"--table-head-ink:",
+			"--table-head-text:",
+			"--table-head-tracking:",
+			"--table-head-case:",
+			"--table-dense-py:",
+			"--table-head-h:",
+		] {
+			assert!(plain.contains(&format!("[{prop}initial]")), "{prop} not reset in {plain}");
+		}
 	}
 
 	#[test]

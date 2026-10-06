@@ -134,14 +134,17 @@ mod tests {
 	}
 
 	#[test]
-	fn default_table_sets_no_custom_properties() {
+	fn default_table_resets_inherited_custom_properties() {
 		fn app() -> Element {
 			rsx! {
 				Table { "x" }
 			}
 		}
 		let html = render(app);
-		assert!(!html.contains("[--table-"), "{html}");
+		// Nested in a card table, a default one must not wear the card geometry.
+		assert!(html.contains("[--table-px:initial]"), "{html}");
+		assert!(html.contains("[--table-dense-py:initial]"), "{html}");
+		assert!(!html.contains("calc(var(--spacing)*5)"), "{html}");
 		assert!(html.contains("data-variant=\"default\""), "{html}");
 		assert!(html.contains("data-density=\"default\""), "{html}");
 	}
@@ -164,8 +167,8 @@ mod tests {
 		assert!(html.contains("data-density=\"compact\""), "{html}");
 		assert!(html.contains("[--table-head-case:uppercase]"), "{html}");
 		assert!(html.contains("[--table-dense-py:calc(var(--spacing)*1.5)]"), "{html}");
-		// dioxus-ssr escapes `&` as a numeric reference
-		assert!(html.contains("[&#38;_thead_tr:hover]:bg-transparent"), "{html}");
+		// dioxus-ssr escapes `&` and `>` as numeric references
+		assert!(html.contains("thead") && html.contains("tr:hover]:bg-transparent"), "{html}");
 		// the cell itself is unchanged: it only reads the properties
 		assert!(!html.contains("px-5"), "{html}");
 	}
