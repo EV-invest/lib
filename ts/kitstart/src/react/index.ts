@@ -1,8 +1,11 @@
 /**
  * `@evinvest/kitstart/react` — the structural widgets every landing shares,
  * where behaviour matters more than look. Server components by default; only
- * `MapFacade`, `AnalyticsBoundary`, `FormSelect`, `LeadCapture` and `LeadBooking` are client modules, each its own file
- * with its own `"use client"`, so a page pays for what it renders.
+ * `MapFacade`, `AnalyticsBoundary`, `FormSelect`, `LeadCapture`, `LeadBooking`
+ * and `AbSwitcher` are client modules, each its own file with its own
+ * `"use client"`, so a page pays for what it renders. `AbSwitcher` is a gate
+ * of a few hundred bytes; its panel (`AbSwitcherPanel`) is a dynamic import,
+ * fetched only by a QA visit.
  *
  * Styled with the kit's token roles only (`text-ink`, `border-border`,
  * `bg-card`…); a brand restyles through `className`, a widget's named parts
@@ -10,6 +13,8 @@
  * must scan the package: `@source "<path to>/node_modules/@evinvest/kitstart/dist";`,
  * relative to the stylesheet (`../../node_modules/…` from `src/app/`).
  */
+export { AbSwitcher } from "./AbSwitcher";
+export type { AbSwitcherExperiment, AbSwitcherProps, AbSwitcherText, AbSwitcherVariant } from "./ab-switcher-types";
 export { AnalyticsBoundary } from "./AnalyticsBoundary";
 export { AreaChips } from "./AreaChips";
 export { CallBar, type CallBarPart, type CallBarProps } from "./CallBar";
