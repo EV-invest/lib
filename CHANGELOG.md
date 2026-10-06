@@ -24,6 +24,23 @@ Rust crate and its TypeScript mirror at once.
 
 ### Added
 
+- **Card tables** (`ev_lib` `uikit` and `@evinvest/uikit`, #187): `Table`
+  takes `variant` (`TableVariant::Card` — uppercase `text-xs tracking-wide
+  text-ink-soft` head, `px-5 py-3` cells, no head-row hover) and `density`
+  (`TableDensity::Compact`); `TableHead`/`TableCell` take `align`
+  (`TableAlign::End` — right-aligned, tabular numerals); `TableCard` is the
+  paddingless card such a table sits in. The table only sets inherited
+  `--table-*` custom properties that the cells read, so a cell's own `class`
+  still wins. Generated TS: `tableVariants`, `tableDensities`, `tableAligns`,
+  `TABLE_CARD`. Default tables render as before; `TABLE_HEAD` aligns
+  `text-start` instead of `text-left`. TS: the props are `variant`, `density`
+  and `align` (`"start" | "end"`, replacing the obsolete HTML `align` on
+  `TableHead`/`TableCell`); `Table` stays a Server Component and sets
+  `data-variant`/`data-density`; exported `TableCard`, the types
+  `TableVariant`/`TableDensity`/`TableAlign`/`TableProps`/`TableHeadProps`/
+  `TableCellProps`, and the TS-only `ListRows`/`ListRow`/`ListRowLabel`/
+  `ListRowValue` (a table's phone form; shipped in 0.26.0's `dist/` but not
+  reachable from the barrel). The example app mounts a Tables section.
 - **`LeadCapture` one question a screen, and the compact form**
   (`@evinvest/kitstart/react`). `layout="steps"` — the intro question, the
   need, each estimate question, the postcode, the phone last; a thin bar,

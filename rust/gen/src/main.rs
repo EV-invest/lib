@@ -134,7 +134,9 @@ fn collect_classes(ts: &Ts, out: &mut BTreeSet<String>) {
 		Ts::Const { value, .. } => {
 			out.insert(value.to_string());
 		}
-		Ts::Table { entries, .. } => out.extend(entries.iter().map(|(_, class)| class.clone())),
+		// A variant that only exists to name the default (`TableVariant::Default`)
+		// carries "", which would land in the inventory as a blank line.
+		Ts::Table { entries, .. } => out.extend(entries.iter().filter(|(_, class)| !class.is_empty()).map(|(_, class)| class.clone())),
 		Ts::Value { .. } | Ts::Union { .. } | Ts::Types(_) => {}
 	}
 }

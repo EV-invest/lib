@@ -202,7 +202,30 @@ export {
   TableHead,
   TableCell,
   TableCaption,
+  TableCard,
 } from "./components/table";
+export type {
+  TableProps,
+  TableHeadProps,
+  TableCellProps,
+  TableVariant,
+  TableDensity,
+  TableAlign,
+} from "./components/table";
+
+// TS-only: the phone form of a table.
+export {
+  ListRows,
+  ListRow,
+  ListRowLabel,
+  ListRowValue,
+} from "./components/list-rows";
+export type {
+  ListRowsProps,
+  ListRowsVariant,
+  ListRowProps,
+  ListRowLabelProps,
+} from "./components/list-rows";
 
 // Tier B — self-contained interactive components.
 export {

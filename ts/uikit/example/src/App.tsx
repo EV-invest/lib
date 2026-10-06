@@ -43,6 +43,7 @@ import { TerminalDemo } from "./TerminalDemo";
 import { DrawerDemo } from "./DrawerDemo";
 import { BrandsDemo } from "./BrandsDemo";
 import { ShellDemo } from "./ShellDemo";
+import { TablesDemo } from "./TablesDemo";
 import { CommandDemo } from "./CommandDemo";
 
 const POSITIONS: ToastPosition[] = [
@@ -320,6 +321,10 @@ export default function App() {
             <span className="text-sm">
               Press <Kbd>⌘</Kbd> <Kbd>K</Kbd>
             </span>
+          </Section>
+
+          <Section title="Tables" hint="card list in a TableCard, its phone form as ListRows, and a compact ledger">
+            <TablesDemo />
           </Section>
 
           <Section title="Drawer" hint="swipe towards the edge to dismiss; the body scrolls, the panel drags from its top">

@@ -4,15 +4,32 @@ import {
   TABLE,
   TABLE_BODY,
   TABLE_CAPTION,
+  TABLE_CARD,
   TABLE_CELL,
   TABLE_CONTAINER,
   TABLE_FOOTER,
   TABLE_HEAD,
   TABLE_HEADER,
   TABLE_ROW,
+  tableAligns,
+  tableDensities,
+  tableVariants,
+  type TableAlign,
+  type TableDensity,
+  type TableVariant,
 } from "../generated/table";
 
-export function Table({ className, ...props }: React.ComponentProps<"table">) {
+export type { TableAlign, TableDensity, TableVariant };
+
+export interface TableProps extends React.ComponentProps<"table"> {
+  variant?: TableVariant;
+  density?: TableDensity;
+}
+
+// `variant` and `density` only set inherited `--table-*` properties that the
+// heads and cells read — no context, so `Table` stays a Server Component and a
+// cell's own `className` still beats the table's geometry.
+export function Table({ variant = "default", density = "default", className, ...props }: TableProps) {
   return (
     <div
       data-slot="table-container"
@@ -20,10 +37,23 @@ export function Table({ className, ...props }: React.ComponentProps<"table">) {
     >
       <table
         data-slot="table"
-        className={cn(TABLE, className)}
+        data-variant={variant}
+        data-density={density}
+        className={cn(TABLE, tableVariants[variant], tableDensities[density], className)}
         {...props}
       />
     </div>
+  );
+}
+
+/** The surface a `variant="card"` table sits in, edge to edge. */
+export function TableCard({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="table-card"
+      className={cn(TABLE_CARD, className)}
+      {...props}
+    />
   );
 }
 
@@ -76,21 +106,31 @@ export function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
   );
 }
 
-export function TableHead({ className, ...props }: React.ComponentProps<"th">) {
+// The HTML `align` attribute is obsolete; the prop takes its name for the
+// logical start/end the Rust port uses.
+export interface TableHeadProps extends Omit<React.ComponentProps<"th">, "align"> {
+  align?: TableAlign;
+}
+
+export function TableHead({ align, className, ...props }: TableHeadProps) {
   return (
     <th
       data-slot="table-head"
-      className={cn(TABLE_HEAD, className)}
+      className={cn(TABLE_HEAD, align && tableAligns[align], className)}
       {...props}
     />
   );
 }
 
-export function TableCell({ className, ...props }: React.ComponentProps<"td">) {
+export interface TableCellProps extends Omit<React.ComponentProps<"td">, "align"> {
+  align?: TableAlign;
+}
+
+export function TableCell({ align, className, ...props }: TableCellProps) {
   return (
     <td
       data-slot="table-cell"
-      className={cn(TABLE_CELL, className)}
+      className={cn(TABLE_CELL, align && tableAligns[align], className)}
       {...props}
     />
   );

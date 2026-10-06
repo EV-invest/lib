@@ -28,7 +28,7 @@ const GALLERY: &[(&str, fn() -> Element)] = &[
 	("Button", d_button), ("ButtonAccent", d_button_accent), ("Badge", d_badge), ("Label", d_label), ("Kbd", d_kbd),
 	("Avatar", d_avatar), ("Separator", d_separator), ("Skeleton", d_skeleton),
 	("Spinner", d_spinner), ("Progress", d_progress),
-	("Alert", d_alert), ("Card", d_card), ("Table", d_table), ("Breadcrumb", d_breadcrumb),
+	("Alert", d_alert), ("Card", d_card), ("Table", d_table), ("TableCard", d_table_card), ("Breadcrumb", d_breadcrumb),
 	("Pagination", d_pagination), ("Empty", d_empty), ("Item", d_item), ("Field", d_field),
 	("ButtonGroup", d_button_group),
 	("Input", d_input), ("Textarea", d_textarea), ("Checkbox", d_checkbox),
@@ -294,6 +294,38 @@ fn d_table() -> Element {
 					TableCell { "Jungle" }
 					TableCell { "t2" }
 					TableCell { "18.4%" }
+				}
+			}
+		}
+	}
+}
+
+fn d_table_card() -> Element {
+	rsx! {
+		div { class: "flex w-full max-w-md flex-col gap-4",
+			for density in [TableDensity::Default, TableDensity::Compact] {
+				TableCard {
+					Table { variant: TableVariant::Card, density,
+						TableHeader {
+							TableRow {
+								TableHead { "Asset" }
+								TableHead { "Tier" }
+								TableHead { align: TableAlign::End, "Yield" }
+							}
+						}
+						TableBody {
+							TableRow {
+								TableCell { "Ha Long" }
+								TableCell { "t1" }
+								TableCell { align: TableAlign::End, "12.0%" }
+							}
+							TableRow {
+								TableCell { "Jungle" }
+								TableCell { "t2" }
+								TableCell { align: TableAlign::End, "118.4%" }
+							}
+						}
+					}
 				}
 			}
 		}
