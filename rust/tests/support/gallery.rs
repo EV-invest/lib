@@ -606,14 +606,17 @@ fn d_carousel() -> Element {
 fn d_calendar() -> Element {
 	rsx! {
 		div { class: "flex flex-wrap items-start gap-3",
-			Calendar {}
+			// Pinned: an unpinned calendar opens on the host's month and would
+			// move the visual baseline every month.
+			Calendar { default_month: CalendarDate::new(2026, 6, 1) }
 			Calendar {
+				default_month: CalendarDate::new(2026, 6, 1),
 				selected: CalendarDate::new(2026, 6, 15),
 				today: CalendarDate::new(2026, 6, 10),
 				min: CalendarDate::new(2026, 6, 3),
 				max: CalendarDate::new(2026, 6, 25),
 			}
-			Calendar { disabled: true }
+			Calendar { default_month: CalendarDate::new(2026, 6, 1), disabled: true }
 		}
 	}
 }

@@ -81,6 +81,20 @@ Rust crate and its TypeScript mirror at once.
 
 ### Fixed
 
+- **`uikit::Slider` drag no longer sticks off the web** (`ev_lib`, #47).
+  Without pointer capture (desktop/native renderers) a release outside the
+  slider never reached `onpointerup`, so the value kept following the bare
+  cursor. A `pointermove` with no button held now ends the drag, as do
+  `pointerleave` and `pointercancel`; the web build keeps its pointer capture.
+- **`uikit::Calendar` opens on the current month** (`ev_lib`, #48). The
+  uncontrolled month was hardcoded to June 2026; `default_month` (now
+  `Option`) and `today` default to the host date like the TS `new Date()` —
+  the browser's local date on `wasm`, the UTC date from `SystemTime` natively.
+  New `CalendarDate::today()`. `DateTimePicker`'s `today` follows suit.
+- **`uikit::FormItem` and `InfoTip` ids survive hydration** (`ev_lib`, #49).
+  Their ids came from process-global counters, so a long-lived SSR server and a
+  fresh client disagreed. They now derive from the component's place in the
+  tree (new `primitives::use_stable_id`, the analogue of React's `useId`).
 - **A `Toggle` that is on is the primary fill** (both ports, #175). It wore
   `bg-hover` — ~1.2:1 against the surface and the very tint an outline toggle
   wore on hover, so in a weekday `ToggleGroup` the selected days could not be

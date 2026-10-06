@@ -105,13 +105,22 @@ pub fn Slider(
 				state.set(value_at(axis(&e), origin, size, min, max, step, orientation));
 			},
 			onpointermove: move |e: PointerEvent| {
-				if !dragging() || disabled {
-					return;
+				match drag_step(dragging(), disabled, e.held_buttons().is_empty()) {
+					DragStep::Ignore => {}
+					DragStep::Release => dragging.set(false),
+					DragStep::Track => {
+						let (origin, size) = bounds();
+						state.set(value_at(axis(&e), origin, size, min, max, step, orientation));
+					}
 				}
-				let (origin, size) = bounds();
-				state.set(value_at(axis(&e), origin, size, min, max, step, orientation));
 			},
 			onpointerup: move |_| dragging.set(false),
+			// Without pointer capture (any non-web renderer) a release off the root
+			// never reaches `onpointerup`; leaving ends the drag instead. Under
+			// capture the pointer counts as over the track until release, so this
+			// does not cut a web drag short.
+			onpointerleave: move |_| dragging.set(false),
+			onpointercancel: move |_| dragging.set(false),
 			span {
 				class: SLIDER_TRACK,
 				"data-slot": "slider-track",
@@ -142,6 +151,27 @@ pub fn Slider(
 				onkeydown: on_key,
 			}
 		}
+	}
+}
+
+/// What a `pointermove` does to a drag in progress.
+#[derive(Debug, PartialEq)]
+enum DragStep {
+	/// Not dragging (or disabled): hover must not move the value.
+	Ignore,
+	/// A drag is open but no button is held any more — the release happened
+	/// where the root could not see it (no pointer capture off the web). Close
+	/// it instead of letting the bare cursor drive the value.
+	Release,
+	/// A held drag: the value follows the pointer.
+	Track,
+}
+
+fn drag_step(dragging: bool, disabled: bool, no_buttons_held: bool) -> DragStep {
+	match (dragging && !disabled, no_buttons_held) {
+		(false, _) => DragStep::Ignore,
+		(true, true) => DragStep::Release,
+		(true, false) => DragStep::Track,
 	}
 }
 
@@ -246,6 +276,29 @@ mod tests {
 		}
 		let html = render(app);
 		assert!(html.contains("aria-valuenow=100"), "{html}");
+	}
+
+	#[test]
+	fn hover_without_a_drag_never_moves_the_value() {
+		assert_eq!(drag_step(false, false, true), DragStep::Ignore);
+		assert_eq!(drag_step(false, false, false), DragStep::Ignore);
+	}
+
+	#[test]
+	fn move_with_no_button_held_ends_a_stuck_drag() {
+		// The off-slider release the root never saw: the next move arrives with
+		// every button up and must close the drag, not track the cursor.
+		assert_eq!(drag_step(true, false, true), DragStep::Release);
+	}
+
+	#[test]
+	fn move_with_a_button_held_tracks() {
+		assert_eq!(drag_step(true, false, false), DragStep::Track);
+	}
+
+	#[test]
+	fn disabled_ignores_moves_even_mid_drag() {
+		assert_eq!(drag_step(true, true, false), DragStep::Ignore);
 	}
 
 	#[test]

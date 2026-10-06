@@ -69,7 +69,6 @@ aria-invalid=\
 aria-label
 aria-label=\
 aria-live
-aria-live=\
 aria-modal
 aria-modal=\
 aria-orientation
@@ -316,6 +315,7 @@ data-stack
 data-state
 data-state=\
 data-today
+data-today=\
 data-variant
 data-variant=\
 data-vaul-drawer-direction
@@ -474,7 +474,6 @@ form-control
 form-description
 form-item
 form-item-
-form-item-{}
 form-message
 form-message\
 gap-1 px-2.5 sm:pl-2.5
@@ -547,10 +546,12 @@ hover:text-ink transition-colors
 hover:underline
 http://www.w3.org/2000/svg
 https://example.com/commit/abc
+info-tip
 info-tip-
 info-tip-content
+info-tip-content\
 info-tip-trigger
-info-tip-{}
+info-tip-trigger\
 inline-block
 inline-flex h-10 w-full shrink-0 cursor-pointer items-center justify-center rounded-[var(--control-radius)] text-sm font-semibold transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50
 inline-flex items-center gap-1
