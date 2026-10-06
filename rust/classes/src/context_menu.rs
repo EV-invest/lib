@@ -14,9 +14,9 @@ pub const CONTEXT_MENU_SUB_CONTENT: &str = "bg-popover text-ink data-[state=open
 pub const CONTEXT_MENU_ITEM: &str = concat!(
 	"focus:bg-hover focus:text-ink ",
 	option_focus_ring!(),
-	" data-[variant=destructive]:text-accent-error \
-                    data-[variant=destructive]:focus:bg-accent-error/10 data-[variant=destructive]:focus:text-accent-error \
-                    data-[variant=destructive]:*:[svg]:!text-accent-error [&_svg:not([class*='text-'])]:text-ink-soft \
+	" data-[variant=destructive]:text-accent-error-ink \
+                    data-[variant=destructive]:focus:bg-accent-error/10 data-[variant=destructive]:focus:text-accent-error-ink \
+                    data-[variant=destructive]:*:[svg]:!text-accent-error-ink [&_svg:not([class*='text-'])]:text-ink-soft \
                     relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none \
                     data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none \
                     [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"

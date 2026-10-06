@@ -36,6 +36,14 @@ import {
   Spinner,
   Kbd,
   DateTimePicker,
+  Toggle,
+  ToggleGroup,
+  ToggleGroupItem,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
   type ToastPosition,
   type ToastVariant,
 } from "@evinvest/uikit";
@@ -43,6 +51,7 @@ import { TerminalDemo } from "./TerminalDemo";
 import { DrawerDemo } from "./DrawerDemo";
 import { BrandsDemo } from "./BrandsDemo";
 import { ShellDemo } from "./ShellDemo";
+import { TablesDemo } from "./TablesDemo";
 import { CommandDemo } from "./CommandDemo";
 
 const POSITIONS: ToastPosition[] = [
@@ -293,6 +302,31 @@ export default function App() {
             </Tooltip>
           </Section>
 
+          <Section title="Toggles & menu" hint="on is the filled role, hover a surface tint; the last menu row is destructive">
+            <ToggleGroup type="multiple" variant="outline" defaultValue={["mon", "tue", "wed", "thu", "fri"]}>
+              {["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map((day) => (
+                <ToggleGroupItem key={day} value={day} aria-label={day}>
+                  {day.slice(0, 2)}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            <Toggle aria-label="Bold" defaultPressed>
+              B
+            </Toggle>
+            <Toggle aria-label="Italic">I</Toggle>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">Actions</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem>Rename</DropdownMenuItem>
+                <DropdownMenuItem>Duplicate</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </Section>
+
           <Section title="Bits & pieces">
             <Avatar>
               <AvatarFallback>EV</AvatarFallback>
@@ -320,6 +354,10 @@ export default function App() {
             <span className="text-sm">
               Press <Kbd>⌘</Kbd> <Kbd>K</Kbd>
             </span>
+          </Section>
+
+          <Section title="Tables" hint="card list in a TableCard, its phone form as ListRows, and a compact ledger">
+            <TablesDemo />
           </Section>
 
           <Section title="Drawer" hint="swipe towards the edge to dismiss; the body scrolls, the panel drags from its top">

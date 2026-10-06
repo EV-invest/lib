@@ -27,7 +27,8 @@ mod test_util;
 pub(crate) use ev_lib_classes::*;
 pub use ev_lib_classes::{
 	Accent, AlertVariant, BadgeVariant, BookSide, ButtonGroupOrientation, ButtonVariant, DrawerDirection, EmptyMediaVariant, FieldOrientation, InputGroupAddonAlign, InputGroupButtonSize,
-	ItemMediaVariant, ItemSize, ItemVariant, OrderSide, Orientation, Polarity, ScrollBarOrientation, Size, Surface, TerminalArea, ToastPosition, ToastVariant, ToggleVariant,
+	ItemMediaVariant, ItemSize, ItemVariant, OrderSide, Orientation, Polarity, ScrollBarOrientation, Size, Surface, TableAlign, TableDensity, TableVariant, TerminalArea, ToastPosition,
+	ToastVariant, ToggleVariant,
 };
 
 mod accordion;
@@ -111,7 +112,7 @@ pub use skeleton::Skeleton;
 pub use slider::{Slider, SliderOrientation};
 pub use spinner::Spinner;
 pub use switch::Switch;
-pub use table::{Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow};
+pub use table::{Table, TableBody, TableCaption, TableCard, TableCell, TableFooter, TableHead, TableHeader, TableRow};
 pub use tabs::{Tabs, TabsContent, TabsList, TabsOrientation, TabsTrigger};
 pub use terminal::{
 	OpenOrdersEmpty, OrderBook, OrderBookHead, OrderBookRow, OrderBookSpread, OrderForm, OrderFormRow, OrderFormSubmit, Terminal, TerminalChart, TerminalPane, TerminalPaneBody,

@@ -24,6 +24,23 @@ Rust crate and its TypeScript mirror at once.
 
 ### Added
 
+- **Card tables** (`ev_lib` `uikit` and `@evinvest/uikit`, #187): `Table`
+  takes `variant` (`TableVariant::Card` — uppercase `text-xs tracking-wide
+  text-ink-soft` head, `px-5 py-3` cells, no head-row hover) and `density`
+  (`TableDensity::Compact`); `TableHead`/`TableCell` take `align`
+  (`TableAlign::End` — right-aligned, tabular numerals); `TableCard` is the
+  paddingless card such a table sits in. The table only sets inherited
+  `--table-*` custom properties that the cells read, so a cell's own `class`
+  still wins. Generated TS: `tableVariants`, `tableDensities`, `tableAligns`,
+  `TABLE_CARD`. Default tables render as before; `TABLE_HEAD` aligns
+  `text-start` instead of `text-left`. TS: the props are `variant`, `density`
+  and `align` (`"start" | "end"`, replacing the obsolete HTML `align` on
+  `TableHead`/`TableCell`); `Table` stays a Server Component and sets
+  `data-variant`/`data-density`; exported `TableCard`, the types
+  `TableVariant`/`TableDensity`/`TableAlign`/`TableProps`/`TableHeadProps`/
+  `TableCellProps`, and the TS-only `ListRows`/`ListRow`/`ListRowLabel`/
+  `ListRowValue` (a table's phone form; shipped in 0.26.0's `dist/` but not
+  reachable from the barrel). The example app mounts a Tables section.
 - **`LeadCapture` one question a screen, and the compact form**
   (`@evinvest/kitstart/react`). `layout="steps"` — the intro question, the
   need, each estimate question, the postcode, the phone last; a thin bar,
@@ -78,6 +95,21 @@ Rust crate and its TypeScript mirror at once.
   Their ids came from process-global counters, so a long-lived SSR server and a
   fresh client disagreed. They now derive from the component's place in the
   tree (new `primitives::use_stable_id`, the analogue of React's `useId`).
+- **A `Toggle` that is on is the primary fill** (both ports, #175). It wore
+  `bg-hover` — ~1.2:1 against the surface and the very tint an outline toggle
+  wore on hover, so in a weekday `ToggleGroup` the selected days could not be
+  told from a pointed-at one. On is now `bg-primary text-on-primary` (≥ 3:1
+  against `background`, `secondary`, `card` and `popover`; the outline variant
+  also takes `border-primary`), hover stays a surface tint, and the toggle
+  wears the offset `FILLED_FOCUS_RING` instead of the halo. A consumer that
+  styled the old on-state with its own classes should drop them.
+- **Destructive menu rows read at AA** (both ports, #166). The row's text and
+  icon move from `text-accent-error` to a new derived token,
+  `--accent-error-ink` (`color-mix(in srgb, var(--accent-error) 70%,
+  var(--ink))`; EV `#ec8379`): 4.83:1 on the row's `accent-error/10` tint over
+  `popover` (was 3.76:1), 5.36:1 on `popover`. Derived, so an existing brand
+  file keeps rendering; one whose mix misses 4.5:1 pins `accent-error-ink` in
+  its `[colors.*]`. See `docs/spec/accents.md`.
 - **`ev_lib::uikit` a11y and markup parity with the TS port** (`ev_lib`,
   #45 #46 #50 #51 #52). `FormMessage` renders nothing without children (an
   empty string included), so a valid field no longer carries an empty `<p>`
