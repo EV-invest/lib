@@ -23,7 +23,7 @@ import { SWITCH_BASE, SWITCH_THUMB } from "../src/generated/switch";
 import { TEXTAREA_BASE } from "../src/generated/textarea";
 import { RADIO_GROUP_ITEM } from "../src/generated/radio-group";
 import { SELECT_ITEM } from "../src/generated/select";
-import { toggleVariantClasses } from "../src/generated/toggle";
+import { TOGGLE_BASE, toggleVariantClasses } from "../src/generated/toggle";
 import { brandFromToml, DERIVED_SCOPE, readContract, readRules, renderPalette, type CssRule } from "../src/palette";
 
 // The shipped sheet, not the repo-root source: a consumer imports this one.
@@ -102,6 +102,21 @@ function line(name: string, scope: Scope, surface: string): string {
   const mix = formula && /^color-mix\(in srgb, var\(--([a-z0-9-]+)\) (\d+(?:\.\d+)?)%, transparent\)$/.exec(formula);
   if (!mix?.[1] || !mix[2]) throw new Error(`the contract's --${name} is not an ink mix: ${formula}`);
   return composite(token(mix[1], scope), Number(mix[2]) / 100, surface);
+}
+
+/**
+ * A derived ink (`--accent-error-ink`) as painted in `scope`: the palette's own
+ * hex when it pins one, else the contract's
+ * `color-mix(in srgb, var(--a) N%, var(--b))` resolved against the palette —
+ * two opaque colours, so the mix is the same sRGB blend as `composite`.
+ */
+function derivedInk(name: string, scope: Scope): string {
+  if (scope.rule.declarations.has(name)) return token(name, scope);
+  const formula = derivedRule?.declarations.get(name);
+  const mix =
+    formula && /^color-mix\(in srgb, var\(--([a-z0-9-]+)\) (\d+(?:\.\d+)?)%, var\(--([a-z0-9-]+)\)\)$/.exec(formula);
+  if (!mix?.[1] || !mix[2] || !mix[3]) throw new Error(`the contract's --${name} is not a mix of two tokens: ${formula}`);
+  return composite(token(mix[1], scope), Number(mix[2]) / 100, token(mix[3], scope));
 }
 
 function luminance(hex: string): number {
@@ -225,6 +240,38 @@ describe.each(scopes)("palette $label", (scope) => {
     });
   });
 
+  // lib#166. A destructive row is text on 10 % of the error role, so it reads
+  // in the role's ink: the fill itself measured 3.76:1 there on EV and 2.48:1
+  // on the demo's dark side. The row sits on the popover unfocused, so it owes
+  // AA there too.
+  describe("destructive menu row", () => {
+    const ink = () => derivedInk("accent-error-ink", scope);
+
+    it("the text reads on the row's tint (AA text)", () => {
+      expect(contrast(ink(), composite(t("accent-error"), 0.1, t("popover")))).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it("the text reads on the popover at rest (AA text)", () => {
+      expect(contrast(ink(), t("popover"))).toBeGreaterThanOrEqual(4.5);
+    });
+  });
+
+  // lib#175. "On" is the primary fill and "off" leaves the surface showing, so
+  // the state is told apart by the fill against each plane a toggle sits on.
+  // Hover paints a surface tint (bg-muted, or bg-hover on outline), never the
+  // fill, so a pointed-at item cannot pass for a selected one.
+  describe("toggle on vs off", () => {
+    it.each(["background", "secondary", "card", "popover"])("on reads against off on %s (non-text 3:1)", (surface) => {
+      expect(TOGGLE_BASE).toMatch(/(^|\s)data-\[state=on\]:bg-primary(\s|$)/);
+      expect(contrast(t("primary"), t(surface))).toBeGreaterThanOrEqual(3);
+    });
+
+    it("the on label reads on the fill (AA text)", () => {
+      expect(TOGGLE_BASE).toMatch(/(^|\s)data-\[state=on\]:text-on-primary(\s|$)/);
+      expect(contrast(t("on-primary"), t("primary"))).toBeGreaterThanOrEqual(4.5);
+    });
+  });
+
   // A track is a shape under a shape, so it owes two floors at once: the moving
   // part reads on it (3:1) and it reads against the plane it sits on (~1.3:1, or
   // the UI goes flat). Both pairs are painted by the class tables, so the classes
@@ -274,6 +321,38 @@ describe("outlined controls frame with --input", () => {
   });
 });
 
+// The destructive-row floor measures --accent-error-ink, so the rows have to
+// paint their text and icon with it rather than with the fill.
+describe("destructive menu rows read in the error ink", () => {
+  it.each([
+    ["dropdown menu item", DROPDOWN_MENU_ITEM],
+    ["context menu item", CONTEXT_MENU_ITEM],
+    ["menubar item", MENUBAR_ITEM],
+  ])("%s", (_, classes) => {
+    expect(classes).toMatch(/(^|\s)data-\[variant=destructive\]:text-accent-error-ink(\s|$)/);
+    expect(classes).toMatch(/(^|\s)data-\[variant=destructive\]:focus:text-accent-error-ink(\s|$)/);
+    expect(classes).toMatch(/(^|\s)data-\[variant=destructive\]:\*:\[svg\]:!text-accent-error-ink(\s|$)/);
+    expect(classes).not.toMatch(/text-accent-error(\s|$)/);
+  });
+});
+
+// The on-vs-off floor holds only while hover stays a surface tint.
+describe("toggle hover is not the on state", () => {
+  it.each([
+    ["bare", `${TOGGLE_BASE} ${toggleVariantClasses.bare}`],
+    ["outline", `${TOGGLE_BASE} ${toggleVariantClasses.outline}`],
+  ])("%s", (_, classes) => {
+    const hover = classes.split(/\s+/).filter((c) => c.startsWith("hover:bg-"));
+    expect(hover.length).toBeGreaterThan(0);
+    expect(hover).not.toContain("hover:bg-primary");
+    expect(classes).not.toMatch(/(^|\s)data-\[state=on\]:bg-hover(\s|$)/);
+  });
+
+  it("an outline toggle's frame follows its fill when on", () => {
+    expect(toggleVariantClasses.outline).toMatch(/(^|\s)data-\[state=on\]:border-primary(\s|$)/);
+  });
+});
+
 // The floor above is only worth something if the rows draw their focus with
 // the ring it measures, not with the tint alone.
 describe("list rows ring their keyboard focus", () => {
@@ -304,7 +383,7 @@ describe("the contract half of the sheet", () => {
   const rules = readRules(sheet);
 
   it("derives the lines, hover and secondary ink rather than asking a palette for them", () => {
-    expect([...contract.derived].sort()).toEqual(["border", "hover", "ink-mid", "ink-soft", "input", "ring"]);
+    expect([...contract.derived].sort()).toEqual(["accent-error-ink", "border", "hover", "ink-mid", "ink-soft", "input", "ring"]);
   });
 
   it("the focus ring is the ink", () => {

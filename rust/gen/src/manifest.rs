@@ -908,6 +908,12 @@ fn data_table() -> Vec<Ts> {
 			value: TABLE_CONTAINER,
 		},
 		Ts::Const { name: "TABLE", value: TABLE },
+		table::<TableVariant>("tableVariants", "TableVariant"),
+		table::<TableDensity>("tableDensities", "TableDensity"),
+		Ts::Const {
+			name: "TABLE_CARD",
+			value: TABLE_CARD,
+		},
 		Ts::Const {
 			name: "TABLE_HEADER",
 			value: TABLE_HEADER,
@@ -932,6 +938,7 @@ fn data_table() -> Vec<Ts> {
 			name: "TABLE_CELL",
 			value: TABLE_CELL,
 		},
+		table::<TableAlign>("tableAligns", "TableAlign"),
 		Ts::Const {
 			name: "TABLE_CAPTION",
 			value: TABLE_CAPTION,

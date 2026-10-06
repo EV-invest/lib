@@ -18,6 +18,20 @@ describe("ToggleGroup", () => {
     expect(a).toHaveClass("border-input");
   });
 
+  it("outline items overlap their borders and the on item sits on top", () => {
+    const { getByText } = render(
+      <ToggleGroup type="single" variant="outline" defaultValue="b">
+        <ToggleGroupItem value="a">A</ToggleGroupItem>
+        <ToggleGroupItem value="b">B</ToggleGroupItem>
+      </ToggleGroup>,
+    );
+    // A dropped left border would leave the on item's left edge in the
+    // neighbour's border colour; overlapping by 1px keeps its whole frame.
+    const b = getByText("B");
+    expect(b).toHaveClass("data-[variant=outline]:-ml-px", "data-[state=on]:z-10");
+    expect(b.className).not.toContain("border-l-0");
+  });
+
   it("single mode keeps one item selected at a time", () => {
     const { getByText } = render(
       <ToggleGroup type="single">

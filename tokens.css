@@ -20,6 +20,8 @@
  *              accent-trace · accent-debug · accent-info · accent-warn · accent-error
  *              primary-ink — the primary role as ink on a surface, where the
  *              fill and the readable value are different colours
+ *              accent-error-ink — the error role as text on its own tint;
+ *              derived from accent-error and ink, a palette may pin it
  *   SCALARS    radius · control-* · display-scale · page-* · shell-* · shadows · fonts
  *   MOTION     ev-ease-* · ev-dur-* · ev-rise · ev-stagger(-section)
  *   CHARTS     chart-1 … chart-5
@@ -36,7 +38,8 @@
  *
  * Accents are ordered by significance, not by meaning; see docs/spec/accents.md.
  * Their values are read outside CSS (gitops mirrors them into Discord embed
- * bars), so they stay plain hex — no color-mix.
+ * bars), so they stay plain hex — no color-mix. `accent-error-ink` is not an
+ * accent but a reading of one, so it lives with the derived tokens.
  */
 
 @import "./theme.css";

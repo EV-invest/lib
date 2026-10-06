@@ -6,7 +6,7 @@ use crate::{
 		ButtonVariant, DATE_TIME_PICKER_CLEAR, DATE_TIME_PICKER_CONTENT, DATE_TIME_PICKER_TIME, DATE_TIME_PICKER_TIME_INPUT, DATE_TIME_PICKER_TIME_SEPARATOR, DATE_TIME_PICKER_TRIGGER,
 		INPUT_BASE, POPOVER_CONTENT, Size,
 		button::button_classes,
-		calendar::{Calendar, CalendarDate},
+		calendar::{Calendar, CalendarDate, NO_CLOCK_MONTH},
 		primitives::use_controllable,
 	},
 };
@@ -52,6 +52,16 @@ impl LocalDateTime {
 	}
 }
 
+/// The day a time typed before any day is chosen lands on: `today`, else
+/// `min`'s day, else the first of the displayed `month` — then pulled inside
+/// `[min, max]`. Clamping the day rather than the whole value keeps the typed
+/// hour when `min` is in the future (or `max` in the past).
+fn landing_day(today: Option<CalendarDate>, min: Option<CalendarDate>, max: Option<CalendarDate>, month: CalendarDate) -> CalendarDate {
+	let day = today.or(min).unwrap_or_else(|| CalendarDate::new(month.year, month.month, 1));
+	let day = min.map_or(day, |m| day.max(m));
+	max.map_or(day, |m| day.min(m))
+}
+
 /// The picker's own strings; every one defaults to English.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct DateTimePickerLabels {
@@ -76,9 +86,10 @@ pub struct DateTimePickerLabels {
 /// native `datetime-local`, so the browser's locale popup never appears.
 ///
 /// The parent owns the value (like `Calendar`'s `selected`); every edit reports
-/// through `on_change`. The Rust kit has no clock, so with no `today` the grid
-/// highlights nothing and a time typed before a day is chosen lands on `min`'s
-/// day, else the first of the displayed month. The overlay is the inline Rust
+/// through `on_change`. `today` defaults to the host date
+/// ([`CalendarDate::today`]), like the TS port's `new Date()`; a time typed
+/// before a day is chosen lands on it. Only where the build has no clock does
+/// that fall back to `min`'s day, else the first of the displayed month. The overlay is the inline Rust
 /// popover (see the README "Limitations").
 #[component]
 pub fn DateTimePicker(
@@ -111,19 +122,22 @@ pub fn DateTimePicker(
 	/// Put on the trigger, so a `FieldLabel`'s `for` reaches it.
 	id: Option<String>,
 ) -> Element {
+	let today = today.or_else(CalendarDate::today);
 	let open = use_controllable(open, default_open, on_open_change);
 	let is_open = open.get();
 	// `min` before `today`: a bound in the future would otherwise open on a fully
 	// disabled grid.
-	let mut month = use_signal(|| value.map(|v| v.date).or(min.map(|m| m.date)).or(today).unwrap_or(CalendarDate::new(2026, 6, 1)));
+	let mut month = use_signal(|| value.map(|v| v.date).or(min.map(|m| m.date)).or(today).unwrap_or(NO_CLOCK_MONTH));
 
 	let emit = move |next: Option<LocalDateTime>| {
 		if let Some(h) = on_change {
 			h.call(next);
 		}
 	};
-	// The day a time lands on while no day is chosen.
-	let fallback_day = move || today.or(min.map(|m| m.date)).unwrap_or_else(|| CalendarDate::new(month().year, month().month, 1));
+	// The day a time lands on while no day is chosen, kept inside the bounds: a
+	// `min` in the future (or a `max` in the past) would otherwise clamp the
+	// whole value to the bound's time and drop the hour just typed.
+	let fallback_day = move || landing_day(today, min.map(|m| m.date), max.map(|m| m.date), month());
 	let base = move || value.unwrap_or_else(|| LocalDateTime::new(fallback_day(), 0, 0));
 
 	let on_select = move |day: CalendarDate| {
@@ -373,6 +387,23 @@ mod tests {
 		assert_eq!(june(1, 0, 0).clamp_to(None, None), june(1, 0, 0));
 	}
 
+	/// A time typed before a day is chosen keeps its hour when `min` is in the
+	/// future: the day moves inside the bounds, the time is not clamped away.
+	#[test]
+	fn landing_day_stays_inside_the_bounds() {
+		let d = |day| CalendarDate::new(2026, 6, day);
+		let month = d(1);
+		assert_eq!(landing_day(Some(d(15)), None, None, month), d(15));
+		assert_eq!(landing_day(Some(d(15)), Some(d(22)), None, month), d(22), "min in the future");
+		assert_eq!(landing_day(Some(d(15)), None, Some(d(8)), month), d(8), "max in the past");
+		assert_eq!(landing_day(None, Some(d(22)), None, month), d(22));
+		assert_eq!(landing_day(None, None, None, d(3)), d(1));
+		// 09:00 on the landing day is above a midnight `min`, so the hour survives.
+		let min = LocalDateTime::new(d(22), 0, 0);
+		let typed = LocalDateTime::new(landing_day(Some(d(15)), Some(d(22)), None, month), 9, 0);
+		assert_eq!(typed.clamp_to(Some(min), None), LocalDateTime::new(d(22), 9, 0));
+	}
+
 	#[test]
 	fn parse_field_clamps_and_keeps_last_on_empty() {
 		assert_eq!(parse_field("7", 23), Some(7));
@@ -477,6 +508,8 @@ mod tests {
 				DateTimePicker {
 					default_open: true,
 					disabled: true,
+					// Pins the opening month (30-day June) instead of the host's.
+					today: CalendarDate::new(2026, 6, 15),
 					labels: DateTimePickerLabels {
 						previous_month: Some("Назад".into()),
 						next_month: Some("Вперёд".into()),
