@@ -41,19 +41,19 @@ pub fn Command(
 	let items = use_signal(BTreeMap::<usize, CommandEntry>::new);
 	let els = use_signal(BTreeMap::new);
 	let moved = use_signal(|| None::<(usize, String)>);
+	let layout = use_signal(|| 0_u64);
+	let layout_pending = use_hook(|| CopyValue::new(false));
 	// Until the user moves the highlight it tracks the first row, so results
 	// that arrive after the keystroke (or reorder under it) put Enter on the top
 	// hit. Once moved, it sticks while that row stays and the query is the one
 	// it was moved under.
 	let highlighted = use_memo(move || {
+		// Read for the dependency only: bumped once the rows' DOM has settled
+		// after a render, so a keyed re-sort is seen in its new order.
+		let _ = layout.read();
 		let query = query_of(&search.get());
-		let should_filter = *filter.read();
-		let items = items.read();
-		let mut reachable = items.iter().filter(|(_, e)| !e.disabled && matches(&query, should_filter, &e.value)).map(|(id, _)| *id);
-		match &*moved.read() {
-			Some((id, under)) if *under == query && reachable.clone().any(|r| r == *id) => Some(*id),
-			_ => reachable.next(),
-		}
+		let reachable = reachable_rows(&items.read(), &els.read(), &query, *filter.read());
+		highlight_in(&reachable, moved.read().as_ref(), &query)
 	});
 	let id = use_stable_id("command-list");
 	let list_id = use_signal(move || id);
@@ -63,6 +63,8 @@ pub fn Command(
 		items,
 		els,
 		moved,
+		layout,
+		layout_pending,
 		highlighted,
 		list_id,
 	});
@@ -221,7 +223,13 @@ pub fn CommandItem(value: String, #[props(default)] disabled: bool, on_select: O
 		els.write().remove(&id);
 	});
 
+	ctx.relayout_after_render();
 	if !ctx.matches(&value) {
+		// Unmounted by the filter: a stale element must not be placed in the document order.
+		let mut els = ctx.els;
+		if els.peek().contains_key(&id) {
+			els.write().remove(&id);
+		}
 		return rsx! {};
 	}
 	let cls = cn!(COMMAND_ITEM, class);
@@ -287,6 +295,10 @@ struct CommandCtx {
 	els: Signal<BTreeMap<usize, Rc<MountedData>>>,
 	/// The row the user moved the highlight to, and the query it was moved under.
 	moved: Signal<Option<(usize, String)>>,
+	/// Bumped after a render of the rows, once the DOM has their new order.
+	layout: Signal<u64>,
+	/// Whether a bump of `layout` is already queued for this render.
+	layout_pending: CopyValue<bool>,
 	/// The highlighted row: Enter's target and the input's `aria-activedescendant`.
 	highlighted: Memo<Option<usize>>,
 	/// The listbox's id, for the input's `aria-controls`.
@@ -314,6 +326,22 @@ impl CommandCtx {
 		(*self.highlighted.read()).and_then(|id| self.dom_id_of(id))
 	}
 
+	/// Queues one re-read of the rows' order for after this render — a keyed
+	/// re-sort moves rows without remounting them, so nothing else would tell
+	/// the highlight. Effects run once the edits are in the DOM.
+	fn relayout_after_render(&self) {
+		let mut pending = self.layout_pending;
+		if *pending.peek() {
+			return;
+		}
+		pending.set(true);
+		let mut layout = self.layout;
+		dioxus::dioxus_core::queue_effect(move || {
+			pending.set(false);
+			layout.with_mut(|n| *n = n.wrapping_add(1));
+		});
+	}
+
 	fn activate(&self, id: usize) {
 		let mut moved = self.moved;
 		moved.set(Some((id, self.query())));
@@ -326,14 +354,12 @@ impl CommandCtx {
 		if e.is_composing() {
 			return;
 		}
-		let reachable: Vec<usize> = {
-			let items = self.items.peek();
-			let query = self.query();
-			let should_filter = *self.filter.peek();
-			items.iter().filter(|(_, e)| !e.disabled && matches(&query, should_filter, &e.value)).map(|(id, _)| *id).collect()
-		};
+		// Read from the DOM at the key, not from the memo: the memo may not have
+		// seen a re-sort that the screen already shows.
+		let query = self.query();
+		let reachable = reachable_rows(&self.items.peek(), &self.els.peek(), &query, *self.filter.peek());
 		let Some(last) = reachable.len().checked_sub(1) else { return };
-		let current = (*self.highlighted.peek()).and_then(|h| reachable.iter().position(|r| *r == h));
+		let current = highlight_in(&reachable, self.moved.peek().as_ref(), &query).and_then(|h| reachable.iter().position(|r| *r == h));
 		let next = match e.key() {
 			Key::ArrowDown => current.map_or(0, |at| (at + 1).min(last)),
 			Key::ArrowUp => current.map_or(last, |at| at.saturating_sub(1)),
@@ -382,6 +408,68 @@ struct CommandEntry {
 /// and the empty-state gate so they can never disagree.
 fn query_of(search: &str) -> String {
 	search.trim().to_lowercase()
+}
+
+/// The ids of the rows the keys can reach — rendered and not disabled — in the
+/// order on screen.
+fn reachable_rows(items: &BTreeMap<usize, CommandEntry>, els: &BTreeMap<usize, Rc<MountedData>>, query: &str, should_filter: bool) -> Vec<usize> {
+	let mut reachable: Vec<usize> = items.iter().filter(|(_, e)| !e.disabled && matches(query, should_filter, &e.value)).map(|(id, _)| *id).collect();
+	sort_by_position(&mut reachable, |a, b| match (els.get(a), els.get(b)) {
+		(Some(a), Some(b)) => document_precedes(a, b),
+		_ => None,
+	});
+	reachable
+}
+
+/// The highlighted row among `reachable` (in screen order): the one the user
+/// moved to, while it stays and the query is the one it was moved under; else
+/// the top row.
+fn highlight_in(reachable: &[usize], moved: Option<&(usize, String)>, query: &str) -> Option<usize> {
+	match moved {
+		Some((id, under)) if under == query && reachable.contains(id) => Some(*id),
+		_ => reachable.first().copied(),
+	}
+}
+
+// The document-order sort below is the one `primitives::sort_into_document_order`
+// carries on the Select branch (#214); fold this copy into it once both land.
+
+/// A stable insertion sort that gives up — leaving `items` untouched — the
+/// first time `precedes` cannot place a pair. Insertion, not `sort_by`: the
+/// comparison comes from the DOM, and a detached node must not be able to
+/// break the total order `sort_by` may panic without.
+fn sort_by_position<T>(items: &mut [T], precedes: impl Fn(&T, &T) -> Option<bool>) {
+	for i in 0..items.len() {
+		for j in i + 1..items.len() {
+			if precedes(&items[i], &items[j]).is_none() {
+				return;
+			}
+		}
+	}
+	for i in 1..items.len() {
+		let mut j = i;
+		while j > 0 && precedes(&items[j], &items[j - 1]) == Some(true) {
+			items.swap(j, j - 1);
+			j -= 1;
+		}
+	}
+}
+
+/// Whether `a` comes before `b` in the document; `None` where the renderer
+/// cannot tell (SSR, desktop), which leaves the rows in registration order.
+#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+fn document_precedes(a: &MountedData, b: &MountedData) -> Option<bool> {
+	use web_sys::Node;
+	let (a, b) = (a.downcast::<web_sys::Element>()?, b.downcast::<web_sys::Element>()?);
+	let position = a.compare_document_position(b);
+	if position & Node::DOCUMENT_POSITION_DISCONNECTED != 0 {
+		return None;
+	}
+	Some(position & Node::DOCUMENT_POSITION_FOLLOWING != 0)
+}
+#[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
+fn document_precedes(_: &MountedData, _: &MountedData) -> Option<bool> {
+	None
 }
 
 /// With `should_filter` off every row matches: the caller's rows are the results.
@@ -713,5 +801,34 @@ mod tests {
 			}
 		}
 		assert!(render_with_effects(nothing_mounted).contains("No results found."));
+	}
+
+	/// `(registration id, place on screen)`; the sort sees only the place.
+	fn on_screen(rows: &mut [(usize, usize)]) -> Vec<usize> {
+		sort_by_position(rows, |a, b| Some(a.1 < b.1));
+		rows.iter().map(|r| r.0).collect()
+	}
+
+	#[test]
+	fn a_keyed_resort_moves_the_default_highlight_and_the_arrows() {
+		// Registered Apple (0), Apricot (1); the server re-sorts Apricot on top.
+		let reachable = on_screen(&mut [(0, 1), (1, 0)]);
+		assert_eq!(reachable, [1, 0]);
+		assert_eq!(highlight_in(&reachable, None, "ap"), Some(1), "Enter goes to the top row on screen");
+		assert_eq!(highlight_in(&reachable, Some(&(0, "ap".to_string())), "ap"), Some(0), "a moved highlight stays on its row");
+	}
+
+	#[test]
+	fn a_row_inserted_above_the_mounted_ones_comes_first() {
+		let reachable = on_screen(&mut [(0, 1), (1, 2), (2, 0)]);
+		assert_eq!(reachable, [2, 0, 1]);
+		assert_eq!(highlight_in(&reachable, None, ""), Some(2));
+	}
+
+	#[test]
+	fn a_moved_highlight_resets_with_the_query_or_its_row() {
+		let moved = (1, "a".to_string());
+		assert_eq!(highlight_in(&[0, 1], Some(&moved), "ab"), Some(0), "a new query starts at the top");
+		assert_eq!(highlight_in(&[0, 2], Some(&moved), "a"), Some(0), "a gone row hands back to the top");
 	}
 }
