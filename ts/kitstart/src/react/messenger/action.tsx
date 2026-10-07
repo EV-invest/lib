@@ -448,13 +448,13 @@ export function OptionCard(props: {
   if (link) {
     const { onClick, ...attrs } = link;
     return (
-      <a {...attrs} onClick={onClick} className={className} data-intent={mode === "telegram" ? "telegram" : undefined} data-experiment={kit.experiment?.name} data-variant={kit.experiment?.variant}>
+      <a {...attrs} onClick={onClick} className={className} data-messenger-option="" data-intent={mode === "telegram" ? "telegram" : undefined} data-experiment={kit.experiment?.name} data-variant={kit.experiment?.variant}>
         {body}
       </a>
     );
   }
   return (
-    <button type="button" onClick={props.onPick} className={className}>
+    <button type="button" onClick={props.onPick} className={className} data-messenger-option="">
       {body}
     </button>
   );

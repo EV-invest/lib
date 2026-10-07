@@ -472,9 +472,14 @@ import { messengerFacts } from "@evinvest/kitstart";
   failed, message_ref}`, `contact_intent_click {channel: telegram |
   whatsapp_qr}`; `lead_form_submit` has `message_ref` and the posted
   `channels_available`.
-- **Weight.** Each kind is its own chunk (`React.lazy`), fetched only by the
-  arm that draws it; the control pays for the dispatch alone, and the QR
-  encoder for nobody until a desktop tap.
+- **Weight.** Each kind is its own chunk, fetched only by the arm that draws
+  it; the control pays for the dispatch alone, and the QR encoder for nobody
+  until a desktop tap. The server writes the variant into the page whole (no
+  boundary of its own: React would reveal a large one late, the contact block
+  missing for a frame); hydrating, the card waits for its variant's chunk,
+  the server's markup kept as it is. Until the chunk and the reference are
+  there, its messenger links lead nowhere (`aria-disabled`, no `href`); a
+  browser without scripts gets the control's phone and submit (`<noscript>`).
 
 ### One question per screen: `layout="steps"`
 

@@ -16,23 +16,32 @@ export default function Sheet({ kit }: { kit: MessengerKit }) {
   const message = useMessage(kit);
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"pick" | "call">("pick");
-  // Back from a chat that did not go: the call's step, its field focused once the drawer draws it.
-  const callNow = useRef(false);
   const action = useMessengerAction(kit, message, () => {
     setStep("call");
     setOpen(true);
-    callNow.current = true;
   });
   const formId = `${kit.id}-form`;
   // The dialog is named by its heading, on either step: uikit's drawer does not wire it.
   const titleId = useId();
+  // A step swaps the drawer's content, the pressed button with it: the focus
+  // would fall to the page, and Escape with it. The call's step gives it to
+  // the phone, the way back to the first channel — on whatever path led there.
+  const shown = useRef(step);
   useEffect(() => {
-    if (!callNow.current || !open || step !== "call") return;
-    callNow.current = false;
+    const was = shown.current;
+    shown.current = step;
+    if (!open || (step === "pick" && was === "pick")) return;
     // After the drawer's own focus scope, which takes the focus as it opens.
-    const frame = requestAnimationFrame(() => document.querySelector<HTMLInputElement>(`[data-lead-field="phone"][form="${CSS.escape(formId)}"]`)?.focus());
+    const frame = requestAnimationFrame(() => {
+      const dialog = document.getElementById(titleId)?.closest<HTMLElement>("[role=dialog]");
+      const target =
+        step === "call"
+          ? document.querySelector<HTMLInputElement>(`[data-lead-field="phone"][form="${CSS.escape(formId)}"]`)
+          : dialog?.querySelector<HTMLElement>("[data-messenger-option]");
+      target?.focus();
+    });
     return () => cancelAnimationFrame(frame);
-  }, [open, step, formId]);
+  }, [open, step, formId, titleId]);
   // The app takes over: the drawer goes with it — unless the tap drew the QR code in it.
   const closing = (link: ReturnType<MessengerAction["link"]>): ReturnType<MessengerAction["link"]> =>
     link && {
