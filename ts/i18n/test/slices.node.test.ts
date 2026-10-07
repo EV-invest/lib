@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { collect, messageSlices, runSlices, serialiseSlices, type TableRule } from "../src/extract/index";
+import { collect, InputError, messageSlices, runSlices, serialiseSlices, type TableRule } from "../src/extract/index";
 
 // A miniature App Router app: a layout with a client nav, a client error
 // boundary, a wallet page reaching client leaves three ways (a client
@@ -346,12 +346,14 @@ describe("runSlices", () => {
     write("slices.config.json", JSON.stringify({ tables: [TIPS], table: "tips/copy.ts" }));
 
     expect(() => runSlices(["--root", root, "--config", CONFIG()])).toThrow("unknown field table");
+    expect(() => runSlices(["--root", root, "--config", CONFIG()])).toThrow(InputError);
   });
 
   it("rejects an unknown field in a table rule", () => {
     write("slices.config.json", JSON.stringify({ tables: [{ ...TIPS, ignored: [] }] }));
 
     expect(() => runSlices(["--root", root, "--config", CONFIG()])).toThrow("tables[0]: unknown field ignored");
+    expect(() => runSlices(["--root", root, "--config", CONFIG()])).toThrow(InputError);
   });
 
   it("serialises exactly what it writes", () => {
@@ -359,5 +361,75 @@ describe("runSlices", () => {
     const { slices } = messageSlices({ root, tables: [TIPS] });
 
     expect(readFileSync(OUT(), "utf8")).toBe(serialiseSlices(slices));
+  });
+});
+
+describe("runSlices arguments", () => {
+  const OUT = () => join(root, "i18n-slices.json");
+  const CONFIG = () => join(root, "slices.config.json");
+  const COMMITTED = "committed by hand\n";
+
+  beforeEach(() => {
+    write("i18n-slices.json", COMMITTED);
+  });
+
+  it.each([["--help"], ["-h"]])("prints the usage for %s and writes nothing", flag => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const exit = vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
+
+    runSlices(["--root", root, flag]);
+
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(log).toHaveBeenCalledWith(expect.stringMatching(/^Usage: evinvest-i18n-slices/));
+    expect(exit).not.toHaveBeenCalled();
+    expect(readFileSync(OUT(), "utf8")).toBe(COMMITTED);
+  });
+
+  it.each([
+    ["an unknown flag", ["--root", "ROOT", "--bogus"], "unknown flag --bogus"],
+    ["--root without a value", ["--out", "OUT", "--root"], "--root needs a value"],
+    ["--out followed by --check", ["--root", "ROOT", "--out", "--check"], "--out needs a value"],
+  ])("rejects %s before touching the committed file", (_, argv, message) => {
+    // `it.each` rows are built before `root` exists, so they name it by placeholder.
+    const args = argv.map(arg => (arg === "ROOT" ? root : arg === "OUT" ? OUT() : arg));
+
+    expect(() => runSlices(args)).toThrow(InputError);
+    expect(() => runSlices(args)).toThrow(message);
+    expect(readFileSync(OUT(), "utf8")).toBe(COMMITTED);
+  });
+
+  it("rejects a --config that does not exist", () => {
+    expect(() => runSlices(["--root", root, "--config", join(root, "nope.json")])).toThrow(
+      new InputError(`--config ${join(root, "nope.json")} cannot be read`),
+    );
+    expect(readFileSync(OUT(), "utf8")).toBe(COMMITTED);
+  });
+
+  it("rejects a --config that is not JSON", () => {
+    write("slices.config.json", "{ tables: [");
+
+    expect(() => runSlices(["--root", root, "--config", CONFIG()])).toThrow(InputError);
+    expect(() => runSlices(["--root", root, "--config", CONFIG()])).toThrow(`${CONFIG()} is not JSON`);
+    expect(readFileSync(OUT(), "utf8")).toBe(COMMITTED);
+  });
+
+  it("rejects a --root that does not exist", () => {
+    const missing = join(root, "nowhere");
+
+    expect(() => runSlices(["--root", missing])).toThrow(new InputError(`--root ${missing} does not exist`));
+  });
+
+  it("rejects a --tsconfig that does not exist", () => {
+    const missing = join(root, "tsconfig.nope.json");
+
+    expect(() => runSlices(["--root", root, "--tsconfig", missing])).toThrow(InputError);
+    expect(() => runSlices(["--root", root, "--tsconfig", missing])).toThrow(`${missing} does not exist`);
+    expect(readFileSync(OUT(), "utf8")).toBe(COMMITTED);
+  });
+
+  it("rejects an --app directory that does not exist", () => {
+    expect(() => runSlices(["--root", root, "--app", "pages"])).toThrow(InputError);
+    expect(() => runSlices(["--root", root, "--app", "pages"])).toThrow(`app directory ${join(root, "pages")} does not exist`);
+    expect(readFileSync(OUT(), "utf8")).toBe(COMMITTED);
   });
 });
