@@ -21,5 +21,8 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true
   },
-  "include": ["src", "test", "tsup.config.ts", "tsup.react.config.ts", "vitest.config.ts", "vitest.workspace.ts"]
+  "include": ["src", "test", "tsup.config.ts", "tsup.react.config.ts", "vitest.config.ts", "vitest.workspace.ts"],
+  // The slice generator's fixture app is read as text, never compiled: it imports
+  // aliases and packages only its own tsconfig would map.
+  "exclude": ["test/fixtures"]
 }
