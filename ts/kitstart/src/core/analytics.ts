@@ -29,9 +29,15 @@ export const EVENTS = {
   // and — only where the provider says so on the page (Cal.com's embed) — booked.
   bookingOpen: "lead_booking_open",
   bookingDone: "lead_booking_done",
+  // A messenger CTA of a `messenger` variant: the lead was posted and the
+  // visitor sent on (`channel`, `device`, `inapp`) — and, back on the page,
+  // what they said of it (`answer`: `sent` | `failed`).
+  messengerOpen: "lead_messenger_open",
+  messengerReturn: "lead_messenger_return",
 } as const;
 
-export type IntentChannel = "form_open" | "whatsapp" | "phone" | "sms" | "callback" | "booking";
+/** `whatsapp_qr`: on a computer, the QR code that opens WhatsApp on the phone was shown. */
+export type IntentChannel = "form_open" | "whatsapp" | "phone" | "sms" | "callback" | "booking" | "telegram" | "whatsapp_qr";
 
 /**
  * A form field as events name it — the role, never the brand's wire name, so
@@ -78,6 +84,17 @@ export const ALLOWED_PROPS = [
   // A test visit (`true`): the brand's QA cookie was set, by a forced variant
   // or the QA menu. Absent otherwise, never `false`.
   "forced",
+  // The messengers the card offered: `wa,tg` | `wa` | `tg` | `none` — on every
+  // event of a `LeadCapture`, so an arm that fell back to the control is told apart.
+  "channels_available",
+  // The lead's chat reference (`AQ-7K3F`): drawn at random, not personal data.
+  "message_ref",
+  // The `messenger` variant's kind (`segment`, `tiles`…).
+  "messenger_variant",
+  // `lead_messenger_open`: opened from an app's own browser (Instagram, TikTok…).
+  "inapp",
+  // `lead_messenger_return`: `sent` | `failed`.
+  "answer",
 ] as const;
 
 /**
@@ -89,6 +106,14 @@ export const ANALYTICS_ID = /^[A-Za-z0-9._:-]{1,128}$/;
 
 /** What an experiment's assignment looks like on the wire: short slugs, nothing a person typed. */
 export const EXPERIMENT_SLUG = /^[a-z0-9_-]{1,32}$/;
+
+const CHANNELS_AVAILABLE = ["wa,tg", "wa", "tg", "none"] as const;
+
+/** `channels_available` as an event property, or nothing when it is not one of the four. */
+export function channelsProps(value: string | null | undefined): { channels_available: (typeof CHANNELS_AVAILABLE)[number] } | Record<string, never> {
+  const known = CHANNELS_AVAILABLE.find(c => c === value);
+  return known ? { channels_available: known } : {};
+}
 
 /** An experiment's assignment as event properties, or nothing when it is not a pair of slugs. */
 export function experimentProps(experiment: string | null | undefined, variant: string | null | undefined): { experiment: string; variant: string } | Record<string, never> {

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, type RefObject } from "react";
 import { EVENTS, experimentProps, type LeadField, type LeadStep } from "../core/analytics";
+import type { ChannelsAvailable } from "../core/messenger";
 import { centsBucket } from "../core/pricing/price";
 import { useAnalyticsSink } from "./analytics-context";
 
@@ -16,6 +17,12 @@ export interface LeadEvents {
   submitError(reason: "network" | "timeout", channel: "form" | "callback"): void;
   /** An estimate's price for a full set of answers: its band only, once per need and band. */
   estimateShown(need: string, cents: number): void;
+  /** A messenger CTA: the lead posted, the visitor sent on — never what was typed. */
+  messengerOpen(open: { channel: "whatsapp" | "telegram"; device: "mobile" | "desktop"; inapp: boolean; ref: string | null }): void;
+  /** On a computer: the QR code that opens WhatsApp on the phone was shown (`contact_intent_click`, `whatsapp_qr`). */
+  qrShown(): void;
+  /** Back on the page after a messenger: what the visitor said of it. */
+  messengerReturn(back: { channel: "whatsapp" | "telegram"; answer: "sent" | "failed"; ref: string | null }): void;
 }
 
 /**
@@ -23,14 +30,22 @@ export interface LeadEvents {
  * (half of it in view, once), started (the first focus inside, once), a
  * field the browser refused (`invalid`, by role — never the value), and the
  * step `qualify-first` moved to. Every event carries the form, the layout and
- * the site's experiment, so the arms of a test compare on one schema.
+ * the site's experiment, so the arms of a test compare on one schema — and
+ * the messengers the card offered (`channels_available`) and its `messenger`
+ * variant, so an arm that fell back to the control is told apart.
  */
-export function useLeadEvents(root: RefObject<HTMLElement | null>, tags: { formId: string; layout: string; experiment?: { name: string; variant: string } | undefined }): LeadEvents {
+export function useLeadEvents(
+  root: RefObject<HTMLElement | null>,
+  tags: { formId: string; layout: string; experiment?: { name: string; variant: string } | undefined; channels?: ChannelsAvailable | undefined; messenger?: string | undefined },
+): LeadEvents {
   const sink = useAnalyticsSink();
-  const { formId, layout } = tags;
+  const { formId, layout, channels, messenger } = tags;
   const name = tags.experiment?.name;
   const variant = tags.experiment?.variant;
-  const props = useMemo(() => ({ form_id: formId, layout, ...experimentProps(name, variant) }), [formId, layout, name, variant]);
+  const props = useMemo(
+    () => ({ form_id: formId, layout, ...experimentProps(name, variant), ...(channels ? { channels_available: channels } : {}), ...(messenger ? { messenger_variant: messenger } : {}) }),
+    [formId, layout, name, variant, channels, messenger],
+  );
   const started = useRef(false);
   const shown = useRef(new Set<string>());
 
@@ -78,6 +93,11 @@ export function useLeadEvents(root: RefObject<HTMLElement | null>, tags: { formI
         shown.current.add(key);
         sink?.capture(EVENTS.estimateShown, { ...props, need, cents_bucket });
       },
+      // Beacons: the page is being left for the app.
+      messengerOpen: ({ channel, device, inapp, ref }) =>
+        sink?.capture(EVENTS.messengerOpen, { ...props, channel, device, inapp, ...(ref ? { message_ref: ref } : {}) }, { transport: "beacon" }),
+      qrShown: () => sink?.capture(EVENTS.intent, { ...props, channel: "whatsapp_qr" }),
+      messengerReturn: ({ channel, answer, ref }) => sink?.capture(EVENTS.messengerReturn, { ...props, channel, answer, ...(ref ? { message_ref: ref } : {}) }),
     }),
     [sink, props],
   );

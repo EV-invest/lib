@@ -2,7 +2,7 @@
 
 import type { AnalyticsSink } from "@evinvest/analytics";
 import { createContext, useContext } from "react";
-import { experimentProps } from "../core/analytics";
+import { channelsProps, experimentProps } from "../core/analytics";
 
 /**
  * The sink `AnalyticsBoundary` built, for an island inside it that reports
@@ -22,8 +22,12 @@ export const AnalyticsIdContext = createContext<string | null>(null);
 
 export const useAnalyticsId = (): string | null => useContext(AnalyticsIdContext);
 
-/** `data-experiment` / `data-variant` on an element or its ancestors, for an intent's event. */
-export function experimentOf(el: Element | null): ReturnType<typeof experimentProps> {
+/**
+ * `data-experiment` / `data-variant` on an element or its ancestors, for an
+ * intent's event — and `data-channels-available`, the messengers its card offered.
+ */
+export function experimentOf(el: Element | null): { experiment?: string; variant?: string; channels_available?: string } {
   const host = el?.closest("[data-experiment]");
-  return experimentProps(host?.getAttribute("data-experiment"), host?.getAttribute("data-variant"));
+  const card = el?.closest("[data-channels-available]");
+  return { ...experimentProps(host?.getAttribute("data-experiment"), host?.getAttribute("data-variant")), ...channelsProps(card?.getAttribute("data-channels-available")) };
 }
