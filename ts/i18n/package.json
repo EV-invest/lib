@@ -60,7 +60,8 @@
   },
   "bin": {
     "evinvest-i18n-extract": "./cli/extract.mjs",
-    "evinvest-i18n-check": "./cli/check.mjs"
+    "evinvest-i18n-check": "./cli/check.mjs",
+    "evinvest-i18n-slices": "./cli/slices.mjs"
   },
   "types": "./dist/index.d.ts",
   "main": "./dist/index.cjs",

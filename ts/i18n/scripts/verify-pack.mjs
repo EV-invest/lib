@@ -35,6 +35,7 @@ const ENTRIES = [
   // `npm run i18n:check`, i.e. in the consumer's CI, not here.
   "cli/extract.mjs",
   "cli/check.mjs",
+  "cli/slices.mjs",
 ];
 const REQUIRED = [
   "package.json",

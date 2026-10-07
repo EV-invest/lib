@@ -39,6 +39,17 @@ Rust crate and its TypeScript mirror at once.
 - **`pickMessages(messages, keys)`** (`@evinvest/i18n`, 0.10.0): the part of
   a catalogue under a list of keys, for a provider or a scope; a key the
   catalogue lacks is left out. Plus the `MessageSlices` type.
+- **`evinvest-i18n-slices`** (`@evinvest/i18n/extract`, 0.10.0): reads a
+  Next.js App Router app's import graph — page, layout and boundary entries,
+  static and `import()` edges, tsconfig `paths`, the `"use client"` boundary —
+  and writes which `t()` keys the client renders where: `shell` for the
+  provider, `routes` per page for its `I18nScope`, `serverOnly` for the rest,
+  as a committed JSON file with a GENERATED header; `--check` fails on drift.
+  Table rules (`--config`) narrow a closed table of copy to the ids a route
+  actually names. Errs only towards extra keys: an unresolved local import or
+  a computed `import()` is an error. `messageSlices()` is the same as a
+  function. On the cabinet the `ru` shell is 91 keys (2.6 KB gz) against
+  1818 (49 KB gz) for the whole catalogue.
 - **The compact price's breakdown pops over the card** (`@evinvest/kitstart/react`,
   `price="compact"`). «Détail» opens the kit's `Popover` — over the card, so
   the form no longer moves; a tap outside or Escape closes it, kept inside a
