@@ -90,6 +90,12 @@ export interface MessengerKit {
   setMode: (mode: MessengerMode | null) => void;
   /** The card's reference (`message_ref`), minted once the script runs; `null` before. */
   messageRef: string | null;
+  /**
+   * Whether a messenger link may lead anywhere: the script runs and the
+   * reference is minted. Until then a tap would open the chat with no lead
+   * posted and no `Réf.` to find it by — the links are inert.
+   */
+  ready: boolean;
   /** A new reference, once a messenger lead is posted. */
   renewRef: () => void;
   phone: (options?: PhoneOptions) => ReactNode;

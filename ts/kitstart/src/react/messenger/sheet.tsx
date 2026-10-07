@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, cn, Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from "@evinvest/uikit";
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useId, useRef, useState, type MouseEvent } from "react";
 import { InappHint, modesOf, OptionCard, useMessage, useMessengerAction, wordsOf, type MessengerAction } from "./action";
 import type { MessengerKit } from "./types";
 
@@ -24,6 +24,8 @@ export default function Sheet({ kit }: { kit: MessengerKit }) {
     callNow.current = true;
   });
   const formId = `${kit.id}-form`;
+  // The dialog is named by its heading, on either step: uikit's drawer does not wire it.
+  const titleId = useId();
   useEffect(() => {
     if (!callNow.current || !open || step !== "call") return;
     callNow.current = false;
@@ -54,11 +56,13 @@ export default function Sheet({ kit }: { kit: MessengerKit }) {
             {words.messengerSheetCta}
           </Button>
         </DrawerTrigger>
-        <DrawerContent>
+        <DrawerContent aria-labelledby={titleId}>
           <div className={cn("flex flex-col gap-4 p-4", kit.classNames?.messengerPicker)}>
             {step === "pick" ? (
               <>
-                <DrawerTitle className="font-display text-xl font-bold text-ink">{words.messengerSheetTitle}</DrawerTitle>
+                <DrawerTitle id={titleId} className="font-display text-xl font-bold text-ink">
+                  {words.messengerSheetTitle}
+                </DrawerTitle>
                 {action.panel}
                 {modesOf(kit, ["whatsapp", "telegram", "call"]).map(mode =>
                   mode === "call" ? (
@@ -74,7 +78,9 @@ export default function Sheet({ kit }: { kit: MessengerKit }) {
                 <Button type="button" variant="link" size="sm" className="self-start px-0" onClick={() => setStep("pick")}>
                   ‹ {words.messengerChange}
                 </Button>
-                <DrawerTitle className="font-display text-xl font-bold text-ink">{words.messengerCallTitle}</DrawerTitle>
+                <DrawerTitle id={titleId} className="font-display text-xl font-bold text-ink">
+                  {words.messengerCallTitle}
+                </DrawerTitle>
                 {kit.phone({ form: formId })}
                 {kit.submit(words.messengerCallback, { form: formId })}
               </>

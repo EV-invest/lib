@@ -68,13 +68,17 @@ export function initialMode(variant: MessengerVariant | undefined): MessengerMod
  * cannot know it without the hydration seeing another — and again by
  * `renew`, after a messenger lead is posted.
  */
-export function useMessageRef(prefix: string | undefined, on: boolean): [string | null, () => void] {
+export function useMessageRef(prefix: string | undefined, on: boolean): { ref: string | null; renew: () => void; minted: boolean } {
   const [ref, setRef] = useState<string | null>(null);
+  // Without a prefix there is no reference to wait for; with one, nothing is
+  // minted on the server — an ISR page is one render for every visitor.
+  const [settled, setSettled] = useState(false);
   const valid = on && prefix !== undefined && MESSAGE_REF_PREFIX.test(prefix);
   useEffect(() => {
     if (valid && prefix !== undefined) setRef(newMessageRef(prefix));
+    setSettled(true);
   }, [valid, prefix]);
-  return [ref, () => (valid && prefix !== undefined ? setRef(newMessageRef(prefix)) : undefined)];
+  return { ref, renew: () => (valid && prefix !== undefined ? setRef(newMessageRef(prefix)) : undefined), minted: settled && (!valid || ref !== null) };
 }
 
 /** One variant's piece at one place in the card; nothing where it draws nothing. */

@@ -98,9 +98,21 @@ interface Left {
   href: string;
 }
 
+/**
+ * A messenger link's attributes. Not `ready` (before the script, before the
+ * reference): no `href` — nothing to follow — and `aria-disabled`.
+ */
+export interface LinkAttrs {
+  href?: string;
+  onClick: (event: MouseEvent<HTMLAnchorElement>) => void;
+  target?: string;
+  rel?: string;
+  "aria-disabled"?: true;
+}
+
 export interface MessengerAction {
   /** A messenger CTA's link: the real `href` (the OS opens the app from the tap) and what the tap does first. */
-  link: (channel: Messenger) => { href: string; onClick: (event: MouseEvent<HTMLAnchorElement>) => void; target?: string; rel?: string } | null;
+  link: (channel: Messenger) => LinkAttrs | null;
   /** On a computer, WhatsApp's QR code, drawn in place of the slot; `null` otherwise. */
   panel: ReactNode;
   /** Back from the messenger: drawn over the card's form. */
@@ -149,6 +161,7 @@ export function useMessengerAction(
     // The render's message — the server has no form to read; the tap reads it again.
     const href = hrefOf(kit, channel, message.message);
     if (!href) return null;
+    if (!kit.ready) return { "aria-disabled": true, onClick: event => event.preventDefault() };
     const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
       const form = formOf(kit);
       const phone = form?.elements.namedItem(kit.wire.mobile);
