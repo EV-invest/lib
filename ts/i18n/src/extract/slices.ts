@@ -223,8 +223,9 @@ function createResolver(root: string, paths: Paths | null) {
   };
 
   return (from: string, raw: string): Resolution => {
-    // A bundler query (`./icon.svg?url`) names the file before it.
-    const specifier = raw.replace(/[?#].*$/, "");
+    // A bundler query (`./icon.svg?url`) names the file before it. A leading `#`
+    // is a subpath import (`#components/b`), not a fragment, so it stays.
+    const specifier = raw.replace(/(?!^)[?#].*$/, "");
     const local = (abs: string): Resolution => {
       const path = find(abs);
       return path === null ? { kind: "unresolved" } : { kind: "local", path };
