@@ -21,6 +21,7 @@ import {
   createContext,
   useContext,
   useMemo,
+  useRef,
   type ReactElement,
   type ReactNode,
 } from "react";
@@ -61,17 +62,19 @@ export interface I18nProviderProps<L extends string = Locale> {
 /** See {@link I18nProviderProps.missing}. */
 export type MissingMode = "warn" | "throw";
 
-/** `onMissing` with {@link MissingMode} folded in; `undefined` when there is nothing to do. */
+/**
+ * `onMissing` with {@link MissingMode} folded in. `onMissing` is read through a
+ * getter and `warned` is passed in, so neither a new `onMissing` each render nor
+ * a rebuilt reporter forgets which keys were already warned about.
+ */
 function reporter<L extends string>(
   mode: MissingMode | undefined,
-  onMissing: ((key: string, locale: L) => void) | undefined,
-): ((key: string, locale: L) => void) | undefined {
-  if (mode === undefined) return onMissing;
-  // Per provider rather than per module: a key warned about under one tree is
-  // still news under another, and a re-render must not repeat it.
-  const warned = new Set<string>();
+  onMissing: () => ((key: string, locale: L) => void) | undefined,
+  warned: Set<string>,
+): (key: string, locale: L) => void {
   return (key, locale) => {
-    onMissing?.(key, locale);
+    onMissing()?.(key, locale);
+    if (mode === undefined) return;
     const message = `@evinvest/i18n: "${key}" is not in the ${locale} catalogue this tree was given`;
     if (mode === "throw") {
       throw new Error(
@@ -121,11 +124,23 @@ export function createI18nReact<L extends string>(registry: LocaleRegistry<L>): 
   type Report = (key: string, locale: L) => void;
   // `messages` and `report` ride along so a nested scope can rebuild `t` over a
   // wider catalogue without being handed either again.
-  type Value = { locale: L; messages: Messages; report: Report | undefined; t: Translate };
+  type Value = { locale: L; messages: Messages; report: Report; t: Translate };
   const I18nContext = createContext<Value | null>(null);
 
   function I18nProvider({ locale, messages, onMissing, missing, children }: I18nProviderProps<L>) {
-    const report = useMemo(() => reporter(missing, onMissing), [missing, onMissing]);
+    // An inline `onMissing` is a new function every render. Read through a ref, it
+    // neither rebuilds `t` (re-rendering every consumer) nor resets `warned`. It is
+    // written during render, not in an effect, so the render that brings a new
+    // handler already reports to it.
+    const latest = useRef(onMissing);
+    latest.current = onMissing;
+    // Per provider rather than per module: a key warned about under one tree is
+    // still news under another, and a re-render must not repeat it.
+    const warned = useRef<Set<string>>(new Set());
+    const report = useMemo(
+      () => reporter<L>(missing, () => latest.current, warned.current),
+      [missing],
+    );
     const value = useMemo<Value>(
       () => ({ locale, messages, report, t: registry.translator(messages, locale, report) }),
       [locale, messages, report],
