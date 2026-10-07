@@ -402,10 +402,13 @@ import { messengerFacts } from "@evinvest/kitstart";
   bot is on; `urgency` keeps its question (both answers ask the phone) and
   `thanks` keeps the bot. No bot — every Telegram piece is left out. The arm
   stays assigned; every event says what the card had: `channels_available`
-  (`wa,tg` | `wa` | `tg` | `none`).
+  (`wa,tg` | `wa` | `tg` | `none`). The switches are the form's only: `contactOf` — the
+  header, the call bar, the control's own WhatsApp link — keeps the number.
 - **The reference** `message_ref`: `<refPrefix>-<4 Crockford base32>`,
-  minted in the browser once the script runs and again after a messenger
-  lead is posted; the WhatsApp message ends with `Réf. AQ-7K3F`, the bot's
+  minted in the browser once the script runs, and again only once the
+  visitor is back from the chat and has answered «Message envoyé ?» — never
+  in the tap: the reference posted is the one in the link, the QR code and
+  the return screen, and a second tap on the same lead is the same lead; the WhatsApp message ends with `Réf. AQ-7K3F`, the bot's
   `start` is the reference itself. Posted with every lead of the card (a
   `thanks` success sends the form lead's own), stored (`message_ref`, schema
   8), mailed (`Réf.`), and sent to the panel under `panelMessenger`.

@@ -184,7 +184,10 @@ export function useMessengerAction(
       } else if (!followUp) {
         left.current = { channel, ref, href: fresh };
       }
-      if (!followUp) kit.renewRef();
+      // Never renewed here: React redraws the link before the browser follows
+      // it, and the visitor would leave with a reference the lead does not
+      // carry. A second tap on the same lead is the same reference and the
+      // same submission id — one lead.
     };
     return channel === "telegram" ? { href, onClick, target: "_blank", rel: "noopener" } : { href, onClick };
   };
@@ -197,6 +200,8 @@ export function useMessengerAction(
   const answer = (said: "sent" | "failed") => {
     if (back) kit.events.messengerReturn({ channel: back.channel, answer: said, ref: back.ref });
     setBack(null);
+    // Back from the chat and answered: the next lead is another, with a reference of its own.
+    if (!followUp) kit.renewRef();
     if (said === "failed") onCallback();
   };
   const overlay = back && <ReturnScreen left={back} words={words} onAnswer={answer} kit={kit} />;

@@ -83,7 +83,8 @@ export interface Place<L extends string> {
   channels: { phone: string | null; whatsapp: string | null; telegram?: string | null };
   /**
    * The panel's switches for the messengers (`PlaceLive.messengers`): `false`
-   * takes one off the place's cards (`messengerFacts`); absent is on.
+   * takes one off the lead form's messenger variants (`messengerFacts`) only —
+   * `contactOf`, the header's and the call bar's numbers, keeps it; absent is on.
    */
   messengers?: MessengerSwitches;
   hours: readonly OpeningHours[] | null;
