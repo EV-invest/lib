@@ -52,6 +52,8 @@ export type {
   Translate,
 } from "./registry";
 export type { MessageValues } from "./format";
+export { pickMessages } from "./slices";
+export type { MessageSlices } from "./slices";
 
 import { DEFAULT_LOCALE, LOCALES, LOCALE_LABELS } from "./generated/locales";
 import type { Locale } from "./generated/locales";

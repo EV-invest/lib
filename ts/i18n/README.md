@@ -392,6 +392,22 @@ import { I18nScope } from "@evinvest/i18n/react";
 </I18nScope>
 ```
 
+## Slicing the catalogue
+
+A client provider's `messages` are serialised into every page's RSC payload, so
+a provider at the root layout ships the whole catalogue to every page. Slice it
+instead: the provider carries what the layouts render, and each page's
+`I18nScope` adds what that page renders. `pickMessages(messages, keys)` cuts the
+slice; a key the catalogue lacks is left out, and the call site's English
+renders for it as it would anyway.
+
+```tsx
+// app/[locale]/layout.tsx  (Server Component)
+import { pickMessages } from "@evinvest/i18n";
+
+<I18nProvider locale={locale} messages={pickMessages(messagesFor(locale), slices.shell)}>
+```
+
 ## Extracting
 
 Two bins, same arguments, so a check and the extract that fixes it cannot be
