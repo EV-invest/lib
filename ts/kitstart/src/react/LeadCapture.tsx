@@ -236,7 +236,7 @@ export function LeadCapture(props: LeadCaptureProps) {
   const shown = messengerShownOf(props.messenger, facts);
   const channels = channelsAvailable(props.messengers);
   const [mode, setMode] = useState(() => initialMode(props.messenger));
-  const [messageRef, renewRef] = useMessageRef(props.refPrefix, shown !== null);
+  const { ref: messageRef, renew: renewRef, minted } = useMessageRef(props.refPrefix, shown !== null);
   const events = useLeadEvents(root, { formId, layout, experiment, channels, messenger: shown ?? undefined });
   useOpenOnHash(`${id}-callback`);
   // Only this card's: a page may draw several, and the query names one.
@@ -424,6 +424,7 @@ export function LeadCapture(props: LeadCaptureProps) {
     setMode,
     messageRef,
     renewRef,
+    ready: minted,
     phone: options => phoneOf(options),
     // Inside a variant the submit is its main button, dressed as its messenger's.
     // …with the phone's icon before its words: it is the call.
@@ -560,12 +561,27 @@ export function LeadCapture(props: LeadCaptureProps) {
       </SubmitButton>
     );
   }
+  /**
+   * Without a script a variant leads nowhere — its messenger links are inert
+   * until the reference is minted — so a browser that runs none gets the
+   * control's phone and submit (`select` draws the phone already). Never
+   * parsed where scripts run.
+   */
+  function noScript() {
+    return (
+      <noscript>
+        {shown !== "select" && phoneOf({ after: null })}
+        {submitOf()}
+      </noscript>
+    );
+  }
   const tail = (
     <>
       <FormMessage id={formMessageId(id, "form")} error={above} className={c?.error} />
       <FailureMessage failure={mainFailure} text={text} onRetry={retry} className={c?.error} />
       <div className={cn("flex flex-col gap-3", c?.trust)}>
         {!contactSlot && submitOf()}
+        {contactSlot && noScript()}
         {slot("afterSubmit")}
         <Fragment key="trust">{props.trust}</Fragment>
       </div>
@@ -741,7 +757,10 @@ export function LeadCapture(props: LeadCaptureProps) {
           />
         ) : drawsAt(shown, "body") && mode === null ? (
           // `saga`'s first screen: the channel, before anything else.
-          slot("body")
+          <>
+            {slot("body")}
+            {noScript()}
+          </>
         ) : (
           <>
             {slot("beforeNeed")}
