@@ -20,7 +20,8 @@ function ChipMenu({ kit }: { kit: MessengerKit }) {
   return (
     <ChannelPicker
       kit={kit}
-      triggerClassName="h-8 w-fit rounded-full bg-muted px-3 text-sm font-medium text-ink"
+      // The chip is the picker itself: the picker's part dresses it too.
+      triggerClassName={cn("h-8 w-fit rounded-full bg-muted px-3 text-sm font-medium text-ink", kit.classNames?.messengerPicker)}
       trigger={
         <span className="flex items-center gap-2">
           <Glyph kit={kit} channel={mode} />

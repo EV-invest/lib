@@ -40,6 +40,8 @@ export interface LeadCaptureMessengerText extends MessengerMessageText {
   messengerTelegramHint: string;
   /** The message's preview in the slot: its heading, and an optional line after the message. */
   messengerPreviewTitle: string;
+  /** The estimate in the preview, `{price}` the amount («env. {price}»). */
+  messengerPreviewPrice: string;
   messengerPreviewNote: string;
   /** Telegram's card in the slot. */
   messengerBotTitle: string;
@@ -124,6 +126,7 @@ const FR: LeadCaptureMessengerText = {
   messengerWhatsappHint: "WhatsApp s’ouvre, demande déjà rédigée. Numéro facultatif.",
   messengerTelegramHint: "Telegram s’ouvre : notre bot vous répond.",
   messengerPreviewTitle: "Votre message est prêt",
+  messengerPreviewPrice: "{price}",
   messengerPreviewNote: "",
   messengerBotTitle: "Notre bot vous envoie le devis",
   messengerBotLede: "Telegram s’ouvre : appuyez sur « Démarrer », le devis arrive dans le chat.",
@@ -193,6 +196,7 @@ const EN: LeadCaptureMessengerText = {
   messengerWhatsappHint: "WhatsApp opens with your request written. Phone optional.",
   messengerTelegramHint: "Telegram opens: our bot answers you.",
   messengerPreviewTitle: "Your message is ready",
+  messengerPreviewPrice: "{price}",
   messengerPreviewNote: "",
   messengerBotTitle: "Our bot sends you the quote",
   messengerBotLede: "Telegram opens: tap “Start” and the quote arrives in the chat.",

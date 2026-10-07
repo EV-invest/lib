@@ -39,6 +39,7 @@ function Question({ kit }: { kit: MessengerKit }) {
             value={m}
             className={cn(
               "h-11 rounded-[var(--control-radius)] border border-border first:rounded-[var(--control-radius)] last:rounded-[var(--control-radius)] data-[state=on]:border-primary data-[state=on]:text-ink",
+              kit.classNames?.messengerOption,
               kit.classNames?.messengerTile,
             )}
           >

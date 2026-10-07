@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, cn } from "@evinvest/uikit";
-import { Glyph, InappHint, MessengerCta, Slot, SquareButton, toCall, useMessage, useMessengerAction, wordsOf } from "./action";
+import { Glyph, InappHint, MessengerCta, Slot, SquareButton, toCall, useDesktop, useMessage, useMessengerAction, wordsOf } from "./action";
 import type { MessengerKit } from "./types";
 
 /**
@@ -15,6 +15,7 @@ export default function Swap({ kit }: { kit: MessengerKit }) {
   const message = useMessage(kit);
   const action = useMessengerAction(kit, message, () => toCall(kit));
   const call = kit.mode === "call";
+  const desktop = useDesktop();
   return (
     <div className={cn("flex flex-col gap-3", kit.classNames?.messenger)}>
       <Slot kit={kit}>
@@ -30,7 +31,8 @@ export default function Swap({ kit }: { kit: MessengerKit }) {
           <>
             {kit.facts.telegram && (
               <div className="min-w-0 flex-1">
-                <MessengerCta kit={kit} action={action} channel="telegram" label={words.messengerOptionTelegram} variant="outline" />
+                {/* VF-3: «Telegram» beside the WhatsApp button; «Ouvrir Telegram» beside the QR code. */}
+                <MessengerCta kit={kit} action={action} channel="telegram" label={desktop ? words.messengerTelegramCta : words.messengerOptionTelegram} variant="outline" />
               </div>
             )}
             <Button type="button" variant="outline" size="touch" className={cn("min-w-0 flex-1", kit.classNames?.messengerSecondary)} onClick={() => toCall(kit)}>

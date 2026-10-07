@@ -43,9 +43,12 @@ Rust crate and its TypeScript mirror at once.
   `whatsapp_qr`.
   The message's timing line is `urgency`'s answer or the estimate answer
   `messengerTiming={{ input }}` names; each line is a text key a brand
-  rewords (`messagePrice: "… env. {price}"`). Parts `messengerCta`,
-  `messengerSecondary`, `messengerSquare`, `messengerSegment`,
-  `messengerTile` size the variants' buttons without descendant selectors.
+  rewords (`messagePrice: "… env. {price}"`). The need's line and the
+  preview carry the estimate's answers (short labels, `messengerPreviewPrice`).
+  Parts `messengerCta`, `messengerSecondary`, `messengerSquare`,
+  `messengerSegment`, `messengerTile`, `messengerTrigger` size the variants'
+  buttons without descendant selectors; a call inside a variant wears
+  `channelIcons.phone`.
 - **`TopBar`, `AccountMenu`, `AppShell.topBar`** (`@evinvest/uikit`, TS-only):
   the wide screen's utility bar over the content column, and the account menu
   every service under one account shows in the same order — name / email,
