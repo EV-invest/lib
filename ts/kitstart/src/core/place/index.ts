@@ -3,6 +3,7 @@ export {
   storefrontOf,
   type DayOfWeek,
   type Geo,
+  type MessengerSwitches,
   type OpeningHours,
   type Place,
   type PostalAddress,

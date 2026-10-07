@@ -1,7 +1,8 @@
 import type { BookingConfig, BookingRules } from "../booking/model";
 import { BookingConfigError, parseBookingConfig } from "../booking/validate";
+import { TELEGRAM_BOT } from "../messenger";
 import { parseInstant } from "./rating";
-import type { DayOfWeek, Geo, OpeningHours, Place, PostalAddress, Rating, ServiceArea } from "./types";
+import type { DayOfWeek, Geo, MessengerSwitches, OpeningHours, Place, PostalAddress, Rating, ServiceArea } from "./types";
 
 /**
  * The live half of a place, as `GET <source>/locations/<slug>` answers it.
@@ -22,6 +23,10 @@ export interface PlaceLive<L extends string> {
   rating?: Rating;
   /** Validated with the site's Cal.com hosts; one that does not validate is dropped, the baked one kept. */
   booking?: BookingConfig;
+  /** The place's Telegram bot, its username without `@` (`TELEGRAM_BOT`). */
+  telegram?: string;
+  /** The panel's kill switches for the messengers; a key left out is on. */
+  messengers?: MessengerSwitches;
 }
 
 const DAYS: readonly DayOfWeek[] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -85,6 +90,15 @@ function isComplete<L extends string>(record: Partial<Record<L, string>>, locale
   return locales.every(locale => typeof record[locale] === "string");
 }
 
+/** Each switch only when it is a boolean: a switch that does not read is left on. */
+function messengers(v: unknown): MessengerSwitches | undefined {
+  if (!isObject(v)) return undefined;
+  const out: MessengerSwitches = {};
+  if (typeof v.whatsapp === "boolean") out.whatsapp = v.whatsapp;
+  if (typeof v.telegram === "boolean") out.telegram = v.telegram;
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
 function booking(v: unknown, rules: BookingRules): BookingConfig | undefined {
   if (v === undefined || v === null) return undefined;
   try {
@@ -132,6 +146,10 @@ export function parsePlaceLive<L extends string>(body: unknown, locales: readonl
   if (r) live.rating = r;
   const b = booking(body.booking, rules);
   if (b) live.booking = b;
+  const bot = str(body.telegram)?.replace(/^@/, "");
+  if (bot && TELEGRAM_BOT.test(bot)) live.telegram = bot;
+  const m = messengers(body.messengers);
+  if (m) live.messengers = m;
   return live;
 }
 
@@ -143,6 +161,8 @@ export function parsePlaceLive<L extends string>(body: unknown, locales: readonl
 export function mergeLive<L extends string>(baked: Place<L>, live: PlaceLive<L>): Place<L> {
   const front = baked.presence;
   const booking = live.booking ?? baked.booking;
+  const telegram = live.telegram ?? baked.channels.telegram;
+  const switches = live.messengers ?? baked.messengers;
   return {
     ...baked,
     presence:
@@ -155,10 +175,11 @@ export function mergeLive<L extends string>(baked: Place<L>, live: PlaceLive<L>)
             landmark: live.landmark ?? front.landmark,
           }
         : front,
-    channels: { phone: live.phone ?? baked.channels.phone, whatsapp: live.whatsapp ?? baked.channels.whatsapp },
+    channels: { phone: live.phone ?? baked.channels.phone, whatsapp: live.whatsapp ?? baked.channels.whatsapp, ...(telegram !== undefined ? { telegram } : {}) },
     serviceArea: live.serviceArea ?? baked.serviceArea,
     hours: live.hours ?? baked.hours,
     rating: live.rating ?? baked.rating,
     ...(booking ? { booking } : {}),
+    ...(switches ? { messengers: switches } : {}),
   };
 }

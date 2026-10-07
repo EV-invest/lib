@@ -1,3 +1,5 @@
+import type { LeadCaptureMessengerText } from "./messenger-text";
+
 /**
  * Every word `LeadCapture` prints. Plain strings, not the copy contract's
  * `Said<F>`: the form is a client island, and a function cannot cross from a
@@ -10,9 +12,12 @@
  *
  * The flows' words (`LeadCaptureFlowText`) are optional here so a brand's own
  * text object written before them still type-checks; a key left out falls
- * back to the kit's, in the page's language (`flowTextOf`).
+ * back to the kit's, in the page's language (`flowTextOf`). The `messenger`
+ * variants' words (`LeadCaptureMessengerText`) likewise (`messengerTextOf`),
+ * their defaults in `LEAD_CAPTURE_MESSENGER_TEXT` — not spread in here: this
+ * module reaches the client island, and only a variant's chunk needs them.
  */
-export interface LeadCaptureText extends Partial<LeadCaptureFlowText> {
+export interface LeadCaptureText extends Partial<LeadCaptureFlowText>, Partial<LeadCaptureMessengerText> {
   title: string;
   lede: string;
   needLabel: string;

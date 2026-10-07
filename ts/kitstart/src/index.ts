@@ -10,6 +10,7 @@ export {
   cardFact,
   contactOf,
   defineSite,
+  messengerFacts,
   ogLocaleOf,
   openLaunchBlockers,
   perLocale,
@@ -45,6 +46,7 @@ export {
   type DayOfWeek,
   type Geo,
   type LinkBase,
+  type MessengerSwitches,
   type LinkMode,
   type Opening,
   type OpeningHours,
@@ -87,6 +89,7 @@ export {
   CHANNEL_FIELD,
   channelOf,
   CONSENT_FIELD,
+  isMessengerChannel,
   LEAD_CHANNELS,
   LEAD_ERROR_PARAM,
   LEAD_CARD_PARAM,
@@ -109,6 +112,7 @@ export {
   type LeadError,
   type PageLeadError,
   type LeadConsent,
+  type MessengerChannel,
   type LeadExtra,
   type LeadPrice,
   type LeadRejection,
@@ -159,6 +163,24 @@ export {
 } from "./core/pricing/index";
 
 export { flowTextOf, LEAD_CAPTURE_TEXT, type LeadCaptureFlowText, type LeadCaptureText } from "./core/lead-capture-text";
+export { LEAD_CAPTURE_MESSENGER_TEXT, messengerTextOf, type LeadCaptureMessengerText } from "./core/messenger-text";
+export {
+  channelsAvailable,
+  MESSAGE_REF,
+  MESSAGE_REF_FIELD,
+  MESSAGE_REF_PREFIX,
+  messageRefOf,
+  newMessageRef,
+  TELEGRAM_BOT,
+  telegramHref,
+  type ChannelsAvailable,
+  type MessengerFacts,
+  type MessengerKind,
+  type MessengerMode,
+  type MessengerVariant,
+  type RandomBytes,
+} from "./core/messenger";
+export { MAX_MESSENGER_MESSAGE, messengerMessage, type MessengerMessageInput, type MessengerMessageText } from "./core/messenger-message";
 export { fillText, formatCents, openingText } from "./core/lead-capture-format";
 
 export {
@@ -186,6 +208,7 @@ export {
 export {
   createAcceptLead,
   ANALYTICS_ID_FIELD,
+  CHANNELS_FIELD,
   EXPERIMENT_FIELD,
   FORM_ID_FIELD,
   leadRef,
@@ -193,6 +216,7 @@ export {
   LOCATION_FIELD,
   PRICE_CHANGED,
   SHOWN_CENTS_FIELD,
+  submitTagsOf,
   VARIANT_FIELD,
   type AcceptDeps,
   type Outcome,
@@ -229,6 +253,7 @@ export {
   ALLOWED_PROPS,
   ANALYTICS_ID,
   analyticsSink,
+  channelsProps,
   countsAsPageView,
   EVENTS,
   EXPERIMENT_SLUG,
