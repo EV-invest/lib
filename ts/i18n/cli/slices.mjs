@@ -1,4 +1,4 @@
 #!/usr/bin/env node
-import { runSlices } from "../dist/extract.js";
+import { runSlices, runCli } from "../dist/extract.js";
 
-runSlices(process.argv.slice(2));
+runCli("evinvest-i18n-slices", () => runSlices(process.argv.slice(2)));

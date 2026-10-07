@@ -507,6 +507,14 @@ directories is a hole that opens the day someone adds a slice, and an unscanned
 call site produces no error — just English forever in five locales.
 `--messages` defaults to `<root>/messages`.
 
+All three bins (with `evinvest-i18n-slices` below) parse their arguments
+strictly: `-h` / `--help` prints the usage and exits 0; an unknown flag, a flag
+without its value, a repeated flag or a stray argument exits 2 before anything
+is read or written — a tool that writes committed files must not read a typo as
+"run with the defaults". A malformed `--config`, a missing `--root` and the like
+also exit 2, with the message and no stack trace; exit 1 is the check itself
+failing.
+
 `extract` writes `messages/en/common.json` and prunes every translated catalogue
 down to the keys the code still asks for. The prune is unconditional because the
 scan cannot see a *deleted* call site — only what remains.
