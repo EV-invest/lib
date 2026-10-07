@@ -481,7 +481,8 @@ describe("LeadCapture's events", () => {
     act(() => form("quote-callback-form").querySelector<HTMLInputElement>("input[name=mobile]")?.focus());
     fireEvent.change(phone, { target: { value: "0612345678" } });
     act(() => void form().checkValidity());
-    const tags = { form_id: "quote", layout: "single", experiment: "lead_layout", variant: "single" };
+    // No `messengers` handed down: the card offered none, and says so on every event.
+    const tags = { form_id: "quote", layout: "single", experiment: "lead_layout", variant: "single", channels_available: "none" };
     expect(events).toEqual([
       { event: "lead_form_view", props: tags },
       { event: "lead_form_start", props: tags },

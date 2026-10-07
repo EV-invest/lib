@@ -83,7 +83,7 @@ describe("choosing the lead store", () => {
   it("checks the store at boot and says which one won", async () => {
     const info = vi.fn();
     await checkLeadStore({ leadsDb: { kind: "sqlite", path: tmp() }, leadsDbFrom: "LEADS_DB_URL" }, { info });
-    expect(info).toHaveBeenCalledWith(expect.stringMatching(/^leads: sqlite at .*, schema v7 \(from LEADS_DB_URL\)$/));
+    expect(info).toHaveBeenCalledWith(expect.stringMatching(/^leads: sqlite at .*, schema v8 \(from LEADS_DB_URL\)$/));
     await expect(checkLeadStore({ leadsDb: { kind: "postgres", url: "postgres://db/x" }, leadsDbFrom: "LEADS_DB_URL" }, { info })).rejects.toThrow(
       LeadStoreNotImplemented,
     );
@@ -125,7 +125,7 @@ const columnsOf = (path: string): unknown[] => {
   return names;
 };
 
-const ALL = ["id", "job", "zip", "mobile", "at", "location_id", "spam_verdict", "extras", "channel", "consent_at", "consent_text", "submission_id", "flow", "quoted_cents", "pricing_valid_from", "estimate_inputs"];
+const ALL = ["id", "job", "zip", "mobile", "at", "location_id", "spam_verdict", "extras", "channel", "consent_at", "consent_text", "submission_id", "flow", "quoted_cents", "pricing_valid_from", "estimate_inputs", "message_ref"];
 
 describe("the sqlite store's migrations", () => {
   it("keeps the channel and a callback's consent; a row from before has neither", async () => {
