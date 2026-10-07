@@ -124,7 +124,19 @@ interface Paths {
   baseUrl: string | null;
 }
 
-type Resolution = { kind: "local"; path: string } | { kind: "external" } | { kind: "unresolved" };
+type Resolution =
+  | { kind: "local"; path: string }
+  | { kind: "external" }
+  | { kind: "unresolved"; alias?: string };
+
+/**
+ * Whether a bare specifier can name an npm package. `@/x` (an empty scope),
+ * `~/x` and `#x` cannot: they only mean something through an alias — tsconfig
+ * `paths`, a bundler alias, package.json `imports` — so one nothing here maps
+ * is a local import the graph lost, not a package to stop at.
+ */
+const couldBePackage = (specifier: string): boolean =>
+  specifier.startsWith("@") ? /^@[^/]+\/[^/]/.test(specifier) : !/^[~#]/.test(specifier);
 
 const isFile = (path: string): boolean =>
   statSync(path, { throwIfNoEntry: false })?.isFile() ?? false;
@@ -234,13 +246,22 @@ function createResolver(root: string, paths: Paths | null) {
         }
         // A bare `*` maps everything, packages included; anything narrower
         // (`@/*`) is a promise that the specifier is ours, so a miss is a broken import.
-        if (prefix !== "" || suffix !== "") return { kind: "unresolved" };
+        if (prefix !== "" || suffix !== "")
+          return { kind: "unresolved" };
       }
       if (paths.baseUrl !== null) {
         const path = find(resolve(paths.baseUrl, specifier));
         if (path !== null) return { kind: "local", path };
       }
     }
+    if (!couldBePackage(specifier))
+      return {
+        kind: "unresolved",
+        alias:
+          paths === null
+            ? "it is an alias, not a package, and no tsconfig was read to map it"
+            : "it is an alias, not a package, and the tsconfig's paths do not map it",
+      };
     return { kind: "external" };
   };
 }
@@ -349,7 +370,10 @@ export function messageSlices(options: SliceOptions): SliceResult {
       const resolution = resolveFrom(path, specifier);
       if (resolution.kind === "local") found.push(resolution.path);
       else if (resolution.kind === "unresolved")
-        graphErrors.add(`${at}: cannot resolve "${specifier}" — a local import the graph cannot follow`);
+        graphErrors.add(
+          `${at}: cannot resolve "${specifier}" — a local import the graph cannot follow` +
+            (resolution.alias === undefined ? "" : ` (${resolution.alias})`),
+        );
     }
     edges.set(path, found);
     return found;
