@@ -44,7 +44,7 @@ export interface Message {
 
 export function useMessage(kit: MessengerKit, own?: string | null): Message {
   // A variant's own timing (`urgency`), else the estimate's answer the brand named.
-  const timing = own === undefined ? kit.timing : own;
+  const timing = own === undefined ? kit.timing : own === null ? null : { label: own, short: own };
   const [postcode, setPostcode] = useState("");
   useEffect(() => {
     const form = formOf(kit);
@@ -59,10 +59,13 @@ export function useMessage(kit: MessengerKit, own?: string | null): Message {
     };
   }, [kit.id, kit.wire.locality]);
   const words = wordsOf(kit);
+  // The need with the estimate's answers: «Ménage standard · 2 ch. · 40–70 m²».
+  const need = kit.needLabel ? [kit.needLabel, ...kit.answers].join(" · ") : null;
   const compose = (code: string) =>
-    messengerMessage({ brand: kit.brand, need: kit.needLabel, postcode: code, price: kit.priceText, timing: timing ?? null, ref: kit.messageRef }, words);
+    messengerMessage({ brand: kit.brand, need, postcode: code, price: kit.priceText, timing: timing?.label ?? null, ref: kit.messageRef }, words);
   const ref = kit.messageRef ? fillText(words.messageRef, { ref: kit.messageRef }) : null;
-  const preview = [fillText(words.messageHello, { brand: kit.brand }), kit.needLabel, postcode, kit.priceText, timing, ref].filter(Boolean).join(" · ");
+  const price = kit.priceText ? fillText(words.messengerPreviewPrice, { price: kit.priceText }) : null;
+  const preview = [fillText(words.messageHello, { brand: kit.brand }), need, timing?.short, price, postcode, ref].filter(Boolean).join(" · ");
   return { message: compose(postcode), preview, compose: () => compose(valueOf(formOf(kit), kit.wire.locality)) };
 }
 
@@ -216,7 +219,7 @@ export function ModeBody(props: { kit: MessengerKit; message: Message; action: M
   );
 }
 
-const iconOf = (kit: MessengerKit, channel: MessengerMode): ReactNode => (channel === "call" ? (kit.icons?.callback ?? kit.icons?.phone) : kit.icons?.[channel]);
+const iconOf = (kit: MessengerKit, channel: MessengerMode): ReactNode => (channel === "call" ? (kit.icons?.phone ?? kit.icons?.callback) : kit.icons?.[channel]);
 
 /** Whether the brand drew an icon for a channel: a square without one says its name instead. */
 export const hasIcon = (kit: MessengerKit, channel: MessengerMode): boolean => iconOf(kit, channel) !== undefined && iconOf(kit, channel) !== null;
@@ -378,7 +381,7 @@ export function ChannelPicker(props: { kit: MessengerKit; trigger: ReactNode; tr
   const id = useId();
   return (
     <Select value={kit.mode ?? "whatsapp"} onValueChange={v => kit.setMode(modesOf(kit).find(m => m === v) ?? "call")}>
-      <SelectTrigger id={id} aria-label={words.messengerChannelLabel} className={cn("border-0 shadow-none", props.triggerClassName, kit.classNames?.messengerPicker)}>
+      <SelectTrigger id={id} aria-label={words.messengerChannelLabel} className={cn("border-0 shadow-none", props.triggerClassName, kit.classNames?.messengerTrigger)}>
         {props.trigger}
       </SelectTrigger>
       <SelectContent>

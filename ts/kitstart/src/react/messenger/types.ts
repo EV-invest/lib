@@ -24,7 +24,8 @@ export type MessengerShown = MessengerVariant["kind"] | "fallback";
  * button — a messenger's, or the call's submit; `messengerSecondary`: the
  * others (Telegram and «Être rappelé» beside it, «ou via Telegram», the way
  * back to the chat); `messengerSquare`: the icon squares; `messengerSegment`,
- * `messengerTile`: a segment's and a tile's item.
+ * `messengerTile`: a segment's and a tile's item, after `messengerOption`;
+ * `messengerTrigger`: the channel picker's button (`select`, `chip`).
  */
 export type MessengerPart =
   | "messenger"
@@ -33,6 +34,7 @@ export type MessengerPart =
   | "messengerSecondary"
   | "messengerSegment"
   | "messengerTile"
+  | "messengerTrigger"
   | "messengerPreview"
   | "messengerPicker"
   | "messengerOption"
@@ -76,8 +78,13 @@ export interface MessengerKit {
   needLabel: string | null;
   /** The estimate the card shows, formatted — for the message. */
   priceText: string | null;
-  /** The answer to the estimate's question the brand names (`messengerTiming`), by its label — the message's timing line. */
-  timing: string | null;
+  /** The estimate's answers, by their short labels, in order — the timing question's left out. */
+  answers: readonly string[];
+  /**
+   * The answer to the estimate's question the brand names (`messengerTiming`):
+   * its label for the message's timing line, its short one for the preview.
+   */
+  timing: { label: string; short: string } | null;
   /** The channel the visitor is on; `null` before a variant asks (`saga`, `urgency`). */
   mode: MessengerMode | null;
   setMode: (mode: MessengerMode | null) => void;

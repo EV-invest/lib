@@ -390,11 +390,20 @@ export function LeadCapture(props: LeadCaptureProps) {
       <ChannelLink key={ch} channel={ch} contact={contact} message={message} text={text} primary={primary} experiment={experiment} icon={props.channelIcons?.[ch]} classNames={c} />
     );
 
-  const timingOf = (input: string | undefined): string | null => {
-    const answer = input === undefined ? undefined : estimate.answers[input];
-    const option = model?.inputs.find(i => i.id === input)?.options.find(o => o.id === answer);
-    return option ? labelOf(option.labels, locale) : null;
+  // The estimate's answers as the message says them: the whole label, and the
+  // brand's short one (`questions[id].shortLabels`) for the preview. «I don't
+  // know» is no answer; the timing question has a line of its own.
+  const answerOf = (input: PricingInput): { label: string; short: string } | null => {
+    const option = input.options.find(o => o.id === estimate.answers[input.id]);
+    if (!option) return null;
+    const label = labelOf(option.labels, locale);
+    return { label, short: props.questions?.[input.id]?.shortLabels?.[option.id] ?? label };
   };
+  const timingInput = asked.find(i => i.id === props.messengerTiming?.input);
+  const answerShorts = asked
+    .filter(i => i !== timingInput)
+    .map(i => answerOf(i)?.short)
+    .filter((short): short is string => short !== undefined);
   // A variant arranges the card's own phone field and submit; it never draws its own.
   const kitOf = (at: MessengerAt, variant: MessengerVariant, drawn: NonNullable<typeof shown>): MessengerKit => ({
     at,
@@ -409,14 +418,17 @@ export function LeadCapture(props: LeadCaptureProps) {
     needs,
     needLabel: needs.find(n => n.value === shownNeed)?.label ?? null,
     priceText: flow !== "quote" && repriced.price ? formatCents(repriced.price.cents, locale) : null,
-    timing: timingOf(props.messengerTiming?.input),
+    answers: answerShorts,
+    timing: timingInput ? answerOf(timingInput) : null,
     mode,
     setMode,
     messageRef,
     renewRef,
     phone: options => phoneOf(options),
     // Inside a variant the submit is its main button, dressed as its messenger's.
-    submit: (label, options) => submitOf(label, { ...options, className: cn(c?.messengerCta, options?.className) }),
+    // …with the phone's icon before its words: it is the call.
+    submit: (label, options) =>
+      submitOf(label, { ...options, className: cn(c?.messengerCta, options?.className), icon: props.channelIcons?.phone ?? props.channelIcons?.callback }),
     title: text.title,
     lede: text.lede,
     events,
@@ -531,7 +543,7 @@ export function LeadCapture(props: LeadCaptureProps) {
   );
   const mainBusy = busy === "form" || (callbackPreset && busy === "callback");
   const mainFailure = failure && (failure.channel === "form" || callbackPreset) ? failure.failure : null;
-  function submitOf(label?: string, o: { form?: string; className?: string } = {}) {
+  function submitOf(label?: string, o: { form?: string; className?: string; icon?: ReactNode } = {}) {
     return (
       <SubmitButton
         busy={mainBusy}
@@ -539,7 +551,13 @@ export function LeadCapture(props: LeadCaptureProps) {
         sending={text.sending}
         form={o.form}
         className={cn(callbackPreset ? cn(c?.submit, c?.callbackSubmit) : c?.submit, o.className)}
-      />
+      >
+        {o.icon !== undefined && o.icon !== null && (
+          <span aria-hidden="true" className={cn("flex shrink-0 items-center [&_svg]:size-5", c?.channelIcon)}>
+            {o.icon}
+          </span>
+        )}
+      </SubmitButton>
     );
   }
   const tail = (
