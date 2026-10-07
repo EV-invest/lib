@@ -203,12 +203,14 @@ export function bakedPlace<L extends string, P extends string>(site: Site<L, P>,
 
 /**
  * The numbers a place answers on: its own, or the brand's until it has one.
- * WhatsApp switched off in the panel (`place.messengers.whatsapp`) is none.
+ * The panel's messenger switches (`place.messengers`) do not reach here — they
+ * are the lead form's (`messengerFacts`); the header, the call bar and the
+ * control's channels keep the number.
  */
 export function contactOf(site: Pick<SiteConfig<string, string>, "brand">, place: Place<string>): { phone: string | null; whatsapp: string | null } {
   return {
     phone: place.channels.phone ?? site.brand.phone,
-    whatsapp: place.messengers?.whatsapp === false ? null : (place.channels.whatsapp ?? site.brand.phone),
+    whatsapp: place.channels.whatsapp ?? site.brand.phone,
   };
 }
 
