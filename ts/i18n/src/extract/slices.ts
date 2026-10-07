@@ -29,10 +29,11 @@ import {
   DEFAULT_EXCLUDE,
   dedupe,
   type Entry,
-  flag,
+  InputError,
   list,
   literal,
   parse,
+  parseFlags,
   serialise,
   sourceFiles,
   where,
@@ -188,7 +189,7 @@ function scan(path: string, source: ts.SourceFile): Pick<Module, "errors" | "lit
 function readPaths(tsconfig: string): Paths {
   const read = ts.readConfigFile(tsconfig, ts.sys.readFile);
   if (read.error !== undefined)
-    throw new Error(`${tsconfig}: ${ts.flattenDiagnosticMessageText(read.error.messageText, "\n")}`);
+    throw new InputError(`${tsconfig}: ${ts.flattenDiagnosticMessageText(read.error.messageText, "\n")}`);
   // Only the options are wanted: listing the project's files would walk the tree for nothing.
   const host: ts.ParseConfigHost = { ...ts.sys, readDirectory: () => [] };
   const { options } = ts.parseJsonConfigFileContent(read.config, host, dirname(tsconfig), undefined, tsconfig);
@@ -272,11 +273,11 @@ const normal = (path: string) => posix.normalize(path.split(sep).join("/"));
 
 function appDirectory(root: string, app: string | undefined): string {
   if (app !== undefined) {
-    if (!existsSync(join(root, app))) throw new Error(`app directory ${join(root, app)} does not exist`);
+    if (!existsSync(join(root, app))) throw new InputError(`app directory ${join(root, app)} does not exist`);
     return normal(app);
   }
   const found = ["app", "src/app"].find(dir => existsSync(join(root, dir)));
-  if (found === undefined) throw new Error(`no app/ or src/app/ under ${root}; pass the app directory`);
+  if (found === undefined) throw new InputError(`no app/ or src/app/ under ${root}; pass the app directory`);
   return found;
 }
 
@@ -294,7 +295,7 @@ function prepare(rule: TableRule, keys: readonly string[]): PreparedRule | strin
     const parts = template.split("*");
     const [prefix, suffix] = parts;
     if (parts.length !== 2 || prefix === undefined || suffix === undefined)
-      throw new Error(`table rule for ${rule.table}: key template "${template}" needs exactly one "*"`);
+      throw new InputError(`table rule for ${rule.table}: key template "${template}" needs exactly one "*"`);
     return { prefix, suffix };
   });
   const governed = new Set<string>();
@@ -335,7 +336,7 @@ export function messageSlices(options: SliceOptions): SliceResult {
   const root = resolve(options.root);
   const app = appDirectory(root, options.app);
   const tsconfig = options.tsconfig ?? join(root, "tsconfig.json");
-  if (options.tsconfig !== undefined && !existsSync(tsconfig)) throw new Error(`${tsconfig} does not exist`);
+  if (options.tsconfig !== undefined && !existsSync(tsconfig)) throw new InputError(`${tsconfig} does not exist`);
   const resolveFrom = createResolver(root, existsSync(tsconfig) ? readPaths(tsconfig) : null);
 
   const modules = new Map<string, Module>();
@@ -476,7 +477,7 @@ function strings(value: unknown): string[] | null {
 
 /** `{ "tables": [{ "table", "keys", "ignore"? }] }`, checked field by field. */
 function tablesFrom(raw: unknown, path: string): TableRule[] {
-  const fail = (what: string) => new Error(`${path}: ${what}`);
+  const fail = (what: string) => new InputError(`${path}: ${what}`);
   if (!isRecord(raw)) throw fail("expected an object");
   const unknown = Object.keys(raw).filter(key => key !== "tables");
   if (unknown.length > 0) throw fail(`unknown field ${unknown.join(", ")}`);
@@ -497,25 +498,63 @@ function tablesFrom(raw: unknown, path: string): TableRule[] {
   });
 }
 
+const USAGE = `Usage: evinvest-i18n-slices [--root <dir>] [--config <json>] [--out <file>] [--check] [...]
+
+Read a Next.js App Router app's import graph and write which t() keys the client
+renders where: "shell" for the root provider, "routes" per page for its
+I18nScope, "serverOnly" for the rest.
+
+  --root <dir>        the app (default: the working directory)
+  --out <file>        the generated file (default: <root>/i18n-slices.json)
+  --config <json>     table rules: { "tables": [{ "table", "keys", "ignore"? }] }
+  --app <dir>         the App Router directory, relative to --root (default: app, else src/app)
+  --tsconfig <file>   whose paths resolve aliases (default: <root>/tsconfig.json when present)
+  --exclude <a,b>     names that are not source, for the serverOnly list
+  --check             write nothing; fail when --out differs from what the code gives
+  -h, --help          print this and exit`;
+
+/** The config file's table rules; an unreadable or malformed file is an {@link InputError}. */
+function readTables(path: string): TableRule[] {
+  let text: string;
+  try {
+    text = readFileSync(path, "utf8");
+  } catch (cause) {
+    throw new InputError(`--config ${path} cannot be read`, { cause });
+  }
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch (cause) {
+    throw new InputError(`${path} is not JSON: ${cause instanceof Error ? cause.message : String(cause)}`, {
+      cause,
+    });
+  }
+  return tablesFrom(raw, path);
+}
+
 /**
  * `evinvest-i18n-slices` — write the slices, or with `--check` fail when the
- * committed file differs from what the code gives.
- *
- * `--root` (default: the working directory), `--out` (default
- * `<root>/i18n-slices.json`), `--app`, `--tsconfig`, `--exclude a,b`,
- * `--config <json>` for {@link TableRule}s.
+ * committed file differs from what the code gives. `--help` prints the usage;
+ * an unknown flag or a flag without its value is an {@link InputError} before
+ * anything is read or written.
  */
 export function runSlices(argv: readonly string[]): void {
-  const root = flag(argv, "root") ?? process.cwd();
-  const out = flag(argv, "out") ?? join(root, "i18n-slices.json");
-  const config = flag(argv, "config");
-  const app = flag(argv, "app");
-  const tsconfig = flag(argv, "tsconfig");
-  const tables = config === undefined ? [] : tablesFrom(JSON.parse(readFileSync(config, "utf8")), config);
+  const flags = parseFlags(argv, ["root", "out", "config", "app", "tsconfig", "exclude"], ["check"]);
+  if (flags.help) {
+    console.log(USAGE);
+    return;
+  }
+  const root = flags.value("root") ?? process.cwd();
+  if (!existsSync(root)) throw new InputError(`--root ${root} does not exist`);
+  const out = flags.value("out") ?? join(root, "i18n-slices.json");
+  const config = flags.value("config");
+  const app = flags.value("app");
+  const tsconfig = flags.value("tsconfig");
+  const tables = config === undefined ? [] : readTables(config);
 
   const { slices, errors } = messageSlices({
     root,
-    exclude: list(flag(argv, "exclude")),
+    exclude: list(flags.value("exclude")),
     tables,
     ...(app === undefined ? {} : { app }),
     ...(tsconfig === undefined ? {} : { tsconfig }),
@@ -529,7 +568,7 @@ export function runSlices(argv: readonly string[]): void {
 
   const text = serialiseSlices(slices);
   const routes = Object.keys(slices.routes).length;
-  if (argv.includes("--check")) {
+  if (flags.on("check")) {
     if (!existsSync(out) || readFileSync(out, "utf8") !== text) {
       console.error(`${out} is out of date with the code. Run \`evinvest-i18n-slices\`.`);
       process.exit(1);

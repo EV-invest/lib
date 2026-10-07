@@ -1,4 +1,4 @@
 #!/usr/bin/env node
-import { runCheck } from "../dist/extract.js";
+import { runCheck, runCli } from "../dist/extract.js";
 
-runCheck(process.argv.slice(2));
+runCli("evinvest-i18n-check", () => runCheck(process.argv.slice(2)));

@@ -100,13 +100,84 @@ export function dedupe(entries: readonly Entry[]): Extraction {
 /** The exact bytes a generated JSON file is written as — what a check compares against. */
 export const serialise = (value: unknown): string => `${JSON.stringify(value, null, 2)}\n`;
 
-/** The value of `--<name>`, or `undefined` when the flag is absent. */
-export function flag(argv: readonly string[], name: string): string | undefined {
-  const at = argv.indexOf(`--${name}`);
-  if (at === -1) return undefined;
-  const value = argv[at + 1];
-  if (value === undefined || value.startsWith("--")) throw new Error(`--${name} needs a value`);
-  return value;
+/**
+ * Input a tool cannot work with — a bad flag, a malformed config, a missing
+ * directory. {@link runCli} prints its message alone; anything else is a bug
+ * and keeps its stack.
+ */
+export class InputError extends Error {
+  override readonly name = "InputError";
+}
+
+/** What {@link parseFlags} read; `help` is set when `-h` / `--help` was among the arguments. */
+export interface Flags<V extends string, S extends string> {
+  help: boolean;
+  value: (name: V) => string | undefined;
+  on: (name: S) => boolean;
+}
+
+/**
+ * The bins' one argument parser: `--name value` or `--name=value` for each of
+ * `values`, a bare `--name` for each of `switches`, `-h` / `--help`.
+ *
+ * Strict on purpose. A tool that writes a committed file must not read a typo
+ * (`--ouT`, `--help` misspelt, a forgotten value) as "use the defaults" and then
+ * overwrite that file with something else, so anything it does not know is an
+ * {@link InputError}, raised before a single file is read.
+ */
+export function parseFlags<V extends string, S extends string = never>(
+  argv: readonly string[],
+  values: readonly V[],
+  switches: readonly S[] = [],
+): Flags<V, S> {
+  const isValue = (name: string): name is V => (values as readonly string[]).includes(name);
+  const isSwitch = (name: string): name is S => (switches as readonly string[]).includes(name);
+  const known = [...values.map(v => `--${v} <value>`), ...switches.map(s => `--${s}`), "--help"];
+  const read = new Map<string, string>();
+  const set = new Set<string>();
+  let help = false;
+
+  for (let at = 0; at < argv.length; at++) {
+    const arg = argv[at] ?? "";
+    if (arg === "-h" || arg === "--help") {
+      help = true;
+      continue;
+    }
+    if (!arg.startsWith("--")) throw new InputError(`unexpected argument "${arg}"`);
+    const eq = arg.indexOf("=");
+    const name = eq === -1 ? arg.slice(2) : arg.slice(2, eq);
+    if (read.has(name) || set.has(name)) throw new InputError(`--${name} given more than once`);
+    if (isSwitch(name)) {
+      if (eq !== -1) throw new InputError(`--${name} takes no value`);
+      set.add(name);
+    } else if (isValue(name)) {
+      const value = eq === -1 ? argv[++at] : arg.slice(eq + 1);
+      if (value === undefined || value === "" || value.startsWith("-"))
+        throw new InputError(`--${name} needs a value`);
+      read.set(name, value);
+    } else {
+      throw new InputError(`unknown flag --${name}; known: ${known.join(", ")}`);
+    }
+  }
+  return { help, value: name => read.get(name), on: name => set.has(name) };
+}
+
+/**
+ * Run a bin's body: an {@link InputError}, or a file the arguments name that
+ * does not exist, prints `<bin>: <message>` and exits 2; anything else
+ * propagates with its stack.
+ */
+export function runCli(bin: string, main: () => void): void {
+  try {
+    main();
+  } catch (error) {
+    if (!(error instanceof Error)) throw error;
+    const missing = "code" in error && error.code === "ENOENT";
+    if (!(error instanceof InputError) && !missing) throw error;
+    console.error(`${bin}: ${error.message}`);
+    console.error(`Run \`${bin} --help\` for usage.`);
+    process.exit(2);
+  }
 }
 
 /** `a,b,,c` → `["a", "b", "c"]`. */

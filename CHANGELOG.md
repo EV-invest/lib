@@ -214,6 +214,15 @@ Rust crate and its TypeScript mirror at once.
 
 ### Fixed
 
+- **`evinvest-i18n-extract` / `-check` / `-slices` read their arguments
+  strictly** (`@evinvest/i18n`, 0.10.0). `--help` used to be ignored, so it ran
+  the tool with the defaults — extract rewrote the working directory's
+  catalogues, slices overwrote `i18n-slices.json` — and so did any misspelt
+  flag. Now `-h` / `--help` prints the usage and exits 0; an unknown flag, a
+  flag without its value, a repeated flag or a stray argument exits 2 before
+  anything is touched. Bad input (a malformed config, a missing directory)
+  prints its message without a stack trace, also with exit 2. `runCli`,
+  `InputError` are exported for a launcher of one's own.
 - **Rust `Command` from the keyboard** (`ev_lib` `uikit`, #197), the model of
   the TS `Command` (#196): focus stays in the search field, now
   `role="combobox"` with `aria-controls` naming the list, `aria-expanded` and

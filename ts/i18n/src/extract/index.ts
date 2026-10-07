@@ -16,7 +16,7 @@
  * would cost seconds per run for nothing. `typescript` is an optional peer
  * dependency: it is needed to run the extractor, never to render a string.
  */
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
@@ -30,16 +30,17 @@ import {
   callsIn,
   DEFAULT_EXCLUDE,
   dedupe,
-  flag,
+  InputError,
   list,
   parse,
+  parseFlags,
   serialise,
   sourceFiles,
   type Entry,
   type Extraction,
 } from "./calls.js";
 
-export { DEFAULT_EXCLUDE } from "./calls.js";
+export { DEFAULT_EXCLUDE, InputError, runCli } from "./calls.js";
 export type { Entry, Extraction } from "./calls.js";
 export {
   messageSlices,
@@ -168,18 +169,45 @@ export function writeCatalogues(
 // identical, so a check and the extract that fixes it can never be pointed at
 // different trees.
 
-/** `--root x --messages y --exclude a,b`; `--root` defaults to the working directory. */
-function parseArgs(argv: readonly string[]): ExtractOptions & { messages: string } {
-  const root = flag(argv, "root") ?? process.cwd();
+const usage = (bin: string, does: string) =>
+  `Usage: ${bin} [--root <dir>] [--messages <dir>] [--exclude <a,b>]
+
+${does}
+
+  --root <dir>       the app to scan (default: the working directory)
+  --messages <dir>   where the catalogues live (default: <root>/messages)
+  --exclude <a,b>    directory and file names that are not source, at any depth
+  -h, --help         print this and exit`;
+
+/**
+ * `--root x --messages y --exclude a,b`; `--root` defaults to the working
+ * directory. `null` when `--help` was asked for and printed.
+ */
+function parseArgs(
+  argv: readonly string[],
+  help: string,
+): (ExtractOptions & { messages: string }) | null {
+  const flags = parseFlags(argv, ["root", "messages", "exclude"]);
+  if (flags.help) {
+    console.log(help);
+    return null;
+  }
+  const root = flags.value("root") ?? process.cwd();
   return {
     root,
-    messages: flag(argv, "messages") ?? join(root, "messages"),
-    exclude: list(flag(argv, "exclude")),
+    messages: flags.value("messages") ?? join(root, "messages"),
+    exclude: list(flags.value("exclude")),
   };
 }
 
-function read(argv: readonly string[]): { messages: string; entries: Entry[] } {
-  const { messages, ...options } = parseArgs(argv);
+function read(
+  argv: readonly string[],
+  help: string,
+): { messages: string; entries: Entry[] } | null {
+  const args = parseArgs(argv, help);
+  if (args === null) return null;
+  const { messages, ...options } = args;
+  if (!existsSync(options.root)) throw new InputError(`--root ${options.root} does not exist`);
   const { entries, errors } = collect(options);
   if (errors.length === 0) return { messages, entries };
 
@@ -202,7 +230,15 @@ export function runExtract(
   argv: readonly string[],
   registry: CatalogueLocales = defaultLocaleRegistry,
 ): void {
-  const { messages, entries } = read(argv);
+  const found = read(
+    argv,
+    usage(
+      "evinvest-i18n-extract",
+      "Regenerate the English catalogue from the code's t() calls and prune every\ntranslated catalogue to the keys the code still asks for.",
+    ),
+  );
+  if (found === null) return;
+  const { messages, entries } = found;
   for (const line of writeCatalogues(messages, entries, registry)) console.log(line);
 }
 
@@ -228,7 +264,15 @@ export function runCheck(
   argv: readonly string[],
   registry: CatalogueLocales = defaultLocaleRegistry,
 ): void {
-  const { messages, entries } = read(argv);
+  const found = read(
+    argv,
+    usage(
+      "evinvest-i18n-check",
+      "Fail when the English catalogue is out of date with the code or a translation\nhas drifted from its English; report untranslated keys.",
+    ),
+  );
+  if (found === null) return;
+  const { messages, entries } = found;
 
   const generated = serialise(catalogue(entries));
   const enPath = cataloguePath(messages, registry.defaultLocale);
