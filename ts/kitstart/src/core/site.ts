@@ -2,7 +2,7 @@ import type { LocaleRegistry } from "@evinvest/i18n";
 import type { BookingRules } from "./booking/model";
 import { bookingConfigProblems, calComHostsProblems } from "./booking/validate";
 import type { LeadSchema } from "./lead";
-import type { MessengerFacts } from "./messenger";
+import { TELEGRAM_BOT, type MessengerFacts } from "./messenger";
 import type { PublicationPolicy } from "./place/publication";
 import type { Place } from "./place/types";
 import type { PricingModel } from "./pricing/model";
@@ -216,12 +216,15 @@ export function contactOf(site: Pick<SiteConfig<string, string>, "brand">, place
  * What a `LeadCapture` `messenger` variant may offer (`messengers`): the
  * place's own WhatsApp number — never the brand's phone, the chat is answered
  * by hand at the place — and its bot, each unless the panel switched it off.
+ * A baked bot whose name is not one (`TELEGRAM_BOT`) is none, as a live one is.
  * Not a fallback for `contactOf`: the control's WhatsApp link keeps the brand's.
  */
+const validBot = (bot: string | null | undefined): string | null => (bot && TELEGRAM_BOT.test(bot) ? bot : null);
+
 export function messengerFacts(_site: Pick<SiteConfig<string, string>, "brand">, place: Place<string>): MessengerFacts {
   const on = place.messengers ?? {};
   return {
     whatsapp: on.whatsapp === false ? null : place.channels.whatsapp,
-    telegram: on.telegram === false ? null : (place.channels.telegram ?? null),
+    telegram: on.telegram === false ? null : validBot(place.channels.telegram),
   };
 }
