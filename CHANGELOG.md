@@ -24,6 +24,13 @@ Rust crate and its TypeScript mirror at once.
 
 ### Added
 
+- **The compact price's breakdown pops over the card** (`@evinvest/kitstart/react`,
+  `price="compact"`). «Détail» opens the kit's `Popover` — over the card, so
+  the form no longer moves; a tap outside or Escape closes it, kept inside a
+  phone's screen. Without a script it is still a `<details>`. `priceDetail`
+  now dresses the trigger itself (the summary without a script), and
+  `priceDetailContent` the popover — a brand styling `priceDetail`'s
+  `[&>summary]` moves those classes onto `priceDetail`.
 - **Messenger leads: WhatsApp and the brand's Telegram bot** (`@evinvest/kitstart`,
   `/react`, `/server`). `LeadCapture`'s `messenger` prop draws one of ten arms
   of the `lead_channel` experiment (`select`, `segment`, `tiles`, `thanks`,
