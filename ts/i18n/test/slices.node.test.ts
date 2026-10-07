@@ -153,7 +153,7 @@ describe("collect", () => {
     expect(entries.find(e => e.key === "nav.home")).toEqual({
       key: "nav.home",
       en: "Home",
-      where: "shell/nav.tsx:8",
+      where: "shell/nav.tsx:7",
     });
   });
 
@@ -167,7 +167,7 @@ describe("collect", () => {
     expect(errors).toHaveLength(2);
     expect(errors).toContain("scripts/bad.ts:2: t() key is not a string literal");
     expect(errors).toContainEqual(expect.stringMatching(/"nav\.home" is also defined at .* with different English/));
-    expect(errors.join("\n")).toMatch(/shell\/nav\.tsx:8[\s\S]*scripts\/bad\.ts:3|scripts\/bad\.ts:3[\s\S]*shell\/nav\.tsx:8/);
+    expect(errors.join("\n")).toMatch(/shell\/nav\.tsx:7[\s\S]*scripts\/bad\.ts:3|scripts\/bad\.ts:3[\s\S]*shell\/nav\.tsx:7/);
   });
 
   it("reports the same unreadable call sites as the slice generator", () => {
@@ -214,6 +214,64 @@ describe("messageSlices on what the graph cannot account for", () => {
     expect(() => messageSlices({ root, tables: [{ table: "tips/copy.ts", keys: ["tips.title"] }] })).toThrow(
       'key template "tips.title" needs exactly one "*"',
     );
+  });
+
+  it("reports an @/ alias when there is no tsconfig to map it", () => {
+    rmSync(join(root, "tsconfig.json"));
+
+    const { errors } = messageSlices({ root, tables: [TIPS] });
+
+    // Without the error, nav.home, panel.k, helper.k and lazy.k fell to serverOnly silently.
+    expect(errors).toContain(
+      'app/[locale]/layout.tsx:3: cannot resolve "@/shell/nav" — a local import the graph cannot follow' +
+        " (it is an alias, not a package, and no tsconfig was read to map it)",
+    );
+  });
+
+  it("reports an @/ alias the tsconfig's paths do not map", () => {
+    write("tsconfig.json", JSON.stringify({ compilerOptions: { paths: { "#lib/*": ["./components/*"] } } }));
+
+    const { errors } = messageSlices({ root, tables: [TIPS] });
+
+    expect(errors).toContain(
+      'app/[locale]/layout.tsx:3: cannot resolve "@/shell/nav" — a local import the graph cannot follow' +
+        " (it is an alias, not a package, and the tsconfig's paths do not map it)",
+    );
+  });
+
+  it("reports ~/ and # specifiers nothing maps", () => {
+    write(INVEST, 'import { A } from "~/components/a";\nimport { B } from "#components/b";\nexport default () => <A />;\n');
+
+    const { errors } = messageSlices({ root, tables: [TIPS] });
+
+    expect(errors).toEqual([
+      `${INVEST}:1: cannot resolve "~/components/a" — a local import the graph cannot follow` +
+        " (it is an alias, not a package, and the tsconfig's paths do not map it)",
+      `${INVEST}:2: cannot resolve "#components/b" — a local import the graph cannot follow` +
+        " (it is an alias, not a package, and the tsconfig's paths do not map it)",
+    ]);
+  });
+
+  it("follows a # specifier the tsconfig's paths map", () => {
+    write("tsconfig.json", JSON.stringify({ compilerOptions: { paths: { "@/*": ["./*"], "#lib/*": ["./components/*"] } } }));
+    write(INVEST, 'import { Panel } from "#lib/panel";\nexport default () => <Panel />;\n');
+
+    const { slices, errors } = messageSlices({ root, tables: [TIPS] });
+
+    expect(errors).toEqual([]);
+    expect(slices.routes[INVEST]).toEqual(["helper.k", "lazy.k", "panel.k"]);
+  });
+
+  it("stops at scoped and bare package imports without an error", () => {
+    rmSync(join(root, "tsconfig.json"));
+    write(
+      INVEST,
+      'import { useState } from "react";\nimport { x } from "@scope/pkg";\nimport { y } from "@scope/pkg/sub";\nexport default () => null;\n',
+    );
+
+    const { errors } = messageSlices({ root, tables: [TIPS] });
+
+    expect(errors.filter(error => error.startsWith(INVEST))).toEqual([]);
   });
 
   it("throws on a key template with two stars", () => {

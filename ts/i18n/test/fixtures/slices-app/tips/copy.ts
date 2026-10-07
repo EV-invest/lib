@@ -1,4 +1,3 @@
-// @ts-nocheck — a fixture app for slices.node.test.ts, read by the slice generator, never compiled.
 import type { Translate } from "@evinvest/i18n";
 import type { TipKey } from "./catalog";
 
