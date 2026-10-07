@@ -24,7 +24,7 @@ export default function Segment({ kit }: { kit: MessengerKit }) {
         className={cn("w-full gap-1 rounded-[var(--control-radius)] bg-muted p-1", kit.classNames?.messengerPicker)}
       >
         {(["whatsapp", "call"] as const).map(m => (
-          <ToggleGroupItem key={m} value={m} className={cn("h-10 flex-1 gap-2 rounded-[var(--control-radius)] data-[state=on]:bg-card data-[state=on]:text-ink", kit.classNames?.messengerOption)}>
+          <ToggleGroupItem key={m} value={m} className={cn("h-10 flex-1 gap-2 rounded-[var(--control-radius)] data-[state=on]:bg-card data-[state=on]:text-ink", kit.classNames?.messengerSegment)}>
             <Glyph kit={kit} channel={m} />
             {labelOf(words, m)}
           </ToggleGroupItem>

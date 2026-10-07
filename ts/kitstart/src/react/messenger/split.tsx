@@ -14,7 +14,7 @@ export default function Split({ kit }: { kit: MessengerKit }) {
   const message = useMessage(kit);
   const action = useMessengerAction(kit, message, () => toCall(kit));
   const call = kit.mode === "call";
-  const telegram = kit.facts.telegram && <MessengerCta kit={kit} action={action} channel="telegram" label={words.messengerOptionTelegram} variant="outline" square className={kit.classNames?.messengerSquare} />;
+  const telegram = kit.facts.telegram && <MessengerCta kit={kit} action={action} channel="telegram" label={words.messengerOptionTelegram} variant="outline" square />;
   return (
     <div className={cn("flex flex-col gap-3", kit.classNames?.messenger)}>
       <Slot kit={kit}>{call ? kit.phone() : (action.panel ?? <Preview kit={kit} preview={message.preview} />)}</Slot>

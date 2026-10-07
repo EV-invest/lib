@@ -148,6 +148,12 @@ export interface LeadCaptureProps {
   refPrefix?: string | undefined;
   /** The brand's name: the prefilled message's greeting («Bonjour Aquafix»). */
   brand?: string | undefined;
+  /**
+   * The estimate's question whose answer is the message's timing line and
+   * in its preview (`{ input: "frequency" }` → «Délai souhaité : 2 sem.»);
+   * nothing until it is answered, nor for «I don't know».
+   */
+  messengerTiming?: { input: string } | undefined;
   /** The site's assignment: on every event, and posted with the form. Slugs only. */
   experiment?: Experiment | undefined;
   timeZone?: string | undefined;
@@ -384,6 +390,11 @@ export function LeadCapture(props: LeadCaptureProps) {
       <ChannelLink key={ch} channel={ch} contact={contact} message={message} text={text} primary={primary} experiment={experiment} icon={props.channelIcons?.[ch]} classNames={c} />
     );
 
+  const timingOf = (input: string | undefined): string | null => {
+    const answer = input === undefined ? undefined : estimate.answers[input];
+    const option = model?.inputs.find(i => i.id === input)?.options.find(o => o.id === answer);
+    return option ? labelOf(option.labels, locale) : null;
+  };
   // A variant arranges the card's own phone field and submit; it never draws its own.
   const kitOf = (at: MessengerAt, variant: MessengerVariant, drawn: NonNullable<typeof shown>): MessengerKit => ({
     at,
@@ -398,12 +409,14 @@ export function LeadCapture(props: LeadCaptureProps) {
     needs,
     needLabel: needs.find(n => n.value === shownNeed)?.label ?? null,
     priceText: flow !== "quote" && repriced.price ? formatCents(repriced.price.cents, locale) : null,
+    timing: timingOf(props.messengerTiming?.input),
     mode,
     setMode,
     messageRef,
     renewRef,
     phone: options => phoneOf(options),
-    submit: (label, options) => submitOf(label, options),
+    // Inside a variant the submit is its main button, dressed as its messenger's.
+    submit: (label, options) => submitOf(label, { ...options, className: cn(c?.messengerCta, options?.className) }),
     title: text.title,
     lede: text.lede,
     events,

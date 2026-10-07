@@ -257,8 +257,8 @@ it is the plain POST to `/quote` it always was.
 | `bookingVariant` · `bookingEmbed` · `bookingAdapters` | the `booking_provider` variant that picks the place's provider · the providers' embeds (after cookie consent) rather than a new tab · the brand's adapters over the built-ins (from a client component) — see [Booking](#booking-manual-link-google_calendar-cal_com) |
 | `initialError` | `leadErrorOf(searchParams)` on a page that reads its query: the refusal a 303 brought back, drawn on the server by the card it names (`lead_card`) so the card says why without a script (see *Refusals*) |
 | `head`, `trust` | the brand's heading instead of the title; a slot beside the submit. Like `extras`, `done` and `booking`, any node, built on the server or not, and never asked for a `key`: each slot sits alone in a keyed fragment |
-| `className` · `classNames` | the root · its parts: `root`, `head`, `title`, `lede`, `form`, `contact`, `field`, `label`, `control` (every input, the need's select in both states, the callback's phone), `hint`, `error` (a refusal: under the field, or above the submit), `chips`, `chip`, `needs`, `need`, `summary`, `icon` (a need's or an intro answer's icon), `submit`, `trust`, `privacy` (not drawn when `text.privacy` is `""`), `opening`, `others`, `channel`, `channelIcon`, `primary`, `callback`, `callbackSummary`, `callbackForm`, `callbackLede`, `callbackSubmit`, `consent`, `done`, for `steps` `progress`, `stepBack`, `step` (each screen), `answers`, `answer` (the chips of the screens answered), `stepNext`, `intro`, `introOption`, and for the flows `estimate`, `estimateInput`, `estimateLegend`, `estimateGrid` (an input's answers: 2 columns, 3 from `sm`), `estimateOption` (an answer's tile), `estimateUnknown` (the "I don't know" tile, after `estimateOption`), `badge`, `optionPrice` (a card's total), `price`, `priceTotal`, `breakdown`, `priceNote`, `priceLine`, `priceTaxCredit`, `priceDetail` (`price="compact"`), `photos`, `priced`, `pricedPrice`, `pricedNote`, and for the booking `booking`, `bookingCta`, `bookingNote`, `prefer`, `preferOption`, `preferSubmit`, and for a `messenger` variant `messenger`, `messengerSlot`, `messengerPreview`, `messengerPicker`, `messengerOption`, `messengerSquare`, `messengerQr`, `messengerReturn`, `messengerHint` |
-| `messenger`, `messengers`, `refPrefix`, `brand` | the `lead_channel` arm (`MessengerVariant`, absent → the control) · `messengerFacts(site, place)` · the chat reference's prefix (`AQ`) · the message's greeting — see *Messengers* below |
+| `className` · `classNames` | the root · its parts: `root`, `head`, `title`, `lede`, `form`, `contact`, `field`, `label`, `control` (every input, the need's select in both states, the callback's phone), `hint`, `error` (a refusal: under the field, or above the submit), `chips`, `chip`, `needs`, `need`, `summary`, `icon` (a need's or an intro answer's icon), `submit`, `trust`, `privacy` (not drawn when `text.privacy` is `""`), `opening`, `others`, `channel`, `channelIcon`, `primary`, `callback`, `callbackSummary`, `callbackForm`, `callbackLede`, `callbackSubmit`, `consent`, `done`, for `steps` `progress`, `stepBack`, `step` (each screen), `answers`, `answer` (the chips of the screens answered), `stepNext`, `intro`, `introOption`, and for the flows `estimate`, `estimateInput`, `estimateLegend`, `estimateGrid` (an input's answers: 2 columns, 3 from `sm`), `estimateOption` (an answer's tile), `estimateUnknown` (the "I don't know" tile, after `estimateOption`), `badge`, `optionPrice` (a card's total), `price`, `priceTotal`, `breakdown`, `priceNote`, `priceLine`, `priceTaxCredit`, `priceDetail` (`price="compact"`), `photos`, `priced`, `pricedPrice`, `pricedNote`, and for the booking `booking`, `bookingCta`, `bookingNote`, `prefer`, `preferOption`, `preferSubmit`, and for a `messenger` variant `messenger`, `messengerSlot`, `messengerCta`, `messengerSecondary`, `messengerSquare`, `messengerSegment`, `messengerTile`, `messengerPreview`, `messengerPicker`, `messengerOption`, `messengerQr`, `messengerReturn`, `messengerHint` |
+| `messenger`, `messengers`, `refPrefix`, `brand`, `messengerTiming` | the `lead_channel` arm (`MessengerVariant`, absent → the control) · `messengerFacts(site, place)` · the chat reference's prefix (`AQ`) · the message's greeting · the estimate's question whose answer is the message's timing line (`{ input: "frequency" }`) — see *Messengers* below |
 
 - **Taps.** A need the page knows is not asked again, and a place serving one
   commune fills it: focus the phone, type, send — two taps. `qualify-first`
@@ -411,9 +411,14 @@ import { messengerFacts } from "@evinvest/kitstart";
   8), mailed (`Réf.`), and sent to the panel under `panelMessenger`.
 - **The message** (`messengerMessage`, ≤ 400 characters, nothing typed about
   the person): `Bonjour {brand} 👋`, the need, the postcode, the estimate
-  shown, the timing (`urgency`), `Réf. {ref}` — a line without its value left
-  out. The slot shows it as a preview, so the visitor sees there is nothing
-  to write.
+  shown (a priced need), the timing, `Réf. {ref}` — a line without its value
+  left out. The slot shows it as a preview, so the visitor sees there is
+  nothing to write. The timing is `urgency`'s answer («aujourd’hui» / «pas
+  pressé»), else the answer to the estimate's question `messengerTiming`
+  names — `messengerTiming={{ input: "frequency" }}` → «Délai souhaité :
+  2 sem.»; none until it is answered, nor for «Je ne sais pas». Each line is a
+  key a brand rewords: `{ ...LEAD_CAPTURE_TEXT.fr, messagePrice: "Estimation
+  vue sur le site : env. {price}" }`.
 - **The tap.** A real `<a href>` — the OS opens the app from the tap. A
   number typed must be one (the browser says so, nothing leaves). The lead is
   posted (`keepalive`, `channel=whatsapp|telegram`, the reference, what was
@@ -436,9 +441,18 @@ import { messengerFacts } from "@evinvest/kitstart";
   the defaults are `LEAD_CAPTURE_MESSENGER_TEXT`, kept out of
   `LEAD_CAPTURE_TEXT` so the control's island never carries them). A brand
   overrides by spreading: `{ ...LEAD_CAPTURE_TEXT.fr, messengerWhatsappCta: "Envoyer sur WhatsApp →" }`. **Parts**:
-  `messenger`, `messengerSlot`, `messengerPreview`, `messengerPicker`,
-  `messengerOption`, `messengerSquare`, `messengerQr`, `messengerReturn`,
-  `messengerHint`.
+  `messenger` (the variant's column), `messengerSlot` (the fixed box),
+  `messengerCta` (the main button: a messenger's, or the call's submit inside
+  the variant — its height and type, as `channel` / `primary` are the
+  control's), `messengerSecondary` (Telegram and «Être rappelé» beside it,
+  «ou via Telegram», «Rouvrir WhatsApp», the QR's «Être rappelé»),
+  `messengerSquare` (the icon squares of `split` / `swap`), `messengerSegment`
+  (a `segment` item), `messengerTile` (a `tiles` tile, an `urgency` answer),
+  `messengerPreview` (the message, the bot's card), `messengerPicker` (the
+  segment, the tiles, the picker's trigger, the drawer's body),
+  `messengerOption` (a picker's item, a `saga` / `sheet` card), `messengerQr`,
+  `messengerReturn`, `messengerHint`. A part with a size keeps its line
+  height (`leading-6`) unless it sets one.
 - **Events**: every `LeadCapture` event carries `channels_available` and,
   with a variant, `messenger_variant`; `lead_messenger_open {channel, device,
   inapp, message_ref}`, `lead_messenger_return {channel, answer: sent |

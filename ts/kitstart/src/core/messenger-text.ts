@@ -66,8 +66,9 @@ export interface LeadCaptureMessengerText extends MessengerMessageText {
   messengerUrgencyLabel: string;
   messengerUrgencyYes: string;
   messengerUrgencyNo: string;
-  /** The message's timing line for an urgent need. */
+  /** The message's timing line for an urgent need, and for one that can wait. */
   messengerUrgencyToday: string;
+  messengerUrgencyLater: string;
   messengerUrgentSubmit: string;
   messengerNotUrgentTitle: string;
   /** `{ref}` the reference. */
@@ -143,6 +144,7 @@ const FR: LeadCaptureMessengerText = {
   messengerUrgencyYes: "Oui, aujourd’hui",
   messengerUrgencyNo: "Non, je compare",
   messengerUrgencyToday: "aujourd’hui",
+  messengerUrgencyLater: "pas pressé",
   messengerUrgentSubmit: "Rappelez-moi tout de suite",
   messengerNotUrgentTitle: "Pas pressé ? Message prêt",
   messengerNotUrgentLede: "Un message sur WhatsApp suffit. Réf. {ref}.",
@@ -211,6 +213,7 @@ const EN: LeadCaptureMessengerText = {
   messengerUrgencyYes: "Yes, today",
   messengerUrgencyNo: "No, comparing",
   messengerUrgencyToday: "today",
+  messengerUrgencyLater: "no rush",
   messengerUrgentSubmit: "Call me right away",
   messengerNotUrgentTitle: "No rush? Message ready",
   messengerNotUrgentLede: "A WhatsApp message is enough. Ref. {ref}.",
