@@ -230,6 +230,36 @@ describe("I18nProvider missing", () => {
     expect(warn).toHaveBeenNthCalledWith(2, expect.stringContaining('"y" is not in the ru catalogue'));
   });
 
+  it('warns once per key when every render passes a new inline onMissing with "warn"', () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const tree = () => (
+      <I18nProvider locale="ru" messages={{}} missing="warn" onMissing={() => {}}>
+        <Key k="x" />
+      </I18nProvider>
+    );
+    act(() => root.render(tree()));
+    act(() => root.render(tree()));
+    act(() => root.render(tree()));
+
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports each miss to the onMissing passed by the latest render", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const first = vi.fn();
+    const second = vi.fn();
+    const tree = (onMissing: (key: string) => void, k: string) => (
+      <I18nProvider locale="ru" messages={{}} missing="warn" onMissing={onMissing}>
+        <Key k={k} />
+      </I18nProvider>
+    );
+    act(() => root.render(tree(first, "x")));
+    act(() => root.render(tree(second, "y")));
+
+    expect(first.mock.calls).toEqual([["x", "ru"]]);
+    expect(second.mock.calls).toEqual([["y", "ru"]]);
+  });
+
   it('still calls onMissing for every miss with "warn"', () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const onMissing = vi.fn();

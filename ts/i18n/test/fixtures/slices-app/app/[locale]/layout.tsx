@@ -1,4 +1,3 @@
-// @ts-nocheck — a fixture app for slices.node.test.ts, read by the slice generator, never compiled.
 import type { ReactNode } from "react";
 import { translator } from "@evinvest/i18n";
 import { Nav } from "@/shell/nav";
