@@ -64,16 +64,21 @@ export function TileGroup(props: TileGroupProps) {
       <legend className={cn("mb-2 text-sm font-medium text-ink", c.legend)}>{legend}</legend>
       <div className={c.grid}>
         {options.map(o => (
-          <label key={o.value} className={cn("relative block cursor-pointer", o.span === 2 && "col-span-2")}>
+          <label
+            key={o.value}
+            className={cn("relative block cursor-pointer", o.span === 2 && "col-span-2")}
+            // On the label, not the radio: a tap on the tile's words lands on them,
+            // and the label's click on the radio (`detail` 0) must still read as a tap.
+            onPointerDown={() => {
+              pointer.current = true;
+            }}
+          >
             <input
               type="radio"
               name={name}
               value={o.value}
               required={required}
               checked={value === o.value}
-              onPointerDown={() => {
-                pointer.current = true;
-              }}
               onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
                 pointer.current = false;
                 answered.current = false;
@@ -97,7 +102,8 @@ export function TileGroup(props: TileGroupProps) {
                 if (!answered.current) onSelect(o.value);
                 answered.current = false;
               }}
-              className="peer absolute inset-0 opacity-0"
+              // The whole tile: without a size WebKit keeps a radio 12×12 in its corner.
+              className="peer absolute inset-0 m-0 size-full cursor-pointer opacity-0"
               data-lead-field={field}
               aria-label={o.shortLabel !== undefined ? [o.label, o.badge, o.aside].filter(Boolean).join(", ") : undefined}
               {...markerProps}
