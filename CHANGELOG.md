@@ -24,6 +24,12 @@ Rust crate and its TypeScript mirror at once.
 
 ### Added
 
+- **`I18nScope`** (`@evinvest/i18n/react`, 0.10.0): a nested scope lays its
+  `messages` over the enclosing provider's (`{ ...parent, ...own }`) and
+  inherits the locale, so a layout's provider can carry only the shell's keys
+  and each page add its own. Plain-data props, so a Server Component page
+  renders it; without a provider above it throws. `createI18nReact` returns it
+  too.
 - **The compact price's breakdown pops over the card** (`@evinvest/kitstart/react`,
   `price="compact"`). «Détail» opens the kit's `Popover` — over the card, so
   the form no longer moves; a tap outside or Escape closes it, kept inside a

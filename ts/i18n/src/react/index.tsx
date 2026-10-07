@@ -15,7 +15,7 @@
  * Component must not drag a client boundary along with it.
  *
  * The named exports are bound to the generated registry; {@link createI18nReact}
- * binds the same trio to a registry of your own.
+ * binds the same set to a registry of your own.
  */
 import {
   createContext,
@@ -44,9 +44,21 @@ export interface I18nProviderProps<L extends string = Locale> {
   children: ReactNode;
 }
 
-/** The provider and hooks for one registry. */
+/** Props for {@link I18nScope}. Plain data, so a Server Component can render it. */
+export interface I18nScopeProps {
+  /**
+   * More keys for the subtree, laid over the enclosing catalogue — a route's
+   * slice of a catalogue whose shell the provider already carries. A key in
+   * both reads from this one.
+   */
+  messages: Messages;
+  children: ReactNode;
+}
+
+/** The provider, the scope and the hooks for one registry. */
 export interface I18nReact<L extends string> {
   readonly I18nProvider: (props: I18nProviderProps<L>) => ReactElement;
+  readonly I18nScope: (props: I18nScopeProps) => ReactElement;
   readonly useLocale: () => L;
   readonly useT: () => Translate;
 }
@@ -64,14 +76,48 @@ export interface I18nReact<L extends string> {
  * ```
  */
 export function createI18nReact<L extends string>(registry: LocaleRegistry<L>): I18nReact<L> {
-  type Value = { locale: L; t: Translate };
+  type Report = (key: string, locale: L) => void;
+  // `messages` and `report` ride along so a nested scope can rebuild `t` over a
+  // wider catalogue without being handed either again.
+  type Value = { locale: L; messages: Messages; report: Report | undefined; t: Translate };
   const I18nContext = createContext<Value | null>(null);
 
   function I18nProvider({ locale, messages, onMissing, children }: I18nProviderProps<L>) {
     const value = useMemo<Value>(
-      () => ({ locale, t: registry.translator(messages, locale, onMissing) }),
+      () => ({
+        locale,
+        messages,
+        report: onMissing,
+        t: registry.translator(messages, locale, onMissing),
+      }),
       [locale, messages, onMissing],
     );
+    return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+  }
+
+  function I18nScope({ messages, children }: I18nScopeProps) {
+    const parent = useContext(I18nContext);
+    const value = useMemo<Value | null>(() => {
+      if (parent === null) return null;
+      // The default locale never reads its catalogue, so a wider one changes nothing.
+      if (parent.locale === registry.defaultLocale) return parent;
+      const merged: Messages = { ...parent.messages, ...messages };
+      return {
+        locale: parent.locale,
+        messages: merged,
+        report: parent.report,
+        t: registry.translator(merged, parent.locale, parent.report),
+      };
+    }, [parent, messages]);
+    if (value === null) {
+      // A scope only widens a catalogue; the locale is the provider's to decide,
+      // and guessing it here would render one language inside another.
+      throw new Error(
+        `<I18nScope> requires an <I18nProvider> above it from the same registry ` +
+          `(locales [${registry.locales.join(", ")}], default "${registry.defaultLocale}"). ` +
+          `It adds keys to the provider's catalogue and takes the locale from it.`,
+      );
+    }
     return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
   }
 
@@ -96,7 +142,7 @@ export function createI18nReact<L extends string>(registry: LocaleRegistry<L>): 
   const useLocale = (): L => useI18n("useLocale").locale;
   const useT = (): Translate => useI18n("useT").t;
 
-  return { I18nProvider, useLocale, useT };
+  return { I18nProvider, I18nScope, useLocale, useT };
 }
 
 const bound: I18nReact<Locale> = createI18nReact(defaultLocaleRegistry);
@@ -118,6 +164,28 @@ const bound: I18nReact<Locale> = createI18nReact(defaultLocaleRegistry);
  * ```
  */
 export const I18nProvider: (props: I18nProviderProps) => ReactElement = bound.I18nProvider;
+
+/**
+ * Widens the enclosing provider's catalogue for the subtree beneath it: its
+ * `messages` are laid over the provider's (`{ ...parent, ...own }`), and the
+ * locale and the missing-key handling are inherited.
+ *
+ * This is what lets a layout ship only the keys its own chrome renders and each
+ * page add its own: the provider carries the shell, the page's scope carries the
+ * route (see `pickMessages` and `evinvest-i18n-slices`). Scopes nest; the
+ * nearest one wins a key both carry.
+ *
+ * @throws If no {@link I18nProvider} is mounted above.
+ *
+ * @example
+ * ```tsx
+ * // app/[locale]/wallet/page.tsx  (Server Component)
+ * <I18nScope messages={pickMessages(messagesFor(locale), slices.routes[ROUTE])}>
+ *   <WalletIsland />
+ * </I18nScope>
+ * ```
+ */
+export const I18nScope: (props: I18nScopeProps) => ReactElement = bound.I18nScope;
 
 /**
  * The active locale inside a client island.

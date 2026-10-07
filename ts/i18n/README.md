@@ -367,6 +367,23 @@ import { useT } from "@evinvest/i18n/react";
 </I18nProvider>
 ```
 
+A page widens the provider's catalogue with `I18nScope`, which lays its own
+`messages` over the provider's (`{ ...parent, ...own }`) and inherits the
+locale. That lets the root layout send only the keys its chrome renders, and
+each page add the keys its own client islands render — see
+[Slicing the catalogue](#slicing-the-catalogue). The scope's props are plain
+data, so the Server Component page renders it directly; without a provider
+above it, it throws.
+
+```tsx
+// app/[locale]/wallet/page.tsx  (Server Component)
+import { I18nScope } from "@evinvest/i18n/react";
+
+<I18nScope messages={walletMessages}>
+  <WalletIsland />
+</I18nScope>
+```
+
 ## Extracting
 
 Two bins, same arguments, so a check and the extract that fixes it cannot be
