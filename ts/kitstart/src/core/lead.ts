@@ -10,6 +10,7 @@
  * still delivers) — both deliberate departures from the first design.
  */
 
+import { MESSAGE_REF_FIELD, messageRefOf } from "./messenger";
 import { normalizePhone, phoneProblem } from "./phone";
 import type { LeadFlow, LeadFlows } from "./pricing/flow";
 import type { PricingInputs } from "./pricing/model";
@@ -68,6 +69,12 @@ export interface LeadSchema<S extends string> {
    * the landing contract holds it to the form's phone rule, so the server
    * never refuses a number the form let through. A bare string is a reason
    * about the whole form (`field: "form"`).
+   *
+   * A messenger lead (`whatsapp`, `telegram`) answers to it too: the
+   * candidate carries its `channel`, and `validateLead` asks no phone of one
+   * — the chat is how we answer. The contract holds a brand's own rule to
+   * that (`messengerRuleDisagreements`): a messenger lead is never refused
+   * for a postcode or a phone it was not asked for.
    */
   validate?: (lead: LeadCandidate) => LeadVerdict;
   /**
@@ -93,13 +100,21 @@ export interface LeadSchema<S extends string> {
 }
 
 /**
- * How the lead was asked for: the quote form, or "call me back" — the form cut
- * to a phone number. Posted as `CHANNEL_FIELD`; anything else, or nothing (a
- * page cached before the field existed), is `form`.
+ * How the lead was asked for: the quote form, "call me back" — the form cut
+ * to a phone number — or a messenger the visitor was sent on to, the lead
+ * posted first (`whatsapp`, `telegram`). Posted as `CHANNEL_FIELD`; anything
+ * else, or nothing (a page cached before the field existed), is `form`.
  */
-export type LeadChannel = "form" | "callback";
-export const LEAD_CHANNELS: readonly LeadChannel[] = ["form", "callback"];
+export type LeadChannel = "form" | "callback" | "whatsapp" | "telegram";
+export const LEAD_CHANNELS: readonly LeadChannel[] = ["form", "callback", "whatsapp", "telegram"];
 export const CHANNEL_FIELD = "channel";
+
+/** A lead whose answer goes by chat: the phone is optional, no consent is asked. */
+export type MessengerChannel = Extract<LeadChannel, "whatsapp" | "telegram">;
+
+export function isMessengerChannel(channel: LeadChannel | undefined): channel is MessengerChannel {
+  return channel === "whatsapp" || channel === "telegram";
+}
 
 /**
  * The callback's consent: a checkbox whose value is the sentence it shows, in
@@ -125,7 +140,8 @@ export const LEAD_ERROR_PARAM = "lead_error";
 
 /** A refusal the server sent back: which of the card's forms, and the field it is about. */
 export interface LeadError {
-  channel: LeadChannel;
+  /** A messenger lead is posted behind the visitor's back: no form of the card shows its refusal. */
+  channel: Extract<LeadChannel, "form" | "callback">;
   field: string;
 }
 
@@ -195,8 +211,13 @@ export function rejectionOf(verdict: LeadVerdict): LeadRejection | null {
   return FIELD_SLUG.test(verdict.field) ? verdict : { field: "form", why: verdict.why };
 }
 
-/** The default form rule: a number we can call — the one the form blocks on (`phoneProblem`). */
-export function validateLead(lead: Pick<LeadCandidate, "mobile">): LeadRejection | null {
+/**
+ * The default form rule: a number we can call — the one the form blocks on
+ * (`phoneProblem`). A messenger lead needs none, but one typed must be a
+ * number: the operator may call it.
+ */
+export function validateLead(lead: Pick<LeadCandidate, "mobile"> & { channel?: LeadChannel | undefined }): LeadRejection | null {
+  if (isMessengerChannel(lead.channel) && lead.mobile.trim() === "") return null;
   const problem = phoneProblem(lead.mobile);
   return problem === null ? null : { field: "phone", why: problem === "required" ? "a phone number" : "a phone number we can call" };
 }
@@ -241,6 +262,12 @@ export interface Lead {
   flow?: LeadFlow;
   /** Only on an `estimate` or `fixed` lead: the price the server computed. */
   price?: LeadPrice;
+  /**
+   * The reference the visitor's chat message carries (`AQ-7K3F`,
+   * `MESSAGE_REF`), posted by the card that minted it — on a form lead too,
+   * when its success sends the visitor on to a messenger. Not personal data.
+   */
+  messageRef?: string;
 }
 
 /**
@@ -310,10 +337,10 @@ export interface LeadStore {
  * The lead schema's version, shared by every adapter: 1 the Rust server's
  * table (`job`, `zip`, `mobile`, `at`), 2 + the place, 3 + the spam verdict,
  * 4 + the brand's extras, 5 + the channel and the callback's consent, 6 + the
- * script's submission id, unique, 7 + the flow and the price it was taken at.
- * Append only.
+ * script's submission id, unique, 7 + the flow and the price it was taken at,
+ * 8 + the messenger reference (`message_ref`). Append only.
  */
-export const LEAD_SCHEMA_VERSION = 7;
+export const LEAD_SCHEMA_VERSION = 8;
 
 /** A field is capped, not rejected: a long answer is still a customer. */
 export const MAX_FIELD = 200;
@@ -351,18 +378,21 @@ export function readCandidate(
     if (value) extras[extra.name] = value;
   }
   const mobile = field(form, schema.wire.mobile, MAX_FIELD) ?? "";
-  const callback = form.get(CHANNEL_FIELD) === "callback";
-  const consent = callback ? field(form, CONSENT_FIELD, MAX_CONSENT) : null;
+  const posted = form.get(CHANNEL_FIELD);
+  const channel = LEAD_CHANNELS.find(c => c === posted) ?? "form";
+  const consent = channel === "callback" ? field(form, CONSENT_FIELD, MAX_CONSENT) : null;
   const submission = field(form, SUBMISSION_FIELD, 64);
+  const messageRef = messageRefOf(form.get(MESSAGE_REF_FIELD));
   return {
     subject: field(form, schema.wire.subject, MAX_FIELD) ?? "",
     locality: field(form, schema.wire.locality, MAX_FIELD) ?? "",
     mobile: schema.mobileFormat === "e164" ? (normalizePhone(mobile) ?? mobile) : mobile,
     extras,
     placeSlug,
-    channel: callback ? "callback" : "form",
+    channel,
     ...(consent ? { consentText: consent } : {}),
     ...(submission && SUBMISSION_ID.test(submission) ? { submissionId: submission } : {}),
+    ...(messageRef ? { messageRef } : {}),
   };
 }
 

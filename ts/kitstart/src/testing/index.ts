@@ -9,5 +9,5 @@
 export { describeLandingContract, type LandingContractOptions } from "./landing-contract";
 export { servedPaths } from "./served-files";
 export { describeLeadStoreContract, type LeadStoreHarness } from "./lead-store-contract";
-export { leadRuleDisagreements, PHONE_MATRIX } from "./lead-rules";
+export { leadRuleDisagreements, messengerRuleDisagreements, PHONE_MATRIX } from "./lead-rules";
 export { serviceAreaPlace, storefrontPlace, testLead } from "./fixtures";

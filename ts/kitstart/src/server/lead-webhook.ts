@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import type { BookingRequest } from "../core/booking/model";
-import { suspectOf, type Lead, type LeadChannel, type LeadSuspect } from "../core/lead";
+import { channelOf, suspectOf, type Lead, type LeadChannel, type LeadSuspect } from "../core/lead";
 import type { LeadFlow } from "../core/pricing/flow";
 import type { ServerEnv } from "./env";
 import { experimentsDeclaredBody, type DeclareOutcome, type ExperimentsDeclaration } from "./experiments-declared";
@@ -45,6 +45,18 @@ export interface LeadWebhookContext {
    * property: it refuses an unknown one, and the outbox would park the lead.
    */
   analyticsId?: string;
+  /**
+   * The lead's channel as the panel's `properties.channel` takes it
+   * (`panelChannel`): `whatsapp` and `telegram` only under `panelMessenger`,
+   * `form` otherwise. Absent only on a context built by hand.
+   */
+  channel?: PanelChannel;
+  /**
+   * The reference the visitor's chat carries (`Lead.messageRef`), for the
+   * panel's `properties.message_ref` — only under `panelMessenger`, and only
+   * on a lead that has one; otherwise absent, and the body must not carry it.
+   */
+  messageRef?: string;
 }
 
 /** A lead's sale as the panel's `lead.created` may carry it. */
@@ -88,14 +100,19 @@ export function panelFlowProperties(flow: PanelFlow | undefined): PanelFlowPrope
   };
 }
 
+/** A channel a site sends the panel; `phone_inbound` is the panel's own, for the calls it records. */
+export type PanelChannel = "form" | "callback" | "whatsapp" | "telegram";
+
 /**
  * A lead's channel as the Service-Arb panel's `lead.created` carries it in
- * `properties.channel` — a closed set (`form` | `phone_inbound` | `callback`)
- * that refuses the whole event outside it, so the outbox would park the lead.
- * A site's lead is a form or a callback, each its own: `phone_inbound` is the
- * panel's, for the calls it records itself. `panelChannel(channelOf(lead))`.
+ * `properties.channel` — a closed set that refuses the whole event outside
+ * it, so the outbox would park the lead. `messenger`: whether the panel takes
+ * `whatsapp` and `telegram` (`LeadWebhookOptions.panelMessenger`); until it
+ * does, a messenger lead is a `form` there — the leads table keeps the truth.
+ * `ctx.channel` is this, already decided.
  */
-export function panelChannel(channel: LeadChannel): "form" | "callback" {
+export function panelChannel(channel: LeadChannel, messenger = false): PanelChannel {
+  if (channel === "whatsapp" || channel === "telegram") return messenger ? channel : "form";
   return channel;
 }
 
@@ -141,6 +158,8 @@ export interface LeadWebhook {
   readonly panelFlow: boolean;
   /** Whether `requestBooking` queues anything (`LeadWebhookOptions.panelBooking`). */
   readonly panelBooking?: boolean;
+  /** Whether `ctx.channel` says `whatsapp` / `telegram` and `ctx.messageRef` is filled in (`LeadWebhookOptions.panelMessenger`). */
+  readonly panelMessenger?: boolean;
   /**
    * Queues `booking.requested@1` behind the lead's `lead.created`, through
    * the same outbox: not sent until that row is delivered, and a `409` / `425`
@@ -186,6 +205,14 @@ export interface LeadWebhookOptions extends WebhookOutboxOptions {
    * and dropped; the lead is untouched either way.
    */
   panelBooking?: boolean;
+  /**
+   * The switch for the messenger channels: `ctx.channel` says `whatsapp` or
+   * `telegram`, and `ctx.messageRef` carries the lead's reference. Off (the
+   * default) until the panel's `lead.created` accepts them — it refuses an
+   * unknown channel or property, and the outbox would park the lead: a
+   * messenger lead goes as a `form`, without its reference.
+   */
+  panelMessenger?: boolean;
   /** The body of `booking.requested@1`; absent → booking requests are dropped whatever `panelBooking` says. */
   buildBookingBody?: BuildBookingBody | undefined;
 }
@@ -200,7 +227,7 @@ export function leadWebhook(
   env: Pick<ServerEnv, "leadsDb" | "leadWebhook">,
   options: LeadWebhookOptions,
 ): LeadWebhook | null {
-  const { buildBody, buildBookingBody, signing, panelSuspect = false, panelFlow = false, panelBooking = false, ...outboxOptions } = options;
+  const { buildBody, buildBookingBody, signing, panelSuspect = false, panelFlow = false, panelBooking = false, panelMessenger = false, ...outboxOptions } = options;
   if (!env.leadWebhook || !buildBody) return null;
   if (env.leadsDb.kind !== "sqlite") throw new Error("LEAD_WEBHOOK_URL: the webhook outbox needs the sqlite lead store");
   const outbox = openWebhookOutbox(env.leadsDb.path, { ...env.leadWebhook, signing }, outboxOptions);
@@ -211,6 +238,7 @@ export function leadWebhook(
     panelSuspect,
     panelFlow,
     panelBooking,
+    panelMessenger,
     requestBooking(request) {
       if (!panelBooking || !buildBookingBody) return { kind: "off" };
       // The lead's own row, as `enqueue` refs it: the booking follows it, and
@@ -239,6 +267,8 @@ export function leadWebhook(
         idempotencyKey: randomUUID(),
         ...(suspect ? { suspect } : {}),
         ...(flow ? { flow } : {}),
+        channel: panelChannel(channelOf(lead), panelMessenger),
+        ...(panelMessenger && lead.messageRef ? { messageRef: lead.messageRef } : {}),
       };
       const body = JSON.stringify(buildBody(lead, ctx));
       if (typeof body !== "string") throw new Error("buildWebhookBody returned nothing JSON can carry");

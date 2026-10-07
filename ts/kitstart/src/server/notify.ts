@@ -36,16 +36,22 @@ const shownOf = (lead: Lead, needLabel: NeedLabel | undefined): LeadMailShown =>
 /** A plain default; a brand passes `format` to write it in its own language. */
 export function defaultLeadMail(brand: Pick<BrandFacts, "name">, lead: Lead, id: number, options: { needLabel?: NeedLabel | undefined } = {}): LeadMail {
   const place = lead.placeSlug ?? "unknown";
-  // A callback request is a promise to ring the customer: it says so first.
-  const callback = channelOf(lead) === "callback";
+  // A callback request is a promise to ring the customer: it says so first. A
+  // messenger lead says where the customer will write, and the reference the
+  // message carries — what the operator matches the chat by.
+  const channel = channelOf(lead);
+  const messenger = channel === "whatsapp" ? "WhatsApp" : channel === "telegram" ? "Telegram" : null;
+  const kind = channel === "callback" ? "call back" : messenger ? `${messenger} lead` : "new lead";
+  const flag = channel === "callback" ? " — CALL BACK" : messenger ? ` — ${messenger.toUpperCase()}` : "";
   return {
-    subject: `${brand.name} — ${callback ? "call back" : "new lead"} (${place})`,
+    subject: `${brand.name} — ${kind} (${place})`,
     text: [
-      `Lead #${id} — place ${place}${callback ? " — CALL BACK" : ""}${lead.spamVerdict ? ` — suspect (${lead.spamVerdict})` : ""}`,
+      `Lead #${id} — place ${place}${flag}${lead.spamVerdict ? ` — suspect (${lead.spamVerdict})` : ""}`,
       "",
+      ...(lead.messageRef ? [`Réf.     : ${lead.messageRef}`] : []),
       `Subject  : ${shownOf(lead, options.needLabel).need}`,
       `Locality : ${lead.locality}`,
-      `Mobile   : ${lead.mobile}`,
+      `Mobile   : ${lead.mobile || (messenger ? `(none — answer on ${messenger})` : "")}`,
       ...Object.entries(lead.extras).map(([name, value]) => `${name} : ${value}`),
     ].join("\n"),
   };

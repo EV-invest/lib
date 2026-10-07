@@ -1,4 +1,4 @@
-import { readCandidate, validateCandidate, type LeadSchema } from "../core/lead";
+import { CHANNEL_FIELD, readCandidate, validateCandidate, type LeadSchema } from "../core/lead";
 import { phoneProblem } from "../core/phone";
 
 /**
@@ -60,6 +60,34 @@ export function leadRuleDisagreements(schema: LeadSchema<string>): string[] {
     const blocked = phoneProblem(mobile) !== null;
     const refused = validateCandidate(schema, readCandidate(schema, form, null)) !== null;
     if (blocked !== refused) out.push(`${mobile}: the form ${blocked ? "blocks" : "takes"} it, the server ${refused ? "refuses" : "takes"} it`);
+  }
+  return out;
+}
+
+/**
+ * Where a brand's form rule refuses a messenger lead it must take: one with
+ * the subject chosen and nothing else — no postcode, no phone — since the
+ * chat carries the rest and is how the business answers. And where it takes
+ * a typed number the form would block: a phone given to a messenger lead is
+ * still one the operator may call. Empty is agreement.
+ */
+export function messengerRuleDisagreements(schema: LeadSchema<string>): string[] {
+  const out: string[] = [];
+  for (const channel of ["whatsapp", "telegram"] as const) {
+    const bare = new FormData();
+    bare.set(schema.wire.subject, schema.subjects[0] ?? "");
+    bare.set(CHANNEL_FIELD, channel);
+    const refused = validateCandidate(schema, readCandidate(schema, bare, null));
+    if (refused) out.push(`${channel}: a lead with no postcode and no phone is refused at ${refused.field} (${refused.why})`);
+    for (const { mobile } of PHONE_MATRIX) {
+      const form = new FormData();
+      form.set(schema.wire.subject, schema.subjects[0] ?? "");
+      form.set(CHANNEL_FIELD, channel);
+      form.set(schema.wire.mobile, mobile);
+      const blocked = phoneProblem(mobile) !== null;
+      const refused = validateCandidate(schema, readCandidate(schema, form, null)) !== null;
+      if (blocked !== refused) out.push(`${channel} ${mobile}: the form ${blocked ? "blocks" : "takes"} it, the server ${refused ? "refuses" : "takes"} it`);
+    }
   }
   return out;
 }

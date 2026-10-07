@@ -48,6 +48,7 @@ export {
   type LeadWebhook,
   type LeadWebhookContext,
   type LeadWebhookOptions,
+  type PanelChannel,
   type PanelFlow,
   type PanelFlowProperties,
 } from "./lead-webhook";
