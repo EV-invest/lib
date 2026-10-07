@@ -28,6 +28,12 @@ export interface EstimateQuestion {
   /** A shorter label per option id, drawn on a phone (under `sm`); the radio keeps the whole one. */
   shortLabels?: Readonly<Record<string, string>> | undefined;
   /**
+   * The answer as a `messenger` variant's message says it, per option id — in
+   * the need's line and the preview («2 ch.», «40–70 m²»), where a tile's own
+   * «2» says nothing. Over `shortLabels`, then the label.
+   */
+  previewLabels?: Readonly<Record<string, string>> | undefined;
+  /**
    * `steps` only: questions with the same number share a screen, in the
    * need's order. It moves on by itself once every one is answered; until
    * then a button does (`next`, else `text.stepNext`), and says what is missing.

@@ -44,7 +44,8 @@ Rust crate and its TypeScript mirror at once.
   The message's timing line is `urgency`'s answer or the estimate answer
   `messengerTiming={{ input }}` names; each line is a text key a brand
   rewords (`messagePrice: "… env. {price}"`). The need's line and the
-  preview carry the estimate's answers (short labels, `messengerPreviewPrice`).
+  preview carry the estimate's answers (`questions[id].previewLabels`, else
+  `shortLabels`, else the label; `messengerPreviewPrice`).
   Parts `messengerCta`, `messengerSecondary`, `messengerSquare`,
   `messengerSegment`, `messengerTile`, `messengerTrigger` size the variants'
   buttons without descendant selectors; a call inside a variant wears
