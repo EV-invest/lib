@@ -3,7 +3,7 @@
 import { ContactLinkTracker } from "@evinvest/marketing/tracker";
 import { usePathname } from "next/navigation.js";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { analyticsSink, countsAsPageView, EVENTS, experimentProps, type AnalyticsTarget, type IntentChannel } from "../core/analytics";
+import { analyticsSink, channelsProps, countsAsPageView, EVENTS, experimentProps, type AnalyticsTarget, type IntentChannel } from "../core/analytics";
 import { AnalyticsIdContext, AnalyticsSinkContext, experimentOf } from "./analytics-context";
 import { newSubmissionId } from "./use-lead-submit";
 
@@ -12,7 +12,7 @@ import { newSubmissionId } from "./use-lead-submit";
  * contact link — or one the tracker cannot classify (`sms:`).
  */
 const INTENT_ATTR = "data-intent";
-const INTENTS: readonly IntentChannel[] = ["form_open", "booking", "sms", "callback"];
+const INTENTS: readonly IntentChannel[] = ["form_open", "booking", "sms", "callback", "telegram", "whatsapp_qr"];
 
 function source(): string {
   const utm = new URLSearchParams(window.location.search).get("utm_source");
@@ -81,7 +81,9 @@ export function AnalyticsBoundary({ target, placeSlug, qaCookie, children }: Ana
       <AnalyticsSinkContext.Provider value={sink}>
         <ContactLinkTracker
           channels={["phone", "whatsapp"]}
-          onContact={({ channel, data }) => sink.capture(EVENTS.intent, { channel, ...experimentProps(data["experiment"], data["variant"]) }, { transport: "beacon" })}
+          onContact={({ channel, data }) =>
+            sink.capture(EVENTS.intent, { channel, ...experimentProps(data["experiment"], data["variant"]), ...channelsProps(data["channelsAvailable"]) }, { transport: "beacon" })
+          }
         >
           {children}
         </ContactLinkTracker>
