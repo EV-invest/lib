@@ -46,6 +46,7 @@ export type { LeadCaptureLayout, LeadNeedDisplay, LeadNeedOption } from "./LeadC
 export type { EstimateQuestion, EstimateQuestions } from "./LeadCaptureEstimate";
 export type { LeadIntro, LeadIntroOption } from "./lead-steps";
 export type { ChannelIconKey } from "./LeadCaptureChannels";
+export type { MessengerPart } from "./messenger/types";
 export { MapFacade, type MapFacadePart, type MapFacadeProps } from "./MapFacade";
 export { PlaceDirectory, type PlaceDirectoryPart, type PlaceDirectoryProps } from "./PlaceDirectory";
 export { PHONE_INPUT_PROPS, QuoteFormShell, type QuoteFormShellProps } from "./QuoteFormShell";

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, cn, Field, FieldDescription, FieldError, FieldLabel, Input } from "@evinvest/uikit";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { LeadCaptureText } from "../core/lead-capture-text";
 import { CONSENT_FIELD } from "../core/lead";
 import { phoneProblem } from "../core/phone";
@@ -125,6 +125,11 @@ export type PhoneText = Pick<LeadCaptureText, "phoneLabel" | "phoneHint" | "phon
  * (`phoneProblem`): one it would refuse blocks the submit, in the page's
  * words. Leaving the field with such a number shows the hint already — a
  * hint, read out, not yet an error.
+ *
+ * A `messenger` variant asks it differently: `optional` (the chat answers;
+ * a number typed is still held to the rule), `disabled` (a bot needs none),
+ * in a box of the variant's with a channel picker beside it (`frame`), or in
+ * a drawer outside the form's element (`form`, the form's id).
  */
 export function PhoneField(props: {
   name: string;
@@ -134,14 +139,26 @@ export function PhoneField(props: {
   /** The server's refusal of this field, in the page's words. */
   error: string | null;
   onSoftError: () => void;
+  optional?: boolean | undefined;
+  disabled?: boolean | undefined;
+  /** Over `text.phonePlaceholder`. */
+  placeholder?: string | undefined;
+  /**
+   * The variant's box around the input (the kit's `InputGroup` with a picker):
+   * the input then draws no box of its own. The variant's, so the control's
+   * page never loads the group.
+   */
+  frame?: ((input: ReactNode) => ReactNode) | undefined;
+  form?: string | undefined;
   classNames?: PartClassNames<FieldPart> | undefined;
 }) {
-  const { name, text, onSoftError, classNames: c } = props;
+  const { name, text, onSoftError, frame, classNames: c } = props;
+  const optional = props.optional === true || props.disabled === true;
   const messageId = useId();
   const [doubtful, setDoubtful] = useState(false);
   const validity = useValidity(el => {
     const problem = phoneProblem(el.value);
-    return problem === "required" ? text.required : problem === "invalid" ? text.phoneInvalid : "";
+    return problem === "required" ? (optional ? "" : text.required) : problem === "invalid" ? text.phoneInvalid : "";
   });
   const error = props.error ?? validity.shown;
   const marked = Boolean(error) || doubtful;
@@ -178,50 +195,56 @@ export function PhoneField(props: {
     if (bad && !doubtful) onSoftError();
     setDoubtful(bad);
   };
+  const input = (
+    <Input
+      ref={validity.ref}
+      name={name}
+      size="lg"
+      {...PHONE_INPUT_PROPS}
+      enterKeyHint="send"
+      placeholder={props.placeholder ?? text.phonePlaceholder}
+      required={!optional}
+      disabled={props.disabled}
+      form={props.form}
+      data-lead-field="phone"
+      aria-invalid={marked || undefined}
+      aria-describedby={marked ? messageId : undefined}
+      onInvalid={validity.onInvalid}
+      onBlur={e => {
+        const value = e.currentTarget.value;
+        const press = pressed.current;
+        pressed.current = null;
+        if (press === "submit") return;
+        if (press === null) return judge(value);
+        // After the press's click, which lands where the press began; a
+        // cancelled press (a scroll) ends the wait too, and so does a
+        // release no click follows (dragged off), a moment later.
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const ends = ["click", "pointercancel"] as const;
+        const over = () => {
+          for (const type of ends) window.removeEventListener(type, over, true);
+          window.removeEventListener("pointerup", late, true);
+          clearTimeout(timer);
+          setTimeout(() => judge(value), 0);
+        };
+        const late = () => {
+          timer = setTimeout(over, 500);
+        };
+        for (const type of ends) window.addEventListener(type, over, true);
+        window.addEventListener("pointerup", late, true);
+      }}
+      onChange={e => {
+        validity.onChange(e);
+        if (doubtful && phoneProblem(e.currentTarget.value) === null) setDoubtful(false);
+      }}
+      // In a frame the box is the frame's: the input loses its own border and ring.
+      className={frame ? "h-full flex-1 rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0" : c?.control}
+    />
+  );
   return (
     <Field {...(props.id ? { controlId: props.id } : {})} className={cn("flex flex-col gap-2", c?.field)}>
       <FieldLabel className={c?.label}>{text.phoneLabel}</FieldLabel>
-      <Input
-        ref={validity.ref}
-        name={name}
-        size="lg"
-        {...PHONE_INPUT_PROPS}
-        enterKeyHint="send"
-        placeholder={text.phonePlaceholder}
-        required
-        data-lead-field="phone"
-        aria-invalid={marked || undefined}
-        aria-describedby={marked ? messageId : undefined}
-        onInvalid={validity.onInvalid}
-        onBlur={e => {
-          const value = e.currentTarget.value;
-          const press = pressed.current;
-          pressed.current = null;
-          if (press === "submit") return;
-          if (press === null) return judge(value);
-          // After the press's click, which lands where the press began; a
-          // cancelled press (a scroll) ends the wait too, and so does a
-          // release no click follows (dragged off), a moment later.
-          let timer: ReturnType<typeof setTimeout> | undefined;
-          const ends = ["click", "pointercancel"] as const;
-          const over = () => {
-            for (const type of ends) window.removeEventListener(type, over, true);
-            window.removeEventListener("pointerup", late, true);
-            clearTimeout(timer);
-            setTimeout(() => judge(value), 0);
-          };
-          const late = () => {
-            timer = setTimeout(over, 500);
-          };
-          for (const type of ends) window.addEventListener(type, over, true);
-          window.addEventListener("pointerup", late, true);
-        }}
-        onChange={e => {
-          validity.onChange(e);
-          if (doubtful && phoneProblem(e.currentTarget.value) === null) setDoubtful(false);
-        }}
-        className={c?.control}
-      />
+      {frame ? frame(input) : input}
       <FieldMessage id={messageId} error={error} hint={doubtful ? text.phoneHint : null} classNames={c} />
     </Field>
   );

@@ -1,11 +1,13 @@
 import { Button, cn, FieldError } from "@evinvest/uikit";
+import type { ReactNode } from "react";
 import type { LeadCaptureText } from "../core/lead-capture-text";
 import type { SendFailure } from "./use-lead-submit";
 
 /** The submit, busy while the script posts: disabled, `aria-busy`, and saying so. */
-export function SubmitButton(props: { busy: boolean; label: string; sending: string; className: string | undefined }) {
+export function SubmitButton(props: { busy: boolean; label: string; sending: string; className: string | undefined; form?: string | undefined; children?: ReactNode }) {
   return (
-    <Button type="submit" size="touch" disabled={props.busy} aria-busy={props.busy || undefined} className={cn("w-full", props.className)}>
+    <Button type="submit" size="touch" form={props.form} disabled={props.busy} aria-busy={props.busy || undefined} className={cn("w-full", props.className)}>
+      {props.children}
       {props.busy ? props.sending : props.label}
     </Button>
   );

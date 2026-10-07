@@ -2,16 +2,16 @@
 
 import { useEffect, useState, type RefObject } from "react";
 import { PRICE_CHANGED } from "../core/accept";
-import { LEAD_CARD_PARAM, LEAD_ERROR_FIELD, LEAD_ERROR_PARAM, type LeadChannel, type LeadError } from "../core/lead";
+import { LEAD_CARD_PARAM, LEAD_ERROR_FIELD, LEAD_ERROR_PARAM, type LeadError } from "../core/lead";
 import type { LeadCaptureText } from "../core/lead-capture-text";
 
 export type { LeadError };
 
 /** The fields `LeadCapture` draws itself, which show a refusal under themselves. */
-export const OWN_FIELDS: Readonly<Record<LeadChannel, readonly string[]>> = { form: ["phone", "locality", "name"], callback: ["phone", "consent"] };
+export const OWN_FIELDS: Readonly<Record<LeadError["channel"], readonly string[]>> = { form: ["phone", "locality", "name"], callback: ["phone", "consent"] };
 
 /** The id of the message a refusal of a field the card does not draw is shown in, above the submit. */
-export const formMessageId = (id: string, channel: LeadChannel): string => (channel === "callback" ? `${id}-callback-error` : `${id}-error`);
+export const formMessageId = (id: string, channel: LeadError["channel"]): string => (channel === "callback" ? `${id}-callback-error` : `${id}-error`);
 
 /** The words for a refused field: the field's own rule where the form has one. */
 export function errorText(field: string, text: LeadCaptureText): string {
