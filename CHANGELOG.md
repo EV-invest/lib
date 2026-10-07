@@ -30,6 +30,12 @@ Rust crate and its TypeScript mirror at once.
   and each page add its own. Plain-data props, so a Server Component page
   renders it; without a provider above it throws. `createI18nReact` returns it
   too.
+- **`missing` on `I18nProvider`** (`@evinvest/i18n/react`, 0.10.0):
+  `"warn" | "throw"`, the missing-key reaction as plain data a Server
+  Component layout can pass where `onMissing` (a function) cannot. `"warn"`
+  logs once per key, `"throw"` fails the render — for a test run against a
+  sliced catalogue. Unset, nothing changes; the default locale never reaches
+  it. Scopes inherit it.
 - **The compact price's breakdown pops over the card** (`@evinvest/kitstart/react`,
   `price="compact"`). «Détail» opens the kit's `Popover` — over the card, so
   the form no longer moves; a tap outside or Escape closes it, kept inside a

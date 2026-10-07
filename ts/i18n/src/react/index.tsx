@@ -41,7 +41,49 @@ export interface I18nProviderProps<L extends string = Locale> {
   messages: Messages;
   /** Fired for a key the catalogue has never heard of — wire to Sentry in production. */
   onMissing?: (key: string, locale: L) => void;
+  /**
+   * What else to do about such a key, as plain data a Server Component layout
+   * can pass (it cannot pass `onMissing`). Unset, the call site's English
+   * renders and only `onMissing` hears of it.
+   *
+   * - `"warn"` — `console.warn` once per key, then render the English.
+   * - `"throw"` — throw from the render, for a test or e2e run that must fail
+   *   on a key a sliced catalogue dropped.
+   *
+   * Never fires for the default locale, which reads no catalogue. A key the
+   * policy rejected or nobody translated is absent too, so `"throw"` also
+   * fails on those: use it against a fully translated catalogue.
+   */
+  missing?: MissingMode;
   children: ReactNode;
+}
+
+/** See {@link I18nProviderProps.missing}. */
+export type MissingMode = "warn" | "throw";
+
+/** `onMissing` with {@link MissingMode} folded in; `undefined` when there is nothing to do. */
+function reporter<L extends string>(
+  mode: MissingMode | undefined,
+  onMissing: ((key: string, locale: L) => void) | undefined,
+): ((key: string, locale: L) => void) | undefined {
+  if (mode === undefined) return onMissing;
+  // Per provider rather than per module: a key warned about under one tree is
+  // still news under another, and a re-render must not repeat it.
+  const warned = new Set<string>();
+  return (key, locale) => {
+    onMissing?.(key, locale);
+    const message = `@evinvest/i18n: "${key}" is not in the ${locale} catalogue this tree was given`;
+    if (mode === "throw") {
+      throw new Error(
+        `${message}. If the catalogue is sliced, regenerate the slices (evinvest-i18n-slices) ` +
+          `or check that the page wraps its tree in <I18nScope>.`,
+      );
+    }
+    const id = `${locale}:${key}`;
+    if (warned.has(id)) return;
+    warned.add(id);
+    console.warn(`${message}; rendering the English.`);
+  };
 }
 
 /** Props for {@link I18nScope}. Plain data, so a Server Component can render it. */
@@ -82,15 +124,11 @@ export function createI18nReact<L extends string>(registry: LocaleRegistry<L>): 
   type Value = { locale: L; messages: Messages; report: Report | undefined; t: Translate };
   const I18nContext = createContext<Value | null>(null);
 
-  function I18nProvider({ locale, messages, onMissing, children }: I18nProviderProps<L>) {
+  function I18nProvider({ locale, messages, onMissing, missing, children }: I18nProviderProps<L>) {
+    const report = useMemo(() => reporter(missing, onMissing), [missing, onMissing]);
     const value = useMemo<Value>(
-      () => ({
-        locale,
-        messages,
-        report: onMissing,
-        t: registry.translator(messages, locale, onMissing),
-      }),
-      [locale, messages, onMissing],
+      () => ({ locale, messages, report, t: registry.translator(messages, locale, report) }),
+      [locale, messages, report],
     );
     return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
   }
