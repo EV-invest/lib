@@ -36,6 +36,9 @@ Rust crate and its TypeScript mirror at once.
   logs once per key, `"throw"` fails the render — for a test run against a
   sliced catalogue. Unset, nothing changes; the default locale never reaches
   it. Scopes inherit it.
+- **`pickMessages(messages, keys)`** (`@evinvest/i18n`, 0.10.0): the part of
+  a catalogue under a list of keys, for a provider or a scope; a key the
+  catalogue lacks is left out. Plus the `MessageSlices` type.
 - **The compact price's breakdown pops over the card** (`@evinvest/kitstart/react`,
   `price="compact"`). «Détail» opens the kit's `Popover` — over the card, so
   the form no longer moves; a tap outside or Escape closes it, kept inside a
