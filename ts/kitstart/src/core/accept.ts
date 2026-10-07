@@ -1,9 +1,10 @@
 import { ANALYTICS_ID, experimentProps } from "./analytics";
 import { HONEYPOT_FIELD, LEGACY_HONEYPOT_FIELDS, RENDERED_AT_FIELD, screen, type RateLimiter } from "./antispam";
-import { channelOf, MAX_FIELD, readCandidate, validateCandidate, type Lead, type LeadCandidate, type LeadChannel, type LeadPrice } from "./lead";
+import { channelOf, isMessengerChannel, MAX_FIELD, readCandidate, validateCandidate, type Lead, type LeadCandidate, type LeadChannel, type LeadPrice } from "./lead";
 import { answeredUnknown, flowOf, readEstimateInputs, type LeadFlow } from "./pricing/flow";
 import type { PricingModel } from "./pricing/model";
 import { priceOf } from "./pricing/price";
+import type { ChannelsAvailable } from "./messenger";
 import type { Site } from "./site";
 
 /** Hidden fields the form carries besides what the visitor types. */
@@ -13,6 +14,12 @@ export const FORM_ID_FIELD = "form_id";
 /** The site's experiment assignment, posted so the submit counts in the right arm. */
 export const EXPERIMENT_FIELD = "experiment";
 export const VARIANT_FIELD = "variant";
+/**
+ * Which messengers the card offered (`channels_available`), posted so the
+ * submit's event says it as the card's own events do: an arm whose place had
+ * no WhatsApp drew the control, and its numbers must not mix with the arm's.
+ */
+export const CHANNELS_FIELD = "channels_available";
 /**
  * The page's analytics id (`ANALYTICS_ID`), posted by the script only: the
  * webhook's `ctx.analyticsId`, for `lead.created`'s `analytics_id`. Never
@@ -31,6 +38,19 @@ export const PRICE_CHANGED = "price_changed";
 export interface SubmitTags {
   experiment?: string;
   variant?: string;
+  channels_available?: ChannelsAvailable;
+}
+
+const CHANNELS_AVAILABLE: readonly ChannelsAvailable[] = ["wa,tg", "wa", "tg", "none"];
+
+/**
+ * What a post says about the card it came from, for its events: the site's
+ * assignment and the messengers the card offered — slugs only, anything else
+ * dropped.
+ */
+export function submitTagsOf(form: FormData): SubmitTags {
+  const channels = CHANNELS_AVAILABLE.find(c => c === form.get(CHANNELS_FIELD));
+  return { ...experimentProps(field(form, EXPERIMENT_FIELD), field(form, VARIANT_FIELD)), ...(channels ? { channels_available: channels } : {}) };
 }
 const FORM_ID = /^[a-z0-9_-]{1,32}$/;
 
@@ -197,7 +217,9 @@ async function accept<L extends string, P extends string>(
   // is refused with the fresh price, for the visitor to confirm. A page from
   // before the field posts none, and is taken as before.
   const shown = field(form, SHOWN_CENTS_FIELD);
-  if (sale.price && shown !== null && /^\d{1,12}$/.test(shown) && Number(shown) !== sale.price.cents) {
+  // A messenger lead is posted as the visitor leaves for the chat: nobody is
+  // left to confirm a price, so it is taken at the server's, as any quote is.
+  if (sale.price && !isMessengerChannel(candidate.channel) && shown !== null && /^\d{1,12}$/.test(shown) && Number(shown) !== sale.price.cents) {
     deps.log.warn(`quote: a ${sale.flow} for ${candidate.subject} was shown at ${shown} and is now ${sale.price.cents}; sent back to confirm`);
     return { kind: "invalid", why: "price changed", field: PRICE_CHANGED, channel: channelOf(candidate), formId, locale, slug, cents: sale.price.cents };
   }
@@ -260,7 +282,7 @@ async function accept<L extends string, P extends string>(
       deps.log.error(`quote: lead ${id} is stored but its notification failed`, error);
     }
   });
-  const tags: SubmitTags = experimentProps(field(form, EXPERIMENT_FIELD), field(form, VARIANT_FIELD));
+  const tags = submitTagsOf(form);
   deps.defer(() => deps.capture(lead, formId, tags));
   return { kind: "stored", id, ref, lead, locale, formId };
 }

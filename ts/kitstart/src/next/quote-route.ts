@@ -1,7 +1,7 @@
 import { after } from "next/server.js";
 import { CONFIRM_PATH, confirmQuery } from "./confirm-route";
-import { createAcceptLead, EXPERIMENT_FIELD, PRICE_CHANGED, VARIANT_FIELD } from "../core/accept";
-import { analyticsSink, EVENTS, experimentProps } from "../core/analytics";
+import { createAcceptLead, PRICE_CHANGED, submitTagsOf } from "../core/accept";
+import { analyticsSink, EVENTS } from "../core/analytics";
 import { RateLimiter } from "../core/antispam";
 import { CARD_FIELD, CARD_ID, channelOf, LEAD_CARD_PARAM, LEAD_ERROR_PARAM, type LeadChannel, type LeadStore } from "../core/lead";
 import type { Place } from "../core/place/types";
@@ -129,11 +129,6 @@ function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
 }
 
-const text = (form: FormData, name: string): string | null => {
-  const value = form.get(name);
-  return typeof value === "string" ? value : null;
-};
-
 /** `LeadCapture`'s own post asks for JSON; a plain form post never does. */
 const wantsJson = (request: Request): boolean => (request.headers.get("accept") ?? "").includes("application/json");
 
@@ -254,6 +249,7 @@ export function quoteRoute<L extends string, P extends string>(
         sinkFor(lead.placeSlug).capture(EVENTS.leadSubmit, {
           form_id: formId,
           channel: channelOf(lead),
+          ...(lead.messageRef ? { message_ref: lead.messageRef } : {}),
           ...tags,
         }),
       limiter: (limiter ??= new RateLimiter(env.leadRateLimit?.limit ?? 5, env.leadRateLimit?.windowMs ?? 600_000)),
@@ -279,7 +275,7 @@ export function quoteRoute<L extends string, P extends string>(
         return scripted ? json(200, { ok: true, location, lead: outcome.ref, ...price }) : seeOther(location);
       }
       case "invalid": {
-        const tags = experimentProps(text(form, EXPERIMENT_FIELD), text(form, VARIANT_FIELD));
+        const tags = submitTagsOf(form);
         // The field's role and why — never what was typed.
         const repriced = outcome.field === PRICE_CHANGED;
         const props = { form_id: outcome.formId, channel: outcome.channel, field: outcome.field, reason: repriced ? PRICE_CHANGED : "invalid", ...tags };
