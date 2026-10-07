@@ -375,6 +375,14 @@ each page add the keys its own client islands render — see
 data, so the Server Component page renders it directly; without a provider
 above it, it throws.
 
+A Server Component layout cannot hand the provider an `onMissing` function, so
+the reaction to a key the catalogue lacks also comes as data: `missing="warn"`
+logs once per key, `missing="throw"` fails the render. Unset (the default), the
+call site's English renders and only `onMissing` hears of it. It never fires
+for the default locale, and scopes inherit it. An untranslated or
+policy-rejected key is absent from a resolved catalogue too, so keep `"throw"`
+for test runs against a fully translated one.
+
 ```tsx
 // app/[locale]/wallet/page.tsx  (Server Component)
 import { I18nScope } from "@evinvest/i18n/react";
