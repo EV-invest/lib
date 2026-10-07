@@ -1,4 +1,5 @@
-import { cn } from "@evinvest/uikit";
+import { cn, Popover, PopoverContent, PopoverTrigger } from "@evinvest/uikit";
+import { useSyncExternalStore, type ReactNode } from "react";
 import { fillText, formatCents } from "../core/lead-capture-format";
 import type { LeadCaptureFlowText } from "../core/lead-capture-text";
 import type { LeadFlow } from "../core/pricing/flow";
@@ -6,7 +7,12 @@ import type { Price, PriceLine, PricingModel } from "../core/pricing/model";
 import { labelOf } from "../core/pricing/validate";
 import type { PartClassNames } from "./parts";
 
-export type PricePart = "price" | "priceTotal" | "breakdown" | "priceNote" | "priceLine" | "priceTaxCredit" | "priceDetail";
+/**
+ * `priceDetail`: the compact price's «Détail», the trigger — the popover's
+ * button, or the `<details>`' summary without a script; `priceDetailContent`:
+ * the breakdown it pops over the card.
+ */
+export type PricePart = "price" | "priceTotal" | "breakdown" | "priceNote" | "priceLine" | "priceTaxCredit" | "priceDetail" | "priceDetailContent";
 
 function lineLabel(line: PriceLine, model: PricingModel, locale: string, text: LeadCaptureFlowText): string {
   switch (line.kind) {
@@ -74,8 +80,9 @@ export const afterCredit = (cents: number, ratio: number): number => cents - Mat
 /**
  * `price="compact"`: the price on one line (`priceLine`), what is left after
  * the brand's tax credit when it has one (`taxCredit`, a ratio), and how it
- * was reached behind a disclosure — a `<details>`, so it opens without a
- * script. Read out as it changes, the line only.
+ * was reached behind «Détail» — the kit's `Popover`, over the card, so
+ * opening it moves nothing; without a script a `<details>`, which opens in
+ * place. Read out as it changes, the line only.
  */
 export function PriceCompact(props: {
   model: PricingModel;
@@ -109,8 +116,7 @@ export function PriceCompact(props: {
         )}
       </p>
       {flow === "estimate" && lines.length > 1 && (
-        <details className={cn("text-sm text-ink-soft", c?.priceDetail)}>
-          <summary className="inline-flex min-h-11 cursor-pointer items-center underline underline-offset-4">{text.priceDetail}</summary>
+        <PriceDetail label={text.priceDetail} classNames={c}>
           <ul className={cn("flex flex-col gap-1 pb-2", c?.breakdown)}>
             {lines.map((line, i) => (
               <li key={i} className="flex justify-between gap-3">
@@ -120,8 +126,44 @@ export function PriceCompact(props: {
             ))}
           </ul>
           <p className={c?.priceNote}>{text.priceNote}</p>
-        </details>
+        </PriceDetail>
       )}
     </div>
+  );
+}
+
+const noop = () => () => undefined;
+
+/** The trigger both forms share: one height, so the swap after hydration moves nothing. */
+const TRIGGER = "inline-flex min-h-11 cursor-pointer items-center text-sm text-ink-soft underline underline-offset-4";
+
+/**
+ * The breakdown behind «Détail». Scripted: the kit's `Popover` — over the
+ * card, closed by a tap outside or Escape, kept inside the screen. The
+ * server's (and a browser without scripts): a `<details>` opening in place;
+ * hydration draws that first, then the popover — `useSyncExternalStore`'s
+ * server snapshot is what hydration reads.
+ */
+function PriceDetail(props: { label: string; classNames: PartClassNames<PricePart> | undefined; children: ReactNode }) {
+  const { label, classNames: c } = props;
+  const scripted = useSyncExternalStore(noop, () => true, () => false);
+  if (!scripted) {
+    return (
+      <details className="text-sm text-ink-soft">
+        <summary className={cn(TRIGGER, c?.priceDetail)}>{label}</summary>
+        <div className={c?.priceDetailContent}>{props.children}</div>
+      </details>
+    );
+  }
+  return (
+    <Popover>
+      <PopoverTrigger type="button" className={cn("self-start", TRIGGER, c?.priceDetail)}>
+        {label}
+      </PopoverTrigger>
+      {/* `sideOffset` is also the margin the kit keeps from the screen's edge. */}
+      <PopoverContent role="dialog" aria-label={label} side="bottom" align="end" sideOffset={8} className={cn("max-w-[calc(100vw-16px)] text-sm text-ink-soft", c?.priceDetailContent)}>
+        {props.children}
+      </PopoverContent>
+    </Popover>
   );
 }
