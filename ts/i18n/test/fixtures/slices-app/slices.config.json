@@ -1,0 +1,1 @@
+{ "tables": [{ "table": "tips/copy.ts", "keys": ["tips.*.title", "tips.*.body"], "ignore": ["tips/catalog.ts"] }] }
