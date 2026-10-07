@@ -6,9 +6,10 @@ import type { ReactElement } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ESTIMATE_UNKNOWN, LEAD_CAPTURE_TEXT, leadErrorOf, parsePricingModel, type OpeningHours, type Place } from "../src/index";
+import { ESTIMATE_UNKNOWN, flowTextOf, LEAD_CAPTURE_TEXT, leadErrorOf, parsePricingModel, priceOf, type OpeningHours, type Place } from "../src/index";
 import { AnalyticsSinkContext } from "../src/react/analytics-context";
 import { LeadCapture, type LeadCaptureProps } from "../src/react/index";
+import { PriceCompact } from "../src/react/LeadCapturePrice";
 import { serviceAreaPlace } from "../src/testing/index";
 
 // `layout="steps"` and the compact form's pieces: one question per screen,
@@ -69,10 +70,25 @@ const field = (name: string) => {
   if (!(el instanceof HTMLInputElement)) throw new Error(`no field ${name}`);
   return el;
 };
-/** A pointer's click: `detail` 1, where a keyboard's synthetic click is 0. */
-const tap = (el: Element) => {
-  fireEvent.pointerDown(el);
-  fireEvent.click(el, { detail: 1 });
+/**
+ * A pointer's tap on a tile's radio, as each engine delivers it. Chromium: the
+ * radio covers the tile, so the pointer and the click (`detail` 1) are its own.
+ * WebKit: the tap may land on the tile's face, and the radio gets only the
+ * label's click, `detail` 0 — the `detail` a keyboard's click has too. jsdom's
+ * own label forwarding keeps the user's `detail`, so the radio's click is fired here.
+ */
+const ENGINES = ["chromium", "webkit"] as const;
+const tapIn = (engine: (typeof ENGINES)[number]) => (el: Element) => {
+  if (engine === "chromium") {
+    fireEvent.pointerDown(el);
+    fireEvent.click(el, { detail: 1 });
+    return;
+  }
+  const face = el.nextElementSibling;
+  if (!face) throw new Error("no tile face beside the radio");
+  fireEvent.pointerDown(face);
+  fireEvent.pointerUp(face);
+  fireEvent.click(el, { detail: 0 });
 };
 const progress = () => form().querySelector("[data-lead-chrome] .sr-only")?.textContent;
 const steps = (events: { event: string; props: Record<string, unknown> }[]) => events.filter(e => e.event === "lead_form_step").map(e => e.props["step"]);
@@ -114,167 +130,179 @@ describe("LeadCapture's steps, without a script", () => {
     errors.mockRestore();
   });
 
+  it("puts the compact price's breakdown in a <details> behind Détail", () => {
+    // The breakdown needs an estimate answered, which only a script can do: the price is drawn alone, as the server would.
+    const price = priceOf(MODEL, "standard", { zone: "centre", bedrooms: "t3", surface: "s70", frequency: "biweekly" });
+    document.body.innerHTML = renderToString(<PriceCompact model={MODEL} flow="estimate" price={price} locale="fr" taxCredit={undefined} text={flowTextOf(fr, "fr")} />);
+    expect(document.body.querySelector("[data-price-cents]")).toHaveAttribute("data-price-cents", "7700");
+    const detail = document.body.querySelector("details");
+    expect(detail?.querySelector("summary")).toHaveTextContent("Détail");
+    expect(detail).toHaveTextContent(fr.priceBase ?? "");
+  });
+
   it("opens on the screen a refusal is about", () => {
     document.body.innerHTML = renderToString(capture({ need: "deep", initialError: leadErrorOf({ lead_error: "phone" }) }));
     expect(shown()).toEqual(["phone"]);
   });
 });
 
-describe("LeadCapture's steps", () => {
-  it("moves on at a tap, the postcode on its screen, then the phone — each move reported", () => {
-    const { wrap, events } = recorder();
-    render(wrap(capture()));
-    tap(radio("job", "deep"));
-    expect(shown()).toEqual(["locality"]);
-    expect(document.activeElement).toBe(field("zip"));
-    expect(progress()).toBe("Étape 2/3");
-    // The answered screen is a chip, a tap back to it.
-    const chip = screen.getByRole("button", { name: /Votre besoin, Grand ménage Modifier/ });
-    fireEvent.change(field("zip"), { target: { value: "75011" } });
-    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
-    expect(shown()).toEqual(["phone"]);
-    expect(document.activeElement).toBe(field("mobile"));
-    expect(screen.getByRole("button", { name: /Code postal, 75011/ })).toBeTruthy();
-    fireEvent.click(chip);
-    expect(shown()).toEqual(["need"]);
-    expect(steps(events)).toEqual(["locality", "phone", "need"]);
-    expect(posted()).toMatchObject({ job: "deep", zip: "75011" });
-  });
+describe.each(ENGINES)("LeadCapture's steps, tapped as in %s", engine => {
+  const tap = tapIn(engine);
+    it("moves on at a tap, the postcode on its screen, then the phone — each move reported", () => {
+      const { wrap, events } = recorder();
+      render(wrap(capture()));
+      tap(radio("job", "deep"));
+      expect(shown()).toEqual(["locality"]);
+      expect(document.activeElement).toBe(field("zip"));
+      expect(progress()).toBe("Étape 2/3");
+      // The answered screen is a chip, a tap back to it.
+      const chip = screen.getByRole("button", { name: /Votre besoin, Grand ménage Modifier/ });
+      fireEvent.change(field("zip"), { target: { value: "75011" } });
+      fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+      expect(shown()).toEqual(["phone"]);
+      expect(document.activeElement).toBe(field("mobile"));
+      expect(screen.getByRole("button", { name: /Code postal, 75011/ })).toBeTruthy();
+      fireEvent.click(chip);
+      expect(shown()).toEqual(["need"]);
+      expect(steps(events)).toEqual(["locality", "phone", "need"]);
+      expect(posted()).toMatchObject({ job: "deep", zip: "75011" });
+    });
 
-  it("keeps the postcode screen until it is answered, and Enter in it moves on", () => {
-    render(capture({ need: "deep" }));
-    expect(shown()).toEqual(["locality"]);
-    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
-    expect(shown()).toEqual(["locality"]);
-    expect(field("zip")).toHaveAttribute("aria-invalid", "true");
-    fireEvent.change(field("zip"), { target: { value: "75011" } });
-    const enter = fireEvent.keyDown(field("zip"), { key: "Enter" });
-    expect(enter).toBe(false);
-    expect(shown()).toEqual(["phone"]);
-  });
+    it("keeps the postcode screen until it is answered, and Enter in it moves on", () => {
+      render(capture({ need: "deep" }));
+      expect(shown()).toEqual(["locality"]);
+      fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+      expect(shown()).toEqual(["locality"]);
+      expect(field("zip")).toHaveAttribute("aria-invalid", "true");
+      fireEvent.change(field("zip"), { target: { value: "75011" } });
+      const enter = fireEvent.keyDown(field("zip"), { key: "Enter" });
+      expect(enter).toBe(false);
+      expect(shown()).toEqual(["phone"]);
+    });
 
-  it("goes back one screen", () => {
-    render(capture({ need: "deep" }));
-    fireEvent.change(field("zip"), { target: { value: "75011" } });
-    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
-    fireEvent.click(screen.getByRole("button", { name: "Retour" }));
-    expect(shown()).toEqual(["locality"]);
-    expect(field("zip").value).toBe("75011");
-  });
+    it("goes back one screen", () => {
+      render(capture({ need: "deep" }));
+      fireEvent.change(field("zip"), { target: { value: "75011" } });
+      fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+      fireEvent.click(screen.getByRole("button", { name: "Retour" }));
+      expect(shown()).toEqual(["locality"]);
+      expect(field("zip").value).toBe("75011");
+    });
 
-  it("does not ask twice: a need the page knows, a commune the place serves alone, a postcode in the query", () => {
-    window.history.replaceState(null, "", "/fr?postcode=75011");
-    render(capture({ need: "deep" }));
-    expect(shown()).toEqual(["phone"]);
-    expect(field("zip").value).toBe("75011");
-    expect(screen.getByRole("button", { name: /Votre besoin, Grand ménage/ })).toBeTruthy();
-    expect(progress()).toBe("Étape 3/3");
-    cleanup();
-    window.history.replaceState(null, "", "/fr?postcode=<b>");
-    render(capture({ place: { ...place, serviceArea: [{ kind: "localities", names: ["Royat"] }] } }));
-    tap(radio("job", "deep"));
-    expect(shown()).toEqual(["phone"]);
-    expect(field("zip").value).toBe("Royat");
-  });
+    it("does not ask twice: a need the page knows, a commune the place serves alone, a postcode in the query", () => {
+      window.history.replaceState(null, "", "/fr?postcode=75011");
+      render(capture({ need: "deep" }));
+      expect(shown()).toEqual(["phone"]);
+      expect(field("zip").value).toBe("75011");
+      expect(screen.getByRole("button", { name: /Votre besoin, Grand ménage/ })).toBeTruthy();
+      expect(progress()).toBe("Étape 3/3");
+      cleanup();
+      window.history.replaceState(null, "", "/fr?postcode=<b>");
+      render(capture({ place: { ...place, serviceArea: [{ kind: "localities", names: ["Royat"] }] } }));
+      tap(radio("job", "deep"));
+      expect(shown()).toEqual(["phone"]);
+      expect(field("zip").value).toBe("Royat");
+    });
 
-  it("asks an estimate one question a screen, prices it on the phone's screen, and posts every answer", () => {
-    const { wrap, events } = recorder();
-    render(wrap(capture({ need: "standard", localityStep: "with-phone" })));
-    expect(shown()).toEqual(["estimate_zone"]);
-    tap(radio("estimate_zone", "centre"));
-    tap(radio("estimate_bedrooms", "t3"));
-    tap(radio("estimate_surface", "s70"));
-    tap(radio("estimate_frequency", "biweekly"));
-    expect(shown()).toEqual(["phone"]);
-    expect(document.activeElement).toBe(field("zip"));
-    expect(form().querySelector("[data-price-cents]")).toHaveAttribute("data-price-cents", "7700");
-    expect(within(form()).getByRole("button", { name: "Réserver" })).toBeTruthy();
-    expect(posted()).toMatchObject({ estimate_zone: "centre", estimate_bedrooms: "t3", estimate_surface: "s70", estimate_frequency: "biweekly", shown_cents: "7700" });
-    expect(steps(events)).toEqual(["estimate_bedrooms", "estimate_surface", "estimate_frequency", "phone"]);
-    expect(progress()).toBe("Étape 6/6");
-  });
+    it("asks an estimate one question a screen, prices it on the phone's screen, and posts every answer", () => {
+      const { wrap, events } = recorder();
+      render(wrap(capture({ need: "standard", localityStep: "with-phone" })));
+      expect(shown()).toEqual(["estimate_zone"]);
+      tap(radio("estimate_zone", "centre"));
+      tap(radio("estimate_bedrooms", "t3"));
+      tap(radio("estimate_surface", "s70"));
+      tap(radio("estimate_frequency", "biweekly"));
+      expect(shown()).toEqual(["phone"]);
+      expect(document.activeElement).toBe(field("zip"));
+      expect(form().querySelector("[data-price-cents]")).toHaveAttribute("data-price-cents", "7700");
+      expect(within(form()).getByRole("button", { name: "Réserver" })).toBeTruthy();
+      expect(posted()).toMatchObject({ estimate_zone: "centre", estimate_bedrooms: "t3", estimate_surface: "s70", estimate_frequency: "biweekly", shown_cents: "7700" });
+      expect(steps(events)).toEqual(["estimate_bedrooms", "estimate_surface", "estimate_frequency", "phone"]);
+      expect(progress()).toBe("Étape 6/6");
+    });
 
-  it("an arrow key chooses without moving on", () => {
-    render(capture({ need: "standard" }));
-    fireEvent.keyDown(radio("estimate_zone", "centre"), { key: "ArrowDown" });
-    fireEvent.click(radio("estimate_zone", "proche"));
-    expect(radio("estimate_zone", "proche")).toBeChecked();
-    expect(shown()).toEqual(["estimate_zone"]);
-    fireEvent.keyDown(radio("estimate_zone", "proche"), { key: "Enter" });
-    expect(shown()).toEqual(["estimate_bedrooms"]);
-  });
+    it("an arrow key chooses without moving on", () => {
+      render(capture({ need: "standard" }));
+      fireEvent.keyDown(radio("estimate_zone", "centre"), { key: "ArrowDown" });
+      fireEvent.click(radio("estimate_zone", "proche"));
+      expect(radio("estimate_zone", "proche")).toBeChecked();
+      expect(shown()).toEqual(["estimate_zone"]);
+      fireEvent.keyDown(radio("estimate_zone", "proche"), { key: "Enter" });
+      expect(shown()).toEqual(["estimate_bedrooms"]);
+    });
 
-  it("takes \"I don't know\" as a quote: the questions after it go, and so does the price", () => {
-    render(capture({ need: "standard", questions: { bedrooms: { unknown: true } } }));
-    tap(radio("estimate_zone", "centre"));
-    tap(radio("estimate_bedrooms", ESTIMATE_UNKNOWN));
-    expect(shown()).toEqual(["locality"]);
-    expect(form().querySelector("input[name=estimate_surface]")).toBeNull();
-    expect(screen.getByRole("button", { name: /Chambres, Je ne sais pas/ })).toBeTruthy();
-    expect(posted()).toMatchObject({ estimate_bedrooms: ESTIMATE_UNKNOWN });
-    expect(posted()).not.toHaveProperty("shown_cents");
-    // On the phone's screen, still to come.
-    expect(form().querySelector("button[type=submit]")).toHaveTextContent("Recevoir le prix");
-    expect(form().querySelector("[data-price-cents]")).toBeNull();
-  });
+    it("takes \"I don't know\" as a quote: the questions after it go, and so does the price", () => {
+      render(capture({ need: "standard", questions: { bedrooms: { unknown: true } } }));
+      tap(radio("estimate_zone", "centre"));
+      tap(radio("estimate_bedrooms", ESTIMATE_UNKNOWN));
+      expect(shown()).toEqual(["locality"]);
+      expect(form().querySelector("input[name=estimate_surface]")).toBeNull();
+      expect(screen.getByRole("button", { name: /Chambres, Je ne sais pas/ })).toBeTruthy();
+      expect(posted()).toMatchObject({ estimate_bedrooms: ESTIMATE_UNKNOWN });
+      expect(posted()).not.toHaveProperty("shown_cents");
+      // On the phone's screen, still to come.
+      expect(form().querySelector("button[type=submit]")).toHaveTextContent("Recevoir le prix");
+      expect(form().querySelector("[data-price-cents]")).toBeNull();
+    });
 
-  it("asks an intro question first, posted as the brand's field; a call back is the phone and its consent", () => {
-    const intro = {
-      label: "C'est urgent ?",
-      field: "urgency",
-      options: [
-        { value: "today", label: "Urgent — aujourd'hui", channel: "callback" as const },
-        { value: "week", label: "Cette semaine" },
-      ],
-    };
-    render(capture({ intro, needDisplay: "cards" }));
-    expect(shown()).toEqual(["intro"]);
-    // Which branch, and how long, is the intro's to say.
-    expect(progress()).toBe("Étape 1");
-    tap(radio("urgency", "week"));
-    expect(shown()).toEqual(["need"]);
-    expect(form().querySelector("[data-lead-step=need] svg[data-icon=standard]")).toBeTruthy();
-    expect(posted()).toMatchObject({ urgency: "week" });
-    expect(posted()).not.toHaveProperty("channel");
-    fireEvent.click(screen.getByRole("button", { name: /C'est urgent \?, Cette semaine/ }));
-    tap(radio("urgency", "today"));
-    expect(shown()).toEqual(["phone"]);
-    expect(progress()).toBe("Étape 2/2");
-    expect(posted()).toMatchObject({ urgency: "today", channel: "callback" });
-    const consent = form().querySelector("input[type=checkbox][name=consent]");
-    expect(consent).toBeRequired();
-    expect(within(form()).getByRole("button", { name: fr.callbackSubmit })).toBeTruthy();
-    // No second call back below: the form is it.
-    expect(document.getElementById("quote-callback")).toBeNull();
-  });
+    it("asks an intro question first, posted as the brand's field; a call back is the phone and its consent", () => {
+      const intro = {
+        label: "C'est urgent ?",
+        field: "urgency",
+        options: [
+          { value: "today", label: "Urgent — aujourd'hui", channel: "callback" as const },
+          { value: "week", label: "Cette semaine" },
+        ],
+      };
+      render(capture({ intro, needDisplay: "cards" }));
+      expect(shown()).toEqual(["intro"]);
+      // Which branch, and how long, is the intro's to say.
+      expect(progress()).toBe("Étape 1");
+      tap(radio("urgency", "week"));
+      expect(shown()).toEqual(["need"]);
+      expect(form().querySelector("[data-lead-step=need] svg[data-icon=standard]")).toBeTruthy();
+      expect(posted()).toMatchObject({ urgency: "week" });
+      expect(posted()).not.toHaveProperty("channel");
+      fireEvent.click(screen.getByRole("button", { name: /C'est urgent \?, Cette semaine/ }));
+      tap(radio("urgency", "today"));
+      expect(shown()).toEqual(["phone"]);
+      expect(progress()).toBe("Étape 2/2");
+      expect(posted()).toMatchObject({ urgency: "today", channel: "callback" });
+      const consent = form().querySelector("input[type=checkbox][name=consent]");
+      expect(consent).toBeRequired();
+      expect(within(form()).getByRole("button", { name: fr.callbackSubmit })).toBeTruthy();
+      // No second call back below: the form is it.
+      expect(document.getElementById("quote-callback")).toBeNull();
+    });
 });
 
-describe("LeadCapture's steps, questions sharing a screen", () => {
-  const questions = { bedrooms: { step: 1, next: "Voir les prix" }, surface: { step: 1, shortLabels: { s40: "< 40" }, unknown: true, unknownSpan: 2 as const } };
+describe.each(ENGINES)("LeadCapture's steps, questions sharing a screen, tapped as in %s", engine => {
+  const tap = tapIn(engine);
+    const questions = { bedrooms: { step: 1, next: "Voir les prix" }, surface: { step: 1, shortLabels: { s40: "< 40" }, unknown: true, unknownSpan: 2 as const } };
 
-  it("moves on once every question of the screen is answered; until then its button says what is missing", () => {
-    render(capture({ need: "standard", questions }));
-    tap(radio("estimate_zone", "centre"));
-    expect(shown()).toEqual(["estimate_bedrooms"]);
-    tap(radio("estimate_bedrooms", "t3"));
-    expect(shown()).toEqual(["estimate_bedrooms"]);
-    expect(document.activeElement).toBe(radio("estimate_surface", "s40"));
-    const next = screen.getByRole("button", { name: "Voir les prix" });
-    expect(next).toBeTruthy();
-    tap(radio("estimate_surface", "s70"));
-    expect(shown()).toEqual(["estimate_frequency"]);
-    expect(screen.getByRole("button", { name: /Chambres · Surface, 2 chambres · 40 à 70 m²/ })).toBeTruthy();
-  });
+    it("moves on once every question of the screen is answered; until then its button says what is missing", () => {
+      render(capture({ need: "standard", questions }));
+      tap(radio("estimate_zone", "centre"));
+      expect(shown()).toEqual(["estimate_bedrooms"]);
+      tap(radio("estimate_bedrooms", "t3"));
+      expect(shown()).toEqual(["estimate_bedrooms"]);
+      expect(document.activeElement).toBe(radio("estimate_surface", "s40"));
+      const next = screen.getByRole("button", { name: "Voir les prix" });
+      expect(next).toBeTruthy();
+      tap(radio("estimate_surface", "s70"));
+      expect(shown()).toEqual(["estimate_frequency"]);
+      expect(screen.getByRole("button", { name: /Chambres · Surface, 2 chambres · 40 à 70 m²/ })).toBeTruthy();
+    });
 
-  it("draws a short label on a phone, names the radio in full, and lets \"I don't know\" take two columns", () => {
-    render(capture({ need: "standard", questions, classNames: { estimateUnknown: "brand-unknown" } }));
-    const s40 = radio("estimate_surface", "s40");
-    expect(s40).toHaveAttribute("aria-label", "Moins de 40 m²");
-    expect(s40.nextElementSibling?.querySelector(".sm\\:hidden")).toHaveTextContent("< 40");
-    const unknown = radio("estimate_surface", ESTIMATE_UNKNOWN);
-    expect(unknown.closest("label")?.className).toContain("col-span-2");
-    expect(unknown.nextElementSibling?.className).toContain("brand-unknown");
-  });
+    it("draws a short label on a phone, names the radio in full, and lets \"I don't know\" take two columns", () => {
+      render(capture({ need: "standard", questions, classNames: { estimateUnknown: "brand-unknown" } }));
+      const s40 = radio("estimate_surface", "s40");
+      expect(s40).toHaveAttribute("aria-label", "Moins de 40 m²");
+      expect(s40.nextElementSibling?.querySelector(".sm\\:hidden")).toHaveTextContent("< 40");
+      const unknown = radio("estimate_surface", ESTIMATE_UNKNOWN);
+      expect(unknown.closest("label")?.className).toContain("col-span-2");
+      expect(unknown.nextElementSibling?.className).toContain("brand-unknown");
+    });
 });
 
 describe("LeadCapture's compact pieces", () => {
@@ -303,9 +331,10 @@ describe("LeadCapture's compact pieces", () => {
     expect(line).toHaveTextContent(/Votre prix : 77\s€/);
     expect(form().querySelector("[data-credit-cents]")).toHaveAttribute("data-credit-cents", "3850");
     expect(form()).toHaveTextContent(/38,50\s€ après crédit d’impôt/);
-    const detail = form().querySelector("details");
-    expect(detail?.querySelector("summary")).toHaveTextContent("Détail");
-    expect(detail).toHaveTextContent(fr.priceBase ?? "");
+    // Scripted, the breakdown is the kit's popover, portalled out of the form.
+    expect(form().querySelector("details")).toBeNull();
+    fireEvent.click(within(form()).getByRole("button", { name: "Détail" }));
+    expect(screen.getByRole("dialog", { name: "Détail" })).toHaveTextContent(fr.priceBase ?? "");
     expect(form().querySelector("[class*=bg-card]")).toBeNull();
     cleanup();
     render(capture({ layout: "single", need: "standard", price: "compact" }));
@@ -339,33 +368,34 @@ describe("LeadCapture's compact pieces", () => {
   });
 });
 
-describe("LeadCapture's focusNext on one screen", () => {
-  it("moves from a tapped answer to the next question, and from Enter to the next empty field", () => {
-    render(capture({ layout: "single", need: "standard", focusNext: true }));
-    tap(radio("estimate_zone", "centre"));
-    expect(document.activeElement).toBe(radio("estimate_bedrooms", "studio"));
-    for (const [input, option] of [["bedrooms", "t3"], ["surface", "s70"], ["frequency", "once"]] as const) tap(radio(`estimate_${input}`, option));
-    expect(document.activeElement).toBe(field("zip"));
-    fireEvent.change(field("zip"), { target: { value: "75011" } });
-    const enter = fireEvent.keyDown(field("zip"), { key: "Enter" });
-    expect(enter).toBe(false);
-    expect(document.activeElement).toBe(field("mobile"));
-    // The last field: Enter is the form's, which submits.
-    fireEvent.change(field("mobile"), { target: { value: "0612345678" } });
-    expect(fireEvent.keyDown(field("mobile"), { key: "Enter" })).toBe(true);
-  });
+describe.each(ENGINES)("LeadCapture's focusNext on one screen, tapped as in %s", engine => {
+  const tap = tapIn(engine);
+    it("moves from a tapped answer to the next question, and from Enter to the next empty field", () => {
+      render(capture({ layout: "single", need: "standard", focusNext: true }));
+      tap(radio("estimate_zone", "centre"));
+      expect(document.activeElement).toBe(radio("estimate_bedrooms", "studio"));
+      for (const [input, option] of [["bedrooms", "t3"], ["surface", "s70"], ["frequency", "once"]] as const) tap(radio(`estimate_${input}`, option));
+      expect(document.activeElement).toBe(field("zip"));
+      fireEvent.change(field("zip"), { target: { value: "75011" } });
+      const enter = fireEvent.keyDown(field("zip"), { key: "Enter" });
+      expect(enter).toBe(false);
+      expect(document.activeElement).toBe(field("mobile"));
+      // The last field: Enter is the form's, which submits.
+      fireEvent.change(field("mobile"), { target: { value: "0612345678" } });
+      expect(fireEvent.keyDown(field("mobile"), { key: "Enter" })).toBe(true);
+    });
 
-  it("is off by default: Enter and taps are as they were", () => {
-    render(capture({ layout: "single", need: "standard" }));
-    act(() => radio("estimate_zone", "centre").focus());
-    tap(radio("estimate_zone", "centre"));
-    expect(document.activeElement).toBe(radio("estimate_zone", "centre"));
-    expect(fireEvent.keyDown(field("zip"), { key: "Enter" })).toBe(true);
-  });
+    it("is off by default: Enter and taps are as they were", () => {
+      render(capture({ layout: "single", need: "standard" }));
+      act(() => radio("estimate_zone", "centre").focus());
+      tap(radio("estimate_zone", "centre"));
+      expect(document.activeElement).toBe(radio("estimate_zone", "centre"));
+      expect(fireEvent.keyDown(field("zip"), { key: "Enter" })).toBe(true);
+    });
 
-  it("prefills the postcode from the query on one screen too", () => {
-    window.history.replaceState(null, "", "/fr?postcode=69001");
-    render(capture({ layout: "single" }));
-    expect(field("zip").value).toBe("69001");
-  });
+    it("prefills the postcode from the query on one screen too", () => {
+      window.history.replaceState(null, "", "/fr?postcode=69001");
+      render(capture({ layout: "single" }));
+      expect(field("zip").value).toBe("69001");
+    });
 });
