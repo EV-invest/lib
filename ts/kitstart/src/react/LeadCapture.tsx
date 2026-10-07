@@ -391,13 +391,14 @@ export function LeadCapture(props: LeadCaptureProps) {
     );
 
   // The estimate's answers as the message says them: the whole label, and the
-  // brand's short one (`questions[id].shortLabels`) for the preview. «I don't
-  // know» is no answer; the timing question has a line of its own.
+  // brand's words for the preview and the need's line (`previewLabels`, else
+  // `shortLabels`). «I don't know» is no answer; the timing question has a line of its own.
   const answerOf = (input: PricingInput): { label: string; short: string } | null => {
     const option = input.options.find(o => o.id === estimate.answers[input.id]);
     if (!option) return null;
     const label = labelOf(option.labels, locale);
-    return { label, short: props.questions?.[input.id]?.shortLabels?.[option.id] ?? label };
+    const question = props.questions?.[input.id];
+    return { label, short: question?.previewLabels?.[option.id] ?? question?.shortLabels?.[option.id] ?? label };
   };
   const timingInput = asked.find(i => i.id === props.messengerTiming?.input);
   const answerShorts = asked

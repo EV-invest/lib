@@ -237,7 +237,7 @@ it is the plain POST to `/quote` it always was.
 | `needDisplay` | how the need is asked: `select` (default on `single`) · `tiles` (default otherwise) · `cards`, a grid with each need's `icon` |
 | `intro`, `localityStep` | `steps` only: a question before the need, posted as a brand's extra, whose answer may turn the form into a callback · the postcode on its own screen (`own`, default) or on the phone's (`with-phone`) |
 | `focusNext` | on one screen: after a choice the focus moves to the next empty field, and Enter in a field moves to the next empty one before it submits. Off by default; always so in `steps` |
-| `questions` | by estimate input id: `{ display?: "tiles" \| "cards", unknown?: true, unknownSpan?: 2, badges?: { [option]: text }, shortLabels?: { [option]: text }, step?: number, next?: string }` — see [The compact form](#the-compact-form) and [steps](#one-question-per-screen-layoutsteps) |
+| `questions` | by estimate input id: `{ display?: "tiles" \| "cards", unknown?: true, unknownSpan?: 2, badges?: { [option]: text }, shortLabels?: { [option]: text }, previewLabels?: { [option]: text }, step?: number, next?: string }` — see [The compact form](#the-compact-form) and [steps](#one-question-per-screen-layoutsteps) |
 | `price`, `taxCredit` | `box` (default) · `compact`: the price on one line, what is left after a tax credit of `taxCredit` (a ratio, `0.5`), the breakdown behind "Détail" |
 | `afterPhone` | a node right under the phone field: one line of reassurance |
 | `channelsDisplay`, `channelIcons` | the other ways out: `stack` (default, under `otherChannels`) · `row`, one row of compact buttons named by `otherChannels` · the brand's icon per channel (`phone`, `whatsapp`, `sms`, `callback`, `telegram`) |
@@ -411,13 +411,14 @@ import { messengerFacts } from "@evinvest/kitstart";
   8), mailed (`Réf.`), and sent to the panel under `panelMessenger`.
 - **The message** (`messengerMessage`, ≤ 400 characters, nothing typed about
   the person): `Bonjour {brand} 👋`, the need with the estimate's answers
-  («Ménage standard · 2 ch. · 40–70 m²»: each answer's short label —
-  `questions[id].shortLabels` — else its label; «Je ne sais pas» left out),
+  («Ménage standard · 2 ch. · 40–70 m²»: each answer as
+  `questions[id].previewLabels` says it — a tile's «2» is «2 ch.» here — else
+  its `shortLabels`, else its label; «Je ne sais pas» left out),
   the postcode, the estimate shown (a priced need), the timing, `Réf. {ref}` —
   a line without its value left out. The slot shows it as a preview, so the
   visitor sees there is nothing to write: «Bonjour Vifnet 👋 · Ménage
   standard · 2 ch. · 40–70 m² · 2 sem. · env. 77 € · 63130 · Réf. VF-7K3F»
-  (the timing by its short label, the price through `messengerPreviewPrice`,
+  (the timing by its `previewLabels` / `shortLabels`, the price through `messengerPreviewPrice`,
   `"env. {price}"`). The timing is `urgency`'s answer («aujourd’hui» / «pas
   pressé»), else the answer to the estimate's question `messengerTiming`
   names — `messengerTiming={{ input: "frequency" }}`, its whole label on a line
