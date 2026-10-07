@@ -43,8 +43,11 @@ export function messageRefOf(value: unknown): string | null {
   return MESSAGE_REF.test(ref) ? ref : null;
 }
 
-/** A Telegram bot's username, without `@`: Telegram's own rule. */
-export const TELEGRAM_BOT = /^[A-Za-z][A-Za-z0-9_]{3,31}$/;
+/**
+ * A Telegram bot's username, without `@`: Telegram's own rule for a bot — 5
+ * to 32 characters, a letter first, ending in `bot` — and the panel's.
+ */
+export const TELEGRAM_BOT = /^[A-Za-z][A-Za-z0-9_]{1,28}[Bb][Oo][Tt]$/;
 
 /**
  * The bot's deep link, `https://t.me/<bot>?start=<ref>`. The `start`

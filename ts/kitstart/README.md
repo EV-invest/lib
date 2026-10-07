@@ -375,6 +375,7 @@ import { messengerFacts } from "@evinvest/kitstart";
   {...controlProps}
   messenger={arm === "c" ? { kind: "segment" } : undefined} // undefined → the control
   messengers={messengerFacts(site, place)} // the place's own WhatsApp, its bot — each `null` when off
+                                            // (a bot's name: `TELEGRAM_BOT`, 5–32 chars ending in `bot`)
   refPrefix="AQ"                            // the lead's chat reference: AQ-7K3F
   brand="Aquafix"                           // the message's greeting
   channelIcons={{ whatsapp: <WhatsAppIcon />, telegram: <TelegramIcon />, callback: <PhoneIcon /> }}
