@@ -671,6 +671,37 @@ describe("an estimate's answers in the message", () => {
     );
   });
 
+  it("says an answer in its preview words, over the tile's short ones — the timing's full label stays in the message", async () => {
+    render(
+      estimate({
+        questions: {
+          bedrooms: { shortLabels: { t3: "2" }, previewLabels: { t3: "2 ch." } },
+          surface: { previewLabels: { s70: "40–70 m²" } },
+          frequency: { unknown: true, shortLabels: { biweekly: "2 sem" }, previewLabels: { biweekly: "toutes les 2 sem." } },
+        },
+      }),
+    );
+    const { ref } = await reach(TO_WHATSAPP.segment);
+    answer("zone", "proche");
+    answer("bedrooms", "t3");
+    answer("surface", "s70");
+    answer("frequency", "biweekly");
+    expect(sent()).toEqual([
+      "Bonjour Aquafix 👋",
+      "Je souhaite un devis : Ménage courant · Proche banlieue · 2 ch. · 40–70 m²",
+      expect.stringMatching(/^Estimation vue sur le site : 84\s€$/u),
+      "Délai souhaité : Toutes les 2 semaines",
+      `Réf. ${ref}`,
+    ]);
+    expect(screen.getByText(/^« Bonjour Aquafix/)).toHaveTextContent(
+      new RegExp(`^« Bonjour Aquafix 👋 · Ménage courant · Proche banlieue · 2 ch\\. · 40–70 m² · toutes les 2 sem\\. · 84\\s€ · Réf\\. ${ref} »$`, "u"),
+    );
+    // The tile keeps its own short word; the preview's is the message's.
+    const tile = screen.getByRole("radio", { name: /^2 chambres/ }).closest("label");
+    expect(tile).toHaveTextContent(/^22 chambres/);
+    expect(tile).not.toHaveTextContent("2 ch.");
+  });
+
   it("writes no timing line for «Je ne sais pas»", async () => {
     render(estimate());
     const { ref } = await reach(TO_WHATSAPP.segment);
