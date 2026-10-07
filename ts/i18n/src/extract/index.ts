@@ -41,6 +41,15 @@ import {
 
 export { DEFAULT_EXCLUDE } from "./calls.js";
 export type { Entry, Extraction } from "./calls.js";
+export {
+  messageSlices,
+  runSlices,
+  serialiseSlices,
+  SLICES_HEADER,
+  type SliceOptions,
+  type SliceResult,
+  type TableRule,
+} from "./slices.js";
 
 /** Where to look, and what not to look at. */
 export interface ExtractOptions {
