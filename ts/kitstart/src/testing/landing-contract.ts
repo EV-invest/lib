@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { isPublished, publicationGaps } from "../core/place/publication";
 import { createRouting, NON_PAGE_ROUTES, pointSuffixes, THANKS } from "../core/routing";
 import { openLaunchBlockers, type OwnerTodo, type Site } from "../core/site";
-import { leadRuleDisagreements } from "./lead-rules";
+import { leadRuleDisagreements, messengerRuleDisagreements } from "./lead-rules";
 import { servedPaths } from "./served-files";
 
 /**
@@ -82,6 +82,12 @@ export function describeLandingContract<L extends string, P extends string>(site
     // back for nothing they can see; `validateLead` is the shared rule.
     it("refuses exactly the phone numbers the form blocks", () => {
       expect(leadRuleDisagreements(site.lead)).toEqual([]);
+    });
+
+    // A messenger lead is posted as the visitor leaves for the chat: the
+    // message carries the rest, and a refusal would be shown to no one.
+    it("takes a messenger lead without a postcode or a phone", () => {
+      expect(messengerRuleDisagreements(site.lead)).toEqual([]);
     });
 
     it("publishes nothing without a domain", () => {

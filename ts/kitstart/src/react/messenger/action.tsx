@@ -2,12 +2,13 @@
 
 import { whatsappHref } from "@evinvest/marketing";
 import { Badge, Button, cn, Select, SelectContent, SelectItem, SelectTrigger } from "@evinvest/uikit";
-import { useEffect, useRef, useState, useSyncExternalStore, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type MouseEvent, type ReactNode } from "react";
 import { fillText } from "../../core/lead-capture-format";
 import { telegramHref, type MessengerMode } from "../../core/messenger";
 import { messengerMessage } from "../../core/messenger-message";
 import { messengerTextOf, type LeadCaptureMessengerText } from "../../core/messenger-text";
 import { phoneProblem } from "../../core/phone";
+import { partWithLeading } from "../parts";
 import { useAnalyticsId } from "../analytics-context";
 import { postInBackground } from "../use-lead-submit";
 import type { MessengerKit } from "./types";
@@ -41,7 +42,9 @@ export interface Message {
   compose: () => string;
 }
 
-export function useMessage(kit: MessengerKit, timing?: string | null): Message {
+export function useMessage(kit: MessengerKit, own?: string | null): Message {
+  // A variant's own timing (`urgency`), else the estimate's answer the brand named.
+  const timing = own === undefined ? kit.timing : own;
   const [postcode, setPostcode] = useState("");
   useEffect(() => {
     const form = formOf(kit);
@@ -180,7 +183,7 @@ export function useMessengerAction(
     setBack(null);
     if (said === "failed") onCallback();
   };
-  const overlay = back && <ReturnScreen left={back} words={words} onAnswer={answer} className={kit.classNames?.messengerReturn} />;
+  const overlay = back && <ReturnScreen left={back} words={words} onAnswer={answer} kit={kit} />;
   return { link, panel, overlay };
 }
 
@@ -241,6 +244,13 @@ export function Glyph({ kit, channel }: { kit: MessengerKit; channel: MessengerM
 }
 
 /** A messenger CTA: a real link dressed as the card's button, its in-app hint under it. */
+/** A whole-pixel line under a brand's own type size, as the channel buttons keep one. */
+const CTA_LEADING = "leading-6";
+
+/** The part a messenger button wears: the main one, a secondary one, or a square. */
+const partOf = (kit: MessengerKit, kind: "cta" | "secondary" | "square"): string | undefined =>
+  kind === "cta" ? kit.classNames?.messengerCta : kind === "secondary" ? kit.classNames?.messengerSecondary : kit.classNames?.messengerSquare;
+
 export function MessengerCta(props: { kit: MessengerKit; action: MessengerAction; channel: Messenger; label: string; variant?: "primary" | "outline"; className?: string | undefined; square?: boolean }) {
   const { kit, action, channel } = props;
   const link = action.link(channel);
@@ -248,7 +258,17 @@ export function MessengerCta(props: { kit: MessengerKit; action: MessengerAction
   const { onClick, ...attrs } = link;
   const square = props.square === true && hasIcon(kit, channel);
   return (
-    <Button asChild variant={props.variant ?? "primary"} size="touch" icon={square} className={cn(props.square ? "shrink-0" : "w-full", props.className)}>
+    <Button
+      asChild
+      variant={props.variant ?? "primary"}
+      size="touch"
+      icon={square}
+      className={partWithLeading(
+        cn(props.square ? "shrink-0" : "w-full", props.className),
+        CTA_LEADING,
+        partOf(kit, props.square ? "square" : props.variant === "outline" ? "secondary" : "cta"),
+      )}
+    >
       <a
         {...attrs}
         onClick={onClick}
@@ -325,7 +345,7 @@ export function TelegramLink({ kit, action }: { kit: MessengerKit; action: Messe
   if (!link) return null;
   const { onClick, ...attrs } = link;
   return (
-    <Button asChild variant="link" size="touch" className="self-center">
+    <Button asChild variant="link" size="touch" className={cn("self-center", kit.classNames?.messengerSecondary)}>
       <a {...attrs} onClick={onClick} data-intent="telegram" data-experiment={kit.experiment?.name} data-variant={kit.experiment?.variant}>
         <Glyph kit={kit} channel="telegram" />
         {wordsOf(kit).messengerViaTelegram}
@@ -353,9 +373,12 @@ export const noteOf = (words: LeadCaptureMessengerText, mode: MessengerMode): st
 export function ChannelPicker(props: { kit: MessengerKit; trigger: ReactNode; triggerClassName?: string | undefined }) {
   const { kit } = props;
   const words = wordsOf(kit);
+  // Its own id: inside the phone's `Field` the trigger would claim the field's,
+  // and the label «Téléphone» would name the picker instead of the number.
+  const id = useId();
   return (
     <Select value={kit.mode ?? "whatsapp"} onValueChange={v => kit.setMode(modesOf(kit).find(m => m === v) ?? "call")}>
-      <SelectTrigger aria-label={words.messengerChannelLabel} className={cn("border-0 shadow-none", props.triggerClassName, kit.classNames?.messengerPicker)}>
+      <SelectTrigger id={id} aria-label={words.messengerChannelLabel} className={cn("border-0 shadow-none", props.triggerClassName, kit.classNames?.messengerPicker)}>
         {props.trigger}
       </SelectTrigger>
       <SelectContent>
@@ -458,7 +481,7 @@ export function QrPanel(props: { href: string; words: LeadCaptureMessengerText; 
           {words.messengerQrWeb}
         </a>
         {props.onCallback && (
-          <Button type="button" variant="link" size="touch" className="self-start px-0" onClick={props.onCallback}>
+          <Button type="button" variant="link" size="touch" className={cn("self-start px-0", kit.classNames?.messengerSecondary)} onClick={props.onCallback}>
             {words.messengerCallback}
           </Button>
         )}
@@ -467,24 +490,25 @@ export function QrPanel(props: { href: string; words: LeadCaptureMessengerText; 
   );
 }
 
-function ReturnScreen(props: { left: Left; words: LeadCaptureMessengerText; onAnswer: (said: "sent" | "failed") => void; className: string | undefined }) {
+function ReturnScreen(props: { left: Left; words: LeadCaptureMessengerText; onAnswer: (said: "sent" | "failed") => void; kit: MessengerKit }) {
+  const c = props.kit.classNames;
   const { left, words } = props;
   const title = useRef<HTMLParagraphElement>(null);
   // The card under it is still there: the question takes the focus, and is read out.
   useEffect(() => title.current?.focus(), []);
   const name = left.channel === "whatsapp" ? words.messengerOptionWhatsapp : words.messengerOptionTelegram;
   return (
-    <div role="status" className={cn("absolute inset-0 z-10 flex flex-col justify-center gap-4 bg-card", props.className)}>
+    <div role="status" className={cn("absolute inset-0 z-10 flex flex-col justify-center gap-4 bg-card", c?.messengerReturn)}>
       <p ref={title} tabIndex={-1} className="font-display text-xl font-bold text-ink outline-none">
         {words.messengerReturnTitle}
       </p>
       <p className="text-ink-soft">{fillText(words.messengerReturnBody, { channel: name, ref: left.ref ?? "" })}</p>
-      <Button asChild variant="outline" size="touch" className="w-full">
+      <Button asChild variant="outline" size="touch" className={partWithLeading("w-full", CTA_LEADING, c?.messengerSecondary)}>
         <a href={left.href} {...(left.channel === "telegram" ? { target: "_blank", rel: "noopener" } : {})}>
           {fillText(words.messengerReopen, { channel: name })}
         </a>
       </Button>
-      <Button type="button" size="touch" className="w-full" onClick={() => props.onAnswer("failed")}>
+      <Button type="button" size="touch" className={partWithLeading("w-full", CTA_LEADING, c?.messengerCta)} onClick={() => props.onAnswer("failed")}>
         {words.messengerReturnFailed}
       </Button>
       <Button type="button" variant="link" size="touch" className="self-center" onClick={() => props.onAnswer("sent")}>

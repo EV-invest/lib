@@ -41,6 +41,11 @@ Rust crate and its TypeScript mirror at once.
   Every `LeadCapture` event carries `channels_available`; new events
   `lead_messenger_open`, `lead_messenger_return`, intents `telegram`,
   `whatsapp_qr`.
+  The message's timing line is `urgency`'s answer or the estimate answer
+  `messengerTiming={{ input }}` names; each line is a text key a brand
+  rewords (`messagePrice: "… env. {price}"`). Parts `messengerCta`,
+  `messengerSecondary`, `messengerSquare`, `messengerSegment`,
+  `messengerTile` size the variants' buttons without descendant selectors.
 - **`TopBar`, `AccountMenu`, `AppShell.topBar`** (`@evinvest/uikit`, TS-only):
   the wide screen's utility bar over the content column, and the account menu
   every service under one account shows in the same order — name / email,

@@ -39,7 +39,7 @@ function Question({ kit }: { kit: MessengerKit }) {
             value={m}
             className={cn(
               "h-11 rounded-[var(--control-radius)] border border-border first:rounded-[var(--control-radius)] last:rounded-[var(--control-radius)] data-[state=on]:border-primary data-[state=on]:text-ink",
-              kit.classNames?.messengerOption,
+              kit.classNames?.messengerTile,
             )}
           >
             {m === "call" ? words.messengerUrgencyYes : words.messengerUrgencyNo}
@@ -53,7 +53,7 @@ function Question({ kit }: { kit: MessengerKit }) {
 
 function UrgencyContact({ kit }: { kit: MessengerKit }) {
   const words = wordsOf(kit);
-  const message = useMessage(kit, kit.mode === "call" ? words.messengerUrgencyToday : null);
+  const message = useMessage(kit, kit.mode === "call" ? words.messengerUrgencyToday : kit.mode === "whatsapp" ? words.messengerUrgencyLater : null);
   const action = useMessengerAction(kit, message, () => toCall(kit));
   const chat = kit.mode === "whatsapp" && kit.facts.whatsapp !== null;
   return (

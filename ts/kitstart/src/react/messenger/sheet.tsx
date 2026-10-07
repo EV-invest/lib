@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, cn, Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from "@evinvest/uikit";
-import { useState, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { InappHint, modesOf, OptionCard, useMessage, useMessengerAction, wordsOf, type MessengerAction } from "./action";
 import type { MessengerKit } from "./types";
 
@@ -16,11 +16,21 @@ export default function Sheet({ kit }: { kit: MessengerKit }) {
   const message = useMessage(kit);
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"pick" | "call">("pick");
+  // Back from a chat that did not go: the call's step, its field focused once the drawer draws it.
+  const callNow = useRef(false);
   const action = useMessengerAction(kit, message, () => {
     setStep("call");
     setOpen(true);
+    callNow.current = true;
   });
   const formId = `${kit.id}-form`;
+  useEffect(() => {
+    if (!callNow.current || !open || step !== "call") return;
+    callNow.current = false;
+    // After the drawer's own focus scope, which takes the focus as it opens.
+    const frame = requestAnimationFrame(() => document.querySelector<HTMLInputElement>(`[data-lead-field="phone"][form="${CSS.escape(formId)}"]`)?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [open, step, formId]);
   // The app takes over: the drawer goes with it — unless the tap drew the QR code in it.
   const closing = (link: ReturnType<MessengerAction["link"]>): ReturnType<MessengerAction["link"]> =>
     link && {
@@ -40,7 +50,7 @@ export default function Sheet({ kit }: { kit: MessengerKit }) {
         }}
       >
         <DrawerTrigger asChild>
-          <Button type="button" size="touch" className="w-full">
+          <Button type="button" size="touch" className={cn("w-full", kit.classNames?.messengerCta)}>
             {words.messengerSheetCta}
           </Button>
         </DrawerTrigger>

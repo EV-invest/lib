@@ -18,10 +18,21 @@ export type MessengerAt = "head" | "afterHead" | "beforeNeed" | "body" | "contac
 /** A variant as drawn: its own kind, or the control with a way to the bot (`fallback`). */
 export type MessengerShown = MessengerVariant["kind"] | "fallback";
 
-/** The parts a variant dresses; a brand sizes `messengerSlot` (92 px, 72 px) so no state of a variant moves the card. */
+/**
+ * The parts a variant dresses; a brand sizes `messengerSlot` (92 px, 72 px)
+ * so no state of a variant moves the card. `messengerCta`: a variant's main
+ * button — a messenger's, or the call's submit; `messengerSecondary`: the
+ * others (Telegram and «Être rappelé» beside it, «ou via Telegram», the way
+ * back to the chat); `messengerSquare`: the icon squares; `messengerSegment`,
+ * `messengerTile`: a segment's and a tile's item.
+ */
 export type MessengerPart =
   | "messenger"
   | "messengerSlot"
+  | "messengerCta"
+  | "messengerSecondary"
+  | "messengerSegment"
+  | "messengerTile"
   | "messengerPreview"
   | "messengerPicker"
   | "messengerOption"
@@ -65,6 +76,8 @@ export interface MessengerKit {
   needLabel: string | null;
   /** The estimate the card shows, formatted — for the message. */
   priceText: string | null;
+  /** The answer to the estimate's question the brand names (`messengerTiming`), by its label — the message's timing line. */
+  timing: string | null;
   /** The channel the visitor is on; `null` before a variant asks (`saga`, `urgency`). */
   mode: MessengerMode | null;
   setMode: (mode: MessengerMode | null) => void;

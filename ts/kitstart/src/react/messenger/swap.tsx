@@ -33,7 +33,7 @@ export default function Swap({ kit }: { kit: MessengerKit }) {
                 <MessengerCta kit={kit} action={action} channel="telegram" label={words.messengerOptionTelegram} variant="outline" />
               </div>
             )}
-            <Button type="button" variant="outline" size="touch" className="min-w-0 flex-1" onClick={() => toCall(kit)}>
+            <Button type="button" variant="outline" size="touch" className={cn("min-w-0 flex-1", kit.classNames?.messengerSecondary)} onClick={() => toCall(kit)}>
               <Glyph kit={kit} channel="call" />
               {words.messengerCallback}
             </Button>
