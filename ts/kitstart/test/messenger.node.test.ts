@@ -411,7 +411,7 @@ describe("a place's messengers", () => {
     expect(messengerFacts(site, own)).toEqual({ whatsapp: "+33612345678", telegram: "aquafix_devis_bot" });
     expect(messengerFacts(site, { ...own, messengers: { whatsapp: false } })).toEqual({ whatsapp: null, telegram: "aquafix_devis_bot" });
     expect(messengerFacts(site, { ...own, messengers: { telegram: false } })).toEqual({ whatsapp: "+33612345678", telegram: null });
-    // The switch takes the control's WhatsApp link off too.
-    expect(contactOf(site, { ...own, messengers: { whatsapp: false } }).whatsapp).toBeNull();
+    // The switches are the lead form's only: the header's and the call bar's number stays.
+    expect(contactOf(site, { ...own, messengers: { whatsapp: false, telegram: false } })).toEqual({ phone: "+33423500640", whatsapp: "+33612345678" });
   });
 });

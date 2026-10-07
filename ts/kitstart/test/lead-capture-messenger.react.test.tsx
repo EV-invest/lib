@@ -103,6 +103,19 @@ const stopNavigation = (event: MouseEvent) => {
   event.preventDefault();
 };
 
+/**
+ * A tap as a browser runs it: the page's listeners, a microtask checkpoint
+ * after each — React redraws there — and only then the link is followed, at
+ * its href as it stands by then. jsdom follows before the microtasks; this
+ * reads the href where the browser would. `null`: the tap was held back.
+ */
+async function tap(link: HTMLElement): Promise<string | null> {
+  const before = prevented.length;
+  fireEvent.click(link);
+  await act(async () => {});
+  return prevented[before] === false ? link.getAttribute("href") : null;
+}
+
 beforeEach(() => {
   fetch = vi.fn(async () => json(200, { ok: true, location: "/fr/paris/thanks" }));
   vi.stubGlobal("fetch", fetch);
@@ -380,6 +393,69 @@ describe.each(LEAD_FIRST)("the %s variant, tapped", kind => {
   });
 });
 
+/** The same WhatsApp button, once more: still on the card — or, for the sheet, in its drawer opened again. */
+const TAP_AGAIN: Record<Exclude<MessengerKind, "thanks">, (first: HTMLElement) => Promise<HTMLElement>> = {
+  select: async first => first,
+  segment: async first => first,
+  tiles: async first => first,
+  swap: async first => first,
+  saga: async first => first,
+  urgency: async first => first,
+  sheet: async () => {
+    await openSheet();
+    return within(screen.getByRole("dialog")).getByRole("link", { name: /^WhatsApp/ });
+  },
+  chip: async first => first,
+  split: async first => first,
+};
+
+// Found on the stand: the lead was AQ-W18C, and the tap opened t.me start=AQ-P3BV —
+// the link was redrawn under the next reference before the browser followed it.
+describe.each(LEAD_FIRST)("the %s variant, what leaves with the tap", kind => {
+  it("opens WhatsApp under the reference it posted, and the return screen and «Rouvrir» say that one", async () => {
+    render(card(kind));
+    const { link, ref, href } = await reach(TO_WHATSAPP[kind]);
+    const opened = await tap(link);
+    expect(body(fetch)["message_ref"]).toBe(ref);
+    expect(opened).toBe(href);
+    expect(new URL(opened ?? "").searchParams.get("text")).toContain(`Réf. ${ref}`);
+    leaveAndReturn();
+    const back = await screen.findByRole("status");
+    expect(back).toHaveTextContent(`référence ${ref}.`);
+    expect(within(back).getByRole("link", { name: "Rouvrir WhatsApp" })).toHaveAttribute("href", href);
+  });
+
+  it("opens the bot under the reference it posted", async () => {
+    render(card(kind));
+    const { link, ref } = await reach(TO_TELEGRAM[kind]);
+    const opened = await tap(link);
+    expect(body(fetch)["message_ref"]).toBe(ref);
+    expect(opened).toBe(`https://t.me/${BOT}?start=${ref}`);
+  });
+
+  it("draws the QR code on a computer under the reference it posted", async () => {
+    desktop();
+    render(card(kind));
+    const { link, ref, href } = await reach(TO_WHATSAPP[kind]);
+    expect(await tap(link)).toBeNull();
+    expect(body(fetch)["message_ref"]).toBe(ref);
+    await screen.findByRole("img", { name: M.messengerQrAlt }, CHUNK);
+    expect(screen.getByRole("link", { name: M.messengerQrWeb })).toHaveAttribute("href", href);
+    expect(new URL(href).searchParams.get("text")).toContain(`Réf. ${ref}`);
+  });
+
+  it("is one lead for two taps with nothing changed: the same reference and submission id", async () => {
+    render(card(kind));
+    const { link, ref, href } = await reach(TO_WHATSAPP[kind]);
+    const first = await tap(link);
+    const second = await tap(await TAP_AGAIN[kind](link));
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(body(fetch, 1)["submission_id"]).toBe(body(fetch, 0)["submission_id"]);
+    expect(body(fetch, 1)["message_ref"]).toBe(ref);
+    expect([first, second]).toEqual([href, href]);
+  });
+});
+
 describe.each(LEAD_FIRST.filter(k => k !== "urgency"))("the %s variant without WhatsApp", kind => {
   it("is the control, with the bot under the submit", async () => {
     render(card(kind, { messengers: { whatsapp: null, telegram: BOT } }));
@@ -526,14 +602,28 @@ describe("the WhatsApp message", () => {
     expect(body(fetch)).toMatchObject({ mobile: "06 98 76 54 32" });
   });
 
-  it("is drawn again under a new reference once a lead is posted", async () => {
+  it("keeps its reference until the visitor answers the return screen, then draws a new one", async () => {
     render(card("segment"));
     const { link, ref } = await reach(TO_WHATSAPP.segment);
     fireEvent.click(link);
+    expect(currentRef()).toBe(ref);
+    leaveAndReturn();
+    const back = await screen.findByRole("status");
+    expect(currentRef()).toBe(ref);
+    fireEvent.click(within(back).getByRole("button", { name: M.messengerReturnDone }));
     await waitFor(() => expect(currentRef()).not.toBe(ref));
     expect(currentRef()).toMatch(MESSAGE_REF);
     const again = new URL(screen.getByRole("link", { name: M.messengerWhatsappCta }).getAttribute("href") ?? "");
     expect(again.searchParams.get("text")).toContain(`Réf. ${currentRef()}`);
+  });
+
+  it("draws a new reference after «Je n’ai pas pu envoyer» too: the call is another lead", async () => {
+    render(card("segment"));
+    const { link, ref } = await reach(TO_WHATSAPP.segment);
+    fireEvent.click(link);
+    leaveAndReturn();
+    fireEvent.click(within(await screen.findByRole("status")).getByRole("button", { name: M.messengerReturnFailed }));
+    await waitFor(() => expect(currentRef()).not.toBe(ref));
   });
 });
 
