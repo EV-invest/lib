@@ -19,8 +19,6 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import ts from "typescript";
-
 import {
   defaultLocaleRegistry,
   type Locale,
@@ -28,21 +26,21 @@ import {
   type Messages,
 } from "../index.js";
 import { auditCatalogues, createPolicy, type TranslatedCatalogue } from "../policy/index.js";
+import {
+  callsIn,
+  DEFAULT_EXCLUDE,
+  dedupe,
+  flag,
+  list,
+  parse,
+  serialise,
+  sourceFiles,
+  type Entry,
+  type Extraction,
+} from "./calls.js";
 
-/** One readable `t()` call site. */
-export interface Entry {
-  key: string;
-  /** The English as written at the call site. */
-  en: string;
-  /** `path/to/file.tsx:12` — where it was read from. */
-  where: string;
-}
-
-/** What {@link collect} reads, and what it refuses to guess at. */
-export interface Extraction {
-  entries: Entry[];
-  errors: string[];
-}
+export { DEFAULT_EXCLUDE } from "./calls.js";
+export type { Entry, Extraction } from "./calls.js";
 
 /** Where to look, and what not to look at. */
 export interface ExtractOptions {
@@ -57,27 +55,6 @@ export interface ExtractOptions {
    * names are always skipped; {@link DEFAULT_EXCLUDE} covers what every app has.
    */
   exclude?: readonly string[];
-}
-
-/** Skipped by every app: package manager and tool output nothing authors. */
-export const DEFAULT_EXCLUDE: readonly string[] = ["node_modules", "dist", "build", ".next"];
-
-/** `.ts`, `.tsx`, `.mts`, `.mtsx` — a build script renders copy as readily as a component. */
-const SOURCE = /\.m?tsx?$/;
-
-function* sourceFiles(root: string, exclude: ReadonlySet<string>, dir: string): Generator<string> {
-  for (const item of readdirSync(join(root, dir), { withFileTypes: true })) {
-    if (item.name.startsWith(".") || exclude.has(item.name)) continue;
-    const path = dir === "" ? item.name : `${dir}/${item.name}`;
-    if (item.isDirectory()) yield* sourceFiles(root, exclude, path);
-    else if (SOURCE.test(item.name)) yield path;
-  }
-}
-
-/** A string literal or a backtick string with no `${}` in it. */
-function literal(node: ts.Node): string | null {
-  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
-  return null;
 }
 
 /**
@@ -95,44 +72,13 @@ export function collect({ root, exclude = DEFAULT_EXCLUDE }: ExtractOptions): Ex
   const errors: string[] = [];
 
   for (const path of sourceFiles(root, skip, "")) {
-    const source = ts.createSourceFile(
-      path,
-      readFileSync(join(root, path), "utf8"),
-      ts.ScriptTarget.Latest,
-      true,
-      ts.ScriptKind.TSX,
-    );
-    const at = (node: ts.Node) =>
-      `${path}:${source.getLineAndCharacterOfPosition(node.getStart()).line + 1}`;
-
-    const visit = (node: ts.Node) => {
-      if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "t") {
-        const [keyArg, enArg] = node.arguments;
-        const key = keyArg === undefined ? null : literal(keyArg);
-        const en = enArg === undefined ? null : literal(enArg);
-        if (key === null) errors.push(`${at(node)}: t() key is not a string literal`);
-        else if (en === null)
-          errors.push(`${at(node)}: t("${key}", …) has no literal English second argument`);
-        else entries.push({ key, en, where: at(node) });
-      }
-      ts.forEachChild(node, visit);
-    };
-    visit(source);
+    const found = callsIn(path, parse(path, readFileSync(join(root, path), "utf8")));
+    entries.push(...found.entries);
+    errors.push(...found.errors);
   }
 
-  const seen = new Map<string, Entry>();
-  for (const entry of entries) {
-    const first = seen.get(entry.key);
-    if (first === undefined) seen.set(entry.key, entry);
-    else if (first.en !== entry.en)
-      errors.push(
-        `${entry.where}: "${entry.key}" is also defined at ${first.where} with different English\n` +
-          `    ${first.where}: ${JSON.stringify(first.en)}\n` +
-          `    ${entry.where}: ${JSON.stringify(entry.en)}`,
-      );
-  }
-
-  return { entries: [...seen.values()], errors };
+  const unique = dedupe(entries);
+  return { entries: unique.entries, errors: [...errors, ...unique.errors] };
 }
 
 /** Sorted, so the generated file diffs by key rather than by call-site order. */
@@ -142,8 +88,7 @@ export function catalogue(entries: readonly Entry[]): Record<string, string> {
   );
 }
 
-/** The exact bytes the English catalogue is written as — what a check compares against. */
-export const serialise = (value: unknown): string => `${JSON.stringify(value, null, 2)}\n`;
+export { serialise } from "./calls.js";
 
 /** `<messages>/<locale>/common.json`. One layout, shared by every EV surface. */
 export const cataloguePath = (messages: string, locale: string): string =>
@@ -216,18 +161,11 @@ export function writeCatalogues(
 
 /** `--root x --messages y --exclude a,b`; `--root` defaults to the working directory. */
 function parseArgs(argv: readonly string[]): ExtractOptions & { messages: string } {
-  const flag = (name: string) => {
-    const at = argv.indexOf(`--${name}`);
-    if (at === -1) return undefined;
-    const value = argv[at + 1];
-    if (value === undefined || value.startsWith("--")) throw new Error(`--${name} needs a value`);
-    return value;
-  };
-  const root = flag("root") ?? process.cwd();
+  const root = flag(argv, "root") ?? process.cwd();
   return {
     root,
-    messages: flag("messages") ?? join(root, "messages"),
-    exclude: (flag("exclude") ?? "").split(",").filter(s => s !== ""),
+    messages: flag(argv, "messages") ?? join(root, "messages"),
+    exclude: list(flag(argv, "exclude")),
   };
 }
 
