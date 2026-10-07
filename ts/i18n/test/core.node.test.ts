@@ -10,6 +10,7 @@ import {
   localeOfElement,
   localePath,
   negotiate,
+  pickMessages,
   splitLocalePath,
   translator,
 } from "../src/index";
@@ -329,5 +330,54 @@ describe("localeOfElement", () => {
   it("falls back to the default when there is no lang, or an unpublished one", () => {
     expect(localeOfElement(mount(null))).toBe("en");
     expect(localeOfElement(mount("ja"))).toBe("en");
+  });
+});
+
+describe("pickMessages", () => {
+  const CATALOGUE = { "nav.home": "Главная", "nav.wallet": "Кошелёк", "hero.title": "Заголовок" };
+
+  it("keeps only the requested keys", () => {
+    expect(pickMessages(CATALOGUE, ["nav.home", "hero.title"])).toEqual({
+      "nav.home": "Главная",
+      "hero.title": "Заголовок",
+    });
+  });
+
+  it("leaves out a key the catalogue lacks instead of inventing one", () => {
+    const picked = pickMessages(CATALOGUE, ["nav.home", "nav.gone"]);
+
+    expect(picked).toEqual({ "nav.home": "Главная" });
+    expect(Object.hasOwn(picked, "nav.gone")).toBe(false);
+  });
+
+  it("does not pick inherited members such as toString or __proto__", () => {
+    const picked = pickMessages(CATALOGUE, ["toString", "__proto__", "constructor"]);
+
+    expect(Object.keys(picked)).toEqual([]);
+    expect(Object.getPrototypeOf(picked)).toBe(Object.prototype);
+  });
+
+  it("keeps an own __proto__ key as data, not as the prototype", () => {
+    // JSON.parse makes `__proto__` an own key; an assignment would set the prototype instead.
+    const catalogue = JSON.parse('{"__proto__": "прото", "a": "А"}') as Record<string, string>;
+
+    const picked = pickMessages(catalogue, ["__proto__", "a"]);
+
+    expect(Object.getPrototypeOf(picked)).toBe(Object.prototype);
+    expect(Object.keys(picked)).toEqual(["__proto__", "a"]);
+    expect(Object.getOwnPropertyDescriptor(picked, "__proto__")?.value).toBe("прото");
+  });
+
+  it("returns a plain object an RSC payload can serialise", () => {
+    const picked = pickMessages(Object.assign(Object.create(null) as Record<string, string>, CATALOGUE), [
+      "nav.home",
+    ]);
+
+    expect(Object.getPrototypeOf(picked)).toBe(Object.prototype);
+    expect(picked).toEqual({ "nav.home": "Главная" });
+  });
+
+  it("accepts any iterable of keys", () => {
+    expect(pickMessages(CATALOGUE, new Set(["nav.wallet"]))).toEqual({ "nav.wallet": "Кошелёк" });
   });
 });
