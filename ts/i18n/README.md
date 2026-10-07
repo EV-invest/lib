@@ -472,9 +472,25 @@ templates, so they are never listed twice:
 
 The table's keys matching no template (`tips.a11y.about`) stay ordinary keys
 of the module. `ignore` lists files whose literals do not count — the typed
-registry that names every id would otherwise select every row. An id built at
-runtime (`anchor={`wallet.${kind}`}`) is invisible to the rule: write the
-literals out.
+registry that names every id would otherwise select every row.
+
+**The rule's blind spot, and the one place the generator can miss a key.** It
+sees an id only as a whole string literal, in a file the entry reaches. An id
+that reaches the table any other way is invisible, and nothing reports it —
+the row's copy is missing from the slice and renders in English:
+
+- built at runtime: `` anchor={`wallet.${kind}`} ``, `"wallet." + kind`;
+- from data: an API field, a URL parameter, a stored setting;
+- from a file the entry does not reach, or one listed in `ignore` (a `const`
+  holding the literal in a reachable file is fine — the literal is there);
+- from a package in `node_modules`, whose files are never read.
+
+Keep every id a table is indexed with a literal in the code that renders it
+(a `switch` or a lookup object of literals turns data into one), and run the
+app's end-to-end suite with `missing="throw"` on a fully translated locale:
+that is what catches a row the rule did not see. A literal that merely equals
+an id somewhere unrelated selects that row anyway — an extra key, never a
+missing one.
 
 ## Extracting
 
