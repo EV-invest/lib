@@ -6,9 +6,15 @@ import { CHANNEL_FIELD, SUBMISSION_FIELD, type LeadChannel } from "../core/lead"
 import { THANKS } from "../core/routing";
 import { useAnalyticsId } from "./analytics-context";
 
+/**
+ * Which of the card's forms a submit posts: a messenger lead is posted in the
+ * background instead (`postInBackground`), and never answers in the card.
+ */
+export type FormChannel = Extract<LeadChannel, "form" | "callback">;
+
 /** What the visitor just sent, for a brand's in-card success ("we call 06 … back"). */
 export interface LeadSent {
-  channel: LeadChannel;
+  channel: FormChannel;
   /** As typed. */
   phone: string;
   /** The name field's value, when the form has one and it was filled. */
@@ -53,16 +59,37 @@ const minted = new WeakMap<HTMLFormElement, { id: string; lead: string }>();
  * fixed after a timeout is another lead, which must not be answered with the
  * first one's row.
  */
-function stamp(form: HTMLFormElement): void {
+function stamp(form: HTMLFormElement, extra: Readonly<Record<string, string>> = {}): void {
   const field = form.elements.namedItem(SUBMISSION_FIELD);
   if (!(field instanceof HTMLInputElement)) return;
   const posted = new FormData(form);
   posted.delete(SUBMISSION_FIELD);
+  for (const [key, value] of Object.entries(extra)) posted.set(key, value);
   const lead = new URLSearchParams([...posted].filter((e): e is [string, string] => typeof e[1] === "string")).toString();
   const known = minted.get(form);
   const id = known && known.lead === lead ? known.id : newSubmissionId();
   minted.set(form, { id, lead });
   field.value = id;
+}
+
+/**
+ * A messenger lead: the form as it stands, with `extra` over it (the
+ * channel, the reference), posted as the visitor leaves for the chat —
+ * `keepalive`, so the request outlives the page handing over to the app. No
+ * answer is waited for and none is shown: the chat is where it goes on. A
+ * second tap on the same lead carries the same submission id, so the route
+ * stores it once. Resolves whether the route took it.
+ */
+export function postInBackground(form: HTMLFormElement, extra: Readonly<Record<string, string>>, analyticsId: string | null): Promise<boolean> {
+  stamp(form, extra);
+  const body = new URLSearchParams();
+  for (const [key, value] of new FormData(form)) if (typeof value === "string" && !(key in extra)) body.append(key, value);
+  for (const [key, value] of Object.entries(extra)) body.set(key, value);
+  if (analyticsId) body.set(ANALYTICS_ID_FIELD, analyticsId);
+  return fetch(form.action, { method: "POST", body, headers: { Accept: "application/json" }, keepalive: true }).then(
+    res => res.ok,
+    () => false,
+  );
 }
 
 type Answer = { ok: true; location: string; lead?: string; cents?: number } | { ok: false; field: string; cents?: number };
@@ -114,18 +141,18 @@ export const SUBMIT_TIMEOUT_MS = 15_000;
 export interface LeadSubmitHandlers {
   /** The route refused the lead: the field to fix. */
   /** `cents`: with `price_changed`, the server's fresh price. */
-  onRefused: (channel: LeadChannel, field: string, cents?: number) => void;
+  onRefused: (channel: FormChannel, field: string, cents?: number) => void;
   /** No answer: the form stays as typed, with a retry. */
-  onFailed: (channel: LeadChannel, failure: SendFailure) => void;
+  onFailed: (channel: FormChannel, failure: SendFailure) => void;
 }
 
 export interface LeadSubmit {
   sent: LeadSent | null;
   onSubmit: FormEventHandler<HTMLFormElement>;
   /** The form being posted, while it is. */
-  busy: LeadChannel | null;
+  busy: FormChannel | null;
   /** The last post that got no answer, until the next one. */
-  failure: { channel: LeadChannel; failure: SendFailure } | null;
+  failure: { channel: FormChannel; failure: SendFailure } | null;
   /** Posts that form again — the same submission id, so never a second lead. */
   retry: () => void;
 }
@@ -140,9 +167,9 @@ export interface LeadSubmit {
  * form. Any other answer (the store's 500) submits the form for real, so the
  * server's own page says what went wrong; the submission id makes that safe.
  */
-export function useLeadSubmit(done: boolean | ((channel: LeadChannel) => boolean), fields: { mobile: string; name: string | undefined }, on: LeadSubmitHandlers): LeadSubmit {
+export function useLeadSubmit(done: boolean | ((channel: FormChannel) => boolean), fields: { mobile: string; name: string | undefined }, on: LeadSubmitHandlers): LeadSubmit {
   const [sent, setSent] = useState<LeadSent | null>(null);
-  const [busy, setBusy] = useState<LeadChannel | null>(null);
+  const [busy, setBusy] = useState<FormChannel | null>(null);
   const [failure, setFailure] = useState<LeadSubmit["failure"]>(null);
   const pending = useRef(false);
   const last = useRef<HTMLFormElement | null>(null);

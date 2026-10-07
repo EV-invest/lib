@@ -126,5 +126,8 @@
     "template/proxy.ts",
     "template/app/[locale]/[location]/layout.tsx",
     "dist/cli/kitstart-size.js"
-  ]
+  ],
+  "dependencies": {
+    "qrcode-generator": "^2.0.4"
+  }
 }

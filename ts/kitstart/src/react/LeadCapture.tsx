@@ -2,10 +2,11 @@
 
 import { Button, cn } from "@evinvest/uikit";
 import { Fragment, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { PRICE_CHANGED, SHOWN_CENTS_FIELD } from "../core/accept";
+import { CHANNELS_FIELD, PRICE_CHANGED, SHOWN_CENTS_FIELD } from "../core/accept";
 import { resolveChannels, type CaptureChannel } from "../core/channels";
 import { CHANNEL_FIELD, leadErrorFor, type LeadError, type LeadWire, type PageLeadError } from "../core/lead";
-import { fillText, openingText } from "../core/lead-capture-format";
+import { fillText, formatCents, openingText } from "../core/lead-capture-format";
+import { channelsAvailable, MESSAGE_REF_FIELD, type MessengerFacts, type MessengerVariant } from "../core/messenger";
 import { flowTextOf, type LeadCaptureText } from "../core/lead-capture-text";
 import { bookingOf } from "../core/booking/model";
 import { servedLocalities, storefrontOf, type Place } from "../core/place/types";
@@ -23,6 +24,8 @@ import { ConsentField, FormMessage, LocalityField, NameField, PhoneField, type F
 import { NeedField, type LeadCaptureLayout, type LeadNeedDisplay, type LeadNeedOption } from "./LeadCaptureNeed";
 import { PriceBox, PriceCompact, type PricePart } from "./LeadCapturePrice";
 import { IntroField, LeadSteps, type StepsPart, type StepView } from "./LeadCaptureSteps";
+import { drawsAt, initialMode, MessengerSlot, messengerShownOf, NO_MESSENGERS, useMessageRef } from "./LeadCaptureMessenger";
+import type { MessengerAt, MessengerKit, MessengerPart, PhoneOptions } from "./messenger/types";
 import { stepOfField, stepsOf, useLeadSteps, type LeadIntro, type StepId } from "./lead-steps";
 import type { PartClassNames } from "./parts";
 import { QuoteFormShell } from "./QuoteFormShell";
@@ -37,7 +40,7 @@ import { useRepriced } from "./use-repriced";
 export type LeadCapturePart =
   | "root" | "head" | "title" | "lede" | "form" | "contact" | "submit" | "trust" | "privacy" | "opening" | "others" | "done"
   | "needs" | "need" | "summary" | "icon" | "intro" | "introOption" | "stepNext"
-  | FieldPart | ChannelPart | EstimatePart | PricePart | StepsPart | PricedPart | BookingPart;
+  | FieldPart | ChannelPart | EstimatePart | PricePart | StepsPart | PricedPart | BookingPart | MessengerPart;
 
 export interface LeadCaptureProps {
   /** Its hours order the channels; its service area suggests the commune. */
@@ -132,6 +135,19 @@ export interface LeadCaptureProps {
   channelIcons?: Partial<Record<ChannelIconKey, ReactNode>> | undefined;
   /** Moved first when available — a `default_channel` experiment's arm. */
   prefer?: CaptureChannel | undefined;
+  /**
+   * The `lead_channel` experiment's arm: how the card offers WhatsApp and the
+   * brand's bot (`MessengerVariant`); absent → the control. A place without
+   * WhatsApp falls back to the control (`messengerShownOf`), and every event
+   * says which messengers were there (`channels_available`).
+   */
+  messenger?: MessengerVariant | undefined;
+  /** `messengerFacts(site, place)`: the place's own WhatsApp number and bot, each `null` when off. */
+  messengers?: MessengerFacts | undefined;
+  /** The brand's prefix of the lead's chat reference (`AQ` → `AQ-7K3F`, `message_ref`); without it no reference. */
+  refPrefix?: string | undefined;
+  /** The brand's name: the prefilled message's greeting («Bonjour Aquafix»). */
+  brand?: string | undefined;
   /** The site's assignment: on every event, and posted with the form. Slugs only. */
   experiment?: Experiment | undefined;
   timeZone?: string | undefined;
@@ -210,7 +226,12 @@ export function LeadCapture(props: LeadCaptureProps) {
   const postcode = usePostcode();
   const [locality, setLocality] = useState<string | undefined>(undefined);
   const localityShown = locality ?? postcode ?? (served.length === 1 ? served[0] : undefined);
-  const events = useLeadEvents(root, { formId, layout, experiment });
+  const facts = props.messengers ?? NO_MESSENGERS;
+  const shown = messengerShownOf(props.messenger, facts);
+  const channels = channelsAvailable(props.messengers);
+  const [mode, setMode] = useState(() => initialMode(props.messenger));
+  const [messageRef, renewRef] = useMessageRef(props.refPrefix, shown !== null);
+  const events = useLeadEvents(root, { formId, layout, experiment, channels, messenger: shown ?? undefined });
   useOpenOnHash(`${id}-callback`);
   // Only this card's: a page may draw several, and the query names one.
   const initial = leadErrorFor(props.initialError ?? null, id);
@@ -224,7 +245,8 @@ export function LeadCapture(props: LeadCaptureProps) {
   const flow = estimate.flow;
   const repriced = useRepriced(estimate.price, shownNeed, flowText, locale);
   // A priced lead stays in the card: its price is confirmed there, and the slot promised.
-  const staysInCard = (ch: "form" | "callback") => props.done !== undefined || (ch === "form" && flow !== "quote");
+  // `thanks` offers its messengers in the success: the card stays.
+  const staysInCard = (ch: "form" | "callback") => props.done !== undefined || (ch === "form" && (flow !== "quote" || shown === "thanks"));
   const { sent, onSubmit, busy, failure, retry } = useLeadSubmit(
     staysInCard,
     { mobile: wire.mobile, name: props.name?.field },
@@ -252,7 +274,9 @@ export function LeadCapture(props: LeadCaptureProps) {
   const needLabel = needs.find(n => n.value === need)?.label;
   const message = needLabel ? fillText(text.message, { need: needLabel }) : text.messageGeneric;
   const [lead = "form", ...rest] = resolved.order;
-  const links = rest.filter((ch): ch is "phone" | "whatsapp" | "sms" => ch !== "form" && ch !== "callback");
+  // A variant owns WhatsApp — its link posts the lead first — and the owner's model has no text message.
+  const owned = (ch: CaptureChannel) => shown !== null && shown !== "fallback" && (ch === "whatsapp" || ch === "sms");
+  const links = rest.filter((ch): ch is "phone" | "whatsapp" | "sms" => ch !== "form" && ch !== "callback" && ch !== "telegram" && !owned(ch));
   // The intro asked for a call back: the folded callback would be a second one.
   const callbackElsewhere = !callbackPreset;
 
@@ -345,6 +369,7 @@ export function LeadCapture(props: LeadCaptureProps) {
         opening={opening}
         text={text}
         experiment={experiment}
+        channels={channels}
         onSubmit={onSubmit}
         error={error?.channel === "callback" ? { field: error.field, text: errorText(error.field, text) } : null}
         busy={busy === "callback"}
@@ -355,11 +380,45 @@ export function LeadCapture(props: LeadCaptureProps) {
         icon={props.channelIcons?.callback}
         classNames={c}
       />
-    ) : ch === "form" ? null : (
+    ) : ch === "form" || ch === "telegram" ? null : (
       <ChannelLink key={ch} channel={ch} contact={contact} message={message} text={text} primary={primary} experiment={experiment} icon={props.channelIcons?.[ch]} classNames={c} />
     );
 
-  const rootProps = { id, className: cn("flex w-full flex-col gap-6", props.className, c?.root), "data-experiment": experiment?.name, "data-variant": experiment?.variant };
+  // A variant arranges the card's own phone field and submit; it never draws its own.
+  const kitOf = (at: MessengerAt, variant: MessengerVariant, drawn: NonNullable<typeof shown>): MessengerKit => ({
+    at,
+    variant,
+    shown: drawn,
+    facts,
+    id,
+    locale,
+    brand: props.brand ?? "",
+    text,
+    wire,
+    needs,
+    needLabel: needs.find(n => n.value === shownNeed)?.label ?? null,
+    priceText: flow !== "quote" && repriced.price ? formatCents(repriced.price.cents, locale) : null,
+    mode,
+    setMode,
+    messageRef,
+    renewRef,
+    phone: options => phoneOf(options),
+    submit: (label, options) => submitOf(label, options),
+    title: text.title,
+    lede: text.lede,
+    events,
+    icons: props.channelIcons,
+    experiment,
+    classNames: c,
+  });
+  const slot = (at: MessengerAt) => shown !== null && props.messenger && drawsAt(shown, at) && <MessengerSlot key={`messenger-${at}`} kit={kitOf(at, props.messenger, shown)} />;
+  const rootProps = {
+    id,
+    className: cn("flex w-full flex-col gap-6", props.className, c?.root),
+    "data-experiment": experiment?.name,
+    "data-variant": experiment?.variant,
+    "data-channels-available": channels,
+  };
   if (sent && staysInCard(sent.channel)) {
     const done = typeof props.done === "function" ? props.done(sent) : props.done;
     return (
@@ -383,6 +442,7 @@ export function LeadCapture(props: LeadCaptureProps) {
               classNames={c}
             />
           )}
+          {sent.channel === "form" && slot("done")}
         </div>
       </div>
     );
@@ -422,12 +482,28 @@ export function LeadCapture(props: LeadCaptureProps) {
       classNames={c}
     />
   );
-  const phone = (
-    <>
-      <PhoneField name={wire.mobile} text={text} error={at("phone")} onSoftError={() => events.fieldError("phone")} classNames={c} />
-      <Fragment key="afterPhone">{props.afterPhone}</Fragment>
-    </>
-  );
+  function phoneOf(o: PhoneOptions = {}) {
+    return (
+      <>
+        <PhoneField
+          name={wire.mobile}
+          text={text}
+          error={at("phone")}
+          onSoftError={() => events.fieldError("phone")}
+          optional={o.optional}
+          disabled={o.disabled}
+          placeholder={o.placeholder}
+          frame={o.frame}
+          form={o.form}
+          classNames={c}
+        />
+        <Fragment key="afterPhone">{"after" in o ? o.after : props.afterPhone}</Fragment>
+      </>
+    );
+  }
+  // A variant's `contact` takes the phone's place, and brings its own button.
+  const contactSlot = slot("contact");
+  const phone = contactSlot || phoneOf();
   const nameField = props.name && (
     <NameField
       name={props.name.field}
@@ -442,12 +518,24 @@ export function LeadCapture(props: LeadCaptureProps) {
   );
   const mainBusy = busy === "form" || (callbackPreset && busy === "callback");
   const mainFailure = failure && (failure.channel === "form" || callbackPreset) ? failure.failure : null;
+  function submitOf(label?: string, o: { form?: string; className?: string } = {}) {
+    return (
+      <SubmitButton
+        busy={mainBusy}
+        label={label ?? (callbackPreset ? text.callbackSubmit : flow === "quote" ? text.submit : flowText.bookSubmit)}
+        sending={text.sending}
+        form={o.form}
+        className={cn(callbackPreset ? cn(c?.submit, c?.callbackSubmit) : c?.submit, o.className)}
+      />
+    );
+  }
   const tail = (
     <>
       <FormMessage id={formMessageId(id, "form")} error={above} className={c?.error} />
       <FailureMessage failure={mainFailure} text={text} onRetry={retry} className={c?.error} />
       <div className={cn("flex flex-col gap-3", c?.trust)}>
-        <SubmitButton busy={mainBusy} label={callbackPreset ? text.callbackSubmit : flow === "quote" ? text.submit : flowText.bookSubmit} sending={text.sending} className={callbackPreset ? cn(c?.submit, c?.callbackSubmit) : c?.submit} />
+        {!contactSlot && submitOf()}
+        {slot("afterSubmit")}
         <Fragment key="trust">{props.trust}</Fragment>
       </div>
       {opening && lead !== "callback" && <p className={cn("text-sm text-ink-soft", c?.opening)}>{opening}</p>}
@@ -581,14 +669,17 @@ export function LeadCapture(props: LeadCaptureProps) {
         React dev warns. Each slot sits alone in a keyed fragment instead.
       */}
       <Fragment key="head">
-        {props.head ?? (
-          <div className={cn("flex flex-col gap-1", c?.head)}>
-            <p className={cn("font-display text-2xl font-bold text-ink", c?.title)}>{text.title}</p>
-            <p className={cn("text-ink-soft", c?.lede)}>{text.lede}</p>
-          </div>
-        )}
+        {slot("head") ||
+          (props.head ?? (
+            <div className={cn("flex flex-col gap-1", c?.head)}>
+              <p className={cn("font-display text-2xl font-bold text-ink", c?.title)}>{text.title}</p>
+              {/* `chip` says it in place of the lede. */}
+              {!drawsAt(shown, "afterHead") && <p className={cn("text-ink-soft", c?.lede)}>{text.lede}</p>}
+            </div>
+          ))}
       </Fragment>
-      {lead !== "form" && (lead !== "callback" || callbackElsewhere) && channel(lead, true)}
+      {slot("afterHead")}
+      {lead !== "form" && !owned(lead) && (lead !== "callback" || callbackElsewhere) && channel(lead, true)}
       <QuoteFormShell
         id={`${id}-form`}
         placeSlug={place.slug}
@@ -603,6 +694,8 @@ export function LeadCapture(props: LeadCaptureProps) {
         className={cn("group/lead", c?.form)}
       >
         <ExperimentFields experiment={experiment} />
+        <input type="hidden" name={CHANNELS_FIELD} value={channels} />
+        {messageRef && <input type="hidden" name={MESSAGE_REF_FIELD} value={messageRef} />}
         {/* Compared by the server, never stored: a lead is taken at the price it was shown. */}
         {flow !== "quote" && repriced.shownCents !== undefined && <input type="hidden" name={SHOWN_CENTS_FIELD} value={repriced.shownCents} />}
         {steps ? (
@@ -615,8 +708,12 @@ export function LeadCapture(props: LeadCaptureProps) {
             text={{ stepProgress: flowText.stepProgress, stepProgressOpen: flowText.stepProgressOpen, stepBack: flowText.stepBack, change: text.needChange }}
             classNames={c}
           />
+        ) : drawsAt(shown, "body") && mode === null ? (
+          // `saga`'s first screen: the channel, before anything else.
+          slot("body")
         ) : (
           <>
+            {slot("beforeNeed")}
             <NeedField
               display={needDisplay}
               name={wire.subject}

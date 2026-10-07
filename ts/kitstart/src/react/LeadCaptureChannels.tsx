@@ -1,5 +1,5 @@
 import { Button, buttonVariants, cn } from "@evinvest/uikit";
-import { EXPERIMENT_FIELD, VARIANT_FIELD } from "../core/accept";
+import { CHANNELS_FIELD, EXPERIMENT_FIELD, VARIANT_FIELD } from "../core/accept";
 import { channelHref, type CaptureChannel } from "../core/channels";
 import { CHANNEL_FIELD } from "../core/lead";
 import { fillText } from "../core/lead-capture-format";
@@ -18,7 +18,7 @@ import { QuoteFormShell } from "./QuoteFormShell";
 export type ChannelPart = "channel" | "primary" | "callback" | "callbackSummary" | "callbackForm" | "callbackLede" | "callbackSubmit" | "consent" | "photos" | "channelIcon";
 
 /** A way out the brand may draw an icon for (`channelIcons`). */
-export type ChannelIconKey = "phone" | "whatsapp" | "sms" | "callback";
+export type ChannelIconKey = "phone" | "whatsapp" | "sms" | "callback" | "telegram";
 
 /** The brand's icon before a channel's label, hidden from assistive technology: the label names it. */
 function ChannelIcon({ icon, className }: { icon: ReactNode; className: string | undefined }) {
@@ -53,7 +53,10 @@ export function ExperimentFields({ experiment }: { experiment: Experiment | unde
   );
 }
 
-const LABEL: Record<Exclude<CaptureChannel, "form" | "callback">, keyof LeadCaptureText> = { phone: "call", whatsapp: "whatsapp", sms: "sms" };
+/** The links of the channel list; a bot is a `messenger` variant's. */
+type LinkChannel = Exclude<CaptureChannel, "form" | "callback" | "telegram">;
+
+const LABEL: Record<LinkChannel, "call" | "whatsapp" | "sms"> = { phone: "call", whatsapp: "whatsapp", sms: "sms" };
 
 /**
  * A channel that leaves the page — `tel:`, `wa.me`, `sms:` — as a link the
@@ -62,7 +65,7 @@ const LABEL: Record<Exclude<CaptureChannel, "form" | "callback">, keyof LeadCapt
  * because the tracker reads the link's own `data-*`.
  */
 export function ChannelLink(props: {
-  channel: Exclude<CaptureChannel, "form" | "callback">;
+  channel: LinkChannel;
   contact: { phone: string | null; whatsapp: string | null };
   message: string;
   text: LeadCaptureText;
@@ -114,6 +117,8 @@ export function CallbackForm(props: {
   opening: string | null;
   text: LeadCaptureText;
   experiment: Experiment | undefined;
+  /** The messengers the card offered (`channels_available`), for the submit's event. */
+  channels?: string | undefined;
   onSubmit: FormEventHandler<HTMLFormElement> | undefined;
   /** The server's refusal: the field and its words. */
   error: { field: string; text: string } | null;
@@ -159,6 +164,7 @@ export function CallbackForm(props: {
         <input type="hidden" name={CHANNEL_FIELD} value="callback" />
         {subject && <input type="hidden" name={subject.name} value={subject.value} />}
         <ExperimentFields experiment={experiment} />
+        {props.channels && <input type="hidden" name={CHANNELS_FIELD} value={props.channels} />}
         <p className={cn("text-ink-soft", c?.callbackLede)}>{opening ?? text.callbackLede}</p>
         <PhoneField id={`${id}-phone`} name={mobileName} text={text} error={at("phone")} onSoftError={props.onSoftError} classNames={c} />
         <ConsentField sentence={text.callbackConsent} requiredText={text.consentRequired} error={at("consent")} className={c?.consent} classNames={c} />
