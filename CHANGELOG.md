@@ -24,6 +24,23 @@ Rust crate and its TypeScript mirror at once.
 
 ### Added
 
+- **Messenger leads: WhatsApp and the brand's Telegram bot** (`@evinvest/kitstart`,
+  `/react`, `/server`). `LeadCapture`'s `messenger` prop draws one of ten arms
+  of the `lead_channel` experiment (`select`, `segment`, `tiles`, `thanks`,
+  `swap`, `saga`, `urgency`, `sheet`, `chip`, `split`), each its own lazy
+  chunk; a place without WhatsApp falls back to the control (`messengerFacts`,
+  `PlaceLive.telegram` / `messengers`). A messenger tap posts the lead in the
+  background (`channel=whatsapp|telegram`, `keepalive`) with its chat
+  reference `message_ref` (`AQ-7K3F`, in the prefilled message and the bot's
+  `start`); on a computer WhatsApp is a QR code (`qrcode-generator`, a new
+  runtime dependency, loaded on that tap only), back on the page the card asks
+  whether the message went. `LeadChannel` gains `whatsapp` and `telegram`
+  (phone optional, no consent), the lead schema is at 8 (`message_ref`), the
+  mail names the channel and the `Réf.`, and the webhook's `panelMessenger`
+  switch (off) sends them to the panel as `ctx.channel` / `ctx.messageRef`.
+  Every `LeadCapture` event carries `channels_available`; new events
+  `lead_messenger_open`, `lead_messenger_return`, intents `telegram`,
+  `whatsapp_qr`.
 - **`TopBar`, `AccountMenu`, `AppShell.topBar`** (`@evinvest/uikit`, TS-only):
   the wide screen's utility bar over the content column, and the account menu
   every service under one account shows in the same order — name / email,

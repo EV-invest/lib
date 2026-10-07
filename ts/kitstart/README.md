@@ -240,7 +240,7 @@ it is the plain POST to `/quote` it always was.
 | `questions` | by estimate input id: `{ display?: "tiles" \| "cards", unknown?: true, unknownSpan?: 2, badges?: { [option]: text }, shortLabels?: { [option]: text }, step?: number, next?: string }` — see [The compact form](#the-compact-form) and [steps](#one-question-per-screen-layoutsteps) |
 | `price`, `taxCredit` | `box` (default) · `compact`: the price on one line, what is left after a tax credit of `taxCredit` (a ratio, `0.5`), the breakdown behind "Détail" |
 | `afterPhone` | a node right under the phone field: one line of reassurance |
-| `channelsDisplay`, `channelIcons` | the other ways out: `stack` (default, under `otherChannels`) · `row`, one row of compact buttons named by `otherChannels` · the brand's icon per channel (`phone`, `whatsapp`, `sms`, `callback`) |
+| `channelsDisplay`, `channelIcons` | the other ways out: `stack` (default, under `otherChannels`) · `row`, one row of compact buttons named by `otherChannels` · the brand's icon per channel (`phone`, `whatsapp`, `sms`, `callback`, `telegram`) |
 | `locality` | `required` (default) · `optional` |
 | `name` | `{ field, required? }`: a name field posted as the brand's extra; off by default |
 | `extras` | the brand's own fields, after the phone |
@@ -257,7 +257,8 @@ it is the plain POST to `/quote` it always was.
 | `bookingVariant` · `bookingEmbed` · `bookingAdapters` | the `booking_provider` variant that picks the place's provider · the providers' embeds (after cookie consent) rather than a new tab · the brand's adapters over the built-ins (from a client component) — see [Booking](#booking-manual-link-google_calendar-cal_com) |
 | `initialError` | `leadErrorOf(searchParams)` on a page that reads its query: the refusal a 303 brought back, drawn on the server by the card it names (`lead_card`) so the card says why without a script (see *Refusals*) |
 | `head`, `trust` | the brand's heading instead of the title; a slot beside the submit. Like `extras`, `done` and `booking`, any node, built on the server or not, and never asked for a `key`: each slot sits alone in a keyed fragment |
-| `className` · `classNames` | the root · its parts: `root`, `head`, `title`, `lede`, `form`, `contact`, `field`, `label`, `control` (every input, the need's select in both states, the callback's phone), `hint`, `error` (a refusal: under the field, or above the submit), `chips`, `chip`, `needs`, `need`, `summary`, `icon` (a need's or an intro answer's icon), `submit`, `trust`, `privacy` (not drawn when `text.privacy` is `""`), `opening`, `others`, `channel`, `channelIcon`, `primary`, `callback`, `callbackSummary`, `callbackForm`, `callbackLede`, `callbackSubmit`, `consent`, `done`, for `steps` `progress`, `stepBack`, `step` (each screen), `answers`, `answer` (the chips of the screens answered), `stepNext`, `intro`, `introOption`, and for the flows `estimate`, `estimateInput`, `estimateLegend`, `estimateGrid` (an input's answers: 2 columns, 3 from `sm`), `estimateOption` (an answer's tile), `estimateUnknown` (the "I don't know" tile, after `estimateOption`), `badge`, `optionPrice` (a card's total), `price`, `priceTotal`, `breakdown`, `priceNote`, `priceLine`, `priceTaxCredit`, `priceDetail` (`price="compact"`), `photos`, `priced`, `pricedPrice`, `pricedNote`, and for the booking `booking`, `bookingCta`, `bookingNote`, `prefer`, `preferOption`, `preferSubmit` |
+| `className` · `classNames` | the root · its parts: `root`, `head`, `title`, `lede`, `form`, `contact`, `field`, `label`, `control` (every input, the need's select in both states, the callback's phone), `hint`, `error` (a refusal: under the field, or above the submit), `chips`, `chip`, `needs`, `need`, `summary`, `icon` (a need's or an intro answer's icon), `submit`, `trust`, `privacy` (not drawn when `text.privacy` is `""`), `opening`, `others`, `channel`, `channelIcon`, `primary`, `callback`, `callbackSummary`, `callbackForm`, `callbackLede`, `callbackSubmit`, `consent`, `done`, for `steps` `progress`, `stepBack`, `step` (each screen), `answers`, `answer` (the chips of the screens answered), `stepNext`, `intro`, `introOption`, and for the flows `estimate`, `estimateInput`, `estimateLegend`, `estimateGrid` (an input's answers: 2 columns, 3 from `sm`), `estimateOption` (an answer's tile), `estimateUnknown` (the "I don't know" tile, after `estimateOption`), `badge`, `optionPrice` (a card's total), `price`, `priceTotal`, `breakdown`, `priceNote`, `priceLine`, `priceTaxCredit`, `priceDetail` (`price="compact"`), `photos`, `priced`, `pricedPrice`, `pricedNote`, and for the booking `booking`, `bookingCta`, `bookingNote`, `prefer`, `preferOption`, `preferSubmit`, and for a `messenger` variant `messenger`, `messengerSlot`, `messengerPreview`, `messengerPicker`, `messengerOption`, `messengerSquare`, `messengerQr`, `messengerReturn`, `messengerHint` |
+| `messenger`, `messengers`, `refPrefix`, `brand` | the `lead_channel` arm (`MessengerVariant`, absent → the control) · `messengerFacts(site, place)` · the chat reference's prefix (`AQ`) · the message's greeting — see *Messengers* below |
 
 - **Taps.** A need the page knows is not asked again, and a place serving one
   commune fills it: focus the phone, type, send — two taps. `qualify-first`
@@ -358,6 +359,94 @@ it is the plain POST to `/quote` it always was.
   (157,287 → 166,361 B against its 158,000 B target: +5.3 %, a warning
   within the 20 % tolerance); the refusals and the shared phone rule are
   2.0 KB of it, sending (the id, the busy state, the retry) 0.6 KB.
+
+### Messengers: `messenger`, WhatsApp and the bot
+
+The `lead_channel` experiment's arms. WhatsApp: the customer sends the brand's
+prefilled message, answered by hand in WhatsApp Business. Telegram: the
+brand's bot, opened as `t.me/<bot>?start=<ref>`. The phone is asked only for
+a call; no text messages. Either way the lead is **posted first**, in the
+background, so the panel has it before the chat starts.
+
+```tsx
+import { messengerFacts } from "@evinvest/kitstart";
+
+<LeadCapture
+  {...controlProps}
+  messenger={arm === "c" ? { kind: "segment" } : undefined} // undefined → the control
+  messengers={messengerFacts(site, place)} // the place's own WhatsApp, its bot — each `null` when off
+  refPrefix="AQ"                            // the lead's chat reference: AQ-7K3F
+  brand="Aquafix"                           // the message's greeting
+  channelIcons={{ whatsapp: <WhatsAppIcon />, telegram: <TelegramIcon />, callback: <PhoneIcon /> }}
+  classNames={{ messengerSlot: "h-[92px]" }} // every state of a variant one height
+/>
+```
+
+| `kind` | Figma | the card |
+|---|---|---|
+| `select` `{side: "prefix" \| "suffix"}` | AQ-1 / VF-1 | the channel picked in the phone field (the kit's `Select`, an overlay): WhatsApp — the number optional, the button opens the chat; Appel — the control; Telegram — no number, the button opens the bot |
+| `segment` | AQ-2 | «WhatsApp \| Appel» over the slot (the message ready / the phone); «ou via Telegram» under the button |
+| `tiles` | VF-2 | «Recevoir mon devis par» and a tile per channel over the slot (the message / what the bot does / the phone) |
+| `thanks` | AQ-3 | the control's form; the in-card success adds a photo on WhatsApp (a QR code on a computer) and the bot. The card stays (`done`) |
+| `swap` | AQ-4 / VF-3 | no phone: the WhatsApp button, then [Telegram][Être rappelé]; «Être rappelé» swaps in the phone and [WhatsApp square][submit] |
+| `saga` | AQ-5 | the channel first, on a screen of its own (cards), then the job and the channel's slot; «Changer de canal» back |
+| `urgency` `{field}` | AQ-6 | «C’est urgent ?» — posted as the brand's extra `field` (`today` / `later`; list it in `site.lead.extras`) — today a call, «je compare» the message |
+| `sheet` | VF-4 | the estimate, the postcode and one button; the kit's `Drawer`: WhatsApp / Telegram / a call, the phone asked in the drawer |
+| `chip` | VF-5 | the lede becomes a chip «Réponse sur WhatsApp ▾» (a `Select` overlay); the slot follows it |
+| `split` | VF-6 | the slot over one row: «Devis sur WhatsApp» with [Telegram][📞] squares; 📞 turns it into «Être rappelé» with [WhatsApp][Telegram] |
+
+- **Fallback** (Figma «Выключено в панели»). No WhatsApp for the place — no
+  number of its own, or `messengers.whatsapp: false` from the panel — and
+  every kind is the control, with «ou via Telegram» under the submit when the
+  bot is on; `urgency` keeps its question (both answers ask the phone) and
+  `thanks` keeps the bot. No bot — every Telegram piece is left out. The arm
+  stays assigned; every event says what the card had: `channels_available`
+  (`wa,tg` | `wa` | `tg` | `none`).
+- **The reference** `message_ref`: `<refPrefix>-<4 Crockford base32>`,
+  minted in the browser once the script runs and again after a messenger
+  lead is posted; the WhatsApp message ends with `Réf. AQ-7K3F`, the bot's
+  `start` is the reference itself. Posted with every lead of the card (a
+  `thanks` success sends the form lead's own), stored (`message_ref`, schema
+  8), mailed (`Réf.`), and sent to the panel under `panelMessenger`.
+- **The message** (`messengerMessage`, ≤ 400 characters, nothing typed about
+  the person): `Bonjour {brand} 👋`, the need, the postcode, the estimate
+  shown, the timing (`urgency`), `Réf. {ref}` — a line without its value left
+  out. The slot shows it as a preview, so the visitor sees there is nothing
+  to write.
+- **The tap.** A real `<a href>` — the OS opens the app from the tap. A
+  number typed must be one (the browser says so, nothing leaves). The lead is
+  posted (`keepalive`, `channel=whatsapp|telegram`, the reference, what was
+  filled; the same submission id for a second tap). On a computer (`hover:
+  hover`, `pointer: fine`, ≥ 768 px) WhatsApp becomes a QR code in the slot
+  (`qrcode-generator`, loaded on that tap only) with «ou ouvrir WhatsApp Web»
+  and «Être rappelé»; the bot opens in a new tab. In an app's own browser
+  (Instagram, Facebook, TikTok, Line, Snapchat) a hint says how to leave it,
+  with «Copier le message».
+- **Back on the page** (`visibilitychange`), the card asks «Message
+  envoyé ?» over the form: reopen the chat, «Je n’ai pas pu envoyer → être
+  rappelé» (the variant's call state, the phone focused), or «C’est envoyé».
+- **The server.** A `whatsapp` / `telegram` lead needs no phone (one typed
+  is held to the rule) and no consent, and is never sent back for a changed
+  price; `validateLead` knows the channel. A brand's own rule must not
+  refuse one for the postcode or the phone it was not asked — the testing
+  subpath's `messengerRuleDisagreements(site.lead)` lists where it does.
+- **Words**: `LeadCaptureMessengerText` — optional keys of the card's
+  `text`, a key left out the kit's in the page's language (`messengerTextOf`;
+  the defaults are `LEAD_CAPTURE_MESSENGER_TEXT`, kept out of
+  `LEAD_CAPTURE_TEXT` so the control's island never carries them). A brand
+  overrides by spreading: `{ ...LEAD_CAPTURE_TEXT.fr, messengerWhatsappCta: "Envoyer sur WhatsApp →" }`. **Parts**:
+  `messenger`, `messengerSlot`, `messengerPreview`, `messengerPicker`,
+  `messengerOption`, `messengerSquare`, `messengerQr`, `messengerReturn`,
+  `messengerHint`.
+- **Events**: every `LeadCapture` event carries `channels_available` and,
+  with a variant, `messenger_variant`; `lead_messenger_open {channel, device,
+  inapp, message_ref}`, `lead_messenger_return {channel, answer: sent |
+  failed, message_ref}`, `contact_intent_click {channel: telegram |
+  whatsapp_qr}`; `lead_form_submit` has `message_ref` and the posted
+  `channels_available`.
+- **Weight.** Each kind is its own chunk (`React.lazy`), fetched only by the
+  arm that draws it; the control pays for the dispatch alone, and the QR
+  encoder for nobody until a desktop tap.
 
 ### One question per screen: `layout="steps"`
 
@@ -777,10 +866,17 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavai
   `LEAD_WEBHOOK_KEY_ID` and `LEAD_WEBHOOK_SECRET` are required, and the URL
   must be `https:`, or `http:` to a `*.svc` / `*.svc.cluster.local` host or
   loopback — the body carries PII. All checked at boot.
-- **The channel.** `channelOf(lead)` is `form` or `callback`. For the
-  Service-Arb panel, map it through `panelChannel`: its `properties.channel`
-  is a closed set (`form` | `phone_inbound` | `callback`) that refuses the
-  whole event outside it, and a callback goes as `callback` (panel v0.3.0 on).
+- **The channel.** `channelOf(lead)` is `form`, `callback`, `whatsapp` or
+  `telegram`. For the Service-Arb panel use `ctx.channel` (or
+  `panelChannel(channel, panelMessenger)`): its `properties.channel` is a
+  closed set that refuses the whole event outside it; a callback goes as
+  `callback` (panel v0.3.0 on), a messenger lead as `form` until
+  `panelMessenger` is on.
+- **Messenger leads: `panelMessenger`, off.** On: `ctx.channel` says
+  `whatsapp` / `telegram`, and `ctx.messageRef` carries the lead's chat
+  reference for `properties.message_ref`. Off (the default, until the panel
+  takes them): a messenger lead goes as a `form`, without its reference —
+  the leads table and the mail keep both either way.
 - **Queued before the 303, sent after it.** The body is built once, from the
   lead and `ctx` (`leadId`, `brandId`, `locale`, `formId`, `at`, and a fresh
   `idempotencyKey` for the receiver to deduplicate by), and written to the
