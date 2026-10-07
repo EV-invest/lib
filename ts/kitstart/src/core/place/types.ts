@@ -75,8 +75,17 @@ export interface Place<L extends string> {
   name: Readonly<Record<L, string>>;
   presence: Presence<L>;
   serviceArea: readonly ServiceArea[] | null;
-  /** International numbers as printed; `null` → the brand's own. */
-  channels: { phone: string | null; whatsapp: string | null };
+  /**
+   * International numbers as printed; `null` → the brand's own. `telegram`:
+   * the place's bot, its username without `@` (`PlaceLive.telegram`) —
+   * absent or `null`, no bot; never the brand's.
+   */
+  channels: { phone: string | null; whatsapp: string | null; telegram?: string | null };
+  /**
+   * The panel's switches for the messengers (`PlaceLive.messengers`): `false`
+   * takes one off the place's cards (`messengerFacts`); absent is on.
+   */
+  messengers?: MessengerSwitches;
   hours: readonly OpeningHours[] | null;
   /** Live only. */
   rating: Rating | null;
@@ -85,6 +94,12 @@ export interface Place<L extends string> {
    * settings); absent → `DEFAULT_BOOKING`, a call (`bookingOf`).
    */
   booking?: BookingConfig;
+}
+
+/** Which messengers the panel lets a place offer; a key left out is on. */
+export interface MessengerSwitches {
+  whatsapp?: boolean;
+  telegram?: boolean;
 }
 
 /** The storefront half of a place, or `null` for a service-area business. */

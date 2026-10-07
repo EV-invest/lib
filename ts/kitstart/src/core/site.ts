@@ -2,6 +2,7 @@ import type { LocaleRegistry } from "@evinvest/i18n";
 import type { BookingRules } from "./booking/model";
 import { bookingConfigProblems, calComHostsProblems } from "./booking/validate";
 import type { LeadSchema } from "./lead";
+import type { MessengerFacts } from "./messenger";
 import type { PublicationPolicy } from "./place/publication";
 import type { Place } from "./place/types";
 import type { PricingModel } from "./pricing/model";
@@ -200,10 +201,27 @@ export function bakedPlace<L extends string, P extends string>(site: Site<L, P>,
   return site.places.find(p => p.slug === slug);
 }
 
-/** The numbers a place answers on: its own, or the brand's until it has one. */
+/**
+ * The numbers a place answers on: its own, or the brand's until it has one.
+ * WhatsApp switched off in the panel (`place.messengers.whatsapp`) is none.
+ */
 export function contactOf(site: Pick<SiteConfig<string, string>, "brand">, place: Place<string>): { phone: string | null; whatsapp: string | null } {
   return {
     phone: place.channels.phone ?? site.brand.phone,
-    whatsapp: place.channels.whatsapp ?? site.brand.phone,
+    whatsapp: place.messengers?.whatsapp === false ? null : (place.channels.whatsapp ?? site.brand.phone),
+  };
+}
+
+/**
+ * What a `LeadCapture` `messenger` variant may offer (`messengers`): the
+ * place's own WhatsApp number — never the brand's phone, the chat is answered
+ * by hand at the place — and its bot, each unless the panel switched it off.
+ * Not a fallback for `contactOf`: the control's WhatsApp link keeps the brand's.
+ */
+export function messengerFacts(_site: Pick<SiteConfig<string, string>, "brand">, place: Place<string>): MessengerFacts {
+  const on = place.messengers ?? {};
+  return {
+    whatsapp: on.whatsapp === false ? null : place.channels.whatsapp,
+    telegram: on.telegram === false ? null : (place.channels.telegram ?? null),
   };
 }

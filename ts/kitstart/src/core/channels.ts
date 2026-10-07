@@ -1,14 +1,17 @@
 import { telHref, whatsappHref } from "@evinvest/marketing";
 import { DEFAULT_TIME_ZONE, isOpenAt, nextOpening, type Opening } from "./place/hours";
 import type { OpeningHours } from "./place/types";
+import { telegramHref } from "./messenger";
 import { isMobilePhone, normalizePhone } from "./phone";
 
 /**
  * The ways a visitor can reach the business, named as `contact_intent_click`
  * names them, so a channel and its event are one word. `form` is the quote
- * form; `callback` is the form cut to a phone number ("Rappelez-moi").
+ * form; `callback` is the form cut to a phone number ("Rappelez-moi");
+ * `telegram` is the brand's bot, opened with the lead's `message_ref` — drawn
+ * by a `messenger` variant only, never by the resolver's list.
  */
-export type CaptureChannel = "phone" | "whatsapp" | "sms" | "callback" | "form";
+export type CaptureChannel = "phone" | "whatsapp" | "sms" | "callback" | "form" | "telegram";
 
 /** What decides which channels exist: the place's numbers and hours. */
 export interface ChannelFacts {
@@ -20,6 +23,8 @@ export interface ChannelFacts {
   sms?: boolean;
   /** Default: offered. A surface with no form to post it from turns it off. */
   callback?: boolean;
+  /** The bot's username, without `@` (`messengerFacts`); absent or `null` → no Telegram. */
+  telegram?: string | null;
 }
 
 export interface ChannelOptions {
@@ -59,6 +64,9 @@ export function resolveChannels(facts: ChannelFacts, options: ChannelOptions): R
     sms: facts.phone !== null && (facts.sms ?? isMobilePhone(facts.phone)),
     callback: facts.callback ?? true,
     form: true,
+    // Never in the lists below: a bot is offered by a `messenger` variant,
+    // with the lead posted first, not as one more bare link.
+    telegram: false,
   };
   const order = (open === false ? CLOSED : OPEN).filter(c => has[c]);
   const prefer = options.prefer;
@@ -75,8 +83,12 @@ export function smsHref(phone: string, body?: string): string {
   return body ? `sms:${number}?&body=${encodeURIComponent(body)}` : `sms:${number}`;
 }
 
-/** The link a channel opens, or `null` for the two that are forms on the page. */
-export function channelHref(channel: CaptureChannel, facts: Pick<ChannelFacts, "phone" | "whatsapp">, message?: string): string | null {
+/**
+ * The link a channel opens, or `null` for the two that are forms on the page.
+ * `message` is the prefilled text — for `telegram`, the bot's `start`
+ * parameter: the lead's `message_ref`.
+ */
+export function channelHref(channel: CaptureChannel, facts: Pick<ChannelFacts, "phone" | "whatsapp" | "telegram">, message?: string): string | null {
   switch (channel) {
     case "phone":
       return facts.phone ? telHref(facts.phone) : null;
@@ -84,6 +96,8 @@ export function channelHref(channel: CaptureChannel, facts: Pick<ChannelFacts, "
       return facts.whatsapp ? whatsappHref(facts.whatsapp, message) : null;
     case "sms":
       return facts.phone ? smsHref(facts.phone, message) : null;
+    case "telegram":
+      return facts.telegram ? telegramHref(facts.telegram, message) : null;
     case "callback":
     case "form":
       return null;
