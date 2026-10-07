@@ -444,7 +444,9 @@ The generator errs only towards extra keys, because a missing one renders
 English to a reader of another language without a sound. A local import that
 does not resolve (relative, or matching a non-catch-all `paths` pattern), an
 `import()` of a computed path, and a `t()` the extractor cannot read are
-errors, not skips. `--check` fails when the file on disk differs from what the
+errors, not skips. So is a specifier no npm package can have — `@/x` (empty
+scope), `~/x`, `#x` — that nothing maps: without a tsconfig it would otherwise
+read as a package, and its keys would silently land in `serverOnly`. `--check` fails when the file on disk differs from what the
 code gives; keep the file out of the formatter, which would otherwise reflow
 it into drift. With the JSON imported under `resolveJsonModule`, a mistyped
 route key fails `tsc`.
