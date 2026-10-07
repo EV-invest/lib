@@ -1,8 +1,10 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { AnalyticsSink } from "@evinvest/analytics";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LEAD_CAPTURE_MESSENGER_TEXT, LEAD_CAPTURE_TEXT, MESSAGE_REF, type MessengerFacts, type MessengerKind, type MessengerVariant } from "../src/index";
+import { LEAD_CAPTURE_MESSENGER_TEXT, LEAD_CAPTURE_TEXT, MESSAGE_REF, parsePricingModel, type MessengerFacts, type MessengerKind, type MessengerVariant } from "../src/index";
 import { AnalyticsSinkContext } from "../src/react/analytics-context";
 import { LeadCapture, type LeadCaptureProps } from "../src/react/index";
 import { serviceAreaPlace } from "../src/testing/index";
@@ -234,6 +236,20 @@ const TO_CALL: Record<Exclude<MessengerKind, "thanks">, () => Promise<{ field: H
 const KINDS = Object.keys(VARIANTS) as MessengerKind[];
 const LEAD_FIRST = KINDS.filter((k): k is Exclude<MessengerKind, "thanks"> => k !== "thanks");
 
+/** The timing line a variant writes into the message: `urgency`'s «je compare» is a need that can wait. */
+const TIMING_LINE: Record<MessengerKind, readonly string[]> = {
+  select: [],
+  segment: [],
+  tiles: [],
+  thanks: [],
+  swap: [],
+  saga: [],
+  urgency: ["Délai souhaité : pas pressé"],
+  sheet: [],
+  chip: [],
+  split: [],
+};
+
 /**
  * A messenger button reached, with the reference the card held and the link
  * it drew before the tap — a tap mints the next reference and redraws the link.
@@ -271,7 +287,7 @@ describe.each(KINDS)("the %s variant", kind => {
     const { ref, href } = await reach(TO_WHATSAPP[kind]);
     expect(new URL(href).host).toBe("wa.me");
     expect(new URL(href).pathname).toBe("/33612345678");
-    expect(new URL(href).searchParams.get("text")?.split("\n")).toEqual(["Bonjour Aquafix 👋", "Je souhaite un devis : Fuite d’eau", `Réf. ${ref}`]);
+    expect(new URL(href).searchParams.get("text")?.split("\n")).toEqual(["Bonjour Aquafix 👋", "Je souhaite un devis : Fuite d’eau", ...TIMING_LINE[kind], `Réf. ${ref}`]);
   });
 
   it("sends the visitor to the bot with the reference as its start", async () => {
@@ -442,6 +458,16 @@ describe("the urgency variant's answer", () => {
   });
 });
 
+describe("the sheet variant's drawer", () => {
+  it("is a dialog named by its heading, on either step", async () => {
+    render(card("sheet"));
+    await openSheet();
+    expect(screen.getByRole("dialog", { name: M.messengerSheetTitle })).toBeInTheDocument();
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /^Appel/ }));
+    expect(screen.getByRole("dialog", { name: M.messengerCallTitle })).toBeInTheDocument();
+  });
+});
+
 describe("the sheet variant's call", () => {
   it("asks the phone in the drawer, a field of the card's form", async () => {
     render(card("sheet"));
@@ -508,5 +534,158 @@ describe("the WhatsApp message", () => {
     expect(currentRef()).toMatch(MESSAGE_REF);
     const again = new URL(screen.getByRole("link", { name: M.messengerWhatsappCta }).getAttribute("href") ?? "");
     expect(again.searchParams.get("text")).toContain(`Réf. ${currentRef()}`);
+  });
+});
+
+describe("the parts a brand dresses a variant with", () => {
+  const PARTS = {
+    messengerCta: "x-cta",
+    messengerSecondary: "x-secondary",
+    messengerSegment: "x-segment",
+    messengerTile: "x-tile",
+    messengerTrigger: "x-trigger",
+    messengerSquare: "x-square",
+  };
+
+  it("dresses the main button and the secondary ones, and the call's submit as the main one", async () => {
+    render(card("segment", { classNames: PARTS }));
+    expect(await screen.findByRole("link", { name: M.messengerWhatsappCta }, CHUNK)).toHaveClass("x-cta");
+    expect(screen.getByRole("link", { name: M.messengerViaTelegram })).toHaveClass("x-secondary");
+    expect(screen.getByRole("button", { name: M.messengerOptionWhatsapp })).toHaveClass("x-segment");
+    fireEvent.click(screen.getByRole("button", { name: M.messengerOptionCall }));
+    expect(screen.getByRole("button", { name: M.messengerOptionCall })).toHaveClass("x-segment");
+    expect(within(theForm()).getByRole("button", { name: T.submit })).toHaveClass("x-cta");
+  });
+
+  it("dresses a tile, and urgency's answers as tiles", async () => {
+    render(card("tiles", { classNames: PARTS }));
+    expect(await screen.findByRole("button", { name: "Telegram" }, CHUNK)).toHaveClass("x-tile");
+    expect(screen.getByRole("button", { name: M.messengerOptionCall })).toHaveClass("x-tile");
+    render(card("urgency", { id: "urgent", classNames: PARTS }));
+    expect(await screen.findByRole("button", { name: M.messengerUrgencyYes }, CHUNK)).toHaveClass("x-tile");
+    expect(screen.getByRole("button", { name: M.messengerUrgencyNo })).toHaveClass("x-tile");
+  });
+
+  it("dresses the channel picker's button, in the phone field and as the chip", async () => {
+    render(card("select", { classNames: PARTS }));
+    expect(await screen.findByRole("combobox", { name: M.messengerChannelLabel }, CHUNK)).toHaveClass("x-trigger");
+    render(card("chip", { id: "chip", classNames: PARTS }));
+    await waitFor(() => expect(screen.getAllByRole("combobox", { name: M.messengerChannelLabel })).toHaveLength(2), CHUNK);
+    expect(screen.getAllByRole("combobox", { name: M.messengerChannelLabel })[1]).toHaveClass("x-trigger");
+  });
+
+  it("dresses the buttons beside the main one: Telegram and the call in swap, the squares in split", async () => {
+    render(card("swap", { classNames: PARTS }));
+    expect(await within(theForm()).findByRole("link", { name: M.messengerOptionTelegram }, CHUNK)).toHaveClass("x-secondary");
+    expect(within(theForm()).getByRole("button", { name: M.messengerCallback })).toHaveClass("x-secondary");
+    render(card("split", { id: "split", classNames: PARTS }));
+    const split = await waitFor(() => {
+      const el = document.getElementById("split-form");
+      if (!(el instanceof HTMLFormElement)) throw new Error("no form #split-form");
+      return within(el).getByRole("button", { name: M.messengerCallback });
+    }, CHUNK);
+    expect(split).toHaveClass("x-square");
+  });
+
+  it("dresses the sheet's one button and the return screen's two", async () => {
+    render(card("sheet", { classNames: PARTS }));
+    expect(await screen.findByRole("button", { name: M.messengerSheetCta }, CHUNK)).toHaveClass("x-cta");
+    const { link } = await reach(TO_WHATSAPP.sheet);
+    fireEvent.click(link);
+    leaveAndReturn();
+    const back = await screen.findByRole("status");
+    expect(within(back).getByRole("link", { name: "Rouvrir WhatsApp" })).toHaveClass("x-secondary");
+    expect(within(back).getByRole("button", { name: M.messengerReturnFailed })).toHaveClass("x-cta");
+  });
+});
+
+describe("the brand's channel icons on a variant", () => {
+  // The icons are drawn `aria-hidden`, beside the words that name the button: no role or name reaches them.
+  const icon = (name: string) => <svg data-testid={`icon-${name}`} />;
+  const ICONS = { whatsapp: icon("whatsapp"), telegram: icon("telegram"), phone: icon("phone"), callback: icon("callback") };
+
+  it("puts each channel's icon on its button, and the phone's on the call's submit", async () => {
+    render(card("segment", { channelIcons: ICONS }));
+    const whatsapp = await screen.findByRole("link", { name: M.messengerWhatsappCta }, CHUNK);
+    expect(within(whatsapp).getByTestId("icon-whatsapp")).toBeInTheDocument();
+    expect(within(screen.getByRole("link", { name: M.messengerViaTelegram })).getByTestId("icon-telegram")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: M.messengerOptionCall }));
+    const submit = within(theForm()).getByRole("button", { name: T.submit });
+    expect(within(submit).getByTestId("icon-phone")).toBeInTheDocument();
+    expect(within(submit).queryByTestId("icon-callback")).toBeNull();
+  });
+
+  it("falls back to the callback's icon for the call when the brand drew no phone", async () => {
+    render(card("split", { channelIcons: { callback: icon("callback") } }));
+    const square = await within(theForm()).findByRole("button", { name: M.messengerCallback }, CHUNK);
+    expect(within(square).getByTestId("icon-callback")).toBeInTheDocument();
+    fireEvent.click(square);
+    expect(within(within(theForm()).getByRole("button", { name: M.messengerCallback })).getByTestId("icon-callback")).toBeInTheDocument();
+  });
+});
+
+describe("the swap variant on a computer", () => {
+  it("says «Ouvrir Telegram» beside the QR code's slot", async () => {
+    desktop();
+    render(card("swap"));
+    expect(await within(theForm()).findByRole("link", { name: M.messengerTelegramCta }, CHUNK)).toHaveAttribute("href", expect.stringMatching(/^https:\/\/t\.me\//));
+    expect(within(theForm()).queryByRole("link", { name: M.messengerOptionTelegram })).toBeNull();
+  });
+});
+
+describe("an estimate's answers in the message", () => {
+  const MODEL = parsePricingModel(JSON.parse(readFileSync(join(import.meta.dirname, "fixtures/pricing/valid/cleaning.json"), "utf8")));
+  const estimate = (over: Partial<LeadCaptureProps> = {}) =>
+    card("segment", {
+      needs: [{ value: "standard", label: "Ménage courant" }],
+      flows: { standard: "estimate" },
+      pricing: MODEL,
+      questions: { bedrooms: { shortLabels: { t3: "2 ch." } }, frequency: { unknown: true, shortLabels: { biweekly: "2 sem." } } },
+      messengerTiming: { input: "frequency" },
+      ...over,
+    });
+  const answer = (input: string, option: string) => {
+    const el = theForm().querySelector(`input[name=estimate_${input}][value="${option}"]`);
+    if (!(el instanceof HTMLInputElement)) throw new Error(`no answer ${input}=${option}`);
+    fireEvent.click(el);
+  };
+  const sent = () => new URL(screen.getByRole("link", { name: M.messengerWhatsappCta }).getAttribute("href") ?? "").searchParams.get("text")?.split("\n");
+
+  it("says the need with its answers, the timing on a line of its own, and the estimate", async () => {
+    render(estimate());
+    const { ref } = await reach(TO_WHATSAPP.segment);
+    answer("zone", "proche");
+    answer("bedrooms", "t3");
+    answer("surface", "s70");
+    answer("frequency", "biweekly");
+    expect(sent()).toEqual([
+      "Bonjour Aquafix 👋",
+      "Je souhaite un devis : Ménage courant · Proche banlieue · 2 ch. · 40 à 70 m²",
+      expect.stringMatching(/^Estimation vue sur le site : 84\s€$/u),
+      "Délai souhaité : Toutes les 2 semaines",
+      `Réf. ${ref}`,
+    ]);
+    // The preview says it short: the brand's short labels, the timing's too.
+    expect(screen.getByText(/^« Bonjour Aquafix/)).toHaveTextContent(
+      new RegExp(`^« Bonjour Aquafix 👋 · Ménage courant · Proche banlieue · 2 ch\\. · 40 à 70 m² · 2 sem\\. · 84\\s€ · Réf\\. ${ref} »$`, "u"),
+    );
+  });
+
+  it("writes no timing line for «Je ne sais pas»", async () => {
+    render(estimate());
+    const { ref } = await reach(TO_WHATSAPP.segment);
+    answer("zone", "proche");
+    answer("bedrooms", "t3");
+    answer("surface", "s70");
+    answer("frequency", "?");
+    expect(sent()).toEqual(["Bonjour Aquafix 👋", "Je souhaite un devis : Ménage courant · Proche banlieue · 2 ch. · 40 à 70 m²", `Réf. ${ref}`]);
+    expect(screen.getByText(/^« Bonjour Aquafix/)).not.toHaveTextContent(/2 sem\.|Je ne sais pas/);
+  });
+
+  it("writes no timing line until the timing question is answered", async () => {
+    render(estimate());
+    const { ref } = await reach(TO_WHATSAPP.segment);
+    answer("zone", "proche");
+    expect(sent()).toEqual(["Bonjour Aquafix 👋", "Je souhaite un devis : Ménage courant · Proche banlieue", `Réf. ${ref}`]);
   });
 });

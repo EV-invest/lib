@@ -7,19 +7,23 @@ import { serviceAreaPlace } from "../src/testing/index";
 const M = LEAD_CAPTURE_MESSENGER_TEXT.fr;
 const WHATSAPP = "+33 6 12 34 56 78";
 
-/** Each variant, and a word only it prints on the server's page. */
-const VARIANTS: Record<MessengerKind, { variant: MessengerVariant; says: string }> = {
-  select: { variant: { kind: "select", side: "suffix" }, says: `aria-label="${M.messengerChannelLabel}"` },
-  segment: { variant: { kind: "segment" }, says: M.messengerPreviewTitle },
-  tiles: { variant: { kind: "tiles" }, says: M.messengerTilesLabel },
+/**
+ * Each variant, a word only it prints on the server's page, and how many
+ * messenger links it draws before anything is picked — WhatsApp's and the
+ * bot's (`thanks` draws its own in the success, `saga` and `sheet` behind a pick).
+ */
+const VARIANTS: Record<MessengerKind, { variant: MessengerVariant; says: string; links: number }> = {
+  select: { variant: { kind: "select", side: "suffix" }, says: `aria-label="${M.messengerChannelLabel}"`, links: 1 },
+  segment: { variant: { kind: "segment" }, says: M.messengerPreviewTitle, links: 2 },
+  tiles: { variant: { kind: "tiles" }, says: M.messengerTilesLabel, links: 1 },
   // The control's form: its messengers are in the success.
-  thanks: { variant: { kind: "thanks" }, says: LEAD_CAPTURE_TEXT.fr.submit },
-  swap: { variant: { kind: "swap" }, says: M.messengerCallback },
-  saga: { variant: { kind: "saga" }, says: M.messengerSagaTitle },
-  urgency: { variant: { kind: "urgency", field: "urgency" }, says: M.messengerUrgencyYes },
-  sheet: { variant: { kind: "sheet" }, says: M.messengerSheetCta },
-  chip: { variant: { kind: "chip" }, says: M.messengerChipWhatsapp },
-  split: { variant: { kind: "split" }, says: M.messengerSplitCta },
+  thanks: { variant: { kind: "thanks" }, says: LEAD_CAPTURE_TEXT.fr.submit, links: 0 },
+  swap: { variant: { kind: "swap" }, says: M.messengerCallback, links: 2 },
+  saga: { variant: { kind: "saga" }, says: M.messengerSagaTitle, links: 0 },
+  urgency: { variant: { kind: "urgency", field: "urgency" }, says: M.messengerUrgencyYes, links: 1 },
+  sheet: { variant: { kind: "sheet" }, says: M.messengerSheetCta, links: 0 },
+  chip: { variant: { kind: "chip" }, says: M.messengerChipWhatsapp, links: 1 },
+  split: { variant: { kind: "split" }, says: M.messengerSplitCta, links: 2 },
 };
 
 async function html(variant: MessengerVariant): Promise<string> {
@@ -61,5 +65,13 @@ describe.each(Object.keys(VARIANTS) as MessengerKind[])("the %s variant on the s
     // The reference is the browser's to mint: a server's would not survive hydration.
     expect(page).not.toContain('name="message_ref"');
     expect(page).not.toMatch(/AQ-[0-9A-HJKMNP-TV-Z]{4}/);
+  });
+
+  // A tap before the script would open the chat with no lead posted and no
+  // reference to find it by: until then a messenger link leads nowhere.
+  it("draws its messenger links inert: no href to wa.me or t.me, aria-disabled", async () => {
+    const page = await html(VARIANTS[kind].variant);
+    expect(page).not.toMatch(/href="https:\/\/(wa\.me|t\.me)\//);
+    expect(page.match(/<a [^>]*aria-disabled="true"/g) ?? []).toHaveLength(VARIANTS[kind].links);
   });
 });
