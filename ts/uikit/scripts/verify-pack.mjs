@@ -28,9 +28,11 @@ const REQUIRED = [
 const out = execFileSync("npm", ["pack", "--dry-run", "--json"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
 
 // The nested pack re-runs `prepare`, whose bundler chatters on stdout ahead of the JSON,
-// so the report is recovered by parsing the last array the output ends with.
+// so the report is recovered by parsing the JSON value the output ends with. npm <= 11
+// reports an array of packages, npm >= 12 an object keyed by package name.
 function trailingJson(text) {
-  for (let i = text.lastIndexOf("["); i >= 0; i = text.lastIndexOf("[", i - 1)) {
+  for (let i = text.length - 1; i >= 0; i--) {
+    if (text[i] !== "[" && text[i] !== "{") continue;
     try {
       return JSON.parse(text.slice(i));
     } catch {
@@ -40,7 +42,9 @@ function trailingJson(text) {
   throw new Error(`could not find the pack report in:\n${text}`);
 }
 
-const shipped = new Set(trailingJson(out)[0].files.map((f) => f.path));
+const report = trailingJson(out);
+const [pack] = Array.isArray(report) ? report : Object.values(report);
+const shipped = new Set(pack.files.map((f) => f.path));
 const missing = REQUIRED.filter((p) => !shipped.has(p));
 
 if (missing.length > 0) {
