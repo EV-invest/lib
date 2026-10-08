@@ -44,7 +44,7 @@ export {
 export { BOOKING_ACTION } from "./use-booking";
 export type { LeadSent } from "./use-lead-submit";
 export type { LeadCaptureLayout, LeadNeedDisplay, LeadNeedOption } from "./LeadCaptureNeed";
-export type { EstimateQuestion, EstimateQuestions } from "./estimate-plan";
+export type { EstimateQuestion, EstimateQuestions } from "./LeadCaptureEstimate";
 export type { LeadIntro, LeadIntroOption } from "./lead-steps";
 export type { ChannelIconKey } from "./LeadCaptureChannels";
 export type { MessengerPart } from "./messenger/types";

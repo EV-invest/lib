@@ -19,10 +19,10 @@ const noop = () => () => undefined;
 const LOADERS: (() => Promise<unknown>)[] = [];
 
 /**
- * Resolves once every lazily drawn part of the kit is loaded — for a test
- * that renders a card and reads it at once (`beforeAll(loadLazyParts)`). A
- * page never needs it: the server loads them as their modules load, and a
- * browser fetches what its card draws.
+ * Resolves once every lazily drawn part of the kit is loaded — today
+ * `FormSelect`'s scripted list — for a test that renders a form and reads it
+ * at once (`beforeAll(loadLazyParts)`). A page never needs it: the server
+ * loads them as their modules load, and a browser fetches them when idle.
  */
 export function loadLazyParts(): Promise<void> {
   return Promise.all(LOADERS.map(load => load())).then(() => undefined);
@@ -30,7 +30,8 @@ export function loadLazyParts(): Promise<void> {
 
 /**
  * A component a page pays for only when it draws it — the shape of the
- * `messenger` variants (`LeadCaptureMessenger`), for any piece of an island.
+ * `messenger` variants (`LeadCaptureMessenger`), here for `FormSelect`'s
+ * scripted state.
  *
  * On the server every part is loaded as its module is, so a render finds it
  * and writes it into the page whole: no boundary of its own, which React
