@@ -222,6 +222,12 @@ Rust crate and its TypeScript mirror at once.
 
 ### Fixed
 
+- **`FieldLabel` sees controls a Server Component rendered** (`@evinvest/uikit`):
+  the Flight client hands such elements a lazy type, which `FieldLabel` did not
+  look through, so a label around a server-rendered control (the choice card,
+  `Field` › `FieldLabel` › `Field` › `Checkbox`) still took the outer `Field`'s
+  id as `for` — an id nothing carries, so a click on the card toggled nothing.
+
 - **`evinvest-i18n-slices` ignores computed imports outside the graph**
   (`@evinvest/i18n`). Every file under `--root` is parsed for `serverOnly`,
   and an `import()` / `require()` of a computed path in any of them failed the
