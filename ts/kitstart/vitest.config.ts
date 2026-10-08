@@ -15,13 +15,16 @@ export default defineConfig({
   },
   test: {
     // `*.node.test.ts(x)` in node — the core must work with no DOM — and
-    // `*.react.test.tsx` in jsdom.
+    // `*.react.test.tsx` in jsdom, every lazily loaded part of the kit loaded
+    // first; `*.cold.test.tsx` in jsdom with none of them, for the page that
+    // is still fetching them.
     projects: [
       { extends: true, test: { name: "node", environment: "node", include: ["test/**/*.node.test.{ts,tsx}"] } },
       {
         extends: true,
-        test: { name: "react", environment: "jsdom", setupFiles: ["./test/setup.react.ts"], include: ["test/**/*.react.test.tsx"] },
+        test: { name: "react", environment: "jsdom", setupFiles: ["./test/setup.dom.ts", "./test/setup.react.ts"], include: ["test/**/*.react.test.tsx"] },
       },
+      { extends: true, test: { name: "cold", environment: "jsdom", setupFiles: ["./test/setup.dom.ts"], include: ["test/**/*.cold.test.tsx"] } },
     ],
   },
 });
