@@ -1,6 +1,6 @@
 [package]
 name = "ev_lib_gen"
-version = "0.9.1"
+version = "0.10.0"
 edition = "2024"
 description = "Generates the lib's TS (uikit class tables, shared registries) through ev_lib::ts_gen (Rust is the source of truth)."
 license = "BlueOak-1.0.0"
