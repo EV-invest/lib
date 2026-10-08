@@ -4,13 +4,8 @@ import * as React from "react";
 import { cn } from "../lib/cn";
 import { Label } from "./label";
 import { walkElements } from "../primitives/walk-elements";
-import { Checkbox } from "./checkbox";
+import { isLabelable, markLabelable } from "../primitives/labelable";
 import { FieldControlContext, useFieldClaims } from "./field-context";
-import { Input } from "./input";
-import { NativeSelect } from "./native-select";
-import { SelectTrigger } from "./select";
-import { Switch } from "./switch";
-import { Textarea } from "./textarea";
 import {
   FIELD_BASE,
   FIELD_SET,
@@ -97,6 +92,8 @@ export function Field({
   );
 }
 
+markLabelable(Field);
+
 export function FieldContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -136,8 +133,9 @@ export function FieldLabel({ className, htmlFor, children, ...props }: FieldLabe
 // The labelable elements (HTML's list, less `output`/`meter`/`progress`, which a
 // field label never wraps) and the kit's controls that render one — plus a
 // nested `Field`, the choice-card shape, whose control is labelled by its own.
+// The kit's controls carry a mark (`primitives/labelable`) rather than sitting
+// in a set here: a set would import every control into every page with a Field.
 const LABELABLE_TAGS = new Set(["input", "select", "textarea", "button"]);
-const LABELABLE_KIT: ReadonlySet<unknown> = new Set([Input, Textarea, NativeSelect, Checkbox, Switch, SelectTrigger, Field]);
 
 function wrapsControl(children: React.ReactNode): boolean {
   let found = false;
@@ -145,7 +143,7 @@ function wrapsControl(children: React.ReactNode): boolean {
     if (found) return false;
     const { type } = element;
     const props = element.props as { type?: unknown };
-    if (typeof type === "string" ? LABELABLE_TAGS.has(type) && props.type !== "hidden" : LABELABLE_KIT.has(type)) {
+    if (typeof type === "string" ? LABELABLE_TAGS.has(type) && props.type !== "hidden" : isLabelable(type)) {
       found = true;
     }
     return !found;

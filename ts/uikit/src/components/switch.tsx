@@ -4,6 +4,7 @@ import * as React from "react";
 import { cn } from "../lib/cn";
 import { SWITCH_BASE, SWITCH_THUMB } from "../generated/switch";
 import { useControllableState } from "../primitives/use-controllable-state";
+import { markLabelable } from "../primitives/labelable";
 import { useFieldControlId } from "./field-context";
 
 export interface SwitchProps
@@ -53,3 +54,5 @@ export function Switch({
     </button>
   );
 }
+
+markLabelable(Switch);

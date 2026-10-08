@@ -3,6 +3,7 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { nativeSelectSizeClasses, type NativeSelectSize } from "../generated/select";
+import { markLabelable } from "../primitives/labelable";
 import { useFieldControlId } from "./field-context";
 import { SelectChevron } from "./select-chevron";
 
@@ -80,6 +81,8 @@ export const NativeSelect = React.forwardRef<HTMLSelectElement, NativeSelectProp
     );
   },
 );
+
+markLabelable(NativeSelect);
 
 export function NativeSelectOption(props: React.ComponentProps<"option">) {
   return <option data-slot="native-select-option" {...props} />;

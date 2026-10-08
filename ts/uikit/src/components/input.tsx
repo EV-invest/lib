@@ -3,6 +3,7 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { INPUT_BASE, inputSizeClasses, type InputSize } from "../generated/input";
+import { markLabelable } from "../primitives/labelable";
 import { useFieldControlId } from "./field-context";
 
 export type { InputSize };
@@ -30,3 +31,5 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     );
   },
 );
+
+markLabelable(Input);
