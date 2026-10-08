@@ -4,7 +4,7 @@ import { fillText, formatCents } from "../core/lead-capture-format";
 import type { LeadCaptureFlowText } from "../core/lead-capture-text";
 import type { LeadFlow } from "../core/pricing/flow";
 import type { Price, PriceLine, PricingModel } from "../core/pricing/model";
-import { labelOf } from "../core/pricing/validate";
+import { labelOf } from "../core/pricing/label";
 import type { PartClassNames } from "./parts";
 
 /**

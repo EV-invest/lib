@@ -224,8 +224,3 @@ export function pricingProblemsFor(value: unknown, locales: readonly string[]): 
   }
   return out;
 }
-
-/** The label for `locale`, or the first one the model has. */
-export function labelOf(labels: PricingLabels, locale: string): string {
-  return (Object.hasOwn(labels, locale) ? labels[locale] : undefined) ?? Object.values(labels)[0] ?? "";
-}
