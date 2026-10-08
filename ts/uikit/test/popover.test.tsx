@@ -42,4 +42,27 @@ describe("Popover", () => {
     fireEvent.click(getByText("open"));
     expect(last).toBe(true);
   });
+
+  it("moves focus in on open, traps Tab, and returns focus to the trigger on close", () => {
+    const { getByText, getByLabelText } = render(
+      <Popover>
+        <PopoverTrigger>open</PopoverTrigger>
+        <PopoverContent>
+          <input aria-label="a" />
+          <input aria-label="b" />
+        </PopoverContent>
+      </Popover>,
+    );
+    const trigger = getByText("open");
+    trigger.focus();
+    fireEvent.click(trigger);
+    const a = getByLabelText("a");
+    const b = getByLabelText("b");
+    expect(document.activeElement).toBe(a);
+    b.focus();
+    fireEvent.keyDown(b, { key: "Tab" });
+    expect(document.activeElement).toBe(a);
+    fireEvent.click(trigger);
+    expect(document.activeElement).toBe(trigger);
+  });
 });

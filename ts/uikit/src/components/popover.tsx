@@ -5,6 +5,7 @@ import { cn } from "../lib/cn";
 import { useControllableState } from "../primitives/use-controllable-state";
 import { useFloating } from "../primitives/use-floating";
 import { DismissableLayerScope, useDismissableLayer } from "../primitives/dismissable-layer";
+import { type InitialFocus, useFocusScope } from "../primitives/focus-scope";
 import { usePresence } from "../primitives/presence";
 import { mergeRefs } from "../primitives/merge-refs";
 import { Portal } from "../primitives/portal";
@@ -87,6 +88,8 @@ export interface PopoverContentProps extends React.ComponentProps<"div"> {
   side?: "top" | "right" | "bottom" | "left";
   align?: "start" | "center" | "end";
   sideOffset?: number;
+  /** Where focus lands on open. Default `first` (e.g. a `Command` search input). */
+  initialFocus?: InitialFocus;
 }
 
 export function PopoverContent({
@@ -94,6 +97,7 @@ export function PopoverContent({
   side: sideProp = "bottom",
   align = "center",
   sideOffset = 4,
+  initialFocus = "first",
   children,
   ...props
 }: PopoverContentProps) {
@@ -106,6 +110,7 @@ export function PopoverContent({
     align,
     offset: sideOffset,
   });
+  const focusRef = useFocusScope(open, { initialFocus, returnFocusTo: anchorRef });
   const dismissRef = useDismissableLayer({
     enabled: open,
     onDismiss: () => setOpen(false),
@@ -119,7 +124,7 @@ export function PopoverContent({
         data-state={open ? "open" : "closed"}
         data-side={side}
         data-align={align}
-        ref={mergeRefs(floatingRef, dismissRef, presRef)}
+        ref={mergeRefs(floatingRef, focusRef, dismissRef, presRef)}
         style={style}
         className={cn(
           POPOVER_CONTENT,
