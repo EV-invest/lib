@@ -19,10 +19,13 @@ export function useFormSelectValue(opts: {
   controlled: string | undefined;
   native: RefObject<HTMLSelectElement | null>;
   box: RefObject<HTMLElement | null>;
+  /** The page's script runs: the native select, if still drawn, is the field. */
+  live: boolean;
+  /** The kit's `Select` is drawn. */
   scripted: boolean;
   onValueChange: ((value: string) => void) | undefined;
 }) {
-  const { initial, controlled, native, box, scripted, onValueChange } = opts;
+  const { initial, controlled, native, box, live, scripted, onValueChange } = opts;
   const [own, setOwn] = useState(controlled ?? initial);
   const [invalid, setInvalid] = useState(false);
   const [open, setOpen] = useState(false);
@@ -36,8 +39,8 @@ export function useFormSelectValue(opts: {
   latest.current = { initial, isControlled, value, onValueChange };
 
   // A choice made in the native select before the script arrived survives the
-  // swap: read in the hydration commit, before the scripted render. Once —
-  // later renders never hold the native select. Under a `value` it is the
+  // swap: read in the hydration commit. Once — from then on the native
+  // select, while it stays, reports its choices itself. Under a `value` it is the
   // parent's to take, so it is reported instead of kept — and only a real
   // pick: a `value` no option carries leaves the browser on its own default,
   // which is no choice of the visitor's.
@@ -55,8 +58,8 @@ export function useFormSelectValue(opts: {
   // from a script's `checkValidity()` by the submit that starts it.
   const submitting = useRef(false);
   useEffect(() => {
-    const form = box.current?.closest("form");
-    if (!scripted || !form) return;
+    const form = (scripted ? box.current : native.current)?.closest("form");
+    if (!live || !form) return;
     const reset = () => {
       if (!latest.current.isControlled) setOwn(latest.current.initial);
     };
@@ -76,7 +79,7 @@ export function useFormSelectValue(opts: {
       form.removeEventListener("reset", reset);
       document.removeEventListener("click", submit, true);
     };
-  }, [box, scripted]);
+  }, [box, native, live, scripted]);
 
   const choose = (next: string) => {
     if (!isControlled) setOwn(next);
