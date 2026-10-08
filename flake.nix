@@ -315,6 +315,26 @@
           };
         in
         {
+          apps.help = {
+            type = "app";
+            program = "${pkgs.writeShellScriptBin "help" ''
+              cat <<'EOF'
+              ${pname} — design kit: rust classes + ts packages (uikit, kitstart, i18n, …)
+
+              Commands:
+                nix develop                              dev shell (rust nightly, node, playwright, pre-commit)
+                nix run .#gen                            regenerate every derived file (class tables, token sheets)
+                nix run .#publish -- <major|minor|patch> cargo-release + npm publish of impacted ts packages
+                nix run .#visual [-- --update]           visual regression of the kit gallery
+                nix run .#kitstart-visual [-- --update]  visual regression of the kitstart widget gallery
+                nix run .#mk-landing-smoke               smoke the mk-landing fixture container (linux + docker)
+                nix build .#checks.<system>.mk-landing-budget   mk-landing bundle size gate
+
+              Docs: README.md, docs/
+              EOF
+            ''}/bin/help";
+          };
+
           apps.publish = {
             type = "app";
             program = "${publish}/bin/publish";
