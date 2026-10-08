@@ -3,7 +3,7 @@
 import { Button, cn, Field, FieldLabel } from "@evinvest/uikit";
 import type { ReactNode } from "react";
 import { FormSelect, type FormSelectOption } from "./FormSelect";
-import { TileGroupPart } from "./lead-parts";
+import { TileGroup } from "./LeadCaptureTiles";
 import type { PartClassNames } from "./parts";
 
 /**
@@ -86,7 +86,7 @@ export function NeedField(props: NeedFieldProps) {
     );
   }
   return (
-    <TileGroupPart.Part
+    <TileGroup
       name={name}
       legend={label}
       options={needs.map(n => ({ value: n.value, label: n.label, shortLabel: n.shortLabel, ...(display === "cards" && n.icon !== undefined ? { icon: n.icon } : {}) }))}

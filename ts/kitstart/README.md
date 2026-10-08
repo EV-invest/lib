@@ -18,7 +18,7 @@ stays in the brand.
 | `@evinvest/kitstart/proxy` | edge | `createProxy(site)`, `PROXY_MATCHER` |
 | `@evinvest/kitstart/next` | Next server (routes, RSC) | `quoteRoute`, `bookingRoute`, `confirmRoute`, `sitemapRoute`, `robotsRoute`, `ogRoute`, `healthRoute`, `createPlaceLoader`, `loadLocale`, `placeMetadata` / `brandMetadata` / `statusMetadata`, `metadataBase` |
 | `@evinvest/kitstart/next/config` | `next.config.ts`, `vitest.config.ts` | `withLanding`, `buildEnv` and the `assets/` readers |
-| `@evinvest/kitstart/react` | either side | `LangSwitch`, `CallBar`, `StatusScreen`, `PlaceDirectory`, `AreaChips`, `Coverage`, `MapFacade` (client), `QuoteFormShell`, `FormSelect` (client), `LeadCapture` (client) with `loadLazyParts` for tests, `LeadBooking` (client) and its adapters, `Faq`, `AnalyticsBoundary` (client), plus the kit and marketing pieces a landing composes with |
+| `@evinvest/kitstart/react` | either side | `LangSwitch`, `CallBar`, `StatusScreen`, `PlaceDirectory`, `AreaChips`, `Coverage`, `MapFacade` (client), `QuoteFormShell`, `FormSelect` (client) with `loadLazyParts` for tests, `LeadCapture` (client), `LeadBooking` (client) and its adapters, `Faq`, `AnalyticsBoundary` (client), plus the kit and marketing pieces a landing composes with |
 | `@evinvest/kitstart/testing` | a brand's vitest | `describeLandingContract(site, { globalsCss, proxySource, text })`, `describeLeadStoreContract(name, harness)`, `storefrontPlace`, `serviceAreaPlace`, `testLead` |
 | `@evinvest/kitstart/testing/e2e` | a brand's Playwright | `defineSectionSuite(sections)`, `settle(page, selector)`, `BREAKPOINTS` |
 | bin `kitstart-size` | plain node | `kitstart-size [<build root>] [--route …] [--budget …]`: first-load JS of a place page against the target in `tests/bundle_budget.txt` (passes with a warning up to its tolerance, 20 % by default — see [The bundle budget](#the-bundle-budget)); fails closed |
@@ -588,18 +588,10 @@ Pieces any layout takes, for a card that fits a phone's screen:
   `stepProgress`, `stepProgressOpen`, `stepBack`, `stepNext` are in `LEAD_CAPTURE_TEXT` and
   optional in `LeadCaptureText`, falling back to the kit's in the page's
   language (`flowTextOf`) — a brand's text from 0.13 still type-checks.
-- **Weight.** The screens of `steps` (and the intro), the tiles, an
-  estimate's questions, the price and the booking are each a chunk of their
-  own (`lead-parts`), asked for only by a card whose props can draw them —
-  the one-screen card with the select asks for none. The server writes them
-  into the page whole; hydrating, the card waits for the chunks it draws,
-  asked for at once from its render, the server's markup kept as it is and no
-  fallback drawn. The focus helpers stay with `LeadCapture`. On the
-  Service-Arb place pages: aquafix 187,142 → 180,809 B, vifnet 189,960 →
-  185,424 B of first-load JS (with `FormSelect`'s chunk below).
-- **Tests.** A test that renders a card and reads it at once loads the
-  chunks first: `beforeAll(loadLazyParts)` (`@evinvest/kitstart/react`). A
-  server render in node needs nothing: the parts load as their modules do.
+- **Weight.** The steps, the tiles, the compact price and the focus ride
+  with `LeadCapture` whichever layout a page uses: about 9 KB gz of
+  first-load JS on the template's place page (170,375 → 179,430 B against
+  its 158,000 B target: +13.6 %, a warning within the 20 % tolerance).
 
 ### Form variants: quote, estimate, fixed
 
@@ -694,10 +686,9 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, pricing, unavai
 - **Events.** `lead_estimate_shown {need, cents_bucket}` once per need and
   price band (`centsBucket`: `"7500-10000"`), never the price;
   `lead_booking_open {provider}` and `lead_booking_done {provider}` (below).
-- **Weight.** The questions and the price are chunks of their own (see
-  *The compact form*), asked for by a card whose price list prices one of
-  its needs; the pricing validator never reaches the browser (`labelOf` is
-  apart from it).
+- **Weight.** About 3.9 KB gz of first-load JS on the template's place page
+  (166,459 → 170,375 B against its 158,000 B target: +7.8 %, within the 20 %
+  tolerance).
 
 ### Booking: `manual`, `link`, `google_calendar`, `cal_com`
 
@@ -765,9 +756,9 @@ export const POST = bookingRoute({ env: serverEnv, webhook });
 - **`ctx.leadRef` is the panel's lead id.** A booking comes back to the panel
   carrying `leadRef` (`metadata[ref]`, `ref`, `lead_ref`), so a brand's
   `lead.created` must send `ctx.leadRef` as its lead id — not an id of its own.
-- **Weight.** `LeadBooking` and its adapters are a chunk of their own,
-  asked for with the price's by a card that can take a priced lead; the
-  price confirmation stays with `LeadCapture`.
+- **Weight.** The booking and the price confirmation add about 3.1 KB gz of
+  first-load JS to the template's place page (170,853 → 173,979 B against
+  its 158,000 B target: +10.1 %, within the 20 % tolerance).
 
 Tailwind v4 does not scan `node_modules`; the brand's `globals.css` names the
 package:
