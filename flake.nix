@@ -279,6 +279,19 @@
             '';
           };
 
+          gallery-app = pkgs.writeShellApplication {
+            name = "gallery";
+            runtimeInputs = [ rust pkgs.git ]
+            ++ pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.mold pkgs.xdg-utils ];
+            text = ''
+              cd "$(git rev-parse --show-toplevel)"
+              export TAILWIND_BROWSER_JS="${visual.tailwind}" RUSTC_WRAPPER=""
+              cargo test -q --test gallery --features uikit
+              board=rust/tests/visual/dist/index.html
+              ${if pkgs.stdenv.isDarwin then "open" else "xdg-open"} "$board"
+            '';
+          };
+
           visual-app = pkgs.writeShellApplication {
             name = "visual";
             # `mold` because .cargo/config.toml links through it on linux; without
@@ -325,6 +338,8 @@
                 nix develop                              dev shell (rust nightly, node, playwright, pre-commit)
                 nix run .#gen                            regenerate every derived file (class tables, token sheets)
                 nix run .#publish -- <major|minor|patch> cargo-release + npm publish of impacted ts packages
+                nix run .#gallery                        open every uikit component on one page (static board)
+                cargo run --example all_primitives --features uikit   same board, live/interactive on :52414
                 nix run .#visual [-- --update]           visual regression of the kit gallery
                 nix run .#kitstart-visual [-- --update]  visual regression of the kitstart widget gallery
                 nix run .#mk-landing-smoke               smoke the mk-landing fixture container (linux + docker)
@@ -333,6 +348,11 @@
               Docs: README.md, docs/
               EOF
             ''}/bin/help";
+          };
+
+          apps.gallery = {
+            type = "app";
+            program = "${gallery-app}/bin/gallery";
           };
 
           apps.publish = {
