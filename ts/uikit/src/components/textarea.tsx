@@ -3,6 +3,7 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 import { TEXTAREA_BASE, textareaSizeClasses, type TextareaSize } from "../generated/textarea";
+import { markLabelable } from "../primitives/labelable";
 import { useFieldControlId } from "./field-context";
 
 export type { TextareaSize };
@@ -22,3 +23,5 @@ export function Textarea({ className, id, size = "md", ...props }: TextareaProps
     />
   );
 }
+
+markLabelable(Textarea);

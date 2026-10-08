@@ -1,6 +1,6 @@
 {
   "name": "@evinvest/kitstart",
-  "version": "0.18.0",
+  "version": "0.18.1",
   "description": "Landing-site machinery for local-service brands: a site composition root, the Place/Presence/ServiceArea model with a publication gate, host/locale routing, schema.org and SEO builders, the lead funnel with its antispam, and analytics events. Pure core at '.', more subpaths per runtime.",
   "license": "BlueOak-1.0.0",
   "publishConfig": {
@@ -113,7 +113,7 @@
     "@types/react-dom": "^19.3.0",
     "eslint": "^9.39.5",
     "jsdom": "^25.0.1",
-    "next": "^16.3.6",
+    "next": "^16.4.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "server-only": "^0.0.1",

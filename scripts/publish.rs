@@ -664,8 +664,11 @@ fn main() -> ExitCode {
 		// and surfaces as a 404, which looks exactly like a permissions problem
 		// and is not one. An automation token avoids the whole dance; this flag
 		// is for publishing from a laptop with an authenticator to hand.
-		let mut publish = Command::new("npm");
-		publish.arg("publish").current_dir(dir).env("NPM_CONFIG_USERCONFIG", &npmrc);
+		// Staged, not published: npm lets a 2FA-bypassing token only stage, and the
+		// version goes live once its owner runs `npm stage approve` (2FA). `stage`
+		// needs npm >= 11.
+		let mut publish = Command::new("npx");
+		publish.args(["-y", "npm@12", "stage", "publish"]).current_dir(dir).env("NPM_CONFIG_USERCONFIG", &npmrc);
 		if let Some(code) = &otp {
 			publish.arg(format!("--otp={code}"));
 		}
