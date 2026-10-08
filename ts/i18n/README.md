@@ -446,7 +446,11 @@ does not resolve (relative, or matching a non-catch-all `paths` pattern), an
 `import()` of a computed path, and a `t()` the extractor cannot read are
 errors, not skips. So is a specifier no npm package can have — `@/x` (empty
 scope), `~/x`, `#x` — that nothing maps: without a tsconfig it would otherwise
-read as a package, and its keys would silently land in `serverOnly`. `--check` fails when the file on disk differs from what the
+read as a package, and its keys would silently land in `serverOnly`. Graph
+errors — an unresolved import, a computed `import()` — count only in files an
+entry reaches: a test's `await import(spec)` feeds no slice, so it needs no
+`--exclude`. An unreadable `t()` is an error anywhere under `--root`, as for
+`evinvest-i18n-check`. `--check` fails when the file on disk differs from what the
 code gives; keep the file out of the formatter, which would otherwise reflow
 it into drift. With the JSON imported under `resolveJsonModule`, a mistyped
 route key fails `tsc`.
