@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 
 import type * as FieldModule from "../../src/components/field";
 import type * as InputModule from "../../src/components/input";
+import type * as CheckboxModule from "../../src/components/checkbox";
 
 // A Server Component page that writes `<Field><FieldLabel/><Input/></Field>`
 // never runs those modules: they say "use client", so the bundler hands the
@@ -29,9 +30,10 @@ function reference<T>(module: string, name: string): T {
 const Field = reference<typeof FieldModule.Field>("field", "Field");
 const FieldLabel = reference<typeof FieldModule.FieldLabel>("field", "FieldLabel");
 const Input = reference<typeof InputModule.Input>("input", "Input");
+const Checkbox = reference<typeof CheckboxModule.Checkbox>("checkbox", "Checkbox");
 
 const manifest = Object.fromEntries(
-  ["field#Field", "field#FieldLabel", "input#Input"].map(ref => {
+  ["field#Field", "field#FieldLabel", "input#Input", "checkbox#Checkbox"].map(ref => {
     const [id, name] = ref.split("#");
     return [ref, { id, chunks: [], name }];
   }),
@@ -104,6 +106,21 @@ function SignUp() {
   );
 }
 
+// The choice card: the outer label's `for` would point at the outer Field's id,
+// which no control takes (the Checkbox takes the inner Field's), so a click on
+// the card would toggle nothing.
+function PlanCard() {
+  return (
+    <Field>
+      <FieldLabel>
+        <Field orientation="horizontal">
+          <Checkbox /> Pro
+        </Field>
+      </FieldLabel>
+    </Field>
+  );
+}
+
 describe("Field rendered from a Server Component", () => {
   it("labels its Input after hydration, by the id Field minted on the client", async () => {
     const result = await hydrate(await flight(<SignUp />));
@@ -111,5 +128,11 @@ describe("Field rendered from a Server Component", () => {
     expect(result.labelText).toBe("Email");
     expect(result.controlId).not.toBeNull();
     expect(result.labelFor).toBe(result.controlId);
+  }, 30_000);
+
+  it("gives no for to a FieldLabel around a nested Field from the server (the choice card)", async () => {
+    const result = await hydrate(await flight(<PlanCard />));
+    expect(result.recoverable).toEqual([]);
+    expect(result.labelFor).toBeNull();
   }, 30_000);
 });
