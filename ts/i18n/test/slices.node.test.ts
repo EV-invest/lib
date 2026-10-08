@@ -196,8 +196,9 @@ describe("messageSlices on what the graph cannot account for", () => {
     expect(errors).toEqual([`${INVEST}:1: cannot resolve "./gone" — a local import the graph cannot follow`]);
   });
 
-  it("reports an import() of a computed path", () => {
+  it("reports an import() of a computed path in a file a page reaches", () => {
     write("components/dynamic.ts", 'const path = "./lazy";\nexport const load = () => import(path);\n');
+    write(INVEST, 'import { load } from "@/components/dynamic";\nexport default () => { void load; return null; };\n');
 
     const { errors } = messageSlices({ root, tables: [TIPS] });
 
@@ -278,6 +279,75 @@ describe("messageSlices on what the graph cannot account for", () => {
     expect(() => messageSlices({ root, tables: [{ table: "tips/copy.ts", keys: ["tips.*.*"] }] })).toThrow(
       'key template "tips.*.*" needs exactly one "*"',
     );
+  });
+});
+
+// Import-scan errors count only where an entry reaches; t() errors count
+// anywhere under the root, as they do for `collect`. `components/x.test.ts`
+// stands for a test file no entry imports.
+describe("messageSlices on a file no entry reaches", () => {
+  const UNREACHED = "components/x.test.ts";
+
+  it("ignores an import() of a computed path and leaves the slices as they were", () => {
+    const before = messageSlices({ root, tables: [TIPS] }).slices;
+    write(UNREACHED, 'const s = "./a";\nawait import(s);\n');
+
+    const { slices, errors } = messageSlices({ root, tables: [TIPS] });
+
+    expect(errors).toEqual([]);
+    expect(slices).toEqual(before);
+  });
+
+  it("ignores a require() and an export of a computed path", () => {
+    write(UNREACHED, 'const s = "./a";\nconst m = require(s);\nexport * from s;\n');
+
+    const { errors } = messageSlices({ root, tables: [TIPS] });
+
+    expect(errors).toEqual([]);
+  });
+
+  it("ignores a relative import that resolves to no file", () => {
+    write(UNREACHED, 'import { gone } from "./gone";\nvoid gone;\n');
+
+    const { errors } = messageSlices({ root, tables: [TIPS] });
+
+    expect(errors).toEqual([]);
+  });
+
+  it("still reports a t() whose key is not a string literal", () => {
+    write(UNREACHED, 'const k = "x";\nt(k, "X");\n');
+
+    const { errors } = messageSlices({ root, tables: [TIPS] });
+
+    expect(errors).toEqual([`${UNREACHED}:2: t() key is not a string literal`]);
+  });
+
+  it("still reports a key it defines with different English", () => {
+    write(UNREACHED, 't("nav.home", "Start");\n');
+
+    const { errors } = messageSlices({ root, tables: [TIPS] });
+
+    // Which site is named first follows directory order; both are named either way.
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/"nav\.home" is also defined at .* with different English/);
+    expect(errors[0]).toContain(`${UNREACHED}:1`);
+    expect(errors[0]).toContain("shell/nav.tsx:7");
+  });
+});
+
+describe("messageSlices on a file only the shell reaches", () => {
+  it("reports an import() of a computed path", () => {
+    write("shell/loader.ts", 'const spec = "./nav";\nexport const loadNav = () => import(spec);\n');
+    write(
+      "app/[locale]/error.tsx",
+      '"use client";\nimport { useT } from "@evinvest/i18n/react";\nimport { loadNav } from "@/shell/loader";\n\n' +
+        'export default function ErrorBoundary() {\n  const t = useT();\n  void loadNav;\n' +
+        '  return <p>{t("err.title", "Something went wrong")}</p>;\n}\n',
+    );
+
+    const { errors } = messageSlices({ root, tables: [TIPS] });
+
+    expect(errors).toEqual(["shell/loader.ts:2: import() of a non-literal path cannot be followed"]);
   });
 });
 
