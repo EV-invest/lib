@@ -2,22 +2,14 @@
 
 import { lazy, Suspense, useState, useSyncExternalStore, type ComponentType } from "react";
 
-/** A chunk an island can wait for. */
-export interface Loadable {
-  /** Whether the chunk is here, for `useSyncExternalStore` with {@link LazyPart.subscribe}. */
-  isLoaded: () => boolean;
-  /** Settles once the chunk is here or failed to come — never rejects. */
-  whenLoaded: () => Promise<void>;
-  /** The part's own number, for {@link holdUntilLoaded}'s cache. */
-  key: number;
-}
-
 /** A piece of a client island in a chunk of its own, and the way to ask for that chunk early. */
-export interface LazyPart<P extends object> extends Loadable {
+export interface LazyPart<P extends object> {
   /** Drawn where the piece goes; see {@link lazyPart}. */
   Part: ComponentType<P>;
   /** Asks for the chunk — once a page; later calls share the first. */
   preload: () => void;
+  /** Whether the chunk is here, for `useSyncExternalStore` with {@link LazyPart.subscribe}. */
+  isLoaded: () => boolean;
   subscribe: (onLoad: () => void) => () => void;
 }
 
@@ -36,36 +28,6 @@ export function loadLazyParts(): Promise<void> {
   return Promise.all(LOADERS.map(load => load())).then(() => undefined);
 }
 
-/** What each set of chunks still on its way is waited on with: one promise a set, as `use` wants. */
-const HELD = new Map<string, Promise<void>>();
-
-/**
- * Suspends the island's render until every one of `parts` is here — from the
- * island's render, in the browser. Hydrating, the server's markup stays as it
- * is meanwhile; once they are here no later state of the island (the next
- * screen, the success) can draw an empty part. A chunk that failed is not
- * waited for again: its part then fails where it is drawn.
- */
-export function holdUntilLoaded(parts: readonly Loadable[]): void {
-  if (typeof window === "undefined") return;
-  const missing = parts.filter(p => !p.isLoaded());
-  if (missing.length === 0) return;
-  const key = missing
-    .map(p => p.key)
-    .sort((a, b) => a - b)
-    .join(",");
-  let held = HELD.get(key);
-  if (!held) {
-    held = Promise.all(missing.map(p => p.whenLoaded())).then(() => undefined);
-    HELD.set(key, held);
-  }
-  // Thrown, not `use`d: the island reads nothing from it, and `use` would
-  // have to be called on every later render too, where there is nothing to wait for.
-  throw held;
-}
-
-let nextKey = 0;
-
 /**
  * A component a page pays for only when it draws it — the shape of the
  * `messenger` variants (`LeadCaptureMessenger`), for any piece of an island.
@@ -75,8 +37,7 @@ let nextKey = 0;
  * would reveal late. Hydrating, a part whose chunk is still on its way holds
  * the island's hydration — the server's markup stays as it is, no fallback
  * drawn — and `preload` from the island's render starts every chunk it will
- * need at once, so none waits behind another; `holdUntilLoaded` keeps the
- * island from hydrating before the parts it may draw later. A part first drawn after
+ * need at once, so none waits behind another. A part first drawn after
  * hydration (a later step, the success) waits behind a boundary of its own,
  * drawing nothing until its chunk is here.
  */
@@ -99,11 +60,7 @@ export function lazyPart<P extends object>(load: () => Promise<ComponentType<P>>
     );
     return loading;
   };
-  const whenLoaded = () => fetchPart().then(
-    () => undefined,
-    () => undefined,
-  );
-  const preload = () => void whenLoaded();
+  const preload = () => void fetchPart().catch(() => undefined);
   LOADERS.push(fetchPart);
   if (typeof window === "undefined") preload();
   const Lazy = lazy(() => fetchPart().then(part => ({ default: part })));
@@ -126,5 +83,5 @@ export function lazyPart<P extends object>(load: () => Promise<ComponentType<P>>
     listeners.add(onLoad);
     return () => void listeners.delete(onLoad);
   };
-  return { Part, preload, isLoaded: () => loaded !== null, whenLoaded, key: nextKey++, subscribe };
+  return { Part, preload, isLoaded: () => loaded !== null, subscribe };
 }
