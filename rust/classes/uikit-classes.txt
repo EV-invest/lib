@@ -486,7 +486,9 @@ gap-2.5
 grid gap-2
 grid gap-3
 grid grid-cols-3 gap-2 px-3 py-0.5 text-right font-mono text-xs leading-5 tabular-nums hover:bg-hover
+grid max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto
 grid shrink-0 grid-cols-3 gap-2 px-3 py-1.5 text-right text-[11px] text-ink-soft [&>*:first-child]:text-left
+grid text-ink [&_[data-slot=command-group-heading]]:text-ink-soft overflow-hidden p-1 [&>[data-slot=command-group-heading]]:order-first [&_[data-slot=command-group-heading]]:px-2 [&_[data-slot=command-group-heading]]:py-1.5 [&_[data-slot=command-group-heading]]:text-xs [&_[data-slot=command-group-heading]]:font-medium
 grid w-full grid-cols-1 gap-px bg-border text-ink text-sm lg:h-[calc(100dvh-var(--ev-shell-offset,0px))] lg:grid-cols-[minmax(0,1fr)_18rem_20rem] lg:grid-rows-[auto_minmax(0,1fr)_14rem]
 group flex flex-1 list-none items-center justify-center gap-1
 group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium hover:bg-hover hover:text-ink focus:bg-hover focus:text-ink disabled:pointer-events-none disabled:opacity-50 data-[state=open]:hover:bg-hover data-[state=open]:text-ink data-[state=open]:focus:bg-hover data-[state=open]:bg-hover/50 focus-visible:ring-ring/50 outline-none transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1
@@ -601,7 +603,6 @@ lg:col-start-3 lg:row-start-2
 light
 logo-background
 mask-image:var(--brand-mark)
-max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto
 max-h-[min(24rem,calc(100dvh-2rem))]
 max-w-3xl
 max-w-[52rem] text-[15px] md:text-[17px] leading-[1.58] text-ink-soft
@@ -858,7 +859,6 @@ text-accent-warn
 text-base
 text-end tabular-nums
 text-ink
-text-ink [&_[data-slot=command-group-heading]]:text-ink-soft overflow-hidden p-1 [&_[data-slot=command-group-heading]]:px-2 [&_[data-slot=command-group-heading]]:py-1.5 [&_[data-slot=command-group-heading]]:text-xs [&_[data-slot=command-group-heading]]:font-medium
 text-ink font-mono font-medium tabular-nums
 text-ink font-normal
 text-ink font-semibold

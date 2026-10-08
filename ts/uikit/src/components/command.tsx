@@ -34,7 +34,9 @@ interface CommandContextValue {
   /// Shared by the item filter and the empty-state gate so the two can never
   /// disagree.
   query: string;
-  matches: (value: string) => boolean;
+  /// `null` filters the item out; a number is its CSS `order`, `0` while
+  /// nothing is being ranked.
+  order: (value: string) => number | null;
   hasMatches: boolean;
   listId: string;
   /// DOM id of the highlighted item. Focus stays in the input and points here
@@ -64,7 +66,45 @@ export interface CommandProps extends React.ComponentProps<"div"> {
 
 const ITEM_SELECTOR = '[data-slot="command-item"]:not([aria-disabled="true"])';
 
-/// Keyboard highlight over the items currently in the DOM, in DOM order, so it
+/// fzf v1: per space-separated term, the shortest window ending at the first
+/// full subsequence match, scored for word starts and runs, charged for gaps.
+/// `null` when a term does not match.
+function fuzzyScore(value: string, query: string): number | null {
+  const hay = [...value.toLowerCase()];
+  let total = 0;
+  for (const term of query.split(/\s+/)) {
+    const needle = [...term];
+    let k = 0;
+    let end = -1;
+    for (let i = 0; i < hay.length; i++) {
+      if (hay[i] === needle[k] && ++k === needle.length) {
+        end = i;
+        break;
+      }
+    }
+    if (end < 0) return null;
+    let start = end;
+    for (let i = end, j = needle.length - 1; j >= 0; i--) {
+      if (hay[i] === needle[j]) {
+        start = i;
+        j--;
+      }
+    }
+    let prev = -1;
+    for (let i = start, j = 0; j < needle.length; i++) {
+      if (hay[i] !== needle[j]) continue;
+      total += 16;
+      if (i === 0 || !/[\p{L}\p{N}]/u.test(hay[i - 1]!)) total += 8;
+      if (j > 0) total += i === prev + 1 ? 4 : -(3 + (i - prev - 2));
+      prev = i;
+      j++;
+    }
+  }
+  return total;
+}
+
+/// Keyboard highlight over the items currently in the DOM, in the order on
+/// screen — each container's rows by their CSS `order`, then DOM order — so it
 /// follows whatever the filter (or the caller) rendered rather than the order
 /// items happened to register in.
 function useCommandNavigation(
@@ -81,8 +121,15 @@ function useCommandNavigation(
   const enabledItems = React.useCallback((): HTMLElement[] => {
     const root = rootRef.current;
     if (!root) return [];
-    return [...root.querySelectorAll<HTMLElement>(ITEM_SELECTOR)].filter(
-      (el) => el.closest('[data-slot="command"]') === root,
+    const byParent = new Map<Element | null, HTMLElement[]>();
+    for (const el of root.querySelectorAll<HTMLElement>(ITEM_SELECTOR)) {
+      if (el.closest('[data-slot="command"]') !== root) continue;
+      const rows = byParent.get(el.parentElement) ?? [];
+      rows.push(el);
+      byParent.set(el.parentElement, rows);
+    }
+    return [...byParent.values()].flatMap((rows) =>
+      rows.sort((a, b) => Number(a.style.order) - Number(b.style.order)),
     );
   }, []);
 
@@ -195,14 +242,17 @@ export function Command({
   }, []);
 
   const query = currentSearch.trim().toLowerCase();
-  const matches = React.useCallback(
-    (value: string) =>
-      !shouldFilter || query === "" || value.toLowerCase().includes(query),
+  const order = React.useCallback(
+    (value: string) => {
+      if (!shouldFilter || query === "") return 0;
+      const score = fuzzyScore(value, query);
+      return score === null ? null : -score;
+    },
     [query, shouldFilter],
   );
   const hasMatches = React.useMemo(
-    () => [...items.values()].some(matches),
-    [items, matches],
+    () => [...items.values()].some((value) => order(value) !== null),
+    [items, order],
   );
 
   const listId = React.useId();
@@ -216,7 +266,7 @@ export function Command({
         registerItem,
         unregisterItem,
         query,
-        matches,
+        order,
         hasMatches,
         listId,
         activeId: nav.activeId,
@@ -399,7 +449,7 @@ export function CommandItem({
   children,
   ...props
 }: CommandItemProps) {
-  const { registerItem, unregisterItem, matches, activeId, activate } = useCommand();
+  const { registerItem, unregisterItem, order, activeId, activate } = useCommand();
   const reactId = React.useId();
   // The DOM id is what `aria-activedescendant` points at, so a caller's own id
   // has to be the one registered.
@@ -416,7 +466,8 @@ export function CommandItem({
     return () => unregisterItem(id);
   }, [id, value, registerItem, unregisterItem]);
 
-  if (!matches(value)) return null;
+  const rank = order(value);
+  if (rank === null) return null;
   const selected = activeId === id;
   return (
     <div
@@ -437,6 +488,7 @@ export function CommandItem({
       }}
       className={cn(COMMAND_ITEM, className)}
       {...props}
+      style={{ ...props.style, order: rank }}
     >
       {children}
     </div>

@@ -12,11 +12,11 @@ export const COMMAND_INPUT_WRAPPER = "flex h-9 items-center gap-2 border-b borde
 
 export const COMMAND_INPUT = "placeholder:text-ink-soft flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50";
 
-export const COMMAND_LIST = "max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto";
+export const COMMAND_LIST = "grid max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto";
 
 export const COMMAND_EMPTY = "py-6 text-center text-sm";
 
-export const COMMAND_GROUP = "text-ink [&_[data-slot=command-group-heading]]:text-ink-soft overflow-hidden p-1 [&_[data-slot=command-group-heading]]:px-2 [&_[data-slot=command-group-heading]]:py-1.5 [&_[data-slot=command-group-heading]]:text-xs [&_[data-slot=command-group-heading]]:font-medium";
+export const COMMAND_GROUP = "grid text-ink [&_[data-slot=command-group-heading]]:text-ink-soft overflow-hidden p-1 [&>[data-slot=command-group-heading]]:order-first [&_[data-slot=command-group-heading]]:px-2 [&_[data-slot=command-group-heading]]:py-1.5 [&_[data-slot=command-group-heading]]:text-xs [&_[data-slot=command-group-heading]]:font-medium";
 
 export const COMMAND_ITEM = "data-[selected=true]:bg-hover data-[selected=true]:text-ink [&_svg:not([class*='text-'])]:text-ink-soft relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4";
 

@@ -184,6 +184,7 @@ pub fn CommandEmpty(#[props(default)] class: String, children: Element) -> Eleme
 }
 #[component]
 pub fn CommandGroup(#[props(default)] heading: String, #[props(default)] class: String, children: Element) -> Element {
+	use_context_provider(|| CommandGroupId(dioxus::dioxus_core::current_scope_id().0));
 	let cls = cn!(COMMAND_GROUP, class);
 	rsx! {
 		div { role: "group", class: cls, "data-slot": "command-group",
@@ -194,14 +195,15 @@ pub fn CommandGroup(#[props(default)] heading: String, #[props(default)] class: 
 		}
 	}
 }
-/// Filters by case-insensitive substring of `value` against the parent
-/// `Command` search text (unless the `Command` has `should_filter: false`);
-/// non-matching items render nothing.
+/// Fuzzy-matched (fzf v1) by `value` against the parent `Command` search text
+/// and ranked through CSS `order` (unless the `Command` has `should_filter:
+/// false`); non-matching items render nothing.
 #[component]
 pub fn CommandItem(value: String, #[props(default)] disabled: bool, on_select: Option<EventHandler<String>>, #[props(default)] class: String, children: Element) -> Element {
 	let ctx = use_context::<CommandCtx>();
 	let id = use_hook(|| NEXT_ITEM_ID.fetch_add(1, Ordering::Relaxed));
 	let dom_id = use_stable_id("command-item");
+	let group = try_use_context::<CommandGroupId>().map(|g| g.0);
 	// Registered whether or not this item survives the filter below, so
 	// `CommandEmpty` gates on the search, not on who happens to be mounted.
 	// `use_reactive` re-runs it if the value or `disabled` prop changes.
@@ -214,6 +216,7 @@ pub fn CommandItem(value: String, #[props(default)] disabled: bool, on_select: O
 				value,
 				disabled,
 				dom_id: registered_id.clone(),
+				group,
 			},
 		);
 	}));
@@ -234,14 +237,14 @@ pub fn CommandItem(value: String, #[props(default)] disabled: bool, on_select: O
 	});
 
 	ctx.relayout_after_render(id);
-	if !ctx.matches(&value) {
+	let Some(rank) = ctx.order(&value) else {
 		// Unmounted by the filter: a stale element must not be placed in the document order.
 		let mut els = ctx.els;
 		if els.peek().contains_key(&id) {
 			els.write().remove(&id);
 		}
 		return rsx! {};
-	}
+	};
 	let cls = cn!(COMMAND_ITEM, class);
 	let select = {
 		let value = value.clone();
@@ -258,6 +261,7 @@ pub fn CommandItem(value: String, #[props(default)] disabled: bool, on_select: O
 			id: dom_id,
 			class: cls,
 			"data-slot": "command-item",
+			style: "order: {rank}",
 			"data-disabled": if disabled { "true" } else { "false" },
 			"data-selected": if selected { "true" } else { "false" },
 			"aria-selected": if selected { "true" } else { "false" },
@@ -324,12 +328,12 @@ impl CommandCtx {
 		query_of(&self.search.get())
 	}
 
-	fn matches(&self, value: &str) -> bool {
-		matches(&self.query(), *self.filter.read(), value)
+	fn order(&self, value: &str) -> Option<i64> {
+		order(&self.query(), *self.filter.read(), value)
 	}
 
 	fn has_matches(&self) -> bool {
-		self.items.read().values().any(|e| self.matches(&e.value))
+		self.items.read().values().any(|e| self.order(&e.value).is_some())
 	}
 
 	fn dom_id_of(&self, id: usize) -> Option<String> {
@@ -431,7 +435,13 @@ struct CommandEntry {
 	disabled: bool,
 	/// What the input's `aria-activedescendant` names while this row is highlighted.
 	dom_id: String,
+	/// The [`CommandGroup`] it renders in; rows ranked by `order` share it.
+	group: Option<usize>,
 }
+
+/// Provided by [`CommandGroup`]: `order` only reorders siblings, so keyboard order is per group.
+#[derive(Clone, Copy)]
+struct CommandGroupId(usize);
 
 fn bump(mut layout: Signal<u64>) {
 	layout.with_mut(|n| *n = n.wrapping_add(1));
@@ -445,13 +455,22 @@ fn query_of(search: &str) -> String {
 }
 
 /// The ids of the rows the keys can reach — rendered and not disabled — in the
-/// order on screen.
+/// order on screen: each group's rows by their CSS `order`, then document order.
 fn reachable_rows(items: &BTreeMap<usize, CommandEntry>, els: &BTreeMap<usize, Rc<MountedData>>, query: &str, should_filter: bool) -> Vec<usize> {
-	let mut reachable: Vec<usize> = items.iter().filter(|(_, e)| !e.disabled && matches(query, should_filter, &e.value)).map(|(id, _)| *id).collect();
-	let mut placed: Vec<(usize, Option<Rc<MountedData>>)> = reachable.iter().map(|id| (*id, els.get(id).cloned())).collect();
-	sort_into_document_order(&mut placed, |(_, el)| el.as_ref());
-	reachable = placed.into_iter().map(|(id, _)| id).collect();
-	reachable
+	let mut placed: Vec<_> = items
+		.iter()
+		.filter(|(_, e)| !e.disabled)
+		.filter_map(|(id, e)| order(query, should_filter, &e.value).map(|rank| (*id, e.group, rank, els.get(id).cloned())))
+		.collect();
+	sort_into_document_order(&mut placed, |(.., el)| el.as_ref());
+	let mut groups: Vec<Option<usize>> = Vec::new();
+	for (_, group, ..) in &placed {
+		if !groups.contains(group) {
+			groups.push(*group);
+		}
+	}
+	placed.sort_by_key(|(_, group, rank, _)| (groups.iter().position(|g| g == group).expect("collected from `placed`"), *rank));
+	placed.into_iter().map(|(id, ..)| id).collect()
 }
 
 /// The highlighted row among `reachable` (in screen order): the one the user
@@ -464,9 +483,62 @@ fn highlight_in(reachable: &[usize], moved: Option<&(usize, String)>, query: &st
 	}
 }
 
-/// With `should_filter` off every row matches: the caller's rows are the results.
-fn matches(query: &str, should_filter: bool, value: &str) -> bool {
-	!should_filter || query.is_empty() || value.to_lowercase().contains(query)
+/// A row's CSS `order` (`-score`, so the best match is on top), `None` when it is
+/// filtered out. With `should_filter` off every row stays, in the caller's order.
+fn order(query: &str, should_filter: bool, value: &str) -> Option<i64> {
+	if !should_filter || query.is_empty() {
+		return Some(0);
+	}
+	fuzzy_score(value, query).map(|score| -score)
+}
+
+/// fzf v1, as the TS port's `fuzzyScore`: per whitespace-separated term, the
+/// shortest window ending at the first full subsequence match, scored for word
+/// starts and runs, charged for gaps. `None` when a term does not match.
+fn fuzzy_score(value: &str, query: &str) -> Option<i64> {
+	let hay: Vec<char> = value.to_lowercase().chars().collect();
+	let mut total = 0;
+	for term in query.split_whitespace() {
+		let needle: Vec<char> = term.chars().collect();
+		let mut k = 0;
+		let end = hay.iter().position(|c| {
+			if *c == needle[k] {
+				k += 1;
+			}
+			k == needle.len()
+		})?;
+		let mut start = end;
+		let mut j = needle.len();
+		for i in (0..=end).rev() {
+			if hay[i] == needle[j - 1] {
+				start = i;
+				j -= 1;
+				if j == 0 {
+					break;
+				}
+			}
+		}
+		let mut prev = None;
+		let mut j = 0;
+		for i in start..=end {
+			if hay[i] != needle[j] {
+				continue;
+			}
+			total += 16;
+			if i == 0 || !hay[i - 1].is_alphanumeric() {
+				total += 8;
+			}
+			if let Some(p) = prev {
+				total += if i == p + 1 { 4 } else { -(3 + (i - p - 2) as i64) };
+			}
+			prev = Some(i);
+			j += 1;
+			if j == needle.len() {
+				break;
+			}
+		}
+	}
+	Some(total)
 }
 
 static NEXT_ITEM_ID: AtomicUsize = AtomicUsize::new(0);
@@ -498,21 +570,68 @@ mod tests {
 		assert!(html.contains("Banana"), "{html}");
 	}
 
-	#[test]
-	fn filters_items_by_substring() {
+	thread_local! {
+		static CASE: std::cell::RefCell<(Vec<&'static str>, &'static str)> = const { std::cell::RefCell::new((Vec::new(), "")) };
+	}
+
+	/// The rows `query` leaves among `values`, in the order the arrows walk them.
+	fn check(values: &[&'static str], query: &'static str, expected: &[&str]) {
 		fn app() -> Element {
+			let (values, query) = CASE.with_borrow(Clone::clone);
 			rsx! {
-				Command { default_search: "ban".to_string(),
+				Command { default_search: query.to_string(),
+					CommandInput {}
 					CommandList {
-						CommandItem { value: "Apple", "Apple" }
-						CommandItem { value: "Banana", "Banana" }
+						for v in values {
+							CommandItem { key: "{v}", value: v, {v} }
+						}
 					}
 				}
 			}
 		}
-		let html = render(app);
-		assert!(html.contains("Banana"), "match shown: {html}");
-		assert!(!html.contains("Apple"), "non-match hidden: {html}");
+		CASE.set((values.to_vec(), query));
+		let html = render_with_effects(app);
+		assert_eq!(html.matches("role=\"option\"").count(), expected.len(), "{html}");
+		let walked: Vec<String> = (0..expected.len())
+			.map(|k| {
+				let html = render_after_settled_keys(app, &vec![Key::ArrowDown; k]);
+				highlighted(&html).concat()
+			})
+			.collect();
+		assert_eq!(walked, expected, "{query:?} over {values:?}");
+	}
+
+	#[test]
+	fn fuzzy_matching_ranked_as_fzf_ranks() {
+		check(&["Apple", "Banana"], "bna", &["Banana"]);
+		check(&["Apple", "Banana"], "pe", &["Apple"]);
+		check(&["Apple", "Banana"], "ea", &[]);
+		check(&["gary.lee.nnn@xa.com", "glennamonitti@gmail.com"], "glenna", &["glennamonitti@gmail.com", "gary.lee.nnn@xa.com"]);
+		check(&["xmonx@a.com", "bob.mon@a.com"], "mon", &["bob.mon@a.com", "xmonx@a.com"]);
+		check(&["ann@gmail.com", "ann@proton.me", "bo@gmail.com"], "ann gm", &["ann@gmail.com"]);
+		check(&["b@a.com", "a@a.com"], "@a", &["b@a.com", "a@a.com"]);
+	}
+
+	#[test]
+	fn ranking_stays_within_each_group() {
+		fn app() -> Element {
+			rsx! {
+				Command { default_search: "mon".to_string(),
+					CommandInput {}
+					CommandList {
+						CommandGroup { heading: "A",
+							CommandItem { value: "xmonx", "xmonx" }
+						}
+						CommandGroup { heading: "B",
+							CommandItem { value: "xxmonxx", "xxmonxx" }
+							CommandItem { value: "mon", "mon" }
+						}
+					}
+				}
+			}
+		}
+		let walked: Vec<String> = (0..3).map(|k| highlighted(&render_after_settled_keys(app, &vec![Key::ArrowDown; k])).concat()).collect();
+		assert_eq!(walked, ["xmonx", "mon", "xxmonxx"]);
 	}
 
 	#[test]

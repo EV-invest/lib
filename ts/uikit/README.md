@@ -540,8 +540,11 @@ import { Table, TableBody, TableCard, TableCell, TableHead, TableHeader, TableRo
 ```
 ### Command
 
-By default `Command` filters its items on the client: a case-insensitive
-substring match of the typed query against each `CommandItem`'s `value`. When the
+By default `Command` filters and ranks its items on the client, as fzf does:
+each space-separated term of the query must appear in the item's `value` as a
+case-insensitive subsequence, and runs and word starts rank above scattered
+matches. Ties keep your order. Ranking is CSS `order` within `CommandList` /
+`CommandGroup`, which the arrows follow. When the
 rows are already the answer to the query — a search endpoint, a ranking of your
 own — pass `shouldFilter={false}` and own the query state:
 

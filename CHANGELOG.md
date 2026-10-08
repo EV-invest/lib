@@ -22,6 +22,15 @@ Rust crate and its TypeScript mirror at once.
 
 ## [Unreleased]
 
+### Changed
+
+- **`Command` matches like fzf** (`ev_lib` `uikit` and `@evinvest/uikit`): the
+  default filter is a case-insensitive subsequence match per space-separated
+  term, ranked by word starts, runs and gaps (fzf v1), instead of a substring
+  match. `CommandList` and `CommandGroup` are `grid`s and rows carry their rank
+  as CSS `order`, so the best match is on top and the arrows walk that order;
+  a group's heading stays first. `shouldFilter={false}` is unchanged.
+
 ### Added
 
 - **The compact price's breakdown pops over the card** (`@evinvest/kitstart/react`,

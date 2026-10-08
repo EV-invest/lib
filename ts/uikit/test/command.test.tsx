@@ -27,19 +27,48 @@ describe("Command", () => {
     expect(screen.getByText("Banana")).toBeInTheDocument();
   });
 
-  it("filters items by case-insensitive substring", () => {
-    render(
-      <Command>
-        <CommandInput placeholder="Search" />
-        <CommandList>
-          <CommandItem value="Apple">Apple</CommandItem>
-          <CommandItem value="Banana">Banana</CommandItem>
-        </CommandList>
-      </Command>,
-    );
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "ban" } });
-    expect(screen.getByText("Banana")).toBeInTheDocument();
-    expect(screen.queryByText("Apple")).toBeNull();
+  describe("fuzzy matching, ranked as fzf ranks", () => {
+    /// The rows a query leaves, in the order the arrows walk them.
+    function check(values: string[], query: string, expected: string[]) {
+      const { unmount } = render(
+        <Command>
+          <CommandInput placeholder="Search" />
+          <CommandList>
+            {values.map((v) => (
+              <CommandItem key={v} value={v}>{v}</CommandItem>
+            ))}
+          </CommandList>
+        </Command>,
+      );
+      const input = screen.getByRole("combobox");
+      fireEvent.change(input, { target: { value: query } });
+      const walked: string[] = [];
+      for (const _ of screen.queryAllByRole("option")) {
+        walked.push(document.getElementById(input.getAttribute("aria-activedescendant")!)!.textContent!);
+        fireEvent.keyDown(input, { key: "ArrowDown" });
+      }
+      unmount();
+      expect(walked).toEqual(expected);
+    }
+
+    it("keeps any subsequence, case-insensitively", () => {
+      check(["Apple", "Banana"], "BNA", ["Banana"]);
+      check(["Apple", "Banana"], "pe", ["Apple"]);
+      check(["Apple", "Banana"], "ea", []);
+    });
+
+    it("puts runs and word starts above scattered matches", () => {
+      check(["gary.lee.nnn@xa.com", "glennamonitti@gmail.com"], "glenna", ["glennamonitti@gmail.com", "gary.lee.nnn@xa.com"]);
+      check(["xmonx@a.com", "bob.mon@a.com"], "mon", ["bob.mon@a.com", "xmonx@a.com"]);
+    });
+
+    it("needs every space-separated term", () => {
+      check(["ann@gmail.com", "ann@proton.me", "bo@gmail.com"], "ann gm", ["ann@gmail.com"]);
+    });
+
+    it("leaves ties in the caller's order", () => {
+      check(["b@a.com", "a@a.com"], "@a", ["b@a.com", "a@a.com"]);
+    });
   });
 
   it("shows the empty state only when a query matches nothing", () => {
