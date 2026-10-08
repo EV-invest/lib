@@ -22,7 +22,7 @@
     "@evinvest/i18n": "^0.10.0",
     "@evinvest/kitstart": "^0.18.0",
     "@evinvest/marketing": "^0.3.0",
-    "@evinvest/uikit": "^0.27.0",
+    "@evinvest/uikit": "^0.28.0",
     "next": "16.4.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
