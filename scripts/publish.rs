@@ -22,10 +22,11 @@ serde_json = "1"
 ---
 
 //! `nix run .#publish -- <major|minor|patch> [--npm-only] [--only <name>]...`:
-//! bump+publish the Rust crates via cargo-release, then bump+publish every TS
+//! bump+publish the Rust crates via cargo-release, then bump+tag every TS
 //! package, skipping any crate/package with no changes since its own last
-//! `<name>-v*` tag (i.e. its last publish). npm auth comes from `$NPM_TOKEN` via
-//! scripts/publish.npmrc.
+//! `<name>-v*` tag (i.e. its last publish). npm takes no credential from here:
+//! the pushed tag runs `.github/workflows/npm-publish.yml`, which publishes
+//! through trusted publishing (OIDC) — the only way past npm's 2FA without a human.
 //!
 //! By default everything pending is released together, which is usually right —
 //! but one bump level then applies to all of it, and the crates go to crates.io.
@@ -293,7 +294,7 @@ fn main() -> ExitCode {
 	let level = match args.first().map(String::as_str) {
 		Some(l @ ("major" | "minor" | "patch")) => l.to_owned(),
 		_ => {
-			eprintln!("usage: publish <major|minor|patch> [--npm-only] [--only <name>]... [--skip <name>]... [--otp <code>]");
+			eprintln!("usage: publish <major|minor|patch> [--npm-only] [--only <name>]... [--skip <name>]...");
 			return ExitCode::FAILURE;
 		}
 	};
@@ -301,7 +302,6 @@ fn main() -> ExitCode {
 	let mut npm_only = false;
 	let mut only: Vec<String> = Vec::new();
 	let mut skip: Vec<String> = Vec::new();
-	let mut otp: Option<String> = None;
 	let mut rest = args[1..].iter();
 	while let Some(arg) = rest.next() {
 		match arg.as_str() {
@@ -320,16 +320,9 @@ fn main() -> ExitCode {
 					return ExitCode::FAILURE;
 				}
 			},
-			"--otp" => match rest.next() {
-				Some(code) => otp = Some(code.clone()),
-				None => {
-					eprintln!("--otp needs the six-digit code from your authenticator");
-					return ExitCode::FAILURE;
-				}
-			},
 			other => {
 				eprintln!("unknown argument: {other}");
-				eprintln!("usage: publish <major|minor|patch> [--npm-only] [--only <name>]... [--skip <name>]... [--otp <code>]");
+				eprintln!("usage: publish <major|minor|patch> [--npm-only] [--only <name>]... [--skip <name>]...");
 				return ExitCode::FAILURE;
 			}
 		}
@@ -509,26 +502,6 @@ fn main() -> ExitCode {
 		}
 	}
 
-	let npmrc = PathBuf::from(&root).join("scripts/publish.npmrc");
-
-	// Fail before releasing anything if npm publishing can't authenticate. Checking the
-	// variable is merely present is not the same as checking it works: an expired token
-	// used to get all the way to `npm publish` and die there, after cargo-release had
-	// already versioned, tagged and pushed the crates. Ask the registry who we are.
-	if !impacted.is_empty() {
-		if std::env::var_os("NPM_TOKEN").is_none() {
-			eprintln!("NPM_TOKEN must be set to publish {} npm package(s)", impacted.len());
-			return ExitCode::FAILURE;
-		}
-		match Command::new("npm").arg("whoami").env("NPM_CONFIG_USERCONFIG", &npmrc).output() {
-			Ok(out) if out.status.success() => println!(">> npm authenticated as {}", String::from_utf8_lossy(&out.stdout).trim()),
-			_ => {
-				eprintln!("NPM_TOKEN is set but the registry rejects it — nothing was released.");
-				return ExitCode::FAILURE;
-			}
-		}
-	}
-
 	// Rust: cargo-release versions, tags, commits, pushes and uploads to crates.io.
 	//
 	// In that order — which is the whole problem when the upload fails. By the time
@@ -657,37 +630,23 @@ fn main() -> ExitCode {
 			}
 		}
 
-		// `--otp` when the account enforces 2FA on publish. A token that reads
-		// fine still cannot write: npm answers by starting its interactive
-		// web-login flow ("Authenticate your account at …"), which in a
-		// non-interactive run dies polling an auth handshake nobody completed —
-		// and surfaces as a 404, which looks exactly like a permissions problem
-		// and is not one. An automation token avoids the whole dance; this flag
-		// is for publishing from a laptop with an authenticator to hand.
-		// Staged, not published: npm lets a 2FA-bypassing token only stage, and the
-		// version goes live once its owner runs `npm stage approve` (2FA). `stage`
-		// needs npm >= 11.
-		let mut publish = Command::new("npx");
-		publish.args(["-y", "npm@12", "stage", "publish"]).current_dir(dir).env("NPM_CONFIG_USERCONFIG", &npmrc);
-		if let Some(code) = &otp {
-			publish.arg(format!("--otp={code}"));
-		}
+		// What `npm publish` would check and pack, without uploading: CI publishes from the tag.
+		let mut publish = Command::new("npm");
+		publish.args(["publish", "--dry-run"]).current_dir(dir);
 		if !try_run(&mut publish) {
 			eprintln!(
-				"!! {name} did not publish — restoring {}",
+				"!! {name} would not publish — restoring {}",
 				restore.iter().map(|(p, _)| p.display().to_string()).collect::<Vec<_>>().join(", ")
 			);
 			undo();
-			// One package's npm permissions are not a reason to strand the others: a
-			// scoped token that cannot write to one name still publishes the rest.
-			failed.push((name.clone(), "npm publish failed"));
+			failed.push((name.clone(), "`npm publish --dry-run` failed"));
 			continue;
 		}
 
 		stage.push(dir.clone());
 		tags.push(format!("{name}-v{version}"));
 		if name != KITSTART {
-			// Moved only now that the registry has it. Committed with the release even
+			// Moved only once it passed its dry run. Committed with the release even
 			// when kitstart itself is not in this run: the template is part of
 			// kitstart's tarball, so kitstart is pending from here (said at the end).
 			match point_template_at(name, &version) {
@@ -712,8 +671,8 @@ fn main() -> ExitCode {
 		let committed = try_run(Command::new("git").arg("add").arg("--").args(&stage)) && try_run(Command::new("git").args(["commit", "-m", "release: npm packages", "-m", &body]));
 		if !committed {
 			eprintln!();
-			eprintln!("!! npm has {} but the release commit failed. Finish it by hand, before", tags.join(", "));
-			eprintln!("   anything else, or the next run publishes these again under new numbers:");
+			eprintln!("!! {} passed their dry runs but the release commit failed. Finish it by hand;", tags.join(", "));
+			eprintln!("   the pushed tags are what CI publishes:");
 			eprintln!();
 			eprintln!("    git add -- {}", stage.iter().map(|p| p.display().to_string()).collect::<Vec<_>>().join(" "));
 			eprintln!("    git commit -m 'release: npm packages' -m '{body}'");
@@ -746,8 +705,8 @@ fn main() -> ExitCode {
 		if !try_run(Command::new("git").args(["push", "--follow-tags"])) {
 			unpushed = true;
 			eprintln!();
-			eprintln!("!! the push failed. npm has {} and the release commit and tags exist", tags.join(", "));
-			eprintln!("   HERE ONLY: other machines will see these packages as unreleased. Finish it:");
+			eprintln!("!! the push failed, so CI publishes nothing yet: the release commit and tags for {}", tags.join(", "));
+			eprintln!("   exist HERE ONLY. Finish it:");
 			eprintln!();
 			eprintln!("    git pull --no-rebase && git push --follow-tags");
 			eprintln!();
@@ -779,29 +738,19 @@ fn main() -> ExitCode {
 
 	if !failed.is_empty() {
 		eprintln!();
-		eprintln!("published: {}", if tags.is_empty() { "nothing".to_owned() } else { tags.join(", ") });
+		eprintln!("tagged for CI to publish: {}", if tags.is_empty() { "nothing".to_owned() } else { tags.join(", ") });
 		eprintln!("FAILED:");
 		for (name, why) in &failed {
 			eprintln!("    {name}: {why}");
 		}
-		if failed.iter().any(|(_, why)| *why == "npm publish failed") {
-			eprintln!();
-			eprintln!("npm reports several different failures as a 404. Read the output above:");
-			eprintln!();
-			eprintln!("  \"Authenticate your account at https://www.npmjs.com/auth/cli/…\"");
-			eprintln!("      2FA is enforced on publish and the token cannot satisfy it. The token");
-			eprintln!("      is fine — it read the registry to get here. Re-run with --otp <code>,");
-			eprintln!("      or use an automation token, which bypasses 2FA by design.");
-			eprintln!();
-			eprintln!("  a 404 on PUT to a package that already exists");
-			eprintln!("      authenticated but not authorised. Check that $NPM_TOKEN's account");
-			eprintln!("      maintains those packages, and that a granular token lists them.");
-			eprintln!();
-			eprintln!("  a 404 on a package that does not exist yet");
-			eprintln!("      a granular token cannot create a new name — it can only list packages");
-			eprintln!("      that already exist. Use an automation or classic token for a first");
-			eprintln!("      publish.");
-		}
+	}
+
+	if !tags.is_empty() && !unpushed {
+		println!();
+		println!(
+			">> pushed {}; .github/workflows/npm-publish.yml publishes each. Watch: gh run list -w npm-publish",
+			tags.join(", ")
+		);
 	}
 
 	if failed.is_empty() && template_errors.is_empty() && untagged.is_empty() && !unpushed {

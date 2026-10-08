@@ -1,0 +1,56 @@
+# Publishes one `ts/` package through npm trusted publishing (OIDC): no token, no 2FA,
+# for a job matching the package's trusted-publisher entry (this repo, this file).
+# Fired by the `@evinvest/<pkg>-v<version>` tag `nix run .#publish` pushes; dispatch it
+# by hand with that tag to retry one.
+name: npm-publish
+'on':
+  push:
+    tags: ['@evinvest/*-v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: release tag, e.g. @evinvest/uikit-v0.28.0
+        required: true
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  publish:
+    name: ${{ inputs.tag || github.ref_name }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read the tag
+        id: tag
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          name="${TAG%-v*}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "dir=ts/${name#@evinvest/}" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG##*-v}" >> "$GITHUB_OUTPUT"
+      - name: Checkout the tag
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ steps.tag.outputs.tag }}
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+      # OIDC publishing needs npm >= 11.5.1.
+      - run: npm install -g npm@latest
+      # kitstart's `file:` devDependencies ship whatever `dist/` they have.
+      - name: Build the workspace packages kitstart links
+        if: steps.tag.outputs.dir == 'ts/kitstart'
+        run: |
+          for pkg in uikit marketing; do
+            (cd "ts/$pkg" && npm ci --ignore-scripts && npm run build)
+          done
+      - name: Publish
+        working-directory: ${{ steps.tag.outputs.dir }}
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          test "$(node -p 'require("./package.json").version')" = "$VERSION"
+          npm ci
+          npm publish --access public

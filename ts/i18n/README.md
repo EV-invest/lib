@@ -617,7 +617,7 @@ decides what gets released next time).
 ```sh
 npm run preflight                                   # from ts/i18n — verify first
 cd "$(git rev-parse --show-toplevel)"
-NPM_TOKEN=… nix run .#publish -- minor              # bumps, publishes, commits, tags, pushes
+nix run .#publish -- minor              # bumps, commits, tags, pushes; CI publishes the tag
 ```
 
 `publish.rs` walks `ts/*` and treats a package with no `<name>-v*` tag as never

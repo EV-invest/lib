@@ -100,7 +100,7 @@
           combined = v_flakes.utils.combine { inherit rust; modules = [ rs github readme ]; };
 
           # `nix run .#publish -- <major|minor|patch>`: cargo-release for the crates
-          # plus npm publish for every impacted ts package. See scripts/publish.rs;
+          # plus a release tag per impacted ts package, which CI publishes. See scripts/publish.rs;
           # this just provisions the toolchain and runs it as a cargo script.
           publish = pkgs.writeShellApplication {
             name = "publish";
