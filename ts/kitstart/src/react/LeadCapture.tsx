@@ -24,7 +24,7 @@ import { ConsentField, FormMessage, LocalityField, NameField, PhoneField, type F
 import { NeedField, type LeadCaptureLayout, type LeadNeedDisplay, type LeadNeedOption } from "./LeadCaptureNeed";
 import type { PricePart } from "./LeadCapturePrice";
 import type { StepsPart, StepView } from "./LeadCaptureSteps";
-import { EstimateInputsPart, EstimateQuestionPart, IntroFieldPart, LeadBookingPart, LeadStepsPart, holdLeadParts, PriceBoxPart, PriceCompactPart } from "./lead-parts";
+import { EstimateInputsPart, EstimateQuestionPart, IntroFieldPart, LeadBookingPart, LeadStepsPart, preloadLeadParts, PriceBoxPart, PriceCompactPart } from "./lead-parts";
 import { drawsAt, initialMode, MessengerSlot, messengerShownOf, NO_MESSENGERS, useMessageRef } from "./LeadCaptureMessenger";
 import type { MessengerAt, MessengerKit, MessengerPart, PhoneOptions } from "./messenger/types";
 import { stepOfField, stepsOf, useLeadSteps, type LeadIntro, type StepId } from "./lead-steps";
@@ -248,9 +248,8 @@ export function LeadCapture(props: LeadCaptureProps) {
   const shownNeed = need ?? (layout === "single" && needDisplay === "select" ? needs[0]?.value : undefined);
   const model = props.pricing ?? null;
   // From the render, not an effect: hydrating waits for the chunks the card
-  // may draw — an effect would only ask for them after it, and a screen
-  // reached before its chunk would draw empty.
-  holdLeadParts({
+  // draws, and an effect would only ask for them after it.
+  preloadLeadParts({
     steps,
     tiles: needDisplay !== "select",
     priced: model !== null && needs.some(n => flowOf(props.flows, model, n.value) !== "quote"),
