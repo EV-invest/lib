@@ -638,18 +638,6 @@ export type {
 
 // Tier D — heavy engines (dep-light: see README Limitations).
 export {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartStyle,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "./components/chart";
-export type {
-  ChartConfig,
-  ChartItem,
-} from "./components/chart";
-export {
   Calendar,
 } from "./components/calendar";
 export type {
@@ -683,17 +671,6 @@ export {
   FormLabel,
   FormMessage,
 } from "./components/form";
-export {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "./components/resizable";
-export type {
-  ResizableDirection,
-  ResizableHandleProps,
-  ResizablePanelGroupProps,
-  ResizablePanelProps,
-} from "./components/resizable";
 
 // Features — screens composed from the bricks above.
 export {

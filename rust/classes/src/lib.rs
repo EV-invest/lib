@@ -16,7 +16,6 @@ mod button_group;
 mod calendar;
 mod card;
 mod carousel;
-mod chart;
 mod checkbox;
 mod command;
 mod container;
@@ -41,7 +40,6 @@ mod navigation_menu;
 mod popover;
 mod progress;
 mod radio_group;
-mod resizable;
 mod scroll_area;
 mod select;
 mod separator;
@@ -78,7 +76,6 @@ pub use carousel::{
 	CAROUSEL_CONTENT_TRACK, CAROUSEL_CONTENT_TRACK_HORIZONTAL, CAROUSEL_CONTENT_TRACK_VERTICAL, CAROUSEL_CONTENT_VIEWPORT, CAROUSEL_EDGE_FADE_NEXT, CAROUSEL_EDGE_FADE_PREV, CAROUSEL_ITEM,
 	CAROUSEL_ITEM_HORIZONTAL, CAROUSEL_ITEM_VERTICAL, CAROUSEL_NAV, CAROUSEL_NEXT_HORIZONTAL, CAROUSEL_NEXT_VERTICAL, CAROUSEL_PREVIOUS_HORIZONTAL, CAROUSEL_PREVIOUS_VERTICAL,
 };
-pub use chart::{CHART_CONTAINER, CHART_LEGEND, CHART_TOOLTIP};
 pub use checkbox::{CHECKBOX_BASE, CHECKBOX_INDICATOR};
 pub use command::{
 	COMMAND_DIALOG_COMMAND, COMMAND_DIALOG_CONTENT, COMMAND_DIALOG_OVERLAY, COMMAND_EMPTY, COMMAND_GROUP, COMMAND_INPUT, COMMAND_INPUT_WRAPPER, COMMAND_ITEM, COMMAND_LIST, COMMAND_ROOT,
@@ -125,7 +122,6 @@ pub use navigation_menu::{
 pub use popover::POPOVER_CONTENT;
 pub use progress::{PROGRESS_INDICATOR, PROGRESS_TRACK};
 pub use radio_group::{RADIO_GROUP_ITEM, RADIO_GROUP_ROOT};
-pub use resizable::{RESIZABLE_GROUP, RESIZABLE_HANDLE, RESIZABLE_HANDLE_GRIP, RESIZABLE_PANEL};
 pub use scroll_area::{SCROLL_AREA_THUMB, SCROLL_AREA_VIEWPORT, SCROLLBAR_BASE, ScrollBarOrientation};
 pub use select::{SELECT_CONTENT_BOUNDS, SELECT_ITEM, native_select_size_class, select_trigger_size_class};
 pub use separator::{Orientation, SEPARATOR_BASE};

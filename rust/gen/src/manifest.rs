@@ -46,7 +46,6 @@ pub fn manifest() -> Vec<(&'static str, Vec<Ts>)> {
 		("progress", progress()),
 		("radio-group", radio_group()),
 		("input-otp", input_otp()),
-		("chart", chart()),
 		("calendar", calendar()),
 		("date-time-picker", date_time_picker()),
 		("drawer", drawer()),
@@ -54,7 +53,6 @@ pub fn manifest() -> Vec<(&'static str, Vec<Ts>)> {
 		("tabs", tabs()),
 		("carousel", carousel()),
 		("accordion", accordion()),
-		("resizable", resizable()),
 		("dropdown-menu", dropdown_menu()),
 		("context-menu", context_menu()),
 		("menubar", menubar()),
@@ -624,27 +622,6 @@ fn accordion() -> Vec<Ts> {
 	]
 }
 
-fn resizable() -> Vec<Ts> {
-	vec![
-		Ts::Const {
-			name: "RESIZABLE_GROUP",
-			value: RESIZABLE_GROUP,
-		},
-		Ts::Const {
-			name: "RESIZABLE_PANEL",
-			value: RESIZABLE_PANEL,
-		},
-		Ts::Const {
-			name: "RESIZABLE_HANDLE",
-			value: RESIZABLE_HANDLE,
-		},
-		Ts::Const {
-			name: "RESIZABLE_HANDLE_GRIP",
-			value: RESIZABLE_HANDLE_GRIP,
-		},
-	]
-}
-
 fn drawer() -> Vec<Ts> {
 	vec![
 		Ts::Const {
@@ -708,23 +685,6 @@ fn input_otp() -> Vec<Ts> {
 		Ts::Const {
 			name: "INPUT_OTP_SLOT_CARET",
 			value: INPUT_OTP_SLOT_CARET,
-		},
-	]
-}
-
-fn chart() -> Vec<Ts> {
-	vec![
-		Ts::Const {
-			name: "CHART_CONTAINER",
-			value: CHART_CONTAINER,
-		},
-		Ts::Const {
-			name: "CHART_TOOLTIP",
-			value: CHART_TOOLTIP,
-		},
-		Ts::Const {
-			name: "CHART_LEGEND",
-			value: CHART_LEGEND,
 		},
 	]
 }

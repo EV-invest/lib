@@ -608,8 +608,7 @@ element across the two ports.
 - **Tier C — overlay (13):** tooltip, popover, hover-card, dropdown-menu,
   context-menu, menubar, navigation-menu, dialog, alert-dialog, sheet, drawer,
   select, command.
-- **Tier D — engines (6):** chart, calendar, date-time-picker, sonner (toaster),
-  form, resizable.
+- **Tier D — engines (4):** calendar, date-time-picker, sonner (toaster), form.
 - **Site chrome (7):** header (marketing / compact density, plus `hideNav`),
   footer, logo, and the shared status pages — `StatusScreen` with the `NotFound`
   / `Forbidden` / `ServerError` presets (404 / 403 / 500). The kit ships no
@@ -673,10 +672,6 @@ measuring needs host-only `web-sys`). Known gaps:
   `onkeydown` — and `AlertDialog`, `Sheet`, `Drawer`, `ContextMenu`, `Menubar`,
   `NavigationMenu`, `HoverCard`, `Tooltip`, `InfoTip`, `DateTimePicker`,
   `CommandDialog` and `DropdownMenuSub` are not on the stack yet.
-- **chart:** the recharts plotting engine is not bundled. `ChartContainer` is a
-  themed SVG host (emits `--color-*` from its config); `ChartTooltipContent` /
-  `ChartLegendContent` are presentational and take explicit items. Draw series
-  yourself inside the container.
 - **terminal:** no plotting engine and no state. `TerminalChart` is a sized
   `relative` host that hands its element out (`ref` in TS, `id` in Rust) for a
   consumer-chosen charting library to mount into; `OrderForm` only prevents the
@@ -722,9 +717,8 @@ measuring needs host-only `web-sys`). Known gaps:
   onto an arbitrary child (no `Slot`), so it publishes them as a
   `FormControlContext` that `Input`/`Textarea` consume; wrap a bare element and
   you wire them yourself.
-- **resizable / carousel:** pointer-drag physics are TS-only (keyboard in Rust
-  for resizable; prev/next + keyboard for carousel). Embla momentum is not
-  reproduced.
+- **carousel:** pointer-drag physics are TS-only (prev/next + keyboard in
+  Rust). Embla momentum is not reproduced.
 - **drawer:** the Vaul-style enter/exit motion is shared by both ports via
   `motion.css` (inlined into `tokens.css`), keyed on `data-slot` +
   `data-vaul-drawer-direction` + `data-state`; the panel stays mounted on close

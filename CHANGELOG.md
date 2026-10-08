@@ -22,6 +22,11 @@ Rust crate and its TypeScript mirror at once.
 
 ## [Unreleased]
 
+### Removed
+
+- **`Chart*` and `Resizable*`** (`ev_lib` + `@evinvest/uikit`, and their class
+  constants): no consumer used them. The `chart-1 … chart-5` palette tokens stay.
+
 ### Changed
 
 - **`Field` no longer imports the controls it labels** (`@evinvest/uikit`):

@@ -35,12 +35,12 @@ const GALLERY: &[(&str, fn() -> Element)] = &[
 	("Switch", d_switch), ("RadioGroup", d_radio_group), ("Slider", d_slider),
 	("Toggle", d_toggle), ("ToggleGroup", d_toggle_group), ("Tabs", d_tabs),
 	("Accordion", d_accordion), ("Collapsible", d_collapsible), ("InputGroup", d_input_group),
-	("InputOTP", d_input_otp), ("Carousel", d_carousel), ("Calendar", d_calendar), ("DateTimePicker", d_date_time_picker), ("Chart", d_chart),
+	("InputOTP", d_input_otp), ("Carousel", d_carousel), ("Calendar", d_calendar), ("DateTimePicker", d_date_time_picker),
 	("Tooltip", d_tooltip), ("Popover", d_popover), ("HoverCard", d_hover_card),
 	("DropdownMenu", d_dropdown_menu), ("ContextMenu", d_context_menu), ("Menubar", d_menubar),
 	("Select", d_select), ("Dialog", d_dialog), ("AlertDialog", d_alert_dialog),
 	("Sheet", d_sheet), ("Drawer", d_drawer), ("Command", d_command), ("NavigationMenu", d_navigation_menu),
-	("Sidebar", d_sidebar), ("Resizable", d_resizable), ("ScrollArea", d_scroll_area),
+	("Sidebar", d_sidebar), ("ScrollArea", d_scroll_area),
 	("Form", d_form), ("Container", d_container), ("Terminal", d_terminal),
 ];
 fn render_fragment(app: fn() -> Element) -> String {
@@ -650,25 +650,6 @@ fn d_date_time_picker() -> Element {
 	}
 }
 
-fn d_chart() -> Element {
-	let config: ChartConfig = vec![(
-		"revenue".to_string(),
-		ChartSeries {
-			label: Some("Revenue".to_string()),
-			color: Some("var(--positive)".to_string()),
-		},
-	)];
-	rsx! {
-		ChartContainer { id: "demo", class: "w-72", config,
-			div { class: "flex h-40 items-end gap-2",
-				for h in [40, 72, 55, 90, 65, 80] {
-					div { class: "w-8 rounded-t bg-positive", style: "height: {h}%" }
-				}
-			}
-		}
-	}
-}
-
 // ── Tier C — overlay (shown open; the cell transform boxes the fixed layer) ──
 
 fn d_tooltip() -> Element {
@@ -893,20 +874,6 @@ fn d_sidebar() -> Element {
 						}
 					}
 				}
-			}
-		}
-	}
-}
-
-fn d_resizable() -> Element {
-	rsx! {
-		ResizablePanelGroup { class: "h-40 max-w-md rounded-lg border border-border",
-			ResizablePanel { index: 0, default_size: 40.0,
-				div { class: "flex h-full items-center justify-center p-4", "Panel A" }
-			}
-			ResizableHandle { index: 0 }
-			ResizablePanel { index: 1, default_size: 60.0,
-				div { class: "flex h-full items-center justify-center p-4", "Panel B" }
 			}
 		}
 	}

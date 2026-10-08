@@ -24,7 +24,6 @@
 [--table-px:initial]
 [--table-px:initial] [--table-py:initial] [--table-head-ink:initial] [--table-head-text:initial] [--table-head-tracking:initial] [--table-head-case:initial]
 [.border-t]:pt-6
-[data-chart=chart-x]
 [overflow-wrap:anywhere]
 absolute inset-0 h-full w-full opacity-0 disabled:cursor-not-allowed
 absolute inset-0 top-1/2 shrink-0 bg-border h-px w-full
@@ -120,12 +119,10 @@ bg-background text-ink-soft relative mx-auto block w-fit px-2
 bg-border
 bg-border -mx-1 h-px
 bg-border -mx-1 my-1 h-px
-bg-border focus-visible:ring-ring relative flex w-px items-center justify-center after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2 focus-visible:ring-1 focus-visible:ring-offset-1 focus-visible:outline-hidden data-[panel-group-direction=vertical]:h-px data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:after:left-0 data-[panel-group-direction=vertical]:after:h-1 data-[panel-group-direction=vertical]:after:w-full data-[panel-group-direction=vertical]:after:translate-x-0 data-[panel-group-direction=vertical]:after:-translate-y-1/2 [&[data-panel-group-direction=vertical]>div]:rotate-90
 bg-border mx-2 h-px w-auto shrink-0
 bg-border pointer-events-none -mx-1 my-1 h-px
 bg-border relative flex-1 rounded-full
 bg-border shrink-0
-bg-border z-10 flex h-4 w-3 items-center justify-center rounded-xs border border-border
 bg-brand
 bg-card
 bg-card text-ink
@@ -186,8 +183,6 @@ border-accent-warn/40
 border-b border-border last:border-b-0
 border-border
 border-border text-ink [a&]:hover:bg-hover [a&]:hover:text-ink
-border-border/50
-border-border/50 bg-background grid min-w-[8rem] items-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl
 border-dashed
 border-input
 border-input placeholder:text-ink-soft focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-accent-error/20 aria-invalid:border-accent-error flex field-sizing-content min-h-16 w-full rounded-[var(--control-radius)] border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm
@@ -221,8 +216,6 @@ card-header
 card-title
 carousel-content
 carousel-item
-chart-legend
-chart-{id}
 checkbox-indicator
 col-span-2 lg:col-span-2
 col-span-2 lg:col-span-3
@@ -284,8 +277,6 @@ data-area
 data-area=\
 data-autodismiss
 data-autodismiss=\
-data-chart
-data-chart=\
 data-collapsible
 data-collapsible=\
 data-content
@@ -299,8 +290,6 @@ data-front=\
 data-inset
 data-orientation
 data-orientation=\
-data-panel-group-direction
-data-panel-group-direction=\
 data-placeholder
 data-placeholder=
 data-placeholder=\
@@ -394,7 +383,6 @@ fixed inset-0 z-50 bg-black/50
 fixed inset-0 z-50 bg-black/50 data-[state=closed]:pointer-events-none
 fixed top-1/2 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-lg border border-border p-0 shadow-lg
 flex
-flex aspect-video justify-center text-xs [&_.recharts-layer]:outline-hidden [&_.recharts-surface]:outline-hidden [&_svg]:outline-hidden
 flex basis-full items-center justify-between gap-2
 flex flex-1 flex-col gap-1 [&+[data-slot=item-content]]:flex-none
 flex flex-1 items-center justify-center p-6 text-sm text-ink-soft
@@ -409,7 +397,6 @@ flex flex-col gap-6 has-[>[data-slot=checkbox-group]]:gap-3 has-[>[data-slot=rad
 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end
 flex h-9 items-center gap-2 border-b border-border px-3
 flex h-9 shrink-0 items-center gap-2 border-b border-border px-3 text-xs font-medium text-ink-mid
-flex h-full w-full data-[panel-group-direction=vertical]:flex-col
 flex items-center
 flex items-center gap-2
 flex items-center gap-2 border-t border-border px-3 py-2
@@ -417,7 +404,6 @@ flex items-center gap-2 text-sm leading-none font-medium select-none group-data-
 flex items-center gap-[7px] whitespace-nowrap
 flex items-center justify-between gap-1 w-full px-1
 flex items-center justify-between gap-2 text-xs
-flex items-center justify-center gap-4
 flex items-center justify-center text-current transition-none
 flex items-center px-6 [.border-t]:pt-6
 flex max-w-sm flex-col items-center gap-2 text-center
@@ -515,11 +501,9 @@ h-12 px-3 min-w-12
 h-12 px-4 text-base
 h-12 px-4 text-base md:text-base file:h-9
 h-12 text-sm group-data-[collapsible=icon]:p-0!
-h-2 w-2 shrink-0 rounded-[2px]
 h-2.5 flex-col border-t border-t-transparent
 h-4
 h-4 w-24
-h-40
 h-6
 h-6 gap-1 px-2 rounded-[calc(var(--radius)-5px)] [&>svg:not([class*='size-'])]:size-3.5 has-[>svg]:px-2
 h-7 aspect-square px-0
@@ -537,7 +521,6 @@ h-9
 h-9 aspect-square px-0
 h-9 px-2 min-w-9
 h-9 px-4 py-[var(--control-py)] has-[>svg]:px-3
-h-full
 h-full w-2.5 border-l border-l-transparent
 has-data-[slot=card-action]:grid-cols-[1fr_auto]
 hint-body
@@ -732,7 +715,6 @@ py-[var(--table-dense-py,var(--table-py,calc(var(--spacing)*2)))]
 radio-group
 radio-group-indicator
 radio-group-item
-recharts-cartesian
 relative
 relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2
 relative flex items-center gap-2 has-disabled:opacity-50
@@ -745,9 +727,6 @@ relative size-9 shrink-0 p-0 select-none
 relative size-9 shrink-0 p-0 text-center select-none
 relative w-full overflow-x-auto
 relative w-full rounded-lg border px-4 py-3 text-sm grid has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] grid-cols-[0_1fr] has-[>svg]:gap-x-3 gap-y-0.5 items-start [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current
-resizable-handle
-resizable-panel
-resizable-panel-group
 ring-offset-background focus-visible:ring-ring absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:pointer-events-none
 ring-offset-background focus-visible:ring-ring absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4
 rounded-[4px]
@@ -755,7 +734,6 @@ rounded-[var(--control-radius)]
 rounded-full
 rounded-md
 rounded-xl
-rounded-xs
 scroll-area
 scroll-area-scrollbar
 scroll-area-thumb
@@ -780,7 +758,6 @@ sheet-header
 sheet-overlay
 sheet-title
 sheet-trigger
-shrink-0 rounded-[2px] h-2.5 w-2.5
 sidebar-content
 sidebar-footer
 sidebar-group
@@ -800,7 +777,6 @@ size-10
 size-10 rounded-sm overflow-hidden [&_img]:size-full [&_img]:object-cover
 size-11 px-0
 size-2 fill-current
-size-2.5
 size-3.5
 size-4
 size-4 animate-spin
@@ -859,7 +835,6 @@ text-accent-warn
 text-base
 text-end tabular-nums
 text-ink
-text-ink font-mono font-medium tabular-nums
 text-ink font-normal
 text-ink font-semibold
 text-ink px-2 py-1.5 text-sm font-medium data-[inset]:pl-8
