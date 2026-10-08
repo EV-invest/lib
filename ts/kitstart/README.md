@@ -592,9 +592,10 @@ Pieces any layout takes, for a card that fits a phone's screen:
   estimate's questions, the price and the booking are each a chunk of their
   own (`lead-parts`), asked for only by a card whose props can draw them —
   the one-screen card with the select asks for none. The server writes them
-  into the page whole; hydrating, the card waits for the chunks it draws,
-  asked for at once from its render, the server's markup kept as it is and no
-  fallback drawn. The focus helpers stay with `LeadCapture`. On the
+  into the page whole; hydrating, the card waits for every chunk it may
+  draw, asked for at once from its render, the server's markup kept as it is
+  and no fallback drawn — so no screen the visitor reaches later (the next
+  step, an estimate's questions, the success with its booking) draws empty. The focus helpers stay with `LeadCapture`. On the
   Service-Arb place pages: aquafix 187,142 → 180,809 B, vifnet 189,960 →
   185,424 B of first-load JS (with `FormSelect`'s chunk below).
 - **Tests.** A test that renders a card and reads it at once loads the

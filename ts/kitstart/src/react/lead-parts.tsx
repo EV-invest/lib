@@ -1,4 +1,4 @@
-import { lazyPart } from "./lazy-part";
+import { holdUntilLoaded, lazyPart, type Loadable } from "./lazy-part";
 
 /**
  * `LeadCapture`'s pieces that only some cards draw, each in a chunk of its
@@ -26,23 +26,19 @@ export interface LeadPartsWanted {
 }
 
 /**
- * Asks at once for every chunk the card may draw, from its render: hydrating
- * waits for the ones drawn now, and none of them behind another. Later ones
- * (an estimate after the need, the booking after the lead) are there by the
- * time the visitor gets to them.
+ * Every chunk the card may draw, asked for at once from its render, and the
+ * render held until they are all here. Hydrating, the server's markup stays
+ * as it is meanwhile; after, no state the visitor reaches — the next screen,
+ * an estimate's questions, the success with its booking — waits on a chunk
+ * and draws empty. They come in parallel, so the hold is about the slowest
+ * one, not their sum.
  */
-export function preloadLeadParts(wanted: LeadPartsWanted): void {
-  if (typeof window === "undefined") return;
-  if (wanted.steps) {
-    LeadStepsPart.preload();
-    IntroFieldPart.preload();
-  }
-  if (wanted.tiles || wanted.steps || wanted.priced) TileGroupPart.preload();
-  if (wanted.priced) {
-    EstimateInputsPart.preload();
-    EstimateQuestionPart.preload();
-    PriceBoxPart.preload();
-    PriceCompactPart.preload();
-    if (wanted.booking) LeadBookingPart.preload();
-  }
+export function holdLeadParts(wanted: LeadPartsWanted): void {
+  const parts: Loadable[] = [];
+  if (wanted.steps) parts.push(LeadStepsPart, IntroFieldPart);
+  if (wanted.tiles || wanted.steps || wanted.priced) parts.push(TileGroupPart);
+  if (wanted.priced) parts.push(EstimateInputsPart, EstimateQuestionPart, PriceBoxPart, PriceCompactPart);
+  if (wanted.priced && wanted.booking) parts.push(LeadBookingPart);
+  if (typeof window !== "undefined") for (const part of parts) part.whenLoaded();
+  holdUntilLoaded(parts);
 }
