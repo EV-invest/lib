@@ -15,9 +15,9 @@ export default defineConfig({
   },
   test: {
     // `*.node.test.ts(x)` in node — the core must work with no DOM — and
-    // `*.react.test.tsx` in jsdom, every lazily loaded part of the kit loaded
-    // first; `*.cold.test.tsx` in jsdom with none of them, for the page that
-    // is still fetching them.
+    // `*.react.test.tsx` in jsdom, every lazily loaded part of the kit (today
+    // FormSelect's list) loaded first; `*.cold.test.tsx` in jsdom with none of
+    // them, for the page that is still fetching them.
     projects: [
       { extends: true, test: { name: "node", environment: "node", include: ["test/**/*.node.test.{ts,tsx}"] } },
       {

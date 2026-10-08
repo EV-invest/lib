@@ -16,8 +16,8 @@ import type * as KitModule from "../../src/react/index";
  * when the test lets it.
  */
 
-/** The modules the kit fetches as chunks of their own (`lead-parts`, `FormSelect`). */
-export const CHUNKS = ["LeadCaptureSteps", "LeadCaptureEstimate", "LeadCaptureTiles", "LeadCapturePrice", "FormSelectKit"] as const;
+/** The modules the kit fetches as chunks of their own: `FormSelect`'s scripted list. */
+export const CHUNKS = ["FormSelectKit"] as const;
 export type ChunkName = (typeof CHUNKS)[number];
 
 export interface Chunk {
