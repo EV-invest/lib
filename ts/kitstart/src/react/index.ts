@@ -23,6 +23,7 @@ export { Faq, type FaqPart, type FaqProps } from "./Faq";
 export { FormSelect, type FormSelectOption, type FormSelectPart, type FormSelectProps } from "./FormSelect";
 export { LangSwitch, withLang, type LangSwitchProps } from "./LangSwitch";
 export { LeadCapture, type LeadCapturePart, type LeadCaptureProps } from "./LeadCapture";
+export { loadLazyParts } from "./lazy-part";
 export { LeadBooking, type LeadBookingProps } from "./LeadBooking";
 export type { BookingPart } from "./LeadBookingManual";
 export {
@@ -43,7 +44,7 @@ export {
 export { BOOKING_ACTION } from "./use-booking";
 export type { LeadSent } from "./use-lead-submit";
 export type { LeadCaptureLayout, LeadNeedDisplay, LeadNeedOption } from "./LeadCaptureNeed";
-export type { EstimateQuestion, EstimateQuestions } from "./LeadCaptureEstimate";
+export type { EstimateQuestion, EstimateQuestions } from "./estimate-plan";
 export type { LeadIntro, LeadIntroOption } from "./lead-steps";
 export type { ChannelIconKey } from "./LeadCaptureChannels";
 export type { MessengerPart } from "./messenger/types";
