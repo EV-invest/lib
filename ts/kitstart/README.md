@@ -196,9 +196,9 @@ template's e2e, which CI runs: `npm run check:template -- --e2e`).
   its list, with the kit's focus ring.
 - **Weight.** The kit's `Select` — the list's placing, dismissal and keys —
   is out of the first load, in `FormSelectKit`'s chunk; the native select and
-  the value's plumbing stay. A page whose form uses the kit's `Field` still
-  loads `Select` up front: `@evinvest/uikit`'s `Field` imports
-  `SelectTrigger` to recognise the control it labels.
+  the value's plumbing stay. With `@evinvest/uikit` before 0.28 a page whose
+  form uses the kit's `Field` still loads `Select` up front: that `Field`
+  imported `SelectTrigger` to recognise the control it labels.
 - **Controlled, as an `<input>`.** Under `value` the prop is the value: a
   pick only calls `onValueChange`, and the parent's state (or a reset of its
   own, `setSubject("")` back to the placeholder) is what moves it. A form
