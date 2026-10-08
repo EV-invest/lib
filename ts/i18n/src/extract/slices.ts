@@ -12,8 +12,8 @@
  * of another language, silently. So every import is followed (type-only ones
  * excepted), every file below a `"use client"` boundary counts as client, and
  * anything the graph cannot account for — a local import that does not
- * resolve, an `import()` of a computed path, a `t()` with a computed key — is
- * an error rather than a skip.
+ * resolve, an `import()` of a computed path in a file an entry reaches, a
+ * `t()` with a computed key anywhere — is an error rather than a skip.
  *
  * Syntactic, like the extractor: `ts.createSourceFile` per file, no program and
  * no type checker; `paths` come from the app's tsconfig.
@@ -110,7 +110,13 @@ const JS_TO_TS: Readonly<Record<string, readonly string[]>> = {
 interface Module {
   client: boolean;
   entries: Entry[];
-  errors: string[];
+  /** Unreadable `t()` calls: errors wherever the file is, as they are for `collect`. */
+  callErrors: string[];
+  /**
+   * Imports of a computed path: errors only in a file an entry reaches, the one
+   * place an unfollowed path could carry keys out of a slice.
+   */
+  importErrors: string[];
   literals: ReadonlySet<string>;
   /** Specifiers with the node they were read at; resolved on first traversal. */
   specifiers: { specifier: string; at: string }[];
@@ -154,14 +160,15 @@ function startsClientBoundary(source: ts.SourceFile): boolean {
 }
 
 /** Runtime imports (static, re-exports, `import()`, `require`) and every string literal. */
-function scan(path: string, source: ts.SourceFile): Pick<Module, "errors" | "literals" | "specifiers"> {
-  const errors: string[] = [];
+function scan(path: string, source: ts.SourceFile): Pick<Module, "importErrors" | "literals" | "specifiers"> {
+  const importErrors: string[] = [];
   const literals = new Set<string>();
   const specifiers: Module["specifiers"] = [];
   const add = (node: ts.Node, specifier: ts.Node | undefined, what: string) => {
     const text = specifier === undefined ? null : literal(specifier);
     // A computed path could load anything, and its keys would be in no slice.
-    if (text === null) errors.push(`${where(path, source, node)}: ${what} of a non-literal path cannot be followed`);
+    if (text === null)
+      importErrors.push(`${where(path, source, node)}: ${what} of a non-literal path cannot be followed`);
     else specifiers.push({ specifier: text, at: where(path, source, node) });
   };
   const visit = (node: ts.Node) => {
@@ -182,7 +189,7 @@ function scan(path: string, source: ts.SourceFile): Pick<Module, "errors" | "lit
     ts.forEachChild(node, visit);
   };
   visit(source);
-  return { errors, literals, specifiers };
+  return { importErrors, literals, specifiers };
 }
 
 /** `paths` and `baseUrl` of one tsconfig, `extends` followed. */
@@ -345,7 +352,14 @@ export function messageSlices(options: SliceOptions): SliceResult {
     if (known !== undefined) return known;
     let module: Module;
     if (!CODE.test(path)) {
-      module = { client: false, entries: [], errors: [], literals: new Set(), specifiers: [] };
+      module = {
+        client: false,
+        entries: [],
+        callErrors: [],
+        importErrors: [],
+        literals: new Set(),
+        specifiers: [],
+      };
     } else {
       const source = parse(path, readFileSync(join(root, path), "utf8"));
       const calls = callsIn(path, source);
@@ -353,7 +367,8 @@ export function messageSlices(options: SliceOptions): SliceResult {
       module = {
         client: startsClientBoundary(source),
         entries: calls.entries,
-        errors: [...calls.errors, ...scanned.errors],
+        callErrors: calls.errors,
+        importErrors: scanned.importErrors,
         literals: scanned.literals,
         specifiers: scanned.specifiers,
       };
@@ -437,11 +452,20 @@ export function messageSlices(options: SliceOptions): SliceResult {
     return keys;
   };
 
-  const shell = keysOf(reach(shellEntries));
+  // Every file some entry loads: a computed import elsewhere (a test's
+  // `await import(spec)`) feeds no slice, so it is no error here.
+  const reachable = new Set<string>();
+  const reachAndRecord = (starts: readonly string[]) => {
+    const reached = reach(starts);
+    for (const path of reached.all) reachable.add(path);
+    return reached;
+  };
+
+  const shell = keysOf(reachAndRecord(shellEntries));
   const routes: Record<string, string[]> = {};
   const carried = new Set(shell);
   for (const page of pages) {
-    const own = [...keysOf(reach([page]))].filter(key => !shell.has(key));
+    const own = [...keysOf(reachAndRecord([page]))].filter(key => !shell.has(key));
     for (const key of own) carried.add(key);
     routes[page] = sortedArray(own);
   }
@@ -452,7 +476,8 @@ export function messageSlices(options: SliceOptions): SliceResult {
 
   const errors = [
     ...ruleErrors,
-    ...[...modules.values()].flatMap(module => module.errors),
+    ...[...modules.values()].flatMap(module => module.callErrors),
+    ...[...reachable].flatMap(path => load(path).importErrors),
     ...dedupe(everyEntry).errors,
     ...graphErrors,
   ];

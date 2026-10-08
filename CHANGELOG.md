@@ -214,6 +214,13 @@ Rust crate and its TypeScript mirror at once.
 
 ### Fixed
 
+- **`evinvest-i18n-slices` ignores computed imports outside the graph**
+  (`@evinvest/i18n`). Every file under `--root` is parsed for `serverOnly`,
+  and an `import()` / `require()` of a computed path in any of them failed the
+  run — a test's `await import(spec)` had to be listed in `--exclude` by name.
+  Such an import is now an error only in a file some entry reaches, the one
+  place it could carry keys out of a slice. An unreadable `t()` stays an error
+  anywhere, and an unresolved import in the graph is one as before.
 - **`evinvest-i18n-extract` / `-check` / `-slices` read their arguments
   strictly** (`@evinvest/i18n`, 0.10.0). `--help` used to be ignored, so it ran
   the tool with the defaults — extract rewrote the working directory's
