@@ -67,8 +67,10 @@ const run = (cmd, args, cwd = dir, env = {}) => {
 /** `npm pack` into `.packs/`, answering the tarball's path and version. */
 function pack(pkg) {
   const out = execFileSync("npm", ["pack", "--json", "--pack-destination", packs], { cwd: join(workspace, pkg), encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] });
-  const report = JSON.parse(out.slice(out.lastIndexOf("\n[") + 1 || 0));
-  return { file: join(packs, report[0].filename), version: report[0].version };
+  // npm <= 11 reports an array of packages, npm >= 12 an object keyed by package name.
+  const report = JSON.parse(out.slice(Math.max(out.lastIndexOf("\n["), out.lastIndexOf("\n{")) + 1));
+  const [packed] = Array.isArray(report) ? report : Object.values(report);
+  return { file: join(packs, packed.filename), version: packed.version };
 }
 
 async function freePort() {
