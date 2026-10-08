@@ -127,3 +127,22 @@ describe("FormSelect asking for its list", () => {
     expect(trigger(page.container)).toHaveTextContent("Fuite");
   });
 });
+
+describe("loadLazyParts", () => {
+  it("resolves only once the list's chunk is here, and FormSelect is then the kit's Select right after hydration", async () => {
+    const html = await serverHtml(k => form(k, { defaultValue: "boiler" }));
+    const list = heldChunk();
+    const k = await freshKit({ FormSelectKit: list });
+    let settled = false;
+    const loading = k.kit.loadLazyParts().then(() => (settled = true));
+    await vi.waitFor(() => expect(list.asked).toBe(true));
+    expect(settled).toBe(false);
+
+    list.release();
+    await loading;
+    const page = await hydrate(k, html, form(k, { defaultValue: "boiler" }));
+    expect(page.recoverable).toEqual([]);
+    expect(page.container.querySelector("select")).toBeNull();
+    expect(trigger(page.container)).toHaveTextContent("Chaudière");
+  });
+});
