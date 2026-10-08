@@ -23,7 +23,7 @@
     "@evinvest/kitstart": "^0.18.0",
     "@evinvest/marketing": "^0.3.0",
     "@evinvest/uikit": "^0.27.0",
-    "next": "16.3.6",
+    "next": "16.4.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "server-only": "^0.0.1"
@@ -35,7 +35,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "eslint": "^9.39.5",
-    "eslint-config-next": "16.3.6",
+    "eslint-config-next": "16.4.0",
     "steiger": "^0.6.0",
     "tailwindcss": "^4.3.3",
     "typescript": "5.9.3",
