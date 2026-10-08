@@ -15,15 +15,16 @@ import type { PricingInput, PricingModel } from "../core/pricing/model";
 import { labelOf } from "../core/pricing/label";
 import type { BookingAdapters } from "./booking-adapters";
 import { focusNext } from "./focus-next";
-import { LeadBooking } from "./LeadBooking";
 import type { BookingPart } from "./LeadBookingManual";
 import { LeadCapturePriced, type PricedPart } from "./LeadCapturePriced";
 import { CallbackForm, ChannelLink, ExperimentFields, PhotosAsk, type ChannelIconKey, type ChannelPart, type Experiment } from "./LeadCaptureChannels";
-import { askedInputs, EstimateInputs, EstimateQuestionField, estimatePlan, screensOf, useEstimate, type EstimatePart, type EstimateQuestions } from "./LeadCaptureEstimate";
+import type { EstimatePart } from "./LeadCaptureEstimate";
+import { askedInputs, estimatePlan, screensOf, useEstimate, type EstimateQuestions } from "./estimate-plan";
 import { ConsentField, FormMessage, LocalityField, NameField, PhoneField, type FieldPart } from "./LeadCaptureFields";
 import { NeedField, type LeadCaptureLayout, type LeadNeedDisplay, type LeadNeedOption } from "./LeadCaptureNeed";
-import { PriceBox, PriceCompact, type PricePart } from "./LeadCapturePrice";
-import { IntroField, LeadSteps, type StepsPart, type StepView } from "./LeadCaptureSteps";
+import type { PricePart } from "./LeadCapturePrice";
+import type { StepsPart, StepView } from "./LeadCaptureSteps";
+import { EstimateInputsPart, EstimateQuestionPart, IntroFieldPart, LeadBookingPart, LeadStepsPart, preloadLeadParts, PriceBoxPart, PriceCompactPart } from "./lead-parts";
 import { drawsAt, initialMode, MessengerSlot, messengerShownOf, NO_MESSENGERS, useMessageRef } from "./LeadCaptureMessenger";
 import type { MessengerAt, MessengerKit, MessengerPart, PhoneOptions } from "./messenger/types";
 import { stepOfField, stepsOf, useLeadSteps, type LeadIntro, type StepId } from "./lead-steps";
@@ -246,6 +247,14 @@ export function LeadCapture(props: LeadCaptureProps) {
   // `single` shows its select at the first need until one is picked: that is the need on screen.
   const shownNeed = need ?? (layout === "single" && needDisplay === "select" ? needs[0]?.value : undefined);
   const model = props.pricing ?? null;
+  // From the render, not an effect: hydrating waits for the chunks the card
+  // draws, and an effect would only ask for them after it.
+  preloadLeadParts({
+    steps,
+    tiles: needDisplay !== "select",
+    priced: model !== null && needs.some(n => flowOf(props.flows, model, n.value) !== "quote"),
+    booking: props.booking === undefined,
+  });
   const wanted = flowOf(props.flows, model, shownNeed);
   const estimate = useEstimate(model, shownNeed, wanted, events.estimateShown);
   const flow = estimate.flow;
@@ -457,7 +466,7 @@ export function LeadCapture(props: LeadCaptureProps) {
               sent={sent}
               booking={
                 props.booking === undefined ? (
-                  <LeadBooking booking={bookingOf(place, props.bookingVariant)} sent={sent} locale={locale} text={flowText} adapters={props.bookingAdapters} embed={props.bookingEmbed} formId={formId} classNames={c} />
+                  <LeadBookingPart.Part booking={bookingOf(place, props.bookingVariant)} sent={sent} locale={locale} text={flowText} adapters={props.bookingAdapters} embed={props.bookingEmbed} formId={formId} classNames={c} />
                 ) : typeof props.booking === "function" ? (
                   props.booking(sent)
                 ) : (
@@ -483,9 +492,9 @@ export function LeadCapture(props: LeadCaptureProps) {
   const estimateProps = { locale, answers: estimate.answers, unknownLabel: flowText.estimateUnknown, required: hydrated, enterPicks, onPick: answerPicked, onSelect: stay(estimate.answer), classNames: c };
   const priceShown = model && flow !== "quote" && (
     props.price === "compact" ? (
-      <PriceCompact model={model} flow={flow} price={repriced.price} locale={locale} taxCredit={props.taxCredit} text={flowText} classNames={c} />
+      <PriceCompactPart.Part model={model} flow={flow} price={repriced.price} locale={locale} taxCredit={props.taxCredit} text={flowText} classNames={c} />
     ) : (
-      <PriceBox model={model} flow={flow} price={repriced.price} locale={locale} text={flowText} classNames={c} />
+      <PriceBoxPart.Part model={model} flow={flow} price={repriced.price} locale={locale} text={flowText} classNames={c} />
     )
   );
   const photos = flow === "quote" && shownNeed !== undefined && props.photos?.includes(shownNeed) && !callbackPreset && (
@@ -605,7 +614,7 @@ export function LeadCapture(props: LeadCaptureProps) {
           label: intro?.label ?? "",
           value: chosen?.label ?? null,
           node: intro && (
-            <IntroField
+            <IntroFieldPart.Part
               intro={intro}
               value={introValue}
               onPick={(v, radio) => moveOn(() => (setIntro(v), stepper.next()), radio, false)}
@@ -694,7 +703,7 @@ export function LeadCapture(props: LeadCaptureProps) {
           node: model && shownNeed !== undefined && first && (
             <>
               {inputs.map(input => (
-                <EstimateQuestionField key={input.id} model={model} need={shownNeed} input={input} question={props.questions?.[input.id]} {...estimateProps} />
+                <EstimateQuestionPart.Part key={input.id} model={model} need={shownNeed} input={input} question={props.questions?.[input.id]} {...estimateProps} />
               ))}
               {inputs.length > 1 && (
                 <Button type="button" size="touch" data-lead-chrome="" className={cn("w-full", c?.stepNext)} onClick={() => continueScreen(inputs.map(i => i.id))}>
@@ -747,7 +756,7 @@ export function LeadCapture(props: LeadCaptureProps) {
         {/* Compared by the server, never stored: a lead is taken at the price it was shown. */}
         {flow !== "quote" && repriced.shownCents !== undefined && <input type="hidden" name={SHOWN_CENTS_FIELD} value={repriced.shownCents} />}
         {steps ? (
-          <LeadSteps
+          <LeadStepsPart.Part
             steps={stepIds.map(stepView)}
             current={stepper.current}
             total={total}
@@ -785,7 +794,7 @@ export function LeadCapture(props: LeadCaptureProps) {
               classNames={c}
             />
             <div className={cn("flex-col gap-5", contactClass, c?.contact)}>
-              {model && shownNeed !== undefined && wanted === "estimate" && <EstimateInputs model={model} need={shownNeed} questions={props.questions} {...estimateProps} />}
+              {model && shownNeed !== undefined && wanted === "estimate" && <EstimateInputsPart.Part model={model} need={shownNeed} questions={props.questions} {...estimateProps} />}
               {priceShown}
               {photos}
               {localityField}
