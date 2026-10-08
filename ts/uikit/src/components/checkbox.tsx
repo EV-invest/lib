@@ -4,6 +4,7 @@ import * as React from "react";
 import { cn } from "../lib/cn";
 import { CHECKBOX_BASE, CHECKBOX_INDICATOR } from "../generated/checkbox";
 import { useControllableState } from "../primitives/use-controllable-state";
+import { markLabelable } from "../primitives/labelable";
 import { useFieldControlId } from "./field-context";
 
 export interface CheckboxProps
@@ -68,3 +69,5 @@ export function Checkbox({
     </button>
   );
 }
+
+markLabelable(Checkbox);

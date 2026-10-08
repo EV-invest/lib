@@ -24,6 +24,14 @@ Rust crate and its TypeScript mirror at once.
 
 ### Changed
 
+- **`Field` no longer imports the controls it labels** (`@evinvest/uikit`):
+  `Input`, `Textarea`, `NativeSelect`, `Checkbox`, `Switch`, `SelectTrigger`
+  and `Field` mark themselves in their own modules, and `FieldLabel` checks the
+  mark instead of comparing against a set of imported components. A page with
+  a `Field` but no `Select` no longer ships `Select` and its floating, portal,
+  focus-scope and listbox code — 5–6 KB gz off the cabinet's public token
+  pages. Labelling, ids and `aria-*` wiring are unchanged.
+
 - **`Command` matches like fzf** (`ev_lib` `uikit` and `@evinvest/uikit`): the
   default filter is a case-insensitive subsequence match per space-separated
   term, ranked by word starts, runs and gaps (fzf v1), instead of a substring

@@ -10,6 +10,7 @@ import { usePresence } from "../primitives/presence";
 import { mergeRefs } from "../primitives/merge-refs";
 import { Portal } from "../primitives/portal";
 import { walkElements } from "../primitives/walk-elements";
+import { markLabelable } from "../primitives/labelable";
 import { useFieldControlId } from "./field-context";
 import { SelectChevron } from "./select-chevron";
 import { landOnChosen, tabFromTrigger, useListboxKeys } from "./select-listbox";
@@ -200,6 +201,8 @@ export function SelectTrigger({
     </button>
   );
 }
+
+markLabelable(SelectTrigger);
 
 export interface SelectValueProps extends React.ComponentProps<"span"> {
   placeholder?: string;
