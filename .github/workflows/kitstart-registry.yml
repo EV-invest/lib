@@ -1,12 +1,13 @@
 # Hand-written: `ts/kitstart/template/` installed exactly as a brand installs
 # it — from npm, no tarballs, no workspace links — then its types, tests, lint,
-# `next build`, the bundle budget and the live smoke. Runs on each kitstart
-# release tag and weekly, so a published version that no longer builds (a
+# `next build`, the bundle budget and the live smoke. Runs once npm-publish has
+# uploaded a kitstart release (a tag-push trigger races the upload), and weekly, so a published version that no longer builds (a
 # peer moved under it) is found before the next brand is.
 name: kitstart (registry)
 'on':
-  push:
-    tags: ['@evinvest/kitstart-v*']
+  workflow_run:
+    workflows: [npm-publish]
+    types: [completed]
   schedule:
     - cron: '17 5 * * 1'
   workflow_dispatch: {}
@@ -15,6 +16,7 @@ permissions:
 jobs:
   template-registry:
     name: template from npm
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, '@evinvest/kitstart-v'))
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -22,6 +24,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
