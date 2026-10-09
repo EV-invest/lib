@@ -87,6 +87,9 @@ export {
 } from "./components/empty";
 export type { EmptyMediaVariant, EmptyMediaProps } from "./components/empty";
 
+export { AuthWall } from "./components/auth-wall";
+export type { AuthWallProps } from "./components/auth-wall";
+
 export {
   Field,
   FieldSet,

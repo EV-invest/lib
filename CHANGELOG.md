@@ -22,6 +22,13 @@ Rust crate and its TypeScript mirror at once.
 
 ## [Unreleased]
 
+### Added
+
+- **`AuthWall`** (`ev_lib` `uikit` and `@evinvest/uikit`): what a section shows a
+  caller it is not for — an `Empty` with a lock, a title, a description and an
+  action slot (a guest's sign-in button; nothing, or "request access", for a
+  signed-in caller without the permission).
+
 ### Removed
 
 - **`Chart*` and `Resizable*`** (`ev_lib` + `@evinvest/uikit`, and their class

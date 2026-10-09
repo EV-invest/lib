@@ -33,6 +33,7 @@ pub use ev_lib_classes::{
 
 mod accordion;
 mod alert;
+mod auth_wall;
 mod avatar;
 mod badge;
 mod band;
@@ -74,6 +75,7 @@ mod toggle_group;
 
 pub use accordion::{Accordion, AccordionContent, AccordionItem, AccordionTrigger, AccordionType};
 pub use alert::{Alert, AlertDescription, AlertTitle};
+pub use auth_wall::AuthWall;
 pub use avatar::{Avatar, AvatarFallback, AvatarImage};
 pub use badge::Badge;
 pub use band::{Check, Display, Eyebrow, Prose, Section, SectionHead, Stat};
