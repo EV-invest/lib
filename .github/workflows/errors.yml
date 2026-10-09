@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: Lean cache setup
       run: 'mkdir -p /tmp/nix-lean-cache
 
@@ -39,7 +39,7 @@ jobs:
 
           '
     - name: Lean nix cache (built-only paths)
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         key: nix-lean-${{ runner.os }}-${{ github.run_id }}
         path: /tmp/nix-lean-cache
