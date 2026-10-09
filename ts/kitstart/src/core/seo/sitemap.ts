@@ -1,8 +1,11 @@
+import { AI_CRAWLERS } from "../../generated/contract";
 import { isPublished } from "../place/publication";
 import type { Place } from "../place/types";
 import { placeOrigin, siteOrigin } from "../place/view";
 import { createRouting } from "../routing";
 import type { Site } from "../site";
+
+export { AI_CRAWLERS } from "../../generated/contract";
 
 /**
  * One sitemap per host: a sitemap may only list URLs on its own host, and a
@@ -60,8 +63,6 @@ export function sitemapFor<L extends string, P extends string>(site: Site<L, P>,
   return site.pageKeys.flatMap(page => cluster(site, origin, site.pages[page], page === "home" ? 1 : 0.8));
 }
 
-/** Crawlers named explicitly: several treat a bare wildcard as ambiguous. */
-export const AI_CRAWLERS = ["GPTBot", "ClaudeBot", "PerplexityBot", "Google-Extended"];
 
 /**
  * Allow everything, and point at the host's own sitemap. Unpublished places

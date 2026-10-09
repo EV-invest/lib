@@ -1,4 +1,7 @@
+import { MIN_FILL_MS, RATE_LIMIT_OVERFLOW_KEY } from "../generated/contract";
 import type { SpamVerdict } from "./lead";
+
+export { HONEYPOT_FIELD, LEGACY_HONEYPOT_FIELDS, MIN_FILL_MS, RATE_LIMIT_OVERFLOW_KEY, RENDERED_AT_FIELD } from "../generated/contract";
 
 /**
  * Three cheap barriers, none of which needs the visitor to run a script — the
@@ -7,19 +10,6 @@ import type { SpamVerdict } from "./lead";
  * so a bot learns nothing from the response.
  */
 
-/**
- * The field a human never sees and a form-filling bot fills. A neutral name:
- * a browser's autofill knows `website`, `url` or `company` and would fill the
- * trap for a real person.
- */
-export const HONEYPOT_FIELD = "hp_ref";
-/** The trap's name on pages cached before it was renamed; still read. */
-export const LEGACY_HONEYPOT_FIELDS: readonly string[] = ["website"];
-/** When the form was rendered, in ms since the epoch. */
-export const RENDERED_AT_FIELD = "t";
-
-/** Faster than this from render to submit is a script, not a person. */
-export const MIN_FILL_MS = 3_000;
 /** A render time this far ahead of the clock was forged. */
 const MAX_SKEW_MS = 60_000;
 
@@ -33,8 +23,6 @@ export function checkTiming(renderedAt: string | null, now: number): Screening {
 
 /** How many distinct keys a limiter tracks before new ones share one bucket. */
 export const RATE_LIMIT_MAX_KEYS = 10_000;
-/** The shared bucket keys past the cap count against. */
-export const RATE_LIMIT_OVERFLOW_KEY = "\u0000overflow";
 const PRUNE_EVERY_MS = 1_000;
 
 /**

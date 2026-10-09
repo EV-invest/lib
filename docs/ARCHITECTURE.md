@@ -44,6 +44,71 @@ of the subdirectory.
 ev_lib = { git = "https://github.com/EV-invest/lib.git", default-features = false, features = ["architecture"] }
 ```
 
+## Component map
+
+_As of 2026-10-09._
+
+```
+                         ┌───────────────────────── repo root ─────────────────────────┐
+                         │ theme.css + ev.css ──concat──▶ tokens.css      motion.css   │
+                         │ (hand-edited design tokens, the shared contract)             │
+                         └───────────────┬─────────────────────────────────────────────┘
+                                         │ read by
+┌─ crate ev_lib_classes ─┐               │
+│ class tables:          │               │
+│ ButtonVariant, Size,   │               │
+│ Polarity, Accent, …    │               │
+│ cn!/fuse  (tailwind_   │               │
+│ fuse), CLASS_INVENTORY,│               │
+│ TOKENS_CSS             │               │
+└───────┬────────────────┘               │
+        │ used by                        │
+        ▼                                ▼
+┌──────────────────── crate ev_lib (one library per Cargo feature) ────────────────────┐
+│                                                                                      │
+│  KERNEL (I/O-free, zero-dep)       UI                     I/O libraries (wasm-safe)  │
+│  ┌──────────────┐          ┌───────────────────┐   ┌───────────┐ ┌────────────────┐ │
+│  │ architecture │          │ uikit (Dioxus,    │   │ analytics │ │error_monitoring│ │
+│  │ Id, Entity,  │          │ ~63 components,   │   │ (PostHog) │ │ (Sentry)       │ │
+│  │ Repository,  │          │ primitives)       │   └───────────┘ └───────┬────────┘ │
+│  │ UnitOfWork ✗─┼─Gateway  └───────────────────┘   ┌───────────┐         │ used by │
+│  │ DomainEvent, │          (Gateway can't be       │experiments│ ┌───────▼──────┐  │
+│  │ Specification│           enrolled in UoW)       │ ─sink▶    │ │ otel (native)│  │
+│  └──────────────┘                                  │ no import │ └──────────────┘  │
+│  ┌───────┐ ┌──────────┐                            │ of        │ ┌──────────────┐  │
+│  │ types │ │ settings │─(+settings_drift: tokio)   │ analytics │ │ alerts       │  │
+│  │ Phone,│ │ settings!│                            └───────────┘ │ (native,     │  │
+│  │ Email │ └──────────┘                                          │  Discord)    │  │
+│  └───────┘                                                       └──────────────┘  │
+│              ┌───────────────┐   LocaleRegistry   ┌──────────────────────────────┐ │
+│              │ i18n          │◀───────────────────│ kitstart (pure, no I/O/clock)│ │
+│              │ locales, t!,  │                    │ place · routing · site · ld  │ │
+│              │ ICU fmt,policy│◀──┐                │ meta · sitemap · antispam ·  │ │
+│              └───────────────┘   │ requires       │ contact · query · json       │ │
+│                          ┌───────┴──────┐         └──────────────┬───────────────┘ │
+│                          │ mfe (wasm)   │                        │                 │
+│                          │ mfe! remotes │       tests/fixtures/kitstart/*.json ◀─┐ │
+│                          └──────────────┘       (vectors both ports run)         │ │
+│  ┌───────────────────────────────────┐                                           │ │
+│  │ ts_gen: Ts::{Const,Value,Table,   │                                           │ │
+│  │ Union,Types} via serde + ts-rs    │                                           │ │
+│  └─────────────┬─────────────────────┘                                           │ │
+└────────────────┼──────────────────────────────────────────────────────────────────┼─┘
+                 ▼                                                                 │
+┌─ crate ev_lib_gen (`nix run .#gen`, re-run by pre-commit hook) ──┐               │
+│  manifest(): uikit class tables ─▶ ts/uikit/src/generated/*.ts   │ ts/kitstart ──┘
+│  shared():   i18n/locales, types/e164, experiments/contract,     │
+│              settings/contract, analytics/host, kitstart/contract│
+│              ─▶ ts/<pkg>/src/generated/*.ts                      │
+│  css:        tokens/theme/ev ─▶ rust/classes/css + ts/uikit/styles
+│  inventory:  ─▶ rust/classes/uikit-classes.txt                   │
+└──────────────────────────────────────────────────────────────────┘
+  uikit-viewer (Dioxus web app) ─uses─▶ ev_lib[uikit,wasm]   ≙ ts/uikit/example
+```
+
+What of `ts/` is hand-written rather than generated, and why:
+[`ts/README.md`](../ts/README.md#what-is-not-generated).
+
 ## The `architecture` kernel
 
 Generic DDD building blocks every bounded context implements. Deliberately

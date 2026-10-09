@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { isPublished } from "../core/place/publication";
+import { OG_IMAGE_SIZE } from "../generated/contract";
 import { placeOrigin, siteOrigin, type PlaceView } from "../core/place/view";
 import { ogImageUrl } from "../core/seo/sitemap";
 import { ogLocaleOf, type Site } from "../core/site";
@@ -26,7 +27,6 @@ export interface PageMeta {
   description: string;
 }
 
-const OG_SIZE = { width: 1200, height: 630 } as const;
 const PRE_LAUNCH = { index: false, follow: false } as const;
 
 function others<L extends string, P extends string>(site: Site<L, P>, locale: L): string[] {
@@ -59,7 +59,7 @@ function head<L extends string, P extends string>(site: Site<L, P>, page: Page<L
       ...(page.canonical !== null ? { url: page.canonical } : {}),
       locale: ogLocaleOf(site, page.locale),
       alternateLocale: others(site, page.locale),
-      images: [{ url: page.image, ...OG_SIZE }],
+      images: [{ url: page.image, width: OG_IMAGE_SIZE[0], height: OG_IMAGE_SIZE[1] }],
     },
     twitter: { card: "summary_large_image" },
   };

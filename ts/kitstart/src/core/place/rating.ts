@@ -1,7 +1,7 @@
+import { RATING_MAX_AGE_DAYS } from "../../generated/contract";
 import type { Place, Rating } from "./types";
 
-/** Google Business Profile API policy: no cached copy older than this. */
-export const RATING_MAX_AGE_DAYS = 30;
+export { RATING_MAX_AGE_DAYS } from "../../generated/contract";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;

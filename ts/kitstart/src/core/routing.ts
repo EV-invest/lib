@@ -1,3 +1,4 @@
+import { GONE, HOST_MARK, NON_PAGE_ROUTES, THANKS } from "../generated/contract";
 import type { LinkMode } from "./place/view";
 import type { Site } from "./site";
 
@@ -33,17 +34,10 @@ import type { Site } from "./site";
  * `/sitemap.xml`, `/og` and the brand's files pass straight through.
  */
 
-/** Not indexable, not in the sitemap, but negotiated like any other page. */
-export const THANKS = "/thanks";
-
-export const LANG_COOKIE = "lang";
-export const LANG_COOKIE_MAX_AGE = 31_536_000;
-
-/** The prefix a `[location]` route param carries in host link mode. */
-export const HOST_MARK = "_";
+export { GONE, GONE_HEADER, HOST_MARK, LANG_COOKIE, LANG_COOKIE_MAX_AGE, NON_PAGE_ROUTES, THANKS } from "../generated/contract";
 
 /**
- * How a dead path reaches a 404 a visitor without JavaScript can read.
+ * The path no route matches, in a language.
  *
  * Next 16 cannot put a `notFound()` boundary into the HTML: that response is
  * an empty `<html id="__next_error__">` the client fills in after hydration.
@@ -53,21 +47,15 @@ export const HOST_MARK = "_";
  * says which language and place the 404 speaks for in {@link GONE_HEADER}.
  * Reserved: no place may take `404` as its slug.
  */
-export const GONE = "404";
-
-/** The path no route matches, in a language. */
 export function gonePath(locale: string): string {
   return `/${locale}/${GONE}/${GONE}`;
 }
 
 /**
- * Set only by the proxy, on a `gone` rewrite, and stripped from every other
- * request; read only by the global not-found page, a route of its own — a
- * page that read it would render per request, and none does.
+ * `fr` or `fr/_royat`: the 404's language and, if it has one, its place. Read
+ * only by the global not-found page, a route of its own — a page that read it
+ * would render per request, and none does.
  */
-export const GONE_HEADER = "x-landing-not-found";
-
-/** `fr` or `fr/_royat`: the 404's language and, if it has one, its place. */
 export function goneHeader(locale: string, location: string | null): string {
   return location ? `${locale}/${location}` : locale;
 }
@@ -79,19 +67,11 @@ export function parseGoneHeader(value: string | null): { locale?: string; locati
   return { ...(locale ? { locale } : {}), ...(location ? { location } : {}) };
 }
 
-/**
- * The routes every landing has outside `[locale]`, which pass untouched: the
- * form target, its booking request (`bookingRoute`) and its price
- * confirmation (`confirmRoute`), the OG card, the probe, the sitemap and robots. Anything else without a language but
- * `/_next/…` and the site's `publicFiles` is `gone`.
- */
-export const NON_PAGE_ROUTES: readonly string[] = ["/quote", "/quote/booking", "/quote/confirm", "/og", "/health", "/sitemap.xml", "/robots.txt"];
-
 /** @deprecated The same list as {@link NON_PAGE_ROUTES}, under its old name. */
 export const PASS_PATHS: readonly string[] = NON_PAGE_ROUTES;
 
 function isInfrastructure(pathname: string, publicFiles: readonly string[]): boolean {
-  return NON_PAGE_ROUTES.includes(pathname) || publicFiles.includes(pathname) || pathname.startsWith("/_next/");
+  return (NON_PAGE_ROUTES as readonly string[]).includes(pathname) || publicFiles.includes(pathname) || pathname.startsWith("/_next/");
 }
 
 /** The `[location]` param for a slug in a mode: `_royat` on its host, `royat` through the apex. */

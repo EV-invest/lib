@@ -10,7 +10,7 @@
  */
 
 import { Brand, type Branded } from './brand';
-import { COUNTRY_CODES, MAX_DIGITS, MIN_DIGITS } from './generated/e164';
+import { COUNTRY_CODES, MAX_DIGITS, MIN_DIGITS, type PhoneNumberErrorCode } from './generated/e164';
 
 // ── Error ─────────────────────────────────────────────────────────────────────
 
@@ -18,13 +18,7 @@ import { COUNTRY_CODES, MAX_DIGITS, MIN_DIGITS } from './generated/e164';
 export interface PhoneNumberError {
   readonly ok: false;
   /** Machine-readable code — stable across versions. */
-  readonly code:
-    | 'empty'
-    | 'no_plus_prefix'
-    | 'non_digit_chars'
-    | 'too_short'
-    | 'too_long'
-    | 'invalid_country_code';
+  readonly code: PhoneNumberErrorCode;
   /** Human-readable description (safe for user display). */
   readonly message: string;
 }

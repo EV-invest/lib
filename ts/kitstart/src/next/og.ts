@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og.js";
 import type { ReactElement } from "react";
 import { memoByKey } from "../core/memo";
+import { OG_IMAGE_SIZE } from "../generated/contract";
 import type { Place } from "../core/place/types";
 import { bakedPlace, type Site } from "../core/site";
 
@@ -38,8 +39,8 @@ export function ogRoute<L extends string, P extends string>(
   site: Site<L, P>,
   options: OgOptions<L, P>,
 ): (request: Request) => Promise<Response> {
-  const width = options.width ?? 1200;
-  const height = options.height ?? 630;
+  const width = options.width ?? OG_IMAGE_SIZE[0];
+  const height = options.height ?? OG_IMAGE_SIZE[1];
   // Read once per process, like the cards; a failed read is retried next time.
   let fonts: Promise<OgFont[]> | undefined;
   const loadFonts = (): Promise<OgFont[]> => {
