@@ -27,7 +27,12 @@ export interface PlaceLive<L extends string> {
   telegram?: string;
   /** The panel's kill switches for the messengers; a key left out is on. */
   messengers?: MessengerSwitches;
+  /** Where the place asks for a Google review (`REVIEW_HOSTS`, `https:` only); one that does not validate is dropped. */
+  reviewUrl?: string;
 }
+
+/** The hosts Google's own review links live on: `g.page/r/…` and `search.google.com/local/writereview`. */
+const REVIEW_HOSTS: readonly string[] = ["g.page", "search.google.com"];
 
 const DAYS: readonly DayOfWeek[] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -73,6 +78,13 @@ function httpsUrl(v: unknown): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+function reviewUrl(v: unknown): string | undefined {
+  const s = httpsUrl(v);
+  if (!s) return undefined;
+  // `httpsUrl` parsed it once already; a host check on the string would be fooled by userinfo (`https://g.page@evil.example`).
+  return REVIEW_HOSTS.includes(new URL(s).hostname) ? s : undefined;
 }
 
 function landmark<L extends string>(v: unknown, locales: readonly L[]): Record<L, string> | undefined {
@@ -150,6 +162,8 @@ export function parsePlaceLive<L extends string>(body: unknown, locales: readonl
   if (bot && TELEGRAM_BOT.test(bot)) live.telegram = bot;
   const m = messengers(body.messengers);
   if (m) live.messengers = m;
+  const review = reviewUrl(body.reviewUrl);
+  if (review) live.reviewUrl = review;
   return live;
 }
 
@@ -181,5 +195,6 @@ export function mergeLive<L extends string>(baked: Place<L>, live: PlaceLive<L>)
     rating: live.rating ?? baked.rating,
     ...(booking ? { booking } : {}),
     ...(switches ? { messengers: switches } : {}),
+    ...(live.reviewUrl ? { reviewUrl: live.reviewUrl } : {}),
   };
 }

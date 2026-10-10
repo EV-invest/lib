@@ -57,6 +57,27 @@ export interface LeadWebhookContext {
    * on a lead that has one; otherwise absent, and the body must not carry it.
    */
   messageRef?: string;
+  /**
+   * The language the visitor read the page in, as the panel's
+   * `properties.locale` takes it (`panelLocaleOf`): `fr` or `en` only, and
+   * only under `panelLocale`; otherwise absent, and the body must not carry
+   * the property. `panelLocaleProperties` writes it.
+   */
+  panelLocale?: PanelLocale;
+}
+
+/** The languages the Service-Arb panel's `lead.created` takes in `properties.locale`. */
+export type PanelLocale = "fr" | "en";
+
+/** The panel's locale for a site locale (`fr`, `en-GB` → `en`), or nothing for one it does not take. */
+export function panelLocaleOf(locale: string): PanelLocale | undefined {
+  const primary = locale.toLowerCase().split(/[-_]/, 1)[0];
+  return primary === "fr" || primary === "en" ? primary : undefined;
+}
+
+/** `ctx.panelLocale` as `lead.created`'s properties, to spread into the body's `properties`; `{}` without one. */
+export function panelLocaleProperties(locale: PanelLocale | undefined): { locale?: PanelLocale } {
+  return locale ? { locale } : {};
 }
 
 /** A lead's sale as the panel's `lead.created` may carry it. */
@@ -160,6 +181,8 @@ export interface LeadWebhook {
   readonly panelBooking?: boolean;
   /** Whether `ctx.channel` says `whatsapp` / `telegram` and `ctx.messageRef` is filled in (`LeadWebhookOptions.panelMessenger`). */
   readonly panelMessenger?: boolean;
+  /** Whether `ctx.panelLocale` is filled in (`LeadWebhookOptions.panelLocale`). */
+  readonly panelLocale?: boolean;
   /**
    * Queues `booking.requested@1` behind the lead's `lead.created`, through
    * the same outbox: not sent until that row is delivered, and a `409` / `425`
@@ -213,6 +236,13 @@ export interface LeadWebhookOptions extends WebhookOutboxOptions {
    * messenger lead goes as a `form`, without its reference.
    */
   panelMessenger?: boolean;
+  /**
+   * The switch for `properties.locale` (`ctx.panelLocale`: `fr` or `en`). Off
+   * (the default) until the panel's `lead.created` accepts the property — it
+   * refuses an unknown one, and the outbox would park the lead. Off, the
+   * context carries nothing and the body is as it was.
+   */
+  panelLocale?: boolean;
   /** The body of `booking.requested@1`; absent → booking requests are dropped whatever `panelBooking` says. */
   buildBookingBody?: BuildBookingBody | undefined;
 }
@@ -227,7 +257,7 @@ export function leadWebhook(
   env: Pick<ServerEnv, "leadsDb" | "leadWebhook">,
   options: LeadWebhookOptions,
 ): LeadWebhook | null {
-  const { buildBody, buildBookingBody, signing, panelSuspect = false, panelFlow = false, panelBooking = false, panelMessenger = false, ...outboxOptions } = options;
+  const { buildBody, buildBookingBody, signing, panelSuspect = false, panelFlow = false, panelBooking = false, panelMessenger = false, panelLocale = false, ...outboxOptions } = options;
   if (!env.leadWebhook || !buildBody) return null;
   if (env.leadsDb.kind !== "sqlite") throw new Error("LEAD_WEBHOOK_URL: the webhook outbox needs the sqlite lead store");
   const outbox = openWebhookOutbox(env.leadsDb.path, { ...env.leadWebhook, signing }, outboxOptions);
@@ -239,6 +269,7 @@ export function leadWebhook(
     panelFlow,
     panelBooking,
     panelMessenger,
+    panelLocale,
     requestBooking(request) {
       if (!panelBooking || !buildBookingBody) return { kind: "off" };
       // The lead's own row, as `enqueue` refs it: the booking follows it, and
@@ -259,6 +290,7 @@ export function leadWebhook(
     enqueue(lead, id, meta) {
       const suspect = panelSuspect ? suspectOf(lead) : undefined;
       const flow = panelFlow ? panelFlowOf(lead) : undefined;
+      const locale = panelLocale ? panelLocaleOf(meta.locale) : undefined;
       const ctx: LeadWebhookContext = {
         leadId: id,
         brandId: site.brand.id,
@@ -269,6 +301,7 @@ export function leadWebhook(
         ...(flow ? { flow } : {}),
         channel: panelChannel(channelOf(lead), panelMessenger),
         ...(panelMessenger && lead.messageRef ? { messageRef: lead.messageRef } : {}),
+        ...(locale ? { panelLocale: locale } : {}),
       };
       const body = JSON.stringify(buildBody(lead, ctx));
       if (typeof body !== "string") throw new Error("buildWebhookBody returned nothing JSON can carry");

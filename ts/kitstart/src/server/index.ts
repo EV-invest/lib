@@ -41,6 +41,8 @@ export {
   panelChannel,
   panelFlowOf,
   panelFlowProperties,
+  panelLocaleOf,
+  panelLocaleProperties,
   type BookingQueued,
   type BookingWebhookContext,
   type BuildBookingBody,
@@ -51,6 +53,7 @@ export {
   type PanelChannel,
   type PanelFlow,
   type PanelFlowProperties,
+  type PanelLocale,
 } from "./lead-webhook";
 export {
   checkWebhookUrl,

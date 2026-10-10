@@ -24,6 +24,14 @@ Rust crate and its TypeScript mirror at once.
 
 ### Added
 
+- **`PlaceLive.reviewUrl` and `panelLocale`** (`@evinvest/kitstart`, minor).
+  `reviewUrl`: where the place asks for a Google review, read from the live
+  source and merged onto `Place.reviewUrl`; only `https:` on `g.page` or
+  `search.google.com`, anything else is dropped like an invalid booking.
+  `panelLocale` (`leadWebhook` option, off): `ctx.panelLocale` is `fr` or
+  `en`, and `panelLocaleProperties(ctx.panelLocale)` writes
+  `properties.locale` for `lead.created`. Off, the context and the body are
+  unchanged — the panel refuses a property it does not know.
 - **`AuthWall`** (`ev_lib` `uikit` and `@evinvest/uikit`): what a section shows a
   caller it is not for — an `Empty` with a lock, a title, a description and an
   action slot (a guest's sign-in button; nothing, or "request access", for a
