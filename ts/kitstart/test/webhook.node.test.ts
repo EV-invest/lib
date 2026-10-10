@@ -9,11 +9,14 @@ import {
   leadWebhook,
   openWebhookOutbox,
   panelChannel,
+  panelLocaleOf,
+  panelLocaleProperties,
   WEBHOOK_HORIZON_MS,
   WEBHOOK_MAX_DELAY_MS,
   parseServerEnv,
   signatureHeaders,
   signWebhook,
+  type LeadWebhookContext,
   type WebhookOutbox,
   type WebhookTarget,
 } from "../src/server/index";
@@ -365,6 +368,87 @@ describe("the lead webhook", () => {
     expect(seen[0]?.body).toBe(seen[1]?.body);
     expect(JSON.parse(seen[0]?.body ?? "")).toMatchObject({ lead: 7, brand: "aquafix", at: "2026-09-30T10:00:00.000Z", locale: "fr", phone: PII.mobile });
     expect(hook.outbox.rows()).toMatchObject([{ ref: "lead:7", state: "delivered", attempts: 2 }]);
+  });
+});
+
+describe("the panel's locale", () => {
+  it("is fr or en by the language part of the site locale, and nothing for any other", () => {
+    expect(panelLocaleOf("fr")).toBe("fr");
+    expect(panelLocaleOf("en-GB")).toBe("en");
+    expect(panelLocaleOf("FR_ca")).toBe("fr");
+    expect(panelLocaleOf("ru")).toBeUndefined();
+    expect(panelLocaleOf("")).toBeUndefined();
+    expect(panelLocaleOf("fra")).toBeUndefined();
+  });
+
+  it("writes the property only for a locale the panel takes", () => {
+    expect(panelLocaleProperties("fr")).toEqual({ locale: "fr" });
+    expect(panelLocaleProperties(undefined)).toEqual({});
+  });
+
+  describe("through the lead webhook", () => {
+    const site = { brand: { id: "aquafix" } };
+    const on = { leadsDb: { kind: "sqlite" as const, path: ":memory:" }, leadWebhook: { url: TARGET.url, keyId: "k", secret: "s" } };
+
+    /** The contexts the brand's builder saw, and the bodies it made from them the way a brand writes it, as the receiver got them. */
+    function hook(panelLocale?: boolean) {
+      const contexts: LeadWebhookContext[] = [];
+      const { fetch, seen } = receiver(new Response(null, { status: 204 }));
+      const h = leadWebhook(site, on, {
+        signing: SIGNING,
+        buildBody: (l: Lead, ctx: LeadWebhookContext) => {
+          contexts.push(ctx);
+          return { id: ctx.idempotencyKey, phone: l.mobile, properties: { ...panelLocaleProperties(ctx.panelLocale), subject: l.subject } };
+        },
+        fetch,
+        log: quiet(),
+        ...(panelLocale === undefined ? {} : { panelLocale }),
+      });
+      if (!h) throw new Error("expected the webhook on");
+      opened.push(h.outbox);
+      const sentProperties = async (): Promise<Record<string, unknown>> => {
+        await h.tick();
+        return (JSON.parse(seen[0]?.body ?? "null") as { properties: Record<string, unknown> }).properties;
+      };
+      return { h, contexts, sentProperties };
+    }
+
+    it("is off by default: the context carries no panelLocale and the body is as it was", async () => {
+      const { h, contexts, sentProperties } = hook();
+      expect(h.panelLocale).toBe(false);
+      h.enqueue(lead, 1, { locale: "fr", formId: "quote" });
+      expect("panelLocale" in (contexts[0] ?? {})).toBe(false);
+      expect(contexts[0]?.locale).toBe("fr");
+      expect(await sentProperties()).toEqual({ subject: "hot_water" });
+    });
+
+    it("is off when asked off, whatever the locale", async () => {
+      const { h, contexts, sentProperties } = hook(false);
+      expect(h.panelLocale).toBe(false);
+      h.enqueue(lead, 1, { locale: "en-GB", formId: "quote" });
+      expect("panelLocale" in (contexts[0] ?? {})).toBe(false);
+      expect(await sentProperties()).toEqual({ subject: "hot_water" });
+    });
+
+    it("hands fr and en to the builder under panelLocale, and the body carries them", async () => {
+      const { h, contexts, sentProperties } = hook(true);
+      expect(h.panelLocale).toBe(true);
+      h.enqueue(lead, 1, { locale: "fr", formId: "quote" });
+      expect(contexts[0]?.panelLocale).toBe("fr");
+      expect(await sentProperties()).toEqual({ locale: "fr", subject: "hot_water" });
+      const second = hook(true);
+      second.h.enqueue(lead, 2, { locale: "en-GB", formId: "quote" });
+      expect(second.contexts[0]?.panelLocale).toBe("en");
+      expect(await second.sentProperties()).toEqual({ locale: "en", subject: "hot_water" });
+    });
+
+    it("leaves a locale the panel does not take out of the context and the body", async () => {
+      const { h, contexts, sentProperties } = hook(true);
+      h.enqueue(lead, 1, { locale: "ru", formId: "quote" });
+      expect("panelLocale" in (contexts[0] ?? {})).toBe(false);
+      expect(contexts[0]?.locale).toBe("ru");
+      expect(await sentProperties()).toEqual({ subject: "hot_water" });
+    });
   });
 });
 

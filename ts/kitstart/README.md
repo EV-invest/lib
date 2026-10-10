@@ -937,6 +937,13 @@ export const POST = quoteRoute(site, { env: serverEnv, notifier, webhook, unavai
   suspect, for the body's `suspect` property. Off by default, and to stay off
   until the panel's `lead.created` accepts the property: it refuses an
   unknown one, and the outbox would park the lead. Off, nothing changes.
+- **The visitor's language: `panelLocale`, off.** With
+  `leadWebhook(…, { panelLocale: true })` `ctx.panelLocale` is `fr` or `en`
+  (the site locale's language, `panelLocaleOf`; a locale the panel does not
+  take leaves it absent), and `panelLocaleProperties(ctx.panelLocale)` writes
+  it as `lead.created`'s `properties.locale`. Off by default, and to stay off
+  until the panel accepts the property — it refuses an unknown one, and the
+  outbox would park the lead. Off, the context and the body are as before.
 - **The sale: `panelFlow`, off.** With `leadWebhook(…, { panelFlow: true })`
   `ctx.flow` says how the need was sold (`panelFlowOf(lead)`), and
   `panelFlowProperties(ctx.flow)` writes it as `lead.created`'s properties:

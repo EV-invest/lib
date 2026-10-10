@@ -95,6 +95,8 @@ export interface Place<L extends string> {
    * settings); absent → `DEFAULT_BOOKING`, a call (`bookingOf`).
    */
   booking?: BookingConfig;
+  /** Where the place asks for a Google review (`PlaceLive.reviewUrl`); live only, absent until the panel sends it. */
+  reviewUrl?: string;
 }
 
 /** Which messengers the panel lets a place offer; a key left out is on. */
