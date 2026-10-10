@@ -225,3 +225,40 @@ describe("a place's booking, live over baked", () => {
     expect("booking" in mergeLive(sab(), {})).toBe(false);
   });
 });
+
+describe("a place's review link, live only", () => {
+  const writeReview = "https://search.google.com/local/writereview?placeid=x";
+
+  it("takes Google's own review links over https", () => {
+    expect(parsePlaceLive({ reviewUrl: "https://g.page/r/x" }, ["fr"])).toEqual({ reviewUrl: "https://g.page/r/x" });
+    expect(parsePlaceLive({ reviewUrl: writeReview }, ["fr"])).toEqual({ reviewUrl: writeReview });
+  });
+
+  it("drops a link on another host, even one that merely starts or ends like Google's", () => {
+    for (const bad of ["https://evil.example/r/x", "https://g.page.evil.example/r/x", "https://evil-g.page/r/x", "https://search.google.com.evil.example/local/writereview"]) {
+      expect(parsePlaceLive({ reviewUrl: bad }, ["fr"])).toEqual({});
+    }
+  });
+
+  it("drops a link whose userinfo names Google while the host is someone else's", () => {
+    expect(parsePlaceLive({ reviewUrl: "https://g.page@evil.example/r/x" }, ["fr"])).toEqual({});
+    expect(parsePlaceLive({ reviewUrl: "https://g.page:pw@evil.example/r/x" }, ["fr"])).toEqual({});
+  });
+
+  it("drops a link that is not https", () => {
+    expect(parsePlaceLive({ reviewUrl: "http://g.page/r/x" }, ["fr"])).toEqual({});
+    expect(parsePlaceLive({ reviewUrl: "javascript:alert(1)//g.page" }, ["fr"])).toEqual({});
+  });
+
+  it("drops a value that is not a string, and keeps the rest of the body", () => {
+    for (const bad of [null, 42, true, {}, ["https://g.page/r/x"], ""]) {
+      expect(parsePlaceLive({ reviewUrl: bad }, ["fr"])).toEqual({});
+    }
+    expect(parsePlaceLive({ phone: "+33 4 00 00 00 00", reviewUrl: "https://evil.example/x" }, ["fr"])).toEqual({ phone: "+33 4 00 00 00 00" });
+  });
+
+  it("merges the live link into the place, and leaves the field out when there is none", () => {
+    expect(mergeLive(sab(), { reviewUrl: "https://g.page/r/x" }).reviewUrl).toBe("https://g.page/r/x");
+    expect("reviewUrl" in mergeLive(sab(), {})).toBe(false);
+  });
+});
